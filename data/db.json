@@ -1,0 +1,835 @@
+{
+  "products": [
+    {
+      "id": 1,
+      "name": "1 Kişilik Maxi Karışık Menü",
+      "category": "menu",
+      "price": 450,
+      "stock": 25,
+      "isAvailable": true,
+      "trackStock": true,
+      "criticalThreshold": 5,
+      "description": "1 Adet Maxi Karışık Sandviç + Çıtır Patates Kızartması + Soğuk Kutu İçecek (Cola veya Ayran).",
+      "image": "/uploads/product_1793537744343_ed1b3b25_Gemini_Generated_Image_v9sfu4v9sfu4v9sf.jpg",
+      "badge": "En Çok Satan"
+    },
+    {
+      "id": 2,
+      "name": "2 Kişilik Maxi Karışık Menü",
+      "category": "menu",
+      "price": 720,
+      "stock": 31,
+      "isAvailable": true,
+      "trackStock": true,
+      "criticalThreshold": 5,
+      "description": "2 Adet Maxi Karışık Sandviç + Büyük Boy Çıtır Patates Kızartması + 1 Litre Soğuk İçecek.",
+      "image": "/images/kasap_sucuk_ekmek.jpg",
+      "badge": "İkili Fırsat"
+    },
+    {
+      "id": 3,
+      "name": "3 Kişilik Maxi Karışık Menü",
+      "category": "menu",
+      "price": 970,
+      "stock": 21,
+      "isAvailable": true,
+      "trackStock": true,
+      "criticalThreshold": 4,
+      "description": "3 Adet Maxi Karışık Sandviç + 1.5 Porsiyon Çıtır Patates Kızartması + 1 Litre Soğuk İçecek.",
+      "image": "/images/kasap_kofte_ekmek.jpg",
+      "badge": "3'lü Menü"
+    },
+    {
+      "id": 4,
+      "name": "4 Kişilik Aile & Arkadaş Menüsü",
+      "category": "menu",
+      "price": 1420,
+      "stock": 16,
+      "isAvailable": true,
+      "trackStock": true,
+      "criticalThreshold": 3,
+      "description": "4 Adet Maxi Karışık Sandviç + Duble Porsiyon Çıtır Patates Kızartması + 2.5 Litre Soğuk İçecek.",
+      "image": "/images/hero_banner.jpg",
+      "badge": "Dev Paket"
+    },
+    {
+      "id": 5,
+      "name": "Hamburger Menüsü (Seçmeli)",
+      "category": "menu",
+      "price": 430,
+      "stock": 30,
+      "isAvailable": true,
+      "trackStock": true,
+      "criticalThreshold": 5,
+      "description": "Seçeceğiniz Hamburger, Salamlı, Sucuklu veya Sosisli Sandviç + Patates Kızartması + Kutu İçecek.",
+      "image": "/images/cheeseburger.jpg",
+      "badge": "Klasik Menü"
+    },
+    {
+      "id": 6,
+      "name": "Maxi Karışık",
+      "category": "sandwich",
+      "price": 230,
+      "stock": 38,
+      "isAvailable": true,
+      "trackStock": true,
+      "criticalThreshold": 5,
+      "description": "Sosis, salam, sucuk, eritilmiş kaşar, ketçap, mayonez, kornişon turşu.",
+      "image": "/images/hero_banner.jpg",
+      "badge": "Spesiyal"
+    },
+    {
+      "id": 7,
+      "name": "Full Karışık",
+      "category": "sandwich",
+      "price": 220,
+      "stock": 31,
+      "isAvailable": true,
+      "trackStock": true,
+      "criticalThreshold": 5,
+      "description": "Sosis, salam, sucuk, kaşar, ketçap, mayonez, turşu.",
+      "image": "https://images.unsplash.com/photo-1528735602780-2552fd46c7af?auto=format&fit=crop&q=80&w=800",
+      "badge": "Favori"
+    },
+    {
+      "id": 8,
+      "name": "Çeşme Kumru",
+      "category": "sandwich",
+      "price": 260,
+      "stock": 25,
+      "isAvailable": true,
+      "trackStock": true,
+      "criticalThreshold": 4,
+      "description": "Özel susamlı kumru ekmeğinde ızgara sucuk, salam, taze domates, eritilmiş kaşar, ketçap, mayonez, turşu.",
+      "image": "https://images.unsplash.com/photo-1550547660-d9450f859349?auto=format&fit=crop&q=80&w=800",
+      "badge": "İzmir Usulü"
+    },
+    {
+      "id": 9,
+      "name": "Sucuk Kaşar Sandviç",
+      "category": "sandwich",
+      "price": 230,
+      "stock": 24,
+      "isAvailable": true,
+      "trackStock": true,
+      "criticalThreshold": 5,
+      "description": "Kızarmış Kangal sucuk dilimleri, bol eritilmiş kaşar peyniri, ketçap, mayonez, turşu.",
+      "image": "/images/kasap_sucuk_ekmek.jpg",
+      "badge": "Klasik"
+    },
+    {
+      "id": 10,
+      "name": "Sucuk Ekmek",
+      "category": "sandwich",
+      "price": 220,
+      "stock": 25,
+      "isAvailable": true,
+      "trackStock": true,
+      "criticalThreshold": 5,
+      "description": "Izgara sucuk dilimleri, domates dilimleri, ketçap, mayonez, kornişon turşu.",
+      "image": "/images/kasap_sucuk_ekmek.jpg"
+    },
+    {
+      "id": 11,
+      "name": "Sucuklu Sandviç",
+      "category": "sandwich",
+      "price": 210,
+      "stock": 25,
+      "isAvailable": true,
+      "trackStock": true,
+      "criticalThreshold": 5,
+      "description": "Kızarmış sucuk dilimleri, ketçap, mayonez, kornişon turşu.",
+      "image": "/images/kasap_sucuk_ekmek.jpg"
+    },
+    {
+      "id": 12,
+      "name": "Sosisli Sandviç",
+      "category": "sandwich",
+      "price": 210,
+      "stock": 30,
+      "isAvailable": true,
+      "trackStock": true,
+      "criticalThreshold": 5,
+      "description": "Özel soslu kızarmış dana sosis dilimleri, ketçap, mayonez, kornişon turşu.",
+      "image": "https://images.unsplash.com/photo-1619740455993-9e612b1af08a?auto=format&fit=crop&q=80&w=800"
+    },
+    {
+      "id": 13,
+      "name": "Salamlı Sandviç",
+      "category": "sandwich",
+      "price": 210,
+      "stock": 25,
+      "isAvailable": true,
+      "trackStock": true,
+      "criticalThreshold": 5,
+      "description": "Kızarmış lezzetli salam dilimleri, ketçap, mayonez, kornişon turşu.",
+      "image": "https://images.unsplash.com/photo-1528735602780-2552fd46c7af?auto=format&fit=crop&q=80&w=800"
+    },
+    {
+      "id": 14,
+      "name": "Kaşarlı Sandviç",
+      "category": "sandwich",
+      "price": 210,
+      "stock": 25,
+      "isAvailable": true,
+      "trackStock": true,
+      "criticalThreshold": 5,
+      "description": "Bol eritilmiş taze kaşar peyniri, domates dilimleri, ketçap, mayonez, turşu.",
+      "image": "https://images.unsplash.com/photo-1528735602780-2552fd46c7af?auto=format&fit=crop&q=80&w=800"
+    },
+    {
+      "id": 15,
+      "name": "Maxi Cheeseburger",
+      "category": "sandwich",
+      "price": 230,
+      "stock": 25,
+      "isAvailable": true,
+      "trackStock": true,
+      "criticalThreshold": 4,
+      "description": "Çift burger köftesi, eritilmiş kaşar, domates, taze marul, ketçap, mayonez, turşu.",
+      "image": "/images/cheeseburger.jpg",
+      "badge": "Çift Köfte"
+    },
+    {
+      "id": 16,
+      "name": "Cheeseburger",
+      "category": "sandwich",
+      "price": 220,
+      "stock": 25,
+      "isAvailable": true,
+      "trackStock": true,
+      "criticalThreshold": 4,
+      "description": "150g sulu burger köftesi, eritilmiş kaşar peyniri, domates, marul, ketçap, mayonez, turşu.",
+      "image": "/images/cheeseburger.jpg"
+    },
+    {
+      "id": 17,
+      "name": "Maxi Burger",
+      "category": "sandwich",
+      "price": 220,
+      "stock": 25,
+      "isAvailable": true,
+      "trackStock": true,
+      "criticalThreshold": 4,
+      "description": "Çift burger köftesi, domates, çıtır marul, ketçap, mayonez, kornişon turşu.",
+      "image": "/images/cheeseburger.jpg",
+      "badge": "Duble Köfte"
+    },
+    {
+      "id": 18,
+      "name": "Klasik Hamburger",
+      "category": "sandwich",
+      "price": 210,
+      "stock": 30,
+      "isAvailable": true,
+      "trackStock": true,
+      "criticalThreshold": 5,
+      "description": "Özel burger köftesi, taze domates dilimleri, marul, ketçap, mayonez, turşu.",
+      "image": "/images/cheeseburger.jpg"
+    },
+    {
+      "id": 19,
+      "name": "Ayvalık Tostu",
+      "category": "sandwich",
+      "price": 230,
+      "stock": 25,
+      "isAvailable": true,
+      "trackStock": true,
+      "criticalThreshold": 5,
+      "description": "Özel Ayvalık ekmeğinde salam, sucuk, kaşar peyniri, ketçap, mayonez, kornişon turşu.",
+      "image": "/images/ayvalik_tostu.jpg",
+      "badge": "Geleneksel"
+    },
+    {
+      "id": 20,
+      "name": "Full Ayvalık Tostu",
+      "category": "sandwich",
+      "price": 270,
+      "stock": 20,
+      "isAvailable": true,
+      "trackStock": true,
+      "criticalThreshold": 4,
+      "description": "Ayvalık ekmeğinde sosis, salam, sucuk, bol eritilmiş kaşar, ketçap, mayonez ve turşu ziyafeti.",
+      "image": "/images/ayvalik_tostu.jpg",
+      "badge": "Dopdolu"
+    },
+    {
+      "id": 21,
+      "name": "Nugget Burger",
+      "category": "sandwich",
+      "price": 200,
+      "stock": 25,
+      "isAvailable": true,
+      "trackStock": true,
+      "criticalThreshold": 5,
+      "description": "5 Adet çıtır altın tavuk nugget, taze marul, domates, ketçap, mayonez, turşu (Kaşarlı seçeneği mevcuttur).",
+      "image": "/images/crispy_chicken_menu.jpg"
+    },
+    {
+      "id": 22,
+      "name": "Patates Ekmek",
+      "category": "sandwich",
+      "price": 200,
+      "stock": 30,
+      "isAvailable": true,
+      "trackStock": true,
+      "criticalThreshold": 5,
+      "description": "Taze somun ekmek arasında bol çıtır patates kızartması, ketçap, mayonez, turşu (Kaşarlı seçeneği mevcuttur).",
+      "image": "/images/loaded_cheddar_fries.jpg"
+    },
+    {
+      "id": 23,
+      "name": "Yarım Ekmek Kasap Köfte",
+      "category": "sandwich",
+      "price": 310,
+      "stock": 20,
+      "isAvailable": true,
+      "trackStock": true,
+      "criticalThreshold": 4,
+      "description": "Yarım ekmekte 6 adet özel kasap köfte, yeşillik, domates, turşu, ketçap, mayonez, soslar, karamelize soğan (Kaşarlı: ₺330).",
+      "image": "/images/kasap_kofte_ekmek.jpg",
+      "badge": "Kasap Spesiyali"
+    },
+    {
+      "id": 24,
+      "name": "3 Parça Kasap Köfte",
+      "category": "sandwich",
+      "price": 370,
+      "stock": 15,
+      "isAvailable": true,
+      "trackStock": true,
+      "criticalThreshold": 3,
+      "description": "3 parça ekmekte 8 adet özel kasap köfte, yeşillik, domates, turşu, soslar, karamelize soğan (Kaşarlı: ₺400).",
+      "image": "/images/kasap_kofte_ekmek.jpg",
+      "badge": "Büyük Boy"
+    },
+    {
+      "id": 25,
+      "name": "Megzi Dürüm",
+      "category": "sandwich",
+      "price": 280,
+      "stock": 20,
+      "isAvailable": true,
+      "trackStock": true,
+      "criticalThreshold": 4,
+      "description": "Özel lavaş dürümde sosis, salam, sucuk, eritilmiş kaşar, çıtır patates, turşu, ketçap, mayonez.",
+      "image": "/images/megzi_durum.jpg",
+      "badge": "Özel Dürüm"
+    },
+    {
+      "id": 26,
+      "name": "Zurna Megzi (Çift Lavaş)",
+      "category": "sandwich",
+      "price": 330,
+      "stock": 18,
+      "isAvailable": true,
+      "trackStock": true,
+      "criticalThreshold": 3,
+      "description": "Çift lavaş zurna dürümde bol sosis, salam, sucuk, kaşar, patates kızartması, turşu, ketçap, mayonez.",
+      "image": "/images/megzi_durum.jpg",
+      "badge": "Dev Zurna"
+    },
+    {
+      "id": 27,
+      "name": "Kasap Sucuğu Sandviç",
+      "category": "sandwich",
+      "price": 310,
+      "stock": 20,
+      "isAvailable": true,
+      "trackStock": true,
+      "criticalThreshold": 4,
+      "description": "Özel kasap sucuğu, kaşar, ketçap, mayonez, domates, turşu, salça sosu, marul (Kaşarlı: ₺330).",
+      "image": "/images/kasap_sucuk_ekmek.jpg",
+      "badge": "Hakiki Kasap"
+    },
+    {
+      "id": 28,
+      "name": "Kasap Sucuğu 3 Parça",
+      "category": "sandwich",
+      "price": 370,
+      "stock": 15,
+      "isAvailable": true,
+      "trackStock": true,
+      "criticalThreshold": 3,
+      "description": "3 parça ekmekte bol kasap sucuğu, eritilmiş kaşar, ketçap, mayonez, domates, turşu, salça, marul (Kaşarlı: ₺400).",
+      "image": "/images/kasap_sucuk_ekmek.jpg",
+      "badge": "Doyurucu"
+    },
+    {
+      "id": 29,
+      "name": "Mix Karışık Kova",
+      "category": "snack",
+      "price": 260,
+      "stock": 25,
+      "isAvailable": true,
+      "trackStock": true,
+      "criticalThreshold": 5,
+      "description": "5 Adet çıtır nugget, 5 adet altın soğan halkası ve bol baharatlı patates kızartması.",
+      "image": "https://images.unsplash.com/photo-1541592106381-b31e9677c0e5?auto=format&fit=crop&q=80&w=800",
+      "badge": "Karışık Kova"
+    },
+    {
+      "id": 30,
+      "name": "Porsiyon Patates Kızartması",
+      "category": "snack",
+      "price": 180,
+      "stock": 40,
+      "isAvailable": true,
+      "trackStock": true,
+      "criticalThreshold": 6,
+      "description": "Taptaze, altın sarısı çıtır çıtır özel baharatlı patates kızartması tabağı.",
+      "image": "/images/loaded_cheddar_fries.jpg"
+    },
+    {
+      "id": 31,
+      "name": "8'li Çıtır Nugget",
+      "category": "snack",
+      "price": 180,
+      "stock": 25,
+      "isAvailable": true,
+      "trackStock": true,
+      "criticalThreshold": 4,
+      "description": "8 Adet dışı altın sarısı çıtır kaplamalı tavuk nugget ve daldırma sosları.",
+      "image": "https://images.unsplash.com/photo-1562967914-608f82629710?auto=format&fit=crop&q=80&w=800"
+    },
+    {
+      "id": 32,
+      "name": "8'li Soğan Halkası",
+      "category": "snack",
+      "price": 180,
+      "stock": 25,
+      "isAvailable": true,
+      "trackStock": true,
+      "criticalThreshold": 4,
+      "description": "8 Adet çıtır tempura hamurlu kızartılmış altın soğan halkası.",
+      "image": "https://images.unsplash.com/photo-1639024471283-03518883512d?auto=format&fit=crop&q=80&w=800"
+    },
+    {
+      "id": 33,
+      "name": "Kutu Soğuk İçecekler (330ml)",
+      "category": "drink",
+      "price": 60,
+      "stock": 50,
+      "isAvailable": true,
+      "trackStock": true,
+      "criticalThreshold": 10,
+      "description": "Pepsi, Pepsi Max, Yedigün, 7Up, Fruko (330ml kutu).",
+      "image": "https://images.unsplash.com/photo-1622483767028-3f66f32aef97?auto=format&fit=crop&q=80&w=800"
+    },
+    {
+      "id": 34,
+      "name": "1 Litre Pepsi",
+      "category": "drink",
+      "price": 100,
+      "stock": 30,
+      "isAvailable": true,
+      "trackStock": true,
+      "criticalThreshold": 6,
+      "description": "1 Litre soğuk şişe Pepsi.",
+      "image": "https://images.unsplash.com/photo-1629203851122-3726ecdf080e?auto=format&fit=crop&q=80&w=800"
+    },
+    {
+      "id": 35,
+      "name": "2.5 Litre Pepsi",
+      "category": "drink",
+      "price": 140,
+      "stock": 20,
+      "isAvailable": true,
+      "trackStock": true,
+      "criticalThreshold": 5,
+      "description": "2.5 Litre dev boy soğuk şişe Pepsi.",
+      "image": "https://images.unsplash.com/photo-1629203851122-3726ecdf080e?auto=format&fit=crop&q=80&w=800"
+    },
+    {
+      "id": 36,
+      "name": "Büyük Ayran (300ml)",
+      "category": "drink",
+      "price": 40,
+      "stock": 40,
+      "isAvailable": true,
+      "trackStock": true,
+      "criticalThreshold": 8,
+      "description": "Geleneksel soğuk, köpüklü taze ayran (300ml).",
+      "image": "https://images.unsplash.com/photo-1571212515416-fef01fc43637?auto=format&fit=crop&q=80&w=800"
+    },
+    {
+      "id": 37,
+      "name": "Küçük Ayran (200ml)",
+      "category": "drink",
+      "price": 35,
+      "stock": 40,
+      "isAvailable": true,
+      "trackStock": true,
+      "criticalThreshold": 8,
+      "description": "Serinletici taze ayran (200ml).",
+      "image": "https://images.unsplash.com/photo-1571212515416-fef01fc43637?auto=format&fit=crop&q=80&w=800"
+    },
+    {
+      "id": 38,
+      "name": "Meyveli Soda",
+      "category": "drink",
+      "price": 40,
+      "stock": 35,
+      "isAvailable": true,
+      "trackStock": true,
+      "criticalThreshold": 6,
+      "description": "Elmalı, limonlu veya çilekli ferahlatıcı meyveli maden suyu.",
+      "image": "https://images.unsplash.com/photo-1513558161293-cdaf765ed2fd?auto=format&fit=crop&q=80&w=800"
+    },
+    {
+      "id": 39,
+      "name": "Sade Soda",
+      "category": "drink",
+      "price": 35,
+      "stock": 35,
+      "isAvailable": true,
+      "trackStock": true,
+      "criticalThreshold": 6,
+      "description": "Doğal zengin mineralli sade maden suyu (200ml).",
+      "image": "https://images.unsplash.com/photo-1543362906-acfc16c67564?auto=format&fit=crop&q=80&w=800"
+    },
+    {
+      "id": 40,
+      "name": "Şalgam Suyu",
+      "category": "drink",
+      "price": 50,
+      "stock": 25,
+      "isAvailable": true,
+      "trackStock": true,
+      "criticalThreshold": 5,
+      "description": "Geleneksel lezzet, soğuk acılı veya acısız şalgam (330ml).",
+      "image": "https://images.unsplash.com/photo-1556881286-fc6915169721?auto=format&fit=crop&q=80&w=800"
+    },
+    {
+      "id": 41,
+      "name": "Su (500ml)",
+      "category": "drink",
+      "price": 15,
+      "stock": 100,
+      "isAvailable": true,
+      "trackStock": true,
+      "criticalThreshold": 15,
+      "description": "Doğal kaynak suyu (0.5 Litre pet şişe).",
+      "image": "https://images.unsplash.com/photo-1548839140-29a749e1bc4e?auto=format&fit=crop&q=80&w=800"
+    }
+  ],
+  "users": [
+    {
+      "id": "u_admin",
+      "name": "Admin Üye",
+      "email": "admin@sandwichdiyari.com",
+      "username": "admin",
+      "phone": "0555 555 55 55",
+      "address": "İzmir, Torbalı",
+      "pass": "admin",
+      "orders": [],
+      "createdAt": "2026-11-02T13:00:00.000Z"
+    }
+  ],
+  "orders": [],
+  "reviews": [
+    {
+      "id": 1793103560807,
+      "name": "Hakan Kocapınar",
+      "rating": 5,
+      "comment": "Geçen gün sipariş verdim Siparişim bugün geldi  teslimat harika",
+      "location": "İstanbul",
+      "initials": "HK",
+      "createdAt": "2026-10-27T12:19:20.807Z",
+      "isApproved": true
+    },
+    {
+      "id": 1,
+      "name": "Murat Yılmaz",
+      "location": "Torbalı, İzmir",
+      "rating": 5,
+      "initials": "MY",
+      "comment": "Torbalı'da yediğim en iyi Maxi Karışık sandviç! Gece saat 02:00'de sipariş verdik, sıcacık ve çıtır çıtır geldi. Ellerinize sağlık.",
+      "isApproved": true
+    },
+    {
+      "id": 2,
+      "name": "Gizem Demir",
+      "location": "Ayrancılar, Torbalı",
+      "rating": 5,
+      "initials": "GD",
+      "comment": "Çeşme kumrusu ve kasap köftesi efsane lezzetli. Malzemeler çok taze ve bol. Alo paketi aradığımızda da kurye çok nazikti.",
+      "isApproved": true
+    }
+  ],
+  "feedback": [],
+  "ingredients": [
+    {
+      "id": "ing-bread-burger",
+      "name": "Hamburger Ekmeği",
+      "category": "Ekmek Grubu",
+      "unit": "Adet",
+      "stock": 25,
+      "criticalThreshold": 5,
+      "icon": "🍔",
+      "description": "Susamlı Brioche Burger Ekmeği"
+    },
+    {
+      "id": "ing-bread-sandwich",
+      "name": "Sandviç Ekmeği",
+      "category": "Ekmek Grubu",
+      "unit": "Adet",
+      "stock": 0,
+      "criticalThreshold": 6,
+      "icon": "🥪",
+      "description": "Fırından Taze Baget Sandviç Ekmeği"
+    },
+    {
+      "id": "ing-meat-patty",
+      "name": "Dana Burger Köftesi",
+      "category": "Et & Köfte",
+      "unit": "Adet",
+      "stock": 55,
+      "criticalThreshold": 5,
+      "icon": "🥩",
+      "description": "150g Dana Kıyma Smash Köfte"
+    },
+    {
+      "id": "ing-meat-chicken",
+      "name": "Çıtır Tavuk Bonfile",
+      "category": "Tavuk Grubu",
+      "unit": "Porsiyon",
+      "stock": 18,
+      "criticalThreshold": 4,
+      "icon": "🍗",
+      "description": "Baharatlı Çıtır Paneleniş Tavuk Göğsü"
+    },
+    {
+      "id": "ing-meat-steak",
+      "name": "Antrikot Steak Dilimleri",
+      "category": "Et & Köfte",
+      "unit": "Porsiyon",
+      "stock": 12,
+      "criticalThreshold": 3,
+      "icon": "🥩",
+      "description": "İnce Dilimlenmiş Dana Antrikot"
+    },
+    {
+      "id": "ing-meat-rib",
+      "name": "Tütsülenmiş Füme Kaburga",
+      "category": "Et & Köfte",
+      "unit": "Porsiyon",
+      "stock": 10,
+      "criticalThreshold": 3,
+      "icon": "🥓",
+      "description": "14 Saat Meşe Odununda Tütsülenmiş Kaburga"
+    },
+    {
+      "id": "ing-meat-sucuk",
+      "name": "Kangal Sucuk Dilimleri",
+      "category": "Şarküteri",
+      "unit": "Porsiyon",
+      "stock": 0,
+      "criticalThreshold": 4,
+      "icon": "🌭",
+      "description": "Kangal Dana Sucuk"
+    },
+    {
+      "id": "ing-cheese-cheddar",
+      "name": "Cheddar Peyniri",
+      "category": "Peynir & Süt",
+      "unit": "Dilim",
+      "stock": 40,
+      "criticalThreshold": 8,
+      "icon": "🧀",
+      "description": "Eritmelik Sarı Cheddar Dilimi"
+    },
+    {
+      "id": "ing-cheese-kasar",
+      "name": "Taze Kaşar Peyniri",
+      "category": "Peynir & Süt",
+      "unit": "Porsiyon",
+      "stock": 25,
+      "criticalThreshold": 5,
+      "icon": "🧀",
+      "description": "Rendelenmiş Taze Kaşar"
+    },
+    {
+      "id": "ing-fries",
+      "name": "Dondurulmuş Patates",
+      "category": "Garnitür & Atıştırmalık",
+      "unit": "Porsiyon",
+      "stock": 35,
+      "criticalThreshold": 6,
+      "icon": "🍟",
+      "description": "Kızartmalık İnce Dilim Patates"
+    },
+    {
+      "id": "ing-mozzarella",
+      "name": "Mozerella Çubuğu",
+      "category": "Garnitür & Atıştırmalık",
+      "unit": "Porsiyon (6 Adet)",
+      "stock": 14,
+      "criticalThreshold": 3,
+      "icon": "🥢",
+      "description": "Altın Sarısı Mozerella Çubukları"
+    },
+    {
+      "id": "ing-onion-rings",
+      "name": "Soğan Halkası",
+      "category": "Garnitür & Atıştırmalık",
+      "unit": "Porsiyon (8 Adet)",
+      "stock": 16,
+      "criticalThreshold": 4,
+      "icon": "🧅",
+      "description": "Çıtır Pane Soğan Halkası"
+    },
+    {
+      "id": "ing-lemonade",
+      "name": "Ev Yapımı Limonata",
+      "category": "İçecek",
+      "unit": "Şişe (330ml)",
+      "stock": 20,
+      "criticalThreshold": 5,
+      "icon": "🍋",
+      "description": "Taze Nane & Limonata"
+    },
+    {
+      "id": "ing-canned-drink",
+      "name": "Kutu Gazlı İçecekler",
+      "category": "İçecek",
+      "unit": "Kutu (330ml)",
+      "stock": 30,
+      "criticalThreshold": 6,
+      "icon": "🥤",
+      "description": "330ml Gazlı Kutu İçecek"
+    }
+  ],
+  "adminUsers": [
+    {
+      "id": "adm_1",
+      "name": "Süper Yönetici",
+      "email": "admin",
+      "phone": "0552 104 55 35",
+      "pass": "admin",
+      "roleId": "role_super_admin",
+      "roleName": "Süper Yönetici",
+      "isActive": true,
+      "createdAt": "2026-10-01T10:00:00Z"
+    },
+    {
+      "id": "adm_1793569141129",
+      "name": "hakan kocapınar",
+      "email": "hknkcpnr@gmail.com",
+      "phone": "0553 855 76 12",
+      "pass": "scrypt$6a894795304a05915b2c6fd4dcc70e6e$b5cc2adefeda9fdc6d317ddf5c89fbd35c6a799635313913b797f6a15cf39503a3e123dd549c2697120d90fc2f9984ae61a9c07fc02dbaae546065e4c7e39c90",
+      "roleId": "role_1793569112231",
+      "roleName": "Personal",
+      "isActive": true,
+      "createdAt": "2026-11-01T21:39:01.187Z"
+    }
+  ],
+  "roles": [
+    {
+      "id": "role_super_admin",
+      "name": "Süper Yönetici",
+      "code": "super_admin",
+      "color": "rose",
+      "description": "Tüm sistem ayarları, kullanıcı/rol yönetimi, finansal raporlar ve operasyon üzerinde tam yetki.",
+      "isSystem": true,
+      "permissions": [
+        "overview",
+        "orders",
+        "inventory",
+        "products",
+        "users",
+        "reviews",
+        "api",
+        "delete_order",
+        "manage_prices",
+        "view_revenue",
+        "settings"
+      ]
+    },
+    {
+      "id": "role_1793569112231",
+      "name": "Personal",
+      "code": "personal_231",
+      "color": "emerald",
+      "description": "Izgaracı",
+      "isSystem": false,
+      "permissions": [
+        "orders",
+        "inventory"
+      ]
+    }
+  ],
+  "siteContent": {
+    "hero": {
+      "visible": true,
+      "image": "/images/hero_sandwich_banner.jpg",
+      "badgeVisible": true,
+      "badgeText": "Torbalı / İzmir • Gece 03:00'e Kadar Paket Servis!",
+      "googleRatingVisible": true,
+      "googleRatingScore": "4.9 / 5.0",
+      "googleRatingCount": "(2,400+ Yorum)",
+      "googleRatingUrl": "https://www.google.com/search?q=Sandvi%C3%A7+Diyar%C4%B1+Torbal%C4%B1",
+      "titlePrimary": "Acıktın mı?",
+      "titleSecondary": "Sandviç Diyarı Torbalı'da!",
+      "description": "Özel ekmeklerle hazırlanan Maxi Karışık, Çeşme Kumru, Kasap Köfte ve avantajlı menülerle ev ve işyerlerine sıcak paket servis.",
+      "btnMenuVisible": true,
+      "btnMenuText": "Menüyü Keşfet",
+      "btnPhoneVisible": true,
+      "btnPhoneText": "0552 104 55 35",
+      "btnPhoneTel": "05521045535"
+    },
+    "campaignsSection": {
+      "visible": true,
+      "badgeText": "Özel Fırsat Kataloğu",
+      "title": "Günün Kampanyalı Ürünleri",
+      "btnAllVisible": true,
+      "btnAllText": "Tümünü Gör"
+    },
+    "newMenusSection": {
+      "visible": true,
+      "badgeText": "Taze Çıktı",
+      "title": "En Yeni Menülerimiz",
+      "itemCount": 3,
+      "btnAllVisible": true,
+      "btnAllText": "Tümünü Gör"
+    },
+    "featuresSection": {
+      "visible": true,
+      "badgeText": "Kalite Garantisi",
+      "title": "Neden Sandwich Diyarı?",
+      "bgImage": "https://images.unsplash.com/photo-1555939594-58d7cb561ad1?auto=format&fit=crop&q=85&w=1800",
+      "items": [
+        {
+          "id": "f1",
+          "icon": "fa-solid fa-seedling",
+          "title": "%100 Günlük Malzeme",
+          "desc": "Sebzelerimiz ve çıtır ekmeklerimiz her sabah yerel taze üreticilerden günlük olarak temin edilir."
+        },
+        {
+          "id": "f2",
+          "icon": "fa-solid fa-motorcycle",
+          "title": "Hızlı & Sıcak Kurye Servisi",
+          "desc": "Özel ısı yalıtımlı kurye çantalarımız ve deneyimli kuryelerimizle lezzetler sıcacık kapınıza gelir."
+        },
+        {
+          "id": "f3",
+          "icon": "fa-solid fa-shield-heart",
+          "title": "Hijyen & Güven",
+          "desc": "Gıda güvenliği ve hijyen standartlarına uygun mutfağımızda tüm siparişleriniz özenle üretilir."
+        }
+      ]
+    },
+    "reviewsSection": {
+      "visible": true,
+      "title": "Lezzet Severler Ne Diyor?",
+      "subtitle": "Torbalı'da her gün yüzlerce sıcak siparişi lezzet tutkunlarıyla buluşturuyoruz."
+    },
+    "contactBar": {
+      "visible": true,
+      "phone1": "0552 104 55 35",
+      "phone2": "0232 856 81 21",
+      "address": "Torbalı Mah. Hüseyin Kurtuldu Sok. No:32 Torbalı/İZMİR",
+      "workingHours": "Hergün 10:00 - 03:00 Gece Servisi"
+    }
+  }
+}

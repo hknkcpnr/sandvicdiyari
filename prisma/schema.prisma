@@ -1,0 +1,210 @@
+// ============================================================================
+// SANDWICH DIYARI - PRISMA ORM SCHEMA FOR POSTGRESQL
+// Veritabanı: PostgreSQL 16+ (JSONB, MVCC, GIN Index) | Dil: TypeScript
+// ============================================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Role {
+  id          String      @id @db.VarChar(64)
+  name        String      @db.VarChar(120)
+  code        String      @unique @db.VarChar(64)
+  color       String      @default("blue") @db.VarChar(32)
+  description String      @db.Text
+  isSystem    Boolean     @default(false) @map("is_system")
+  permissions Json        @db.JsonB
+  createdAt   DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime    @updatedAt @map("updated_at") @db.Timestamptz(6)
+  adminUsers  AdminUser[]
+
+  @@index([code])
+  @@map("roles")
+}
+
+model AdminUser {
+  id        String   @id @db.VarChar(64)
+  name      String   @db.VarChar(150)
+  email     String   @unique @db.VarChar(191)
+  phone     String   @default("") @db.VarChar(32)
+  passHash  String   @map("pass_hash") @db.VarChar(255)
+  roleId    String   @map("role_id") @db.VarChar(64)
+  roleName  String   @map("role_name") @db.VarChar(120)
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+  role      Role     @relation(fields: [roleId], references: [id], onDelete: Restrict)
+
+  @@index([email])
+  @@index([roleId])
+  @@map("admin_users")
+}
+
+model User {
+  id        String   @id @db.VarChar(64)
+  name      String   @db.VarChar(150)
+  email     String   @unique @db.VarChar(191)
+  phone     String   @default("") @db.VarChar(32)
+  address   String   @db.Text
+  passHash  String   @map("pass_hash") @db.VarChar(255)
+  orders    Order[]
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([email])
+  @@index([phone])
+  @@map("users")
+}
+
+model Product {
+  id                Int         @id @default(autoincrement())
+  name              String      @db.VarChar(191)
+  desc              String      @db.Text
+  price             Decimal     @db.Decimal(10, 2)
+  category          String      @db.VarChar(64)
+  badge             String?     @db.VarChar(64)
+  image             String      @db.VarChar(500)
+  calories          String?     @db.VarChar(64)
+  prepTime          String?     @map("prep_time") @db.VarChar(64)
+  rating            Decimal     @default(4.80) @db.Decimal(3, 2)
+  stock             Int         @default(25)
+  trackStock        Boolean     @default(true) @map("track_stock")
+  isAvailable       Boolean     @default(true) @map("is_available")
+  criticalThreshold Int         @default(5) @map("critical_threshold")
+  options           Json?       @db.JsonB
+  recipe            Json?       @db.JsonB
+  createdAt         DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime    @updatedAt @map("updated_at") @db.Timestamptz(6)
+  orderItems        OrderItem[]
+
+  @@index([category])
+  @@index([isAvailable, stock])
+  @@map("products")
+}
+
+model Ingredient {
+  id                String   @id @db.VarChar(64)
+  name              String   @db.VarChar(150)
+  category          String   @default("Genel") @db.VarChar(64)
+  unit              String   @default("Adet") @db.VarChar(32)
+  stock             Decimal  @default(0) @db.Decimal(10, 2)
+  criticalThreshold Decimal  @default(5) @map("critical_threshold") @db.Decimal(10, 2)
+  icon              String   @default("📦") @db.VarChar(16)
+  description       String?  @db.Text
+  updatedAt         DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([category])
+  @@map("ingredients")
+}
+
+model Order {
+  id                 String               @id @db.VarChar(32)
+  orderNumber        String               @unique @map("order_number") @db.VarChar(32)
+  customerName       String               @map("customer_name") @db.VarChar(150)
+  customerPhone      String               @map("customer_phone") @db.VarChar(32)
+  customerAddress    String               @map("customer_address") @db.Text
+  orderNote          String?              @map("order_note") @db.Text
+  paymentMethod      String               @map("payment_method") @db.VarChar(64)
+  paymentStatus      String               @default("Bekleniyor") @map("payment_status") @db.VarChar(32)
+  subtotal           Decimal              @db.Decimal(10, 2)
+  deliveryFee        Decimal              @default(0.00) @map("delivery_fee") @db.Decimal(10, 2)
+  total              Decimal              @db.Decimal(10, 2)
+  userEmail          String?              @map("user_email") @db.VarChar(191)
+  userId             String?              @map("user_id") @db.VarChar(64)
+  status             String               @default("Yeni") @db.VarChar(32)
+  isViewed           Boolean              @default(false) @map("is_viewed")
+  viewedAt           DateTime?            @map("viewed_at") @db.Timestamptz(6)
+  viewedBy           String?              @map("viewed_by") @db.VarChar(120)
+  courierName        String?              @map("courier_name") @db.VarChar(120)
+  deliveredBy        String?              @map("delivered_by") @db.VarChar(120)
+  deliveredAt        DateTime?            @map("delivered_at") @db.Timestamptz(6)
+  cancellationReason String?              @map("cancellation_reason") @db.Text
+  dateLabel          String               @map("date_label") @db.VarChar(32)
+  createdAt          DateTime             @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt          DateTime             @updatedAt @map("updated_at") @db.Timestamptz(6)
+  user               User?                @relation(fields: [userId], references: [id], onDelete: SetNull)
+  items              OrderItem[]
+  statusHistory      OrderStatusHistory[]
+
+  @@index([status])
+  @@index([customerPhone])
+  @@index([userEmail])
+  @@index([createdAt])
+  @@map("orders")
+}
+
+model OrderItem {
+  id              Int      @id @default(autoincrement())
+  orderId         String   @map("order_id") @db.VarChar(32)
+  productId       Int?     @map("product_id")
+  name            String   @db.VarChar(191)
+  price           Decimal  @db.Decimal(10, 2)
+  quantity        Int      @default(1)
+  selectedOptions Json?    @map("selected_options") @db.JsonB
+  order           Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product         Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+
+  @@index([orderId])
+  @@index([productId])
+  @@map("order_items")
+}
+
+model OrderStatusHistory {
+  id        Int      @id @default(autoincrement())
+  orderId   String   @map("order_id") @db.VarChar(32)
+  status    String   @db.VarChar(32)
+  timestamp DateTime @default(now()) @db.Timestamptz(6)
+  user      String   @db.VarChar(120)
+  note      String   @db.Text
+  order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId])
+  @@map("order_status_history")
+}
+
+model Review {
+  id        Int      @id @default(autoincrement())
+  name      String   @db.VarChar(150)
+  initials  String   @db.VarChar(8)
+  location  String   @default("İstanbul") @db.VarChar(100)
+  rating    Int      @default(5)
+  comment   String   @db.Text
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([rating])
+  @@index([createdAt])
+  @@map("reviews")
+}
+
+model Feedback {
+  id        Int      @id @default(autoincrement())
+  name      String   @db.VarChar(150)
+  email     String   @db.VarChar(191)
+  type      String   @default("Öneri / İstek") @db.VarChar(64)
+  message   String   @db.Text
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([type])
+  @@map("feedback")
+}
+
+model SecurityAuditLog {
+  id        String   @id @db.VarChar(64)
+  timestamp DateTime @default(now()) @db.Timestamptz(6)
+  level     String   @db.VarChar(16)
+  category  String   @db.VarChar(32)
+  endpoint  String   @db.VarChar(191)
+  ip        String   @db.VarChar(64)
+  message   String   @db.Text
+  details   Json?    @db.JsonB
+
+  @@index([category, level])
+  @@index([timestamp])
+  @@map("security_audit_logs")
+}

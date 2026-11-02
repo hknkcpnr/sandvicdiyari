@@ -1,0 +1,175 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --font-poppins: 'Poppins', sans-serif;
+}
+
+body {
+  font-family: var(--font-poppins);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Scrollbar hides */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Custom smooth transitions */
+button, a {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Anasayfa İkon Animasyonları (Sayfa Açılışında & Sürekli Canlı Efektler) */
+@keyframes iconPopIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.3) translateY(14px);
+  }
+  70% {
+    opacity: 1;
+    transform: scale(1.18) translateY(-3px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes leafSway {
+  0%, 100% {
+    transform: rotate(0deg) scale(1);
+  }
+  25% {
+    transform: rotate(-8deg) scale(1.06);
+  }
+  75% {
+    transform: rotate(8deg) scale(1.06);
+  }
+}
+
+@keyframes motoRide {
+  0% {
+    opacity: 0;
+    transform: translateX(-28px) rotate(-6deg) scale(0.8);
+  }
+  60% {
+    opacity: 1;
+    transform: translateX(6px) rotate(4deg) scale(1.1);
+  }
+  80% {
+    transform: translateX(-2px) rotate(-2deg) scale(1.02);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0) rotate(0deg) scale(1);
+  }
+}
+
+@keyframes motoCruise {
+  0%, 100% {
+    transform: translateX(0) translateY(0) rotate(0deg);
+  }
+  30% {
+    transform: translateX(4px) translateY(-2px) rotate(-3deg);
+  }
+  70% {
+    transform: translateX(-2px) translateY(0) rotate(2deg);
+  }
+}
+
+@keyframes shieldBeat {
+  0%, 100% {
+    transform: scale(1);
+  }
+  18% {
+    transform: scale(1.14);
+  }
+  36% {
+    transform: scale(0.96);
+  }
+  54% {
+    transform: scale(1.1);
+  }
+}
+
+@keyframes burgerFloat {
+  0%, 100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-6px) rotate(6deg);
+  }
+}
+
+@keyframes phoneRing {
+  0%, 100% {
+    transform: rotate(0deg);
+  }
+  10%, 30%, 50% {
+    transform: rotate(-12deg) scale(1.08);
+  }
+  20%, 40% {
+    transform: rotate(12deg) scale(1.08);
+  }
+  60% {
+    transform: rotate(0deg) scale(1);
+  }
+}
+
+.animate-icon-seedling {
+  display: inline-block;
+  animation: iconPopIn 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) forwards,
+             leafSway 3.2s ease-in-out 0.75s infinite;
+}
+
+.animate-icon-moto {
+  display: inline-block;
+  animation: motoRide 0.85s cubic-bezier(0.22, 1, 0.36, 1) 0.15s both,
+             motoCruise 2.6s ease-in-out 1.05s infinite;
+}
+
+.animate-icon-shield {
+  display: inline-block;
+  animation: iconPopIn 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) 0.3s both,
+             shieldBeat 2.8s ease-in-out 1.1s infinite;
+}
+
+.animate-icon-burger {
+  display: inline-block;
+  animation: iconPopIn 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) both,
+             burgerFloat 3s ease-in-out 0.75s infinite;
+}
+
+.animate-icon-phone {
+  display: inline-block;
+  animation: phoneRing 2.5s ease-in-out 0.5s infinite;
+}
+
+/* Thermal POS Receipt Printing (80mm / 58mm) */
+@media print {
+  body * {
+    visibility: hidden !important;
+  }
+  #thermal-receipt, #thermal-receipt * {
+    visibility: visible !important;
+  }
+  #thermal-receipt {
+    position: fixed !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 80mm !important;
+    padding: 10px !important;
+    margin: 0 !important;
+    background: white !important;
+    color: black !important;
+    font-family: 'Courier New', Courier, monospace !important;
+    display: block !important;
+  }
+}

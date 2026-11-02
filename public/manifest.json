@@ -1,0 +1,16 @@
+{
+  "name": "Sandviç Diyarı Torbalı",
+  "short_name": "Sandviç Diyarı",
+  "description": "Torbalı'da gece 03:00'e kadar kapınıza sıcak sandviç, tost ve burger paket servis!",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#ea580c",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}
