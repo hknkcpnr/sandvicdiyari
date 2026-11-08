@@ -5,6 +5,7 @@ import UsersRolesTab from './UsersRolesTab';
 import MysqlOrmTab from './MysqlOrmTab';
 import SiteContentEditorTab from './SiteContentEditorTab';
 import { DEFAULT_CUSTOMER_NOTIFICATION_SETTINGS } from '@/lib/notificationDefaults';
+import { BANNER_THEMES } from '@/components/CustomerAnnouncementBanner';
 
 export const DEFAULT_ADMIN_SETTINGS = {
   fontSize: 'medium', // 'small' | 'medium' | 'large'
@@ -693,6 +694,58 @@ export default function SettingsTab({
                   />
                 </div>
               </div>
+
+              {/* Canlı Gradyan Bant Önizlemesi */}
+              {(() => {
+                const previewTheme =
+                  BANNER_THEMES[custNotifSettings.bannerType] || BANNER_THEMES.campaign;
+                return (
+                  <div className="pt-1 space-y-1.5">
+                    <span className="text-[10px] font-extrabold uppercase tracking-wider text-stone-400 block">
+                      Canlı Görünüm Önizlemesi
+                    </span>
+                    <div
+                      className={`w-full rounded-xl text-white ${previewTheme.borderClass} shadow-md px-4 py-2.5 flex items-center justify-between gap-3 overflow-hidden`}
+                      style={{ backgroundImage: previewTheme.gradient }}
+                    >
+                      <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                        <span
+                          className={`w-7 h-7 rounded-xl ${previewTheme.iconBox} flex items-center justify-center shrink-0`}
+                        >
+                          <i className={`${previewTheme.icon} text-xs`}></i>
+                        </span>
+                        <div className="min-w-0 flex flex-wrap items-center gap-x-2 gap-y-1">
+                          {custNotifSettings.bannerTitle && (
+                            <strong
+                              className={`${previewTheme.titlePill} font-black tracking-tight text-[11px] px-2.5 py-0.5 rounded-full shrink-0`}
+                            >
+                              {custNotifSettings.bannerTitle}
+                            </strong>
+                          )}
+                          {custNotifSettings.bannerText && (
+                            <span
+                              className="text-white font-semibold text-xs leading-snug"
+                              style={{ textShadow: '0 1px 2px rgba(0, 0, 0, 0.45)' }}
+                            >
+                              {custNotifSettings.bannerText}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      {custNotifSettings.bannerActionPage &&
+                        custNotifSettings.bannerActionPage !== 'none' &&
+                        custNotifSettings.bannerActionLabel && (
+                          <span
+                            className={`${previewTheme.btn} font-extrabold text-[11px] px-3 py-1 rounded-full shrink-0 flex items-center gap-1`}
+                          >
+                            <span>{custNotifSettings.bannerActionLabel}</span>
+                            <i className="fa-solid fa-arrow-right text-[9px]"></i>
+                          </span>
+                        )}
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
           </div>
 
