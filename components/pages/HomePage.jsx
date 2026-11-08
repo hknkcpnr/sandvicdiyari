@@ -368,23 +368,50 @@ export default function HomePage() {
           </div>
         )}
 
-        {/* 5. Müşteri Yorumları Vitrini (Özel Işıltılı & Dokulu Başlık Alanı) */}
+        {/* 5. Müşteri Yorumları Vitrini (Özel Işıltılı & Sıcak Dokulu Başlık Alanı) */}
         {reviewsSection.visible !== false && (
           <div className="py-2">
-            <div className="rounded-3xl p-6 sm:p-10 lg:p-12 border border-stone-200/90 bg-white shadow-xs relative overflow-hidden">
-              {/* Arka Plan 1: Üst Sıcak Işık Halkası (Spotlight Glow) */}
-              <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-4xl h-72 bg-gradient-to-b from-amber-200/40 via-orange-100/25 to-transparent rounded-full blur-3xl pointer-events-none z-0"></div>
+            <div className="rounded-3xl p-6 sm:p-10 lg:p-12 border border-stone-200/90 bg-gradient-to-b from-amber-50/60 via-stone-50/30 to-white shadow-xs relative overflow-hidden">
+              {/* Arka Plan 1: Üst Sıcak Işık Vurgusu (Spotlight Ambient Glow) */}
+              <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-3xl h-72 bg-gradient-to-b from-amber-300/25 via-orange-200/15 to-transparent rounded-full blur-3xl pointer-events-none z-0"></div>
 
-              {/* Arka Plan 2: Modern Geometrik Nokta Izgarası (Dot Pattern Texture) */}
-              <div className="absolute top-0 inset-x-0 h-80 bg-[radial-gradient(#e28743_1.2px,transparent_1.2px)] [background-size:24px_24px] opacity-20 [mask-image:radial-gradient(ellipse_75%_55%_at_50%_30%,#000_40%,transparent_100%)] pointer-events-none z-0"></div>
+              {/* Arka Plan 2: Modern Geometrik Nokta Izgarası (Garantili Inline Style Texture) */}
+              <div
+                className="absolute inset-x-0 top-0 h-72 opacity-35 pointer-events-none z-0"
+                style={{
+                  backgroundImage: 'radial-gradient(#f59e0b 1.2px, transparent 1.2px)',
+                  backgroundSize: '22px 22px',
+                  maskImage: 'radial-gradient(ellipse 70% 60% at 50% 30%, black 40%, transparent 100%)',
+                  WebkitMaskImage: 'radial-gradient(ellipse 70% 60% at 50% 30%, black 40%, transparent 100%)'
+                }}
+              ></div>
 
-              {/* Arka Plan 3: Sol ve Sağ Zarif Filigran Tırnak İkonları */}
-              <i className="fa-solid fa-quote-left absolute top-8 left-4 sm:left-10 text-6xl sm:text-8xl text-amber-500/10 select-none pointer-events-none -rotate-6 z-0"></i>
-              <i className="fa-solid fa-quote-right absolute top-8 right-4 sm:right-10 text-6xl sm:text-8xl text-orange-500/10 select-none pointer-events-none rotate-6 z-0"></i>
+              {/* Arka Plan 3: Sol ve Sağ Büyük Filigran Tırnak İkonları */}
+              <div className="absolute top-6 left-4 sm:left-10 text-amber-500/15 pointer-events-none select-none z-0 -rotate-6">
+                <i className="fa-solid fa-quote-left text-6xl sm:text-8xl"></i>
+              </div>
+              <div className="absolute top-6 right-4 sm:right-10 text-orange-500/15 pointer-events-none select-none z-0 rotate-6">
+                <i className="fa-solid fa-quote-right text-6xl sm:text-8xl"></i>
+              </div>
 
               {/* Başlık & Güven Rozeti */}
               <div className="text-center max-w-2xl mx-auto mb-10 space-y-3 relative z-10">
-                <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-gradient-to-r from-amber-50 via-orange-50 to-amber-50 text-amber-950 border border-amber-300/80 text-xs font-bold shadow-sm shadow-amber-500/10">
+                {/* Sol & Sağ Küçük Uçuşan Güven Rozetleri (Desktop) */}
+                <div className="hidden lg:flex items-center gap-2 px-3 py-1.5 bg-white/95 backdrop-blur-xs border border-amber-200/80 rounded-full shadow-xs text-[11px] font-bold text-stone-700 absolute -left-20 top-2 -rotate-3 hover:rotate-0 transition-transform pointer-events-none">
+                  <span className="w-5 h-5 rounded-full bg-rose-100 text-rose-600 flex items-center justify-center text-[10px]">
+                    <i className="fa-solid fa-heart"></i>
+                  </span>
+                  <span>%98 Tavsiye Edilme</span>
+                </div>
+
+                <div className="hidden lg:flex items-center gap-2 px-3 py-1.5 bg-white/95 backdrop-blur-xs border border-amber-200/80 rounded-full shadow-xs text-[11px] font-bold text-stone-700 absolute -right-20 top-2 rotate-3 hover:rotate-0 transition-transform pointer-events-none">
+                  <span className="w-5 h-5 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center text-[10px]">
+                    <i className="fa-solid fa-fire-flame-curved"></i>
+                  </span>
+                  <span>Sıcak & Hızlı Servis</span>
+                </div>
+
+                <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/95 backdrop-blur-xs text-amber-950 border border-amber-300/90 text-xs font-bold shadow-xs">
                   <span className="flex text-amber-500 text-xs gap-0.5">
                     <i className="fa-solid fa-star"></i>
                     <i className="fa-solid fa-star"></i>
@@ -393,7 +420,7 @@ export default function HomePage() {
                     <i className="fa-solid fa-star"></i>
                   </span>
                   <span>4.9 / 5.0 Memnuniyet</span>
-                  <span className="w-1 h-1 rounded-full bg-amber-400"></span>
+                  <span className="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
                   <span className="text-stone-600 font-semibold">Doğrulanmış Siparişler</span>
                 </div>
 
