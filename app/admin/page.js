@@ -313,10 +313,6 @@ export default function AdminDashboardPage() {
     setProductsPage(1);
   }, [productFilter]);
 
-  useEffect(() => {
-    setReviewsPage(1);
-  }, [reviewFilter, reviewSearch]);
-
   // Otomatik girişi iptal et: Sayfa ilk açıldığında localStorage oturumunu otomatik yüklemiyoruz
   // Kullanıcı adı ve şifre ile manuel giriş yapılmasını zorunlu kılıyoruz.
   useEffect(() => {
@@ -407,6 +403,10 @@ export default function AdminDashboardPage() {
   const [loadingReviews, setLoadingReviews] = useState(false);
   const [reviewFilter, setReviewFilter] = useState('all'); // 'all' | 'pending' | 'approved'
   const [reviewSearch, setReviewSearch] = useState('');
+
+  useEffect(() => {
+    setReviewsPage(1);
+  }, [reviewFilter, reviewSearch]);
 
   const fetchReviews = async () => {
     setLoadingReviews(true);

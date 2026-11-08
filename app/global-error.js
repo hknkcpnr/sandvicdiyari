@@ -55,3 +55,4 @@ export default function GlobalError({ error, reset }) {
     </html>
   );
 }
+
