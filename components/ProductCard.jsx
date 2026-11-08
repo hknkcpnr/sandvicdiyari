@@ -29,15 +29,31 @@ export default function ProductCard({ product }) {
   const dispatch = useDispatch();
   const { favorites } = useSelector((state) => state.ui);
   const { currentUser } = useSelector((state) => state.auth);
-  const isFavorite = favorites.includes(product.id);
+  const isMember = Boolean(currentUser && currentUser.email);
+  const isFavorite = isMember && favorites.includes(product.id);
   const isAvailable = product.isAvailable !== false;
 
   const handleOrderClick = () => {
-    if (!currentUser || !currentUser.email) {
+    if (!isMember) {
       dispatch(openAuthModal('login'));
       return;
     }
     dispatch(openOptionsModal(product));
+  };
+
+  const handleFavoriteClick = (e) => {
+    e.stopPropagation();
+    if (!isMember) {
+      dispatch(
+        openAuthModal({
+          tab: 'login',
+          notice:
+            'Favorilere ürün eklemek sadece üyelere özeldir. Lütfen üye girişi yapın veya ücretsiz üye olun.'
+        })
+      );
+      return;
+    }
+    dispatch(toggleFavorite({ id: product.id, email: currentUser.email }));
   };
 
   return (
@@ -69,20 +85,23 @@ export default function ProductCard({ product }) {
             {product.badge || getCategoryName(product.category)}
           </span>
 
-          {/* Minimal Favori Butonu */}
+          {/* Minimal Favori Butonu (Sadece Üyelere Özel) */}
           <button
             type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              dispatch(toggleFavorite(product.id));
-            }}
+            onClick={handleFavoriteClick}
             className={`absolute top-2.5 right-2.5 w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center backdrop-blur-md transition-transform z-10 cursor-pointer active:scale-90 ${
               isFavorite
                 ? 'bg-rose-500 text-white shadow-xs'
-                : 'bg-white/80 hover:bg-white text-stone-500 hover:text-rose-500 shadow-2xs'
+                : 'bg-white/85 hover:bg-white text-stone-500 hover:text-rose-500 shadow-2xs'
             }`}
-            title={isFavorite ? 'Favorilerden Çıkar' : 'Favorilere Ekle'}
-            aria-label="Favorilere Ekle"
+            title={
+              !isMember
+                ? 'Favorilere eklemek için üye girişi yapın'
+                : isFavorite
+                ? 'Favorilerden Çıkar'
+                : 'Favorilere Ekle'
+            }
+            aria-label={!isMember ? 'Üye Girişi ile Favorilere Ekle' : 'Favorilere Ekle'}
           >
             <i className={`fa-heart text-[11px] sm:text-xs ${isFavorite ? 'fa-solid' : 'fa-regular'}`}></i>
           </button>

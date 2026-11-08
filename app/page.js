@@ -4,7 +4,13 @@ import { useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { setProducts } from '@/store/slices/productSlice';
 import { login, logout } from '@/store/slices/authSlice';
-import { showMessageModal, closeProfileModal, closeCheckoutModal } from '@/store/slices/uiSlice';
+import {
+  showMessageModal,
+  closeProfileModal,
+  closeCheckoutModal,
+  setFavorites,
+  setOnlyFavoritesFilter
+} from '@/store/slices/uiSlice';
 import TopBar from '@/components/TopBar';
 import Navbar from '@/components/Navbar';
 import CustomerAnnouncementBanner from '@/components/CustomerAnnouncementBanner';
@@ -30,6 +36,23 @@ import FloatingCartBar from '@/components/FloatingCartBar';
 export default function Home() {
   const dispatch = useDispatch();
   const { activePage } = useSelector((state) => state.ui);
+  const { currentUser } = useSelector((state) => state.auth);
+
+  // Sadece giriş yapmış üyelerin kişisel favorilerini yükle; çıkışta/ziyaretçide sıfırla
+  useEffect(() => {
+    if (currentUser && currentUser.email) {
+      const cleanEmail = String(currentUser.email).trim().toLowerCase();
+      try {
+        const saved = localStorage.getItem(`sd_favorites_${cleanEmail}`);
+        dispatch(setFavorites(saved ? JSON.parse(saved) : []));
+      } catch (e) {
+        dispatch(setFavorites([]));
+      }
+    } else {
+      dispatch(setFavorites([]));
+      dispatch(setOnlyFavoritesFilter(false));
+    }
+  }, [currentUser, dispatch]);
 
   useEffect(() => {
     // ------------------------------------------------------------------------

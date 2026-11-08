@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { setCategory } from '@/store/slices/productSlice';
-import { setFavorites } from '@/store/slices/uiSlice';
+import { openAuthModal, setOnlyFavoritesFilter } from '@/store/slices/uiSlice';
 import ProductCard from '@/components/ProductCard';
 
 /**
@@ -16,22 +16,15 @@ import ProductCard from '@/components/ProductCard';
 export default function MenuPage() {
   const dispatch = useDispatch();
   const { items: products, category } = useSelector((state) => state.product);
-  const { favorites } = useSelector((state) => state.ui);
+  const { favorites, onlyFavoritesFilter } = useSelector((state) => state.ui);
+  const { currentUser } = useSelector((state) => state.auth);
+  const isMember = Boolean(currentUser && currentUser.email);
 
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState('default'); // 'default' | 'price-asc' | 'price-desc' | 'name'
   const [onlyAvailable, setOnlyAvailable] = useState(false);
-  const [onlyFavorites, setOnlyFavorites] = useState(false);
 
-  // Yerel depolamadan favorileri yükle
-  useEffect(() => {
-    try {
-      const saved = localStorage.getItem('sd_favorites');
-      if (saved) {
-        dispatch(setFavorites(JSON.parse(saved)));
-      }
-    } catch (e) {}
-  }, [dispatch]);
+  const onlyFavorites = isMember && onlyFavoritesFilter;
 
   // Menü Kategorileri
   const categories = [
@@ -185,18 +178,30 @@ export default function MenuPage() {
                 <span className="hidden xs:inline text-[11px]">Açık</span>
               </button>
 
-              {/* Favoriler Filtresi */}
+              {/* Favoriler Filtresi (Sadece Üyelere Özel) */}
               <button
-                onClick={() => setOnlyFavorites(!onlyFavorites)}
+                onClick={() => {
+                  if (!isMember) {
+                    dispatch(
+                      openAuthModal({
+                        tab: 'login',
+                        notice:
+                          'Favori ürün listenizi görüntülemek ve ürün eklemek sadece üyelere özeldir. Lütfen üye girişi yapın.'
+                      })
+                    );
+                    return;
+                  }
+                  dispatch(setOnlyFavoritesFilter(!onlyFavorites));
+                }}
                 className={`px-3 py-2.5 rounded-xl text-xs font-bold transition-all border shrink-0 cursor-pointer flex items-center gap-1.5 active:scale-95 ${
                   onlyFavorites
                     ? 'bg-rose-50 text-rose-700 border-rose-300'
                     : 'bg-white text-stone-600 border-stone-200/90 hover:bg-stone-50'
                 }`}
-                title="Favori ürünlerimi göster"
+                title={isMember ? 'Favori ürünlerimi göster' : 'Favoriler için üye girişi yapın'}
               >
                 <i className={`fa-heart text-xs ${onlyFavorites ? 'fa-solid text-rose-600' : 'fa-regular text-stone-400'}`}></i>
-                {favorites.length > 0 && (
+                {isMember && favorites.length > 0 && (
                   <span className="bg-rose-100 text-rose-700 text-[10px] px-1.5 py-0.2 rounded-full font-bold">
                     {favorites.length}
                   </span>
@@ -216,7 +221,7 @@ export default function MenuPage() {
                 onClick={() => {
                   setSearchTerm('');
                   setOnlyAvailable(false);
-                  setOnlyFavorites(false);
+                  dispatch(setOnlyFavoritesFilter(false));
                   setSortBy('default');
                   dispatch(setCategory('all'));
                 }}
@@ -234,18 +239,22 @@ export default function MenuPage() {
         {filteredProducts.length === 0 ? (
           <div className="text-center py-16 bg-stone-50 rounded-2xl border border-stone-200/80 max-w-md mx-auto space-y-3 px-4">
             <div className="w-12 h-12 bg-white rounded-xl shadow-xs text-stone-400 flex items-center justify-center text-xl mx-auto">
-              <i className="fa-solid fa-utensils"></i>
+              <i className={`fa-solid ${onlyFavorites && !searchTerm ? 'fa-heart-crack text-rose-400' : 'fa-utensils'}`}></i>
             </div>
-            <h4 className="text-base font-bold text-stone-800">Aradığınız Lezzet Bulunamadı</h4>
+            <h4 className="text-base font-bold text-stone-800">
+              {onlyFavorites && !searchTerm ? 'Henüz Favori Ürününüz Yok' : 'Aradığınız Lezzet Bulunamadı'}
+            </h4>
             <p className="text-stone-500 text-xs">
-              &quot;{searchTerm}&quot; ile eşleşen bir ürün bulunamadı. Lütfen farklı bir arama deneyin.
+              {onlyFavorites && !searchTerm
+                ? 'Menüdeki ürün kartlarının sağ üst köşesindeki kalp ikonuna tıklayarak sevdiğiniz lezzetleri favorilerinize ekleyebilirsiniz.'
+                : `"${searchTerm}" ile eşleşen bir ürün bulunamadı. Lütfen farklı bir arama deneyin.`}
             </p>
             <button
               onClick={() => {
                 setSearchTerm('');
                 dispatch(setCategory('all'));
                 setOnlyAvailable(false);
-                setOnlyFavorites(false);
+                dispatch(setOnlyFavoritesFilter(false));
               }}
               className="bg-stone-900 hover:bg-black text-white text-xs font-bold px-4 py-2 rounded-xl transition-all cursor-pointer"
             >

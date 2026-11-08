@@ -17,6 +17,7 @@ const initialState = {
   },
   isAuthModalOpen: false,
   authModalTab: 'login',
+  authModalNotice: '',
   isProfileModalOpen: false,
   isCheckoutModalOpen: false,
   isMessageModalOpen: false,
@@ -27,7 +28,8 @@ const initialState = {
   },
   reviews: (initialReviews || []).filter((r) => r.isApproved === true),
   activeAdminTab: 'orders',
-  favorites: []
+  favorites: [],
+  onlyFavoritesFilter: false
 };
 
 export const uiSlice = createSlice({
@@ -72,12 +74,19 @@ export const uiSlice = createSlice({
       state.sauceCounts[sauceKey] = Math.max(0, current + delta);
     },
     openAuthModal: (state, action) => {
-      state.authModalTab = action.payload || 'login';
+      if (typeof action.payload === 'object' && action.payload !== null) {
+        state.authModalTab = action.payload.tab || 'login';
+        state.authModalNotice = action.payload.notice || '';
+      } else {
+        state.authModalTab = action.payload || 'login';
+        state.authModalNotice = '';
+      }
       state.isAuthModalOpen = true;
       state.isMobileMenuOpen = false;
     },
     closeAuthModal: (state) => {
       state.isAuthModalOpen = false;
+      state.authModalNotice = '';
     },
     setAuthModalTab: (state, action) => {
       state.authModalTab = action.payload;
@@ -129,15 +138,29 @@ export const uiSlice = createSlice({
     setFavorites: (state, action) => {
       state.favorites = Array.isArray(action.payload) ? action.payload : [];
     },
+    setOnlyFavoritesFilter: (state, action) => {
+      state.onlyFavoritesFilter = Boolean(action.payload);
+    },
     toggleFavorite: (state, action) => {
-      const id = action.payload;
+      const payload = action.payload;
+      const id = typeof payload === 'object' && payload !== null ? payload.id : null;
+      const email =
+        typeof payload === 'object' && payload !== null && payload.email
+          ? String(payload.email).trim().toLowerCase()
+          : '';
+
+      // Güvenlik kilidi: Sadece giriş yapmış üyeler favori ekleyebilir
+      if (!email || id === undefined || id === null) {
+        return;
+      }
+
       if (state.favorites.includes(id)) {
         state.favorites = state.favorites.filter((f) => f !== id);
       } else {
         state.favorites.push(id);
       }
       try {
-        localStorage.setItem('sd_favorites', JSON.stringify(state.favorites));
+        localStorage.setItem(`sd_favorites_${email}`, JSON.stringify(state.favorites));
       } catch (e) {}
     }
   }
@@ -166,6 +189,7 @@ export const {
   addReview,
   setActiveAdminTab,
   setFavorites,
+  setOnlyFavoritesFilter,
   toggleFavorite
 } = uiSlice.actions;
 

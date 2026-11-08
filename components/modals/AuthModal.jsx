@@ -29,7 +29,7 @@ export default function AuthModal() {
   // --------------------------------------------------------------------------
   // REDUX GLOBAL DURUMLARI (STATE)
   // --------------------------------------------------------------------------
-  const { isAuthModalOpen, authModalTab } = useSelector((state) => state.ui);
+  const { isAuthModalOpen, authModalTab, authModalNotice } = useSelector((state) => state.ui);
   const { usersList } = useSelector((state) => state.auth);
   const { items: cartItems, grandTotal } = useSelector((state) => state.cart);
 
@@ -401,6 +401,13 @@ export default function AuthModal() {
                 <i className="fa-solid fa-xmark text-lg"></i>
               </button>
             </div>
+
+            {!isWaitingApproval && authModalNotice && (
+              <div className="mb-4 flex items-start gap-2.5 rounded-2xl border border-rose-200 bg-rose-50/90 px-3.5 py-2.5 text-xs font-semibold text-rose-900">
+                <i className="fa-solid fa-heart text-rose-500 mt-0.5 shrink-0"></i>
+                <span>{authModalNotice}</span>
+              </div>
+            )}
 
             {/* =============================================================== */}
             {/* 1. WHATSAPP ONAY BEKLEME EKRANI                                 */}

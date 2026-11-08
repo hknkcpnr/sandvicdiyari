@@ -8,7 +8,8 @@ import {
   toggleCart,
   openAuthModal,
   openProfileModal,
-  showMessageModal
+  showMessageModal,
+  setOnlyFavoritesFilter
 } from '@/store/slices/uiSlice';
 import { logout } from '@/store/slices/authSlice';
 import CustomerNotificationBell from '@/components/CustomerNotificationBell';
@@ -101,7 +102,12 @@ export default function Navbar() {
               <button
                 key={item.id}
                 id={`nav-${item.id}`}
-                onClick={() => dispatch(setActivePage(item.id))}
+                onClick={() => {
+                  if (item.id === 'menu') {
+                    dispatch(setOnlyFavoritesFilter(false));
+                  }
+                  dispatch(setActivePage(item.id));
+                }}
                 className={`transition-colors cursor-pointer ${activePage === item.id
                   ? 'font-bold text-brand-600'
                   : 'hover:text-brand-600'
@@ -239,6 +245,7 @@ export default function Navbar() {
                           type="button"
                           onClick={() => {
                             setIsUserDropdownOpen(false);
+                            dispatch(setOnlyFavoritesFilter(true));
                             dispatch(setActivePage('menu'));
                           }}
                           className="w-full flex items-center gap-3 px-3 py-2.5 text-xs font-semibold text-stone-700 hover:text-brand-700 hover:bg-amber-50 rounded-xl transition-all cursor-pointer group"
@@ -321,6 +328,9 @@ export default function Navbar() {
                 <button
                   key={item.id}
                   onClick={() => {
+                    if (item.id === 'menu') {
+                      dispatch(setOnlyFavoritesFilter(false));
+                    }
                     dispatch(setActivePage(item.id));
                     dispatch(toggleMobileMenu());
                   }}
@@ -358,6 +368,21 @@ export default function Navbar() {
                     <span className="truncate">{currentUser.name} • Profil &amp; Siparişler</span>
                   </div>
                   <i className="fa-solid fa-chevron-right text-[10px] text-brand-600"></i>
+                </button>
+
+                <button
+                  onClick={() => {
+                    dispatch(setOnlyFavoritesFilter(true));
+                    dispatch(setActivePage('menu'));
+                    dispatch(toggleMobileMenu());
+                  }}
+                  className="w-full bg-rose-50/70 hover:bg-rose-50 border border-rose-200/80 text-rose-800 font-bold py-2.5 px-3.5 rounded-xl text-xs flex items-center justify-between cursor-pointer"
+                >
+                  <div className="flex items-center gap-2.5">
+                    <i className="fa-solid fa-heart text-rose-500"></i>
+                    <span>Favori Sandviçlerim</span>
+                  </div>
+                  <i className="fa-solid fa-chevron-right text-[10px] text-rose-500"></i>
                 </button>
 
                 {isAdminUser && (
