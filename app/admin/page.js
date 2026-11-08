@@ -1099,13 +1099,15 @@ export default function AdminDashboardPage() {
       <div className="min-h-screen bg-stone-50 flex items-center justify-center p-4 font-poppins text-stone-800">
         <div className="w-full max-w-sm bg-white rounded-2xl border border-stone-200 p-8 shadow-sm space-y-6">
           <div className="space-y-1">
-            <div className="flex items-center gap-2.5">
-              <span className="w-8 h-8 bg-brand-600 rounded-xl flex items-center justify-center text-white text-xs font-black">
-                SD
-              </span>
+            <div className="flex items-center gap-3">
+              <img
+                src="/images/logo.png"
+                alt="Sandviç Diyarı Logo"
+                className="w-12 h-12 rounded-full object-contain drop-shadow-sm shrink-0"
+              />
               <div>
-                <h1 className="font-bold text-stone-900 text-base leading-tight">Sandwich Diyarı</h1>
-                <span className="text-[10px] text-stone-400 block">Restoran Yönetim Portalı</span>
+                <h1 className="font-extrabold text-stone-900 text-base leading-tight">Sandviç Diyarı</h1>
+                <span className="text-[11px] text-stone-500 font-medium block">Restoran Yönetim Portalı</span>
               </div>
             </div>
           </div>
@@ -1235,16 +1237,20 @@ export default function AdminDashboardPage() {
               <button
                 type="button"
                 onClick={sidebarCollapsed ? toggleSidebar : undefined}
-                className={`w-9 h-9 bg-brand-600 text-white rounded-xl flex items-center justify-center font-black text-xs shrink-0 shadow-xs ${
-                  sidebarCollapsed ? 'cursor-pointer hover:bg-brand-500 hover:scale-105 transition-all' : ''
+                className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${
+                  sidebarCollapsed ? 'cursor-pointer hover:scale-105 transition-all' : ''
                 }`}
-                title="Sandwich Diyarı"
+                title="Sandviç Diyarı"
               >
-                SD
+                <img
+                  src="/images/logo.png"
+                  alt="Sandviç Diyarı Logo"
+                  className="w-10 h-10 rounded-full object-contain drop-shadow-xs"
+                />
               </button>
               <div className={`min-w-0 flex-1 ${sidebarCollapsed ? 'md:hidden' : ''}`}>
-                <span className="font-bold text-sm block truncate text-stone-900 leading-tight">
-                  Sandwich Diyarı
+                <span className="font-extrabold text-sm block truncate text-stone-900 leading-tight">
+                  Sandviç Diyarı
                 </span>
                 <span className="text-[10px] text-stone-400 block truncate">Sipariş Portalı</span>
               </div>
@@ -1576,6 +1582,12 @@ export default function AdminDashboardPage() {
             >
               <i className="fa-solid fa-bars text-sm text-amber-800"></i>
             </button>
+
+            <img
+              src="/images/logo.png"
+              alt="Sandviç Diyarı"
+              className="md:hidden w-8 h-8 rounded-full object-contain shrink-0 drop-shadow-2xs"
+            />
 
             {/* Desktop Sidebar Toggle Button */}
             <button

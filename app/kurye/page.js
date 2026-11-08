@@ -311,9 +311,11 @@ export default function CourierPortalPage() {
         <div className="max-w-3xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
           {/* Logo & Portal Adı */}
           <div className="flex items-center gap-2.5 min-w-0">
-            <span className="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-600 to-amber-500 text-white flex items-center justify-center font-black text-sm shadow-md shrink-0">
-              <i className="fa-solid fa-motorcycle text-lg"></i>
-            </span>
+            <img
+              src="/images/logo.png"
+              alt="Sandviç Diyarı Logo"
+              className="w-10 h-10 rounded-full object-contain drop-shadow-md shrink-0"
+            />
             <div className="min-w-0">
               <h1 className="font-extrabold text-sm sm:text-base leading-tight truncate">
                 Sandviç Diyarı

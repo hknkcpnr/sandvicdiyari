@@ -41,12 +41,14 @@ export default function Navbar() {
             onClick={() => dispatch(setActivePage('home'))}
             className="flex items-center gap-3 group shrink-0 text-left cursor-pointer"
           >
-            <div className="w-12 h-12 bg-gradient-to-tr from-brand-600 to-brand-500 rounded-2xl flex items-center justify-center text-white text-2xl shadow-md shadow-brand-500/20 group-hover:scale-105 transition-transform shrink-0">
-              <i className="fa-solid fa-burger"></i>
-            </div>
+            <img
+              src="/images/logo.png"
+              alt="Sandviç Diyarı Logo"
+              className="w-12 h-12 sm:w-14 sm:h-14 rounded-full object-contain drop-shadow-md group-hover:scale-105 transition-transform shrink-0"
+            />
             <div className="flex items-baseline gap-1.5">
               <span className="text-xl sm:text-2xl font-extrabold tracking-tight text-stone-900">
-                Sandwich
+                Sandviç
               </span>
               <span className="text-xl sm:text-2xl font-extrabold tracking-tight text-brand-600">
                 Diyarı

@@ -7,8 +7,12 @@ export const metadata = {
   description: "İzmir Torbalı'da gece 03:00'e kadar kapınıza sıcak paket servis! Özel ekmekli Maxi Karışık, Kasap Köfte, Megzi Dürüm, Ayvalık Tostu ve avantajlı menüler.",
   manifest: '/manifest.json',
   icons: {
-    icon: '/icon.svg',
-    apple: '/icon.svg',
+    icon: [
+      { url: '/icon-192.png', sizes: '192x192', type: 'image/png' },
+      { url: '/images/logo.png', sizes: '512x512', type: 'image/png' },
+    ],
+    shortcut: '/icon-192.png',
+    apple: '/icon-192.png',
   },
   openGraph: {
     title: 'Sandviç Diyarı Torbalı | Gece 03:00 Paket Servis',
