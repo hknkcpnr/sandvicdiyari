@@ -24,16 +24,16 @@ export default function DraggableContactButton() {
   // Ekran boyutuna göre başlangıç konumu (Sağ alt, parmak hizası)
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      const defaultX = Math.max(16, window.innerWidth - 68);
-      const defaultY = Math.max(100, window.innerHeight - 140);
+      const defaultX = Math.max(16, window.innerWidth - 76);
+      const defaultY = Math.max(100, window.innerHeight - 150);
       setPosition({ x: defaultX, y: defaultY });
 
       const handleResize = () => {
         setPosition((prev) => {
           if (!prev) return { x: defaultX, y: defaultY };
           return {
-            x: Math.min(prev.x, window.innerWidth - 64),
-            y: Math.min(prev.y, window.innerHeight - 70),
+            x: Math.min(prev.x, window.innerWidth - 72),
+            y: Math.min(prev.y, window.innerHeight - 80),
           };
         });
       };
@@ -95,8 +95,8 @@ export default function DraggableContactButton() {
       }
 
       if (dragRef.current.hasMoved) {
-        const nextX = Math.max(12, Math.min(window.innerWidth - 64, dragRef.current.initialX + dx));
-        const nextY = Math.max(64, Math.min(window.innerHeight - 74, dragRef.current.initialY + dy));
+        const nextX = Math.max(12, Math.min(window.innerWidth - 72, dragRef.current.initialX + dx));
+        const nextY = Math.max(64, Math.min(window.innerHeight - 80, dragRef.current.initialY + dy));
         setPosition({ x: nextX, y: nextY });
       }
     };
@@ -142,30 +142,31 @@ export default function DraggableContactButton() {
         transition: isDragging ? 'none' : 'transform 0.15s ease-out',
       }}
     >
-      {/* SÜRÜKLENEBİLİR YUVARLAK BUTON */}
+      {/* SÜRÜKLENEBİLİR YUVARLAK BUTON (Geniş, Belirgin & Göz Alıcı) */}
       <div className="relative">
         {/* Arkadaki Hafif Yeşil Canlılık Halkası */}
-        <span className="absolute -inset-1 rounded-full bg-emerald-500/30 animate-ping pointer-events-none"></span>
+        <span className="absolute -inset-1.5 rounded-full bg-emerald-500/35 animate-ping pointer-events-none"></span>
 
         <button
           type="button"
           onPointerDown={handlePointerDown}
-          className={`relative w-13 h-13 rounded-full flex items-center justify-center text-white shadow-2xl transition-transform active:scale-95 cursor-grab active:cursor-grabbing border-2 border-white ${
+          className={`relative w-15 h-15 rounded-full flex items-center justify-center text-white shadow-2xl transition-transform active:scale-95 cursor-grab active:cursor-grabbing border-2 border-white ${
             isOpen
               ? 'bg-stone-900 shadow-stone-900/40 rotate-90'
-              : 'bg-gradient-to-br from-emerald-500 to-teal-600 shadow-emerald-500/40'
-          } ${isDragging ? 'scale-110 shadow-emerald-500/60 ring-4 ring-emerald-300/40' : ''}`}
+              : 'bg-gradient-to-tr from-emerald-600 via-emerald-500 to-green-400 shadow-[0_10px_28px_rgba(16,185,129,0.55)]'
+          } ${isDragging ? 'scale-110 shadow-emerald-500/70 ring-4 ring-emerald-300/50' : ''}`}
           aria-label="WhatsApp ve Telefon İletişim Butonu (Sürüklenebilir)"
           title="Sipariş & İletişim (Taşımak için basılı tutup sürükleyin)"
         >
           {isOpen ? (
-            <i className="fa-solid fa-xmark text-lg"></i>
+            <i className="fa-solid fa-xmark text-2xl"></i>
           ) : (
             <div className="relative flex items-center justify-center">
-              <i className="fa-brands fa-whatsapp text-2xl drop-shadow-xs"></i>
-              {/* Küçük Telefon İkon Rozeti */}
-              <span className="absolute -bottom-1 -right-1 w-4 h-4 bg-amber-500 rounded-full border border-white flex items-center justify-center text-[8px] text-stone-950 font-bold shadow-xs">
-                <i className="fa-solid fa-phone"></i>
+              {/* Belirgin Büyük WhatsApp İkonu */}
+              <i className="fa-brands fa-whatsapp text-[32px] drop-shadow-md"></i>
+              {/* Belirgin Telefon İkon Rozeti */}
+              <span className="absolute -bottom-2 -right-2.5 w-6 h-6 bg-amber-500 rounded-full border-2 border-white flex items-center justify-center text-[10px] text-stone-950 font-black shadow-md">
+                <i className="fa-solid fa-phone animate-pulse"></i>
               </span>
             </div>
           )}
@@ -173,7 +174,7 @@ export default function DraggableContactButton() {
 
         {/* Taşınabilir olduğuna dair küçük ipucu noktası (kapalıyken) */}
         {!isOpen && !isDragging && (
-          <span className="absolute -top-1 left-1/2 -translate-x-1/2 bg-stone-900/80 text-[8px] text-white px-1.5 py-0.2 rounded-full font-bold whitespace-nowrap shadow-xs pointer-events-none opacity-80 scale-90">
+          <span className="absolute -top-2 left-1/2 -translate-x-1/2 bg-stone-950/90 text-[9px] text-white px-2 py-0.5 rounded-full font-bold whitespace-nowrap shadow-md pointer-events-none border border-white/20 scale-95">
             Sürükle
           </span>
         )}
