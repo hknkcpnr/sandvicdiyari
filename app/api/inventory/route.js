@@ -1,4 +1,5 @@
 import { db } from '@/lib/db';
+import { prisma, rawPrisma, formatPrismaProduct } from '@/lib/prisma';
 import { orm } from '@/lib/orm/postgresEngine';
 import {
   NotFoundError,
@@ -9,24 +10,42 @@ import {
 } from '@/lib/security/errors';
 import { sanitizeText } from '@/lib/security/validation';
 
-export async function GET(request) {
+function computeInventorySummary(products) {
+  return {
+    total: products.length,
+    inStock: products.filter((p) => p.status === 'in_stock').length,
+    lowStock: products.filter((p) => p.status === 'low_stock').length,
+    outOfStock: products.filter((p) => p.status === 'out_of_stock').length,
+    activeCount: products.filter((p) => p.isAvailable).length,
+    closedCount: products.filter((p) => !p.isAvailable).length
+  };
+}
+
+async function getAllProductsFromPgOrLocal() {
   try {
-    const products = orm.executePrepared(
+    const pgRows = await rawPrisma.product.findMany({
+      orderBy: { id: 'asc' }
+    });
+    orm.executePrepared(
       'Product',
       'SELECT',
       'SELECT "id", "name", "category", "stock", "is_available", "track_stock", "critical_threshold" FROM "products" ORDER BY "id" ASC',
       [],
-      () => db.getProducts()
+      () => pgRows.length
     );
+    if (Array.isArray(pgRows) && pgRows.length > 0) {
+      return pgRows.map((r) => formatPrismaProduct(r));
+    }
+  } catch (err) {
+    console.error('Inventory PG read fallback:', err);
+  }
+  return db.getProducts();
+}
 
-    const summary = {
-      total: products.length,
-      inStock: products.filter(p => p.status === 'in_stock').length,
-      lowStock: products.filter(p => p.status === 'low_stock').length,
-      outOfStock: products.filter(p => p.status === 'out_of_stock').length,
-      activeCount: products.filter(p => p.isAvailable).length,
-      closedCount: products.filter(p => !p.isAvailable).length
-    };
+export async function GET(request) {
+  try {
+    const products = await getAllProductsFromPgOrLocal();
+    const summary = computeInventorySummary(products);
 
     return jsonSuccess({
       data: products,
@@ -47,27 +66,151 @@ export async function PUT(request) {
       const safeAction = sanitizeText(bulkAction, 64, 'bulkAction', '/api/inventory');
       const safeAmount = Math.max(1, Math.min(1000, Number(amount) || 20));
 
-      const refreshedProducts = orm.executePrepared(
-        'Product',
-        'UPDATE',
-        'UPDATE "products" SET "stock" = "stock" + $1, "is_available" = TRUE, "updated_at" = NOW() RETURNING *',
-        [safeAmount],
-        () => db.bulkUpdateProductStocks(safeAction, safeAmount)
-      );
+      try {
+        if (safeAction === 'set_all_available') {
+          await rawPrisma.product.updateMany({
+            where: { stock: { lte: 0 } },
+            data: { stock: 20, isAvailable: true }
+          });
+          await rawPrisma.product.updateMany({
+            data: { isAvailable: true }
+          });
+        } else if (safeAction === 'refill_all') {
+          await rawPrisma.product.updateMany({
+            data: {
+              stock: { increment: safeAmount },
+              isAvailable: true
+            }
+          });
+        } else if (safeAction === 'reset_all') {
+          await rawPrisma.product.updateMany({
+            data: {
+              stock: 25,
+              isAvailable: true
+            }
+          });
+        }
+        orm.executePrepared(
+          'Product',
+          'UPDATE',
+          'UPDATE "products" SET "stock" = "stock" + $1, "is_available" = TRUE, "updated_at" = NOW() RETURNING *',
+          [safeAmount],
+          () => safeAmount
+        );
+      } catch (err) {
+        console.error('Inventory bulk update PG fallback:', err);
+      }
+
+      try {
+        db.bulkUpdateProductStocks(safeAction, safeAmount);
+      } catch {}
+
+      const refreshedProducts = await getAllProductsFromPgOrLocal();
+      const summary = computeInventorySummary(refreshedProducts);
 
       return jsonSuccess({
         message: 'Toplu stok işlemi başarıyla uygulandı.',
-        products: refreshedProducts
+        products: refreshedProducts,
+        summary
       });
     }
 
-    if (!id) {
+    if (id === undefined || id === null || id === '') {
       throw new ValidationError('Ürün veya Malzeme ID belirtilmelidir.');
     }
 
     const safeId = sanitizeText(id, 64, 'id', '/api/inventory');
+    const numericId = Number(safeId);
 
-    // Update product stock
+    if (Number.isInteger(numericId) && numericId > 0) {
+      try {
+        const pgProd = await rawPrisma.product.findUnique({
+          where: { id: numericId }
+        });
+
+        if (pgProd) {
+          const nextTrackStock =
+            typeof trackStock === 'boolean' ? trackStock : pgProd.trackStock;
+          const nextThreshold =
+            typeof criticalThreshold !== 'undefined'
+              ? Math.max(0, Number(criticalThreshold) || 5)
+              : pgProd.criticalThreshold;
+
+          let nextStock = typeof pgProd.stock === 'number' ? pgProd.stock : 25;
+          let nextAvailable =
+            typeof isAvailable === 'boolean' ? isAvailable : pgProd.isAvailable;
+
+          if (typeof stock !== 'undefined' && stock !== null) {
+            nextStock = Math.max(0, Math.floor(Number(stock) || 0));
+            if (nextTrackStock) {
+              if (nextStock === 0) {
+                nextAvailable = false;
+              } else if (nextStock > 0 && typeof isAvailable === 'undefined') {
+                nextAvailable = true;
+              }
+            }
+          } else if (typeof delta !== 'undefined' && delta !== null) {
+            nextStock = Math.max(0, nextStock + Math.floor(Number(delta) || 0));
+            if (nextTrackStock) {
+              if (nextStock === 0) {
+                nextAvailable = false;
+              } else if (nextStock > 0 && typeof isAvailable === 'undefined') {
+                nextAvailable = true;
+              }
+            }
+          }
+
+          if (typeof isAvailable === 'boolean' && isAvailable === true && nextTrackStock && nextStock <= 0) {
+            nextStock = 15;
+          }
+
+          if (!nextTrackStock && typeof isAvailable === 'undefined') {
+            nextAvailable = true;
+          }
+
+          const updatedPg = await rawPrisma.product.update({
+            where: { id: numericId },
+            data: {
+              stock: nextStock,
+              isAvailable: nextAvailable,
+              trackStock: nextTrackStock,
+              criticalThreshold: nextThreshold
+            }
+          });
+
+          try {
+            db.updateProductStock(numericId, {
+              isAvailable: nextAvailable,
+              stock: nextStock,
+              trackStock: nextTrackStock,
+              criticalThreshold: nextThreshold
+            });
+          } catch {}
+
+          orm.executePrepared(
+            'Product',
+            'UPDATE',
+            'UPDATE "products" SET "stock" = $1, "is_available" = $2, "updated_at" = NOW() WHERE "id" = $3 RETURNING *',
+            [nextStock, nextAvailable, numericId],
+            () => updatedPg.id
+          );
+
+          const refreshedProducts = await getAllProductsFromPgOrLocal();
+          const summary = computeInventorySummary(refreshedProducts);
+
+          return jsonSuccess({
+            message: `"${updatedPg.name}" stok durumu güncellendi.`,
+            data: formatPrismaProduct(updatedPg),
+            products: refreshedProducts,
+            summary
+          });
+        }
+      } catch (err) {
+        console.error('Inventory single update PG fallback:', err);
+      }
+    }
+
+    // Fallback: local product stock update
     const updated = orm.executePrepared(
       'Product',
       'UPDATE',
@@ -84,11 +227,13 @@ export async function PUT(request) {
     );
 
     if (updated) {
-      const refreshedProducts = db.getProducts();
+      const refreshedProducts = await getAllProductsFromPgOrLocal();
+      const summary = computeInventorySummary(refreshedProducts);
       return jsonSuccess({
         message: `"${updated.name}" stok durumu güncellendi.`,
         data: updated,
-        products: refreshedProducts
+        products: refreshedProducts,
+        summary
       });
     }
 
@@ -101,10 +246,12 @@ export async function PUT(request) {
     }
 
     if (updatedIng) {
+      const refreshedProducts = await getAllProductsFromPgOrLocal();
       return jsonSuccess({
         message: 'Malzeme stoğu güncellendi.',
         data: updatedIng,
-        products: db.getProducts()
+        products: refreshedProducts,
+        summary: computeInventorySummary(refreshedProducts)
       });
     }
 
@@ -128,22 +275,17 @@ export async function POST(request) {
     const stock = typeof body.stock !== 'undefined' ? Math.max(0, Number(body.stock)) : 25;
     const isAvailable = typeof body.isAvailable === 'boolean' ? body.isAvailable : true;
 
-    const newProduct = orm.executePrepared(
-      'Product',
-      'INSERT',
-      'INSERT INTO "products" ("name", "category", "price", "stock", "is_available") VALUES ($1, $2, $3, $4, $5) RETURNING *',
-      [name, category, price, stock, isAvailable],
-      () =>
-        db.addProduct({
-          name,
-          category,
-          price: Number(price.toFixed(2)),
-          stock,
-          isAvailable,
-          trackStock: true,
-          criticalThreshold: 5
-        })
-    );
+    const newProduct = await prisma.product.create({
+      data: {
+        name,
+        category,
+        price: Number(price.toFixed(2)),
+        stock,
+        isAvailable,
+        trackStock: true,
+        criticalThreshold: 5
+      }
+    });
 
     return jsonSuccess(
       {
@@ -167,21 +309,13 @@ export async function DELETE(request) {
     }
 
     const id = sanitizeText(rawId, 64, 'id', '/api/inventory');
-    const deleted = orm.executePrepared(
-      'Product',
-      'DELETE',
-      'DELETE FROM "products" WHERE "id" = $1 RETURNING "id"',
-      [id],
-      () => db.deleteProduct(id)
-    );
+    await prisma.product.delete({ where: { id } });
 
-    if (!deleted) {
-      throw new NotFoundError('Ürün bulunamadı veya silinemedi.');
-    }
-
+    const refreshedProducts = await getAllProductsFromPgOrLocal();
     return jsonSuccess({
       message: 'Ürün silindi.',
-      products: db.getProducts()
+      products: refreshedProducts,
+      summary: computeInventorySummary(refreshedProducts)
     });
   } catch (error) {
     return handleApiError(error, '/api/inventory', request);

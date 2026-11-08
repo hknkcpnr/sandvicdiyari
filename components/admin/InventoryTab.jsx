@@ -46,17 +46,20 @@ export default function InventoryTab({ products = [], onRefreshProducts }) {
     fetchInventory();
   }, []);
 
-  // Sync to customer window & Redux
-  const triggerSync = (updatedProducts) => {
+  // Sync to customer window, local state & Redux immediately without extra network flicker
+  const applyInventoryResponse = (json) => {
+    if (json?.products && Array.isArray(json.products)) {
+      setItems(json.products);
+      dispatch(setProducts(json.products));
+    }
+    if (json?.summary) {
+      setSummary(json.summary);
+    }
     if (typeof window !== 'undefined') {
       try {
         localStorage.setItem('sandwich_inventory_updated', Date.now().toString());
       } catch (e) {}
     }
-    if (updatedProducts && Array.isArray(updatedProducts)) {
-      dispatch(setProducts(updatedProducts));
-    }
-    if (onRefreshProducts) onRefreshProducts();
   };
 
   // 1. One-click Toggle Availability (Satışta / Tükendi)
@@ -71,14 +74,13 @@ export default function InventoryTab({ products = [], onRefreshProducts }) {
           id: product.id,
           isAvailable: newAvailable,
           // if opening an item with 0 stock, give it 15 stock automatically
-          ...(newAvailable && (Number(product.stock) <= 0) ? { stock: 15 } : {})
+          ...(newAvailable && Number(product.stock) <= 0 ? { stock: 15 } : {})
         }),
       });
 
       const json = await res.json();
       if (json.success) {
-        triggerSync(json.products);
-        fetchInventory();
+        applyInventoryResponse(json);
         dispatch(
           showMessageModal({
             title: newAvailable ? 'Satışa Açıldı 🟢' : 'Siparişe Kapatıldı 🔴',
@@ -87,7 +89,13 @@ export default function InventoryTab({ products = [], onRefreshProducts }) {
           })
         );
       } else {
-        alert(json.error || 'İşlem başarısız oldu.');
+        dispatch(
+          showMessageModal({
+            title: 'Hata',
+            text: json.error || 'İşlem başarısız oldu.',
+            type: 'error',
+          })
+        );
       }
     } catch (err) {
       console.error('Stok aç/kapa hatası:', err);
@@ -115,10 +123,15 @@ export default function InventoryTab({ products = [], onRefreshProducts }) {
 
       const json = await res.json();
       if (json.success) {
-        triggerSync(json.products);
-        fetchInventory();
+        applyInventoryResponse(json);
       } else {
-        alert(json.error || 'Stok güncellenemedi.');
+        dispatch(
+          showMessageModal({
+            title: 'Stok Güncellenemedi',
+            text: json.error || 'Stok güncellenemedi.',
+            type: 'error',
+          })
+        );
       }
     } catch (err) {
       console.error('Stok güncelleme hatası:', err);
@@ -138,14 +151,13 @@ export default function InventoryTab({ products = [], onRefreshProducts }) {
         body: JSON.stringify({
           id: product.id,
           trackStock: !isCurrentlyTracked,
-          stock: !isCurrentlyTracked ? 25 : null,
+          stock: !isCurrentlyTracked ? (Number(product.stock) > 0 ? Number(product.stock) : 25) : Number(product.stock ?? 25),
           isAvailable: true,
         }),
       });
       const json = await res.json();
       if (json.success) {
-        triggerSync(json.products);
-        fetchInventory();
+        applyInventoryResponse(json);
       }
     } catch (err) {
       console.error('Takip türü değiştirilemedi:', err);
@@ -173,8 +185,7 @@ export default function InventoryTab({ products = [], onRefreshProducts }) {
       });
       const json = await res.json();
       if (json.success) {
-        triggerSync(json.products);
-        fetchInventory();
+        applyInventoryResponse(json);
         dispatch(
           showMessageModal({
             title: 'Toplu İşlem Tamamlandı',
@@ -183,7 +194,13 @@ export default function InventoryTab({ products = [], onRefreshProducts }) {
           })
         );
       } else {
-        alert(json.error || 'Toplu işlem başarısız oldu.');
+        dispatch(
+          showMessageModal({
+            title: 'Hata',
+            text: json.error || 'Toplu işlem başarısız oldu.',
+            type: 'error',
+          })
+        );
       }
     } catch (err) {
       console.error('Toplu işlem hatası:', err);

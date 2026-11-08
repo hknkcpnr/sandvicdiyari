@@ -197,8 +197,11 @@ export const prisma = {
           updateData.price = new Prisma.Decimal(Number(args.data.price));
         }
         if (typeof args.data.category === 'string') updateData.category = args.data.category;
+        if (typeof args.data.badge !== 'undefined') {
+          updateData.badge = args.data.badge ? String(args.data.badge) : null;
+        }
         if (typeof args.data.image === 'string') updateData.image = args.data.image;
-        if (typeof args.data.stock === 'number') updateData.stock = args.data.stock;
+        if (typeof args.data.stock === 'number') updateData.stock = Math.max(0, Math.floor(args.data.stock));
         if (typeof args.data.isAvailable === 'boolean') updateData.isAvailable = args.data.isAvailable;
         if (typeof args.data.trackStock === 'boolean') updateData.trackStock = args.data.trackStock;
         if (typeof args.data.criticalThreshold === 'number') {
@@ -441,15 +444,60 @@ export const prisma = {
     },
 
     create: async (args: { data: Record<string, unknown> }) => {
-      const createdLocal = db.createOrder(args.data);
+      let createdLocal: Record<string, unknown> | null = null;
+      try {
+        createdLocal = db.createOrder(args.data) as Record<string, unknown>;
+      } catch {
+        // If local in-memory stock is out of sync with Supabase, generate order metadata directly
+        const fallbackOrderNo = 'SD-' + Math.floor(1000 + Math.random() * 9000);
+        createdLocal = {
+          id: fallbackOrderNo,
+          orderNumber: fallbackOrderNo,
+          ...args.data,
+          status: 'Yeni',
+          isViewed: false,
+          paymentStatus: 'Bekleniyor',
+          date: new Date().toLocaleDateString('tr-TR'),
+          createdAt: new Date().toISOString()
+        };
+      }
+
       try {
         const orderId = String(createdLocal.id);
         const orderNo = String(createdLocal.orderNumber || createdLocal.id);
         const itemsArr = Array.isArray(createdLocal.items) ? createdLocal.items : [];
 
         const createdPg = await rawPrisma.$transaction(async (tx) => {
-          const existingProducts = await tx.product.findMany({ select: { id: true } });
-          const validProductIds = new Set(existingProducts.map((p) => p.id));
+          const existingProducts = await tx.product.findMany();
+          const productMap = new Map(existingProducts.map((p) => [p.id, p]));
+
+          // Deduct stock in Supabase PostgreSQL for ordered catalog products
+          for (const it of itemsArr as Record<string, unknown>[]) {
+            const candidateId = Number(it.id);
+            const qty = Math.max(1, Number(it.quantity || 1));
+            const pgProd = Number.isInteger(candidateId) ? productMap.get(candidateId) : undefined;
+            if (pgProd) {
+              if (!pgProd.isAvailable) {
+                throw new Error(`"${pgProd.name}" şu anda tükendiği için sipariş verilemez.`);
+              }
+              if (pgProd.trackStock) {
+                const curStock = typeof pgProd.stock === 'number' ? pgProd.stock : 25;
+                if (curStock < qty) {
+                  throw new Error(
+                    `"${pgProd.name}" için yeterli stok bulunmuyor (Mevcut: ${curStock}, İstenen: ${qty}).`
+                  );
+                }
+                const newStock = Math.max(0, curStock - qty);
+                await tx.product.update({
+                  where: { id: pgProd.id },
+                  data: {
+                    stock: newStock,
+                    ...(newStock === 0 ? { isAvailable: false } : {})
+                  }
+                });
+              }
+            }
+          }
 
           let linkedUserId: string | null = null;
           if (createdLocal.userEmail) {
@@ -483,7 +531,7 @@ export const prisma = {
                 create: itemsArr.map((it: Record<string, unknown>) => {
                   const candidateId = Number(it.id);
                   const safeProductId =
-                    Number.isInteger(candidateId) && validProductIds.has(candidateId)
+                    Number.isInteger(candidateId) && productMap.has(candidateId)
                       ? candidateId
                       : null;
                   const opts = Array.isArray(it.selectedOptions)
@@ -516,6 +564,12 @@ export const prisma = {
         orm.executePrepared('Order', 'TRANSACTION', 'prisma.$transaction([prisma.order.create($1)])', [orderNo], () => orderNo);
         return formatPrismaOrder(createdPg as unknown as Record<string, unknown>);
       } catch (err) {
+        if (err instanceof Error && err.message.includes('sipariş verilemez')) {
+          throw err;
+        }
+        if (err instanceof Error && err.message.includes('yeterli stok bulunmuyor')) {
+          throw err;
+        }
         console.error('Supabase Order Create Fallback:', err);
       }
       return createdLocal;

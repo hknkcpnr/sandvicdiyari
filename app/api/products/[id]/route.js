@@ -1,5 +1,4 @@
-import { db } from '@/lib/db';
-import { orm } from '@/lib/orm/postgresEngine';
+import { prisma } from '@/lib/prisma';
 import {
   NotFoundError,
   ValidationError,
@@ -14,13 +13,7 @@ export async function GET(request, { params }) {
     const resolvedParams = await params;
     const id = sanitizeText(resolvedParams.id, 64, 'id', '/api/products/[id]');
 
-    const product = orm.executePrepared(
-      'Product',
-      'SELECT',
-      'SELECT * FROM "products" WHERE "id" = $1 LIMIT 1',
-      [id],
-      () => db.getProductById(id)
-    );
+    const product = await prisma.product.findUnique({ where: { id } });
 
     if (!product) {
       throw new NotFoundError('Ürün bulunamadı.');
@@ -48,6 +41,9 @@ export async function PUT(request, { params }) {
     if (typeof body.desc !== 'undefined') {
       sanitizedUpdates.desc = sanitizeText(body.desc, 500, 'Açıklama', '/api/products/[id]');
     }
+    if (typeof body.description !== 'undefined') {
+      sanitizedUpdates.description = sanitizeText(body.description, 500, 'Açıklama', '/api/products/[id]');
+    }
     if (typeof body.price !== 'undefined') {
       const p = Number(body.price);
       if (Number.isNaN(p) || p <= 0 || p > 25000) {
@@ -56,19 +52,10 @@ export async function PUT(request, { params }) {
       sanitizedUpdates.price = Number(p.toFixed(2));
     }
 
-    const updated = orm.executePrepared(
-      'Product',
-      'UPDATE',
-      'UPDATE "products" SET "name" = COALESCE($1, "name"), "price" = COALESCE($2, "price"), "stock" = COALESCE($3, "stock"), "is_available" = COALESCE($4, "is_available"), "updated_at" = NOW() WHERE "id" = $5 RETURNING *',
-      [
-        sanitizedUpdates.name || null,
-        sanitizedUpdates.price || null,
-        sanitizedUpdates.stock ?? null,
-        sanitizedUpdates.isAvailable ?? null,
-        id
-      ],
-      () => db.updateProduct(id, sanitizedUpdates)
-    );
+    const updated = await prisma.product.update({
+      where: { id },
+      data: sanitizedUpdates
+    });
 
     if (!updated) {
       throw new NotFoundError('Güncellenecek ürün bulunamadı.');
@@ -88,17 +75,7 @@ export async function DELETE(request, { params }) {
     const resolvedParams = await params;
     const id = sanitizeText(resolvedParams.id, 64, 'id', '/api/products/[id]');
 
-    const deleted = orm.executePrepared(
-      'Product',
-      'DELETE',
-      'DELETE FROM "products" WHERE "id" = $1 RETURNING "id"',
-      [id],
-      () => db.deleteProduct(id)
-    );
-
-    if (!deleted) {
-      throw new NotFoundError('Silinecek ürün bulunamadı.');
-    }
+    await prisma.product.delete({ where: { id } });
 
     return jsonSuccess({
       message: 'Ürün menüden kaldırıldı.'
