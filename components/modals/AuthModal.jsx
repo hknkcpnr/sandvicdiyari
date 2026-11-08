@@ -51,7 +51,7 @@ export default function AuthModal() {
   // Kayıt Ol Formu Alanları
   const [regName, setRegName] = useState('');
   const [regEmail, setRegEmail] = useState('');
-  const [regPhone, setRegPhone] = useState('');
+  const [regPhone, setRegPhone] = useState('0553 855 76 12');
   const [regAddress, setRegAddress] = useState('');
   const [regPass, setRegPass] = useState('');
 
@@ -545,7 +545,7 @@ export default function AuthModal() {
                         setOtpError('');
                       }}
                       className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:border-emerald-500 text-stone-800 focus:bg-white"
-                      placeholder="0532 123 45 67"
+                      placeholder="0553 855 76 12"
                     />
                   </div>
 
@@ -634,8 +634,8 @@ export default function AuthModal() {
             {/* --------------------------------------------------------------- */}
             {authModalTab === 'register' && regStep === 'otp' && (
               <form id="register-otp-form" onSubmit={handleVerifyAndRegister} className="space-y-4">
-                {/* Gönderilen Numara ve Test Kolaylaştırıcı Bilgi Kartı */}
-                <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3.5 text-xs text-stone-700">
+                {/* Gönderilen Numara ve WhatsApp Bilgi Kartı */}
+                <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-3.5 text-xs text-stone-700 space-y-2">
                   <div className="flex items-center justify-between">
                     <span className="font-semibold text-emerald-900">
                       <i className="fa-brands fa-whatsapp text-emerald-600 mr-1.5"></i>
@@ -646,12 +646,29 @@ export default function AuthModal() {
                         href={whatsappUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-emerald-700 font-bold underline"
+                        className="text-emerald-700 font-bold underline flex items-center gap-1"
                       >
-                        WhatsApp&apos;ta Aç
+                        <i className="fa-brands fa-whatsapp"></i>
+                        <span>WhatsApp&apos;ta Aç</span>
                       </a>
                     )}
                   </div>
+                  {generatedOtp && (
+                    <div className="pt-2 border-t border-emerald-200/60 flex items-center justify-between">
+                      <span className="text-[11px] text-emerald-800">Doğrulama Kodunuz:</span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setOtpInput(generatedOtp);
+                          setOtpError('');
+                        }}
+                        className="bg-emerald-600 hover:bg-emerald-700 text-white font-mono font-bold text-xs px-2.5 py-1 rounded-lg cursor-pointer transition-colors shadow-2xs"
+                        title="Kodu otomatik kutuya yazmak için tıklayın"
+                      >
+                        {generatedOtp} <span className="font-sans font-normal opacity-90 text-[10px] ml-1">(Doldur)</span>
+                      </button>
+                    </div>
+                  )}
                 </div>
 
                 {/* Doğrulama Kodu Giriş Alanı */}

@@ -626,7 +626,7 @@ export const initialUsers = [
     name: 'Admin Üye',
     email: 'admin@sandwichdiyari.com',
     username: 'admin',
-    phone: '0555 555 55 55',
+    phone: '0553 855 76 12',
     address: 'İzmir, Torbalı',
     pass: 'admin',
     orders: [],
