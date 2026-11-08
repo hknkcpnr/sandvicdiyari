@@ -598,17 +598,17 @@ export default function InventoryTab({ products = [], onRefreshProducts }) {
                     </div>
 
                     {/* 4. Hızlı Stok Ekle/Çıkar */}
-                    <div className="col-span-2 flex items-center justify-center gap-1.5">
+                    <div className="col-span-2 flex items-center justify-center">
                       {isTracked ? (
-                        <>
+                        <div className="inline-flex items-center gap-1 p-1 rounded-xl bg-stone-100/80 border border-stone-200/80 shadow-2xs">
                           <button
                             type="button"
                             onClick={() => handleRemoveStock(product.id)}
                             disabled={stockNum <= 0}
                             title="Yazılan adedi (veya 1) stoktan düşer"
-                            className="w-8 h-8 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 flex items-center justify-center text-xs font-bold transition-colors cursor-pointer active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed shrink-0"
+                            className="w-8 h-8 rounded-lg bg-rose-50 hover:bg-rose-600 text-rose-600 hover:text-white border border-rose-200/90 hover:border-rose-600 flex items-center justify-center transition-all cursor-pointer active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed shrink-0 shadow-2xs"
                           >
-                            <i className="fa-solid fa-minus text-[10px]"></i>
+                            <i className="fa-solid fa-minus text-[11px] leading-none"></i>
                           </button>
                           <input
                             id={`stock-add-desk-${product.id}`}
@@ -619,18 +619,18 @@ export default function InventoryTab({ products = [], onRefreshProducts }) {
                             placeholder="1"
                             value={addAmounts[product.id] ?? ''}
                             onChange={(e) => handleAddAmountChange(product.id, e.target.value)}
-                            className="w-14 h-8 px-1 text-center font-bold text-xs bg-stone-50 border border-stone-200 rounded-lg focus:outline-none focus:border-stone-400 focus:bg-white placeholder:font-normal placeholder:text-stone-400"
+                            className="no-spinners w-10 h-8 p-0 text-center font-extrabold text-xs text-stone-900 bg-white border border-stone-200/90 rounded-lg focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/15 placeholder:font-bold placeholder:text-stone-700 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                             aria-label={`${product.name} için stok miktarı`}
                           />
                           <button
                             type="button"
                             onClick={() => handleAddStock(product.id)}
                             title="Yazılan adedi (veya 1) stoğa ekler"
-                            className="w-8 h-8 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 flex items-center justify-center text-xs font-bold transition-colors cursor-pointer active:scale-95 shrink-0"
+                            className="w-8 h-8 rounded-lg bg-emerald-50 hover:bg-emerald-600 text-emerald-600 hover:text-white border border-emerald-200/90 hover:border-emerald-600 flex items-center justify-center transition-all cursor-pointer active:scale-95 shrink-0 shadow-2xs"
                           >
-                            <i className="fa-solid fa-plus text-[10px]"></i>
+                            <i className="fa-solid fa-plus text-[11px] leading-none"></i>
                           </button>
-                        </>
+                        </div>
                       ) : (
                         <span className="text-[11px] text-stone-400 italic">Takip Kapalı</span>
                       )}
@@ -764,36 +764,36 @@ export default function InventoryTab({ products = [], onRefreshProducts }) {
                       </div>
 
                       {/* Stok Ekle & Çıkar Satırı */}
-                      <div className="flex items-center gap-1.5">
+                      <div className="flex items-center justify-between gap-1.5 p-1 rounded-xl bg-stone-100/80 border border-stone-200/80">
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveStock(product.id)}
+                          disabled={stockNum <= 0}
+                          title="Yazılan adedi (boşsa 1 adet) stoktan düşer"
+                          className="h-8 px-3 rounded-lg bg-rose-50 hover:bg-rose-600 text-rose-600 hover:text-white border border-rose-200 text-xs font-bold flex items-center justify-center gap-1 cursor-pointer transition-all active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed shrink-0"
+                        >
+                          <i className="fa-solid fa-minus text-[10px] leading-none"></i>
+                          <span>Çıkar</span>
+                        </button>
                         <input
                           id={`stock-add-mob-${product.id}`}
                           type="number"
                           min="1"
                           step="1"
                           inputMode="numeric"
-                          placeholder="Adet (1)"
+                          placeholder="1"
                           value={addAmounts[product.id] ?? ''}
                           onChange={(e) => handleAddAmountChange(product.id, e.target.value)}
-                          className="w-full min-w-0 h-8 px-2.5 font-semibold text-xs bg-stone-50 border border-stone-200 rounded-lg focus:outline-none focus:border-stone-400 focus:bg-white placeholder:font-normal placeholder:text-stone-400"
+                          className="no-spinners flex-1 min-w-0 h-8 p-0 text-center font-extrabold text-xs text-stone-900 bg-white border border-stone-200 rounded-lg focus:outline-none focus:border-brand-500 placeholder:font-bold placeholder:text-stone-700 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                           aria-label={`${product.name} için stok miktarı`}
                         />
                         <button
                           type="button"
-                          onClick={() => handleRemoveStock(product.id)}
-                          disabled={stockNum <= 0}
-                          title="Yazılan adedi (boşsa 1 adet) stoktan düşer"
-                          className="h-8 px-2.5 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-bold flex items-center gap-1 cursor-pointer transition-colors active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed shrink-0"
-                        >
-                          <i className="fa-solid fa-minus text-[10px]"></i>
-                          <span>Çıkar</span>
-                        </button>
-                        <button
-                          type="button"
                           onClick={() => handleAddStock(product.id)}
                           title="Yazılan adedi (boşsa 1 adet) stoğa ekler"
-                          className="h-8 px-2.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 text-xs font-bold flex items-center gap-1 cursor-pointer transition-colors active:scale-95 shrink-0"
+                          className="h-8 px-3 rounded-lg bg-emerald-50 hover:bg-emerald-600 text-emerald-600 hover:text-white border border-emerald-200 text-xs font-bold flex items-center justify-center gap-1 cursor-pointer transition-all active:scale-95 shrink-0"
                         >
-                          <i className="fa-solid fa-plus text-[10px]"></i>
+                          <i className="fa-solid fa-plus text-[10px] leading-none"></i>
                           <span>Ekle</span>
                         </button>
                       </div>
