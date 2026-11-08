@@ -978,6 +978,22 @@ export default function SiteContentEditorTab({ initialSubTab = 'hero', onSubTabC
               />
             </div>
           </div>
+
+          <div>
+            <label className="text-xs font-bold text-stone-700 block mb-1">Soluk Arka Plan Fotoğrafı (URL)</label>
+            <input
+              type="text"
+              value={content.reviewsSection?.bgImage || ''}
+              onChange={(e) =>
+                updateField((prev) => ({
+                  ...prev,
+                  reviewsSection: { ...prev.reviewsSection, bgImage: e.target.value },
+                }))
+              }
+              placeholder="https://images.unsplash.com/photo-... veya /images/..."
+              className="w-full text-xs bg-stone-50 border border-stone-300 rounded-xl px-3.5 py-2 font-mono"
+            />
+          </div>
         </div>
       )}
 
