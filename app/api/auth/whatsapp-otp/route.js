@@ -9,9 +9,12 @@ import { checkRateLimit } from '@/lib/security/auth';
 import { sanitizeText } from '@/lib/security/validation';
 import { isValidTurkishPhone, toWhatsAppPhone } from '@/lib/phoneUtils';
 
-// Bellek içi güvenli OTP saklama alanı (Telefon -> { code, expiresAt, name, attempts })
+// Bellek içi güvenli OTP saklama alanı (Telefon -> { code, expiresAt, name, senderPhone, attempts })
 const otpStore = new Map();
 const MAX_OTP_ATTEMPTS = 5;
+const SYSTEM_SENDER_PHONE = '0553 855 76 12';
+const SYSTEM_SENDER_E164 = '905538557612';
+const OTP_EXPIRY_MS = 3 * 60 * 1000; // 3 Dakika (180 saniye)
 
 export async function POST(request) {
   try {
@@ -30,7 +33,7 @@ export async function POST(request) {
     }
     const normalizedPhone = toWhatsAppPhone(body.phone);
 
-    // KOD DOĞRULAMA İŞLEMİ
+    // KOD DOĞRULAMA İŞLEMİ (VERIFY)
     if (action === 'verify') {
       const record = otpStore.get(normalizedPhone);
       if (!record) {
@@ -39,7 +42,7 @@ export async function POST(request) {
 
       if (Date.now() > record.expiresAt) {
         otpStore.delete(normalizedPhone);
-        throw new ValidationError('Doğrulama kodunun süresi dolmuş. Lütfen yeni kod gönderin.');
+        throw new ValidationError('3 dakikalık doğrulama kodunun süresi dolmuş. Lütfen "Tekrar Kod Gönder" butonuna tıklayınız.');
       }
 
       record.attempts = (record.attempts || 0) + 1;
@@ -53,28 +56,36 @@ export async function POST(request) {
 
       if (providedCode !== expectedCode) {
         throw new ValidationError(
-          `Girdiğiniz WhatsApp doğrulama kodu hatalı! (Kalan hak: ${MAX_OTP_ATTEMPTS - record.attempts + 1})`
+          `Girdiğiniz WhatsApp doğrulama kodu hatalı! (Kalan deneme hakkı: ${MAX_OTP_ATTEMPTS - record.attempts + 1})`
         );
       }
 
       otpStore.delete(normalizedPhone);
       return jsonSuccess({
-        message: 'Telefon numarası WhatsApp ile doğrulandı.'
+        message: 'Telefon numarası başarıyla doğrulandı.'
       });
     }
 
     // KRİPTOGRAFİK OLARAK GÜVENLİ 6 HANELİ KOD OLUŞTURMA (CSPRNG)
     const generatedCode = String(crypto.randomInt(100000, 1000000));
-    const expiresAt = Date.now() + 3 * 60 * 1000;
+    const expiresAt = Date.now() + OTP_EXPIRY_MS;
 
     otpStore.set(normalizedPhone, {
       code: generatedCode,
       expiresAt,
       name,
+      senderPhone: SYSTEM_SENDER_PHONE,
       attempts: 0
     });
 
-    const whatsappMessage = `🥪 *Sandwich Diyarı - Üyelik Doğrulama*\n\nMerhaba *${name}*,\nKayıt işlemini tamamlamak için WhatsApp doğrulama kodunuz:\n\n🔑 *${generatedCode}*\n\n_Bu kod 3 dakika boyunca geçerlidir._`;
+    const whatsappMessage = `🥪 *Sandwich Diyarı - Üyelik Onay Kodu*\n\n` +
+      `📞 *Gönderen Hat:* ${SYSTEM_SENDER_PHONE}\n` +
+      `📱 *Kayıt Olan:* ${body.phone}\n\n` +
+      `Merhaba *${name}*,\n` +
+      `Sandwich Diyarı üyeliğinizi tamamlamak için onay kodunuz:\n\n` +
+      `🔑 *${generatedCode}*\n\n` +
+      `⏱️ _Bu kod 3 dakika (180 saniye) boyunca geçerlidir._\n` +
+      `⚠️ _Güvenliğiniz için lütfen onay kodunu kimseyle paylaşmayınız._`;
 
     let apiSent = false;
     if (process.env.WHATSAPP_ACCESS_TOKEN && process.env.WHATSAPP_PHONE_NUMBER_ID) {
@@ -101,17 +112,27 @@ export async function POST(request) {
       }
     }
 
+    // Kayıt olan kullanıcının WhatsApp'ına doğrudan mesaj linki
     const whatsappUrl = `https://wa.me/${normalizedPhone}?text=${encodeURIComponent(whatsappMessage)}`;
+    // Gönderici onay hattına (0553 855 76 12) doğrudan mesaj/yardım linki
+    const directSenderUrl = `https://wa.me/${SYSTEM_SENDER_E164}?text=${encodeURIComponent(
+      `Merhaba Sandwich Diyarı, ${body.phone} numaram ile üye olmak için ${generatedCode} kodumu aldım.`
+    )}`;
 
     return jsonSuccess({
-      message: 'WhatsApp doğrulama kodu telefonunuza gönderildi.',
+      message: `${SYSTEM_SENDER_PHONE} onay hattından ${body.phone} numarasına 3 dakika geçerli kod gönderildi.`,
       data: {
+        senderPhone: SYSTEM_SENDER_PHONE,
+        senderPhoneE164: SYSTEM_SENDER_E164,
+        recipientPhone: body.phone,
         phone: normalizedPhone,
         code: generatedCode,
         whatsappMessage,
         whatsappUrl,
+        directSenderUrl,
         apiSent,
-        expiresInSeconds: 180
+        expiresInSeconds: 180,
+        expiresAt
       }
     });
   } catch (error) {
