@@ -159,11 +159,21 @@ export default function CustomerNotificationBell() {
 
       // İlk yüklemeden sonra yeni düşen bildirim varsa anlık Toast & Ses tetikle
       if (!initialLoadedRef.current) {
-        nextList.forEach((n) => knownIdsRef.current.add(n.id));
+        if (Array.isArray(nextList)) {
+          nextList.forEach((n) => {
+            if (n && n.id) knownIdsRef.current.add(n.id);
+          });
+        }
         initialLoadedRef.current = true;
       } else {
-        const brandNew = nextList.find((n) => !knownIdsRef.current.has(n.id));
-        nextList.forEach((n) => knownIdsRef.current.add(n.id));
+        const brandNew = Array.isArray(nextList)
+          ? nextList.find((n) => n && n.id && !knownIdsRef.current.has(n.id))
+          : null;
+        if (Array.isArray(nextList)) {
+          nextList.forEach((n) => {
+            if (n && n.id) knownIdsRef.current.add(n.id);
+          });
+        }
 
         if (brandNew && nextSettings.enabled !== false && nextSettings.toastEnabled !== false) {
           setActiveToast(brandNew);
@@ -213,24 +223,27 @@ export default function CustomerNotificationBell() {
   );
 
   const unreadCount = useMemo(
-    () => notifications.filter((n) => isUnread(n)).length,
+    () => (Array.isArray(notifications) ? notifications.filter((n) => isUnread(n)).length : 0),
     [notifications, isUnread]
   );
 
   const filteredList = useMemo(() => {
+    if (!Array.isArray(notifications)) return [];
     if (filterTab === 'personal') {
-      return notifications.filter((n) => n.scope === 'personal' || n.scope === 'order');
+      return notifications.filter((n) => n?.scope === 'personal' || n?.scope === 'order');
     }
     if (filterTab === 'campaign') {
-      return notifications.filter((n) => n.scope === 'broadcast');
+      return notifications.filter((n) => n?.scope === 'broadcast');
     }
     return notifications;
   }, [notifications, filterTab]);
 
   const handleMarkAllRead = async () => {
-    const allIds = Array.from(new Set([...seenIds, ...notifications.map((n) => n.id)]));
+    const safeSeen = Array.isArray(seenIds) ? seenIds : [];
+    const safeNotifs = Array.isArray(notifications) ? notifications : [];
+    const allIds = Array.from(new Set([...safeSeen, ...safeNotifs.map((n) => n?.id).filter(Boolean)]));
     persistSeenIds(allIds);
-    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+    setNotifications((prev) => (Array.isArray(prev) ? prev.map((n) => ({ ...n, read: true })) : []));
 
     if (currentUser?.email || currentUser?.id) {
       try {

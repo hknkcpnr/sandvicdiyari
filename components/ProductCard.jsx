@@ -30,7 +30,7 @@ export default function ProductCard({ product }) {
   const { favorites } = useSelector((state) => state.ui);
   const { currentUser } = useSelector((state) => state.auth);
   const isMember = Boolean(currentUser && currentUser.email);
-  const isFavorite = isMember && favorites.includes(product.id);
+  const isFavorite = isMember && Array.isArray(favorites) && favorites.includes(product.id);
   const isAvailable = product.isAvailable !== false;
 
   const handleOrderClick = () => {

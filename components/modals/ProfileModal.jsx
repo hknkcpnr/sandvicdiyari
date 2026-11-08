@@ -41,12 +41,15 @@ export default function ProfileModal() {
 
   if (!isProfileModalOpen || !currentUser) return null;
 
-  const initials = currentUser.name
-    .split(' ')
+  const initials = (currentUser?.name || currentUser?.username || currentUser?.email || 'Ü')
+    .toString()
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
     .map((n) => n[0])
     .join('')
     .substring(0, 2)
-    .toUpperCase();
+    .toUpperCase() || 'Ü';
 
   const handleLogout = () => {
     dispatch(logout());

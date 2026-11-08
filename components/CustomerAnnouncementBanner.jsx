@@ -91,7 +91,21 @@ export default function CustomerAnnouncementBanner() {
   if (!current.bannerTitle && !current.bannerText) return null;
   if (dismissedKey === bannerSignature) return null;
 
-  const theme = BANNER_THEMES[current.bannerType] || BANNER_THEMES.campaign;
+  const rawTheme = BANNER_THEMES[current.bannerType] || BANNER_THEMES.campaign;
+  const theme = {
+    gradient:
+      rawTheme?.gradient ||
+      'radial-gradient(circle at 14% 50%, rgba(251, 191, 36, 0.22), transparent 48%), linear-gradient(90deg, #6b0f2b 0%, #991b1b 26%, #c2410c 60%, #b45309 86%, #78350f 100%)',
+    borderClass: rawTheme?.borderClass || 'border-b border-amber-300/35',
+    iconBox:
+      rawTheme?.iconBox ||
+      'bg-gradient-to-br from-amber-300 to-amber-400 text-red-950 ring-2 ring-white/30 shadow-md',
+    titlePill: rawTheme?.titlePill || 'bg-white text-red-900 shadow-sm',
+    btn:
+      rawTheme?.btn ||
+      'bg-amber-300 hover:bg-amber-200 text-stone-950 ring-1 ring-amber-100/70 shadow-md',
+    icon: rawTheme?.icon || 'fa-solid fa-fire-flame-curved'
+  };
 
   const handleDismiss = () => {
     setDismissedKey(bannerSignature);

@@ -43,12 +43,15 @@ export default function Navbar() {
   ];
 
   const initials = currentUser
-    ? currentUser.name
-      .split(' ')
-      .map((n) => n[0])
-      .join('')
-      .substring(0, 2)
-      .toUpperCase()
+    ? (currentUser.name || currentUser.username || currentUser.email || 'Ü')
+        .toString()
+        .trim()
+        .split(/\s+/)
+        .filter(Boolean)
+        .map((n) => n[0])
+        .join('')
+        .substring(0, 2)
+        .toUpperCase() || 'Ü'
     : '';
 
   const isAdminUser = Boolean(
