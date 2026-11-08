@@ -40,6 +40,12 @@ export async function POST(request) {
       throw new AuthenticationError('E-posta veya şifre hatalı.');
     }
 
+    if (user.isBlocked) {
+      throw new AuthenticationError(
+        `Hesabınız yönetici tarafından engellenmiştir. Sebep: ${user.blockReason || 'Kullanım şartları ihlali.'}`
+      );
+    }
+
     const { pass: _, ...userSafe } = user;
     const token = signJwtToken({
       sub: String(user.id || user.email),

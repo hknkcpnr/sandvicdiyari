@@ -24,13 +24,18 @@ export async function GET(request) {
       [],
       () => db.getRoles()
     );
-    const customers = orm.executePrepared(
+    const rawCustomers = orm.executePrepared(
       'User',
       'SELECT',
-      'SELECT "id", "name", "email", "phone", "address" FROM "users"',
+      'SELECT * FROM "users"',
       [],
       () => db.getUsers()
     );
+    const customers = (rawCustomers || []).map((u) => {
+      const localUser = db.findUserByEmail(u.email) || {};
+      const { pass: _, passHash: __, ...safeUser } = { ...localUser, ...u };
+      return safeUser;
+    });
 
     return jsonSuccess({
       data: {
@@ -48,6 +53,62 @@ export async function POST(request) {
   try {
     const body = await parseJsonBody(request);
     const entityType = sanitizeText(body.entityType || 'user', 32, 'entityType', '/api/admin/users');
+
+    // Customer / Member operations (block, unblock, notify, update)
+    if (entityType === 'customer') {
+      const action = sanitizeText(body.action || 'block', 32, 'action', '/api/admin/users');
+      const customerId = sanitizeText(body.id || body.userId || '', 64, 'id', '/api/admin/users');
+
+      if (action === 'notify') {
+        const title = sanitizeText(body.title || 'Bilgilendirme', 150, 'Başlık', '/api/admin/users');
+        const message = sanitizeText(body.message || '', 1000, 'Mesaj', '/api/admin/users');
+        const channel = sanitizeText(body.channel || 'system', 32, 'Kanal', '/api/admin/users');
+
+        if (!message) {
+          throw new ValidationError('Bildirim mesajı boş olamaz.');
+        }
+
+        const result = db.sendNotificationToUser(customerId || 'all', { title, message, channel });
+        return jsonSuccess({
+          message: customerId === 'all' ? 'Tüm üyelere bildirim başarıyla iletildi.' : 'Üyeye bildirim başarıyla iletildi.',
+          data: {
+            result,
+            customers: db.getUsers()
+          }
+        });
+      }
+
+      if (action === 'block' || action === 'unblock') {
+        const isBlocked = action === 'block';
+        const reason = sanitizeText(body.reason || '', 255, 'Sebep', '/api/admin/users');
+        const updated = db.toggleUserBlock(customerId, isBlocked, reason);
+        if (!updated) {
+          throw new ValidationError('Müşteri kaydı bulunamadı.');
+        }
+        return jsonSuccess({
+          message: isBlocked ? 'Üye başarıyla engellendi.' : 'Üyenin engeli kaldırıldı.',
+          data: {
+            customer: updated,
+            customers: db.getUsers()
+          }
+        });
+      }
+
+      if (action === 'update') {
+        const updates = {};
+        if (body.name) updates.name = sanitizeText(body.name, 150, 'Ad Soyad', '/api/admin/users');
+        if (body.phone) updates.phone = sanitizePhone(body.phone, false);
+        if (body.address) updates.address = sanitizeText(body.address, 400, 'Adres', '/api/admin/users');
+        const updated = db.updateUser(customerId, updates);
+        return jsonSuccess({
+          message: 'Üye bilgileri güncellendi.',
+          data: {
+            customer: updated,
+            customers: db.getUsers()
+          }
+        });
+      }
+    }
 
     if (entityType === 'role') {
       const roleName = sanitizeText(body.name, 120, 'Rol Adı', '/api/admin/users');

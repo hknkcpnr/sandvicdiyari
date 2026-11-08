@@ -11,6 +11,7 @@ export const AVAILABLE_PERMISSIONS = [
   { id: 'overview', label: 'Genel Bakış Sayfası', icon: 'fa-solid fa-chart-pie', desc: 'Finansal özet ve operasyon kontrol paneli' },
   { id: 'orders', label: 'Sipariş Yönetimi', icon: 'fa-solid fa-list-check', desc: 'Sipariş durumları ve fiş yazdırma' },
   { id: 'inventory', label: 'Stok Yönetimi', icon: 'fa-solid fa-boxes-stacked', desc: 'Ürün stok kontrolü ve satış açma/kapama' },
+  { id: 'members', label: 'Üye Yönetimi', icon: 'fa-solid fa-users', desc: 'Kayıtlı müşteriler, engelleme ve bildirimler' },
   { id: 'products', label: 'Menü & Ürünler', icon: 'fa-solid fa-burger', desc: 'Ürün ekleme, düzenleme ve katalog' },
   { id: 'users', label: 'Kullanıcı & Rol Yönetimi', icon: 'fa-solid fa-user-shield', desc: 'Personel ve yetki modelleri' },
   { id: 'reviews', label: 'Geri Bildirimler', icon: 'fa-regular fa-star', desc: 'Müşteri yorumlarını inceleme' },

@@ -76,6 +76,12 @@ export async function POST(request) {
       );
     }
 
+    const localMember = db.findUserByEmail(validatedOrder.userEmail);
+    if (registeredMember.isBlocked || localMember?.isBlocked) {
+      const reason = registeredMember.blockReason || localMember?.blockReason || 'Yönetici kısıtlaması';
+      throw new AuthenticationError(`Hesabınız engellendiği için sipariş veremezsiniz! Sebep: ${reason}`);
+    }
+
     const newOrder = await prisma.order.create({
       data: validatedOrder
     });

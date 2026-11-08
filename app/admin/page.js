@@ -13,6 +13,7 @@ import MysqlOrmTab from '@/components/admin/MysqlOrmTab';
 import BlurredAmount from '@/components/admin/BlurredAmount';
 import SettingsTab, { DEFAULT_ADMIN_SETTINGS } from '@/components/admin/SettingsTab';
 import SiteContentEditorTab from '@/components/admin/SiteContentEditorTab';
+import MembersTab from '@/components/admin/MembersTab';
 
 // Status styling and Turkish badge helpers
 const STATUS_CONFIG = {
@@ -1278,6 +1279,13 @@ export default function AdminDashboardPage() {
                 badgeColor: newOrdersCount > 0 ? 'bg-red-500 text-white animate-pulse' : 'bg-stone-100 text-stone-600',
               },
               {
+                id: 'members',
+                label: 'Üye Yönetimi',
+                icon: 'fa-solid fa-users',
+                badge: 'Müşteriler',
+                badgeColor: 'bg-indigo-50 text-indigo-700 font-bold',
+              },
+              {
                 id: 'products',
                 label: 'Menü & Ürünler',
                 icon: 'fa-solid fa-burger',
@@ -1586,6 +1594,7 @@ export default function AdminDashboardPage() {
             <h2 className="font-bold text-stone-900 text-xs sm:text-sm truncate min-w-0">
               {currentTab === 'overview' && 'Genel Bakış & Performans'}
               {currentTab === 'orders' && 'Sipariş Durumu & Operasyon'}
+              {currentTab === 'members' && 'Kayıtlı Üye & Müşteri Yönetimi'}
               {currentTab === 'inventory' && 'Stok & Satış Yönetimi'}
               {currentTab === 'products' && 'Menü & Ürün Yönetimi'}
               {currentTab === 'users' && 'Kullanıcılar & Rol Modelleri Yönetimi'}
@@ -2203,6 +2212,11 @@ export default function AdminDashboardPage() {
               )}
             </div>
           </div>
+        )}
+
+        {/* TAB MEMBERS: ÜYE & MÜŞTERİ YÖNETİMİ (ENGELLEME & BİLDİRİM) */}
+        {currentTab === 'members' && (
+          <MembersTab />
         )}
 
         {/* TAB INVENTORY: HAMMADDE STOKLARI & REÇETE YÖNETİMİ */}
