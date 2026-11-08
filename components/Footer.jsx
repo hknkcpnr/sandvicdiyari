@@ -212,11 +212,16 @@ export default function Footer() {
 
         {/* Telif, Alt Bilgi ve Yönetim Paneli Linki */}
         <div className="text-center text-stone-500 text-xs space-y-3.5 pt-2 flex flex-col items-center">
-          <img
-            src="/images/logo.png"
-            alt="Sandviç Diyarı Logo"
-            className="w-16 h-16 rounded-full object-contain drop-shadow-lg"
-          />
+          <div className="inline-flex items-center gap-2.5">
+            <img
+              src="/logo.png?v=2"
+              alt="Sandviç Diyarı Logo"
+              className="h-9 w-auto object-contain drop-shadow-md shrink-0"
+            />
+            <span className="text-lg font-extrabold tracking-tight text-white">
+              Sandviç <span className="text-brand-500">Diyarı</span>
+            </span>
+          </div>
           <p>&copy; 2026 Sandviç Diyarı - Torbalı / İzmir. Tüm Hakları Saklıdır.</p>
           <div className="flex flex-wrap items-center justify-center gap-4 text-stone-400 text-xs">
             <span>Ev ve işyerlerine sıcak & hızlı paket servis.</span>

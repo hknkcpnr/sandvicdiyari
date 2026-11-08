@@ -39,12 +39,12 @@ export default function Navbar() {
           {/* Logo */}
           <button
             onClick={() => dispatch(setActivePage('home'))}
-            className="flex items-center gap-3 group shrink-0 text-left cursor-pointer"
+            className="flex items-center gap-2.5 sm:gap-3 group shrink-0 text-left cursor-pointer"
           >
             <img
-              src="/images/logo.png"
+              src="/logo.png?v=2"
               alt="Sandviç Diyarı Logo"
-              className="w-12 h-12 sm:w-14 sm:h-14 rounded-full object-contain drop-shadow-md group-hover:scale-105 transition-transform shrink-0"
+              className="h-9 sm:h-11 w-auto object-contain drop-shadow-sm group-hover:scale-105 transition-transform shrink-0"
             />
             <div className="flex items-baseline gap-1.5">
               <span className="text-xl sm:text-2xl font-extrabold tracking-tight text-stone-900">

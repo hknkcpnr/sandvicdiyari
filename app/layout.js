@@ -8,11 +8,10 @@ export const metadata = {
   manifest: '/manifest.json',
   icons: {
     icon: [
-      { url: '/icon-192.png', sizes: '192x192', type: 'image/png' },
-      { url: '/images/logo.png', sizes: '512x512', type: 'image/png' },
+      { url: '/icon-192.png?v=2', sizes: '192x192', type: 'image/png' },
     ],
-    shortcut: '/icon-192.png',
-    apple: '/icon-192.png',
+    shortcut: '/icon-192.png?v=2',
+    apple: '/icon-192.png?v=2',
   },
   openGraph: {
     title: 'Sandviç Diyarı Torbalı | Gece 03:00 Paket Servis',

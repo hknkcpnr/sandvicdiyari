@@ -1099,11 +1099,11 @@ export default function AdminDashboardPage() {
       <div className="min-h-screen bg-stone-50 flex items-center justify-center p-4 font-poppins text-stone-800">
         <div className="w-full max-w-sm bg-white rounded-2xl border border-stone-200 p-8 shadow-sm space-y-6">
           <div className="space-y-1">
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2.5">
               <img
-                src="/images/logo.png"
+                src="/logo.png?v=2"
                 alt="Sandviç Diyarı Logo"
-                className="w-12 h-12 rounded-full object-contain drop-shadow-sm shrink-0"
+                className="h-9 w-auto object-contain drop-shadow-sm shrink-0"
               />
               <div>
                 <h1 className="font-extrabold text-stone-900 text-base leading-tight">Sandviç Diyarı</h1>
@@ -1237,15 +1237,15 @@ export default function AdminDashboardPage() {
               <button
                 type="button"
                 onClick={sidebarCollapsed ? toggleSidebar : undefined}
-                className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${
+                className={`flex items-center justify-center shrink-0 ${
                   sidebarCollapsed ? 'cursor-pointer hover:scale-105 transition-all' : ''
                 }`}
                 title="Sandviç Diyarı"
               >
                 <img
-                  src="/images/logo.png"
+                  src="/logo.png?v=2"
                   alt="Sandviç Diyarı Logo"
-                  className="w-10 h-10 rounded-full object-contain drop-shadow-xs"
+                  className="h-8 w-auto object-contain drop-shadow-xs"
                 />
               </button>
               <div className={`min-w-0 flex-1 ${sidebarCollapsed ? 'md:hidden' : ''}`}>
@@ -1584,9 +1584,9 @@ export default function AdminDashboardPage() {
             </button>
 
             <img
-              src="/images/logo.png"
+              src="/logo.png?v=2"
               alt="Sandviç Diyarı"
-              className="md:hidden w-8 h-8 rounded-full object-contain shrink-0 drop-shadow-2xs"
+              className="md:hidden h-7 w-auto object-contain shrink-0 drop-shadow-2xs"
             />
 
             {/* Desktop Sidebar Toggle Button */}

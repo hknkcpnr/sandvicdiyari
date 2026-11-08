@@ -4,9 +4,9 @@ export default function NotFound() {
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-stone-900 text-white p-4 text-center">
       <img
-        src="/images/logo.png"
+        src="/logo.png?v=2"
         alt="Sandviç Diyarı Logo"
-        className="w-20 h-20 rounded-full object-contain drop-shadow-lg mb-4"
+        className="h-16 w-auto object-contain drop-shadow-lg mb-4"
       />
       <h2 className="text-3xl font-extrabold mb-2">404 - Sayfa Bulunamadı</h2>
       <p className="text-stone-400 text-sm max-w-md mb-6">

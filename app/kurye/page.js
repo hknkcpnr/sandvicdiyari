@@ -312,9 +312,9 @@ export default function CourierPortalPage() {
           {/* Logo & Portal Adı */}
           <div className="flex items-center gap-2.5 min-w-0">
             <img
-              src="/images/logo.png"
+              src="/logo.png?v=2"
               alt="Sandviç Diyarı Logo"
-              className="w-10 h-10 rounded-full object-contain drop-shadow-md shrink-0"
+              className="h-8 sm:h-9 w-auto object-contain drop-shadow-md shrink-0"
             />
             <div className="min-w-0">
               <h1 className="font-extrabold text-sm sm:text-base leading-tight truncate">
