@@ -11,6 +11,7 @@ import {
   showMessageModal
 } from '@/store/slices/uiSlice';
 import { logout } from '@/store/slices/authSlice';
+import CustomerNotificationBell from '@/components/CustomerNotificationBell';
 
 export default function Navbar() {
   const dispatch = useDispatch();
@@ -111,8 +112,11 @@ export default function Navbar() {
             ))}
           </div>
 
-          {/* Sağ Bölüm (Sepet ve Kullanıcı) */}
-          <div className="flex items-center gap-3">
+          {/* Sağ Bölüm (Bildirimler, Sepet ve Kullanıcı) */}
+          <div className="flex items-center gap-2 sm:gap-3">
+            {/* Müşteri Bildirim Merkezi Zili */}
+            <CustomerNotificationBell />
+
             {/* Sepet Butonu */}
             <button
               onClick={() => {

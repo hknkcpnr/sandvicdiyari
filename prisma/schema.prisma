@@ -229,3 +229,11 @@ model SecurityAuditLog {
   @@index([timestamp])
   @@map("security_audit_logs")
 }
+
+model SystemSetting {
+  key       String   @id @db.VarChar(100)
+  value     Json     @db.JsonB
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@map("system_settings")
+}

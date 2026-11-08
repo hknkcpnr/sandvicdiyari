@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import UsersRolesTab from './UsersRolesTab';
 import MysqlOrmTab from './MysqlOrmTab';
 import SiteContentEditorTab from './SiteContentEditorTab';
+import { DEFAULT_CUSTOMER_NOTIFICATION_SETTINGS } from '@/lib/notificationDefaults';
 
 export const DEFAULT_ADMIN_SETTINGS = {
   fontSize: 'medium', // 'small' | 'medium' | 'large'
@@ -47,11 +48,11 @@ const SETTINGS_PAGES = {
   },
   sound: {
     id: 'sound',
-    title: 'Sesli Sipariş & Bildirim Ayarları',
-    badge: 'Ses & Uyarılar',
+    title: 'Müşteri Bildirimleri & POS Ses Ayarları',
+    badge: 'Bildirim Merkezi & Ses',
     badgeColor: 'bg-emerald-50 text-emerald-800 border-emerald-200',
-    icon: 'fa-solid fa-volume-high',
-    desc: 'Mutfak ve kasada yeni sipariş düştüğünde çalacak zil sesini ve liste yenilenme periyodunu belirleyin.',
+    icon: 'fa-solid fa-bell',
+    desc: 'Müşteri sayfasındaki bildirim zilini, üst duyuru bandını, canlı kampanya bildirimlerini ve mutfak zil sesini yönetin.',
   },
   receipt: {
     id: 'receipt',
@@ -92,6 +93,93 @@ export default function SettingsTab({
   const [savedSuccess, setSavedSuccess] = useState(false);
   const [activeSubTab, setActiveSubTab] = useState(initialSubTab); // 'appearance' | 'users' | 'sound' | 'receipt' | 'system'
 
+  // Müşteri Sayfası Bildirim Merkezi Ayarları (Supabase Senkron)
+  const [custNotifSettings, setCustNotifSettings] = useState(DEFAULT_CUSTOMER_NOTIFICATION_SETTINGS);
+  const [isSavingCustNotif, setIsSavingCustNotif] = useState(false);
+
+  // Yeni Canlı Duyuru / Kampanya Bildirimi Formu
+  const [bcastTitle, setBcastTitle] = useState('');
+  const [bcastMessage, setBcastMessage] = useState('');
+  const [bcastType, setBcastType] = useState('campaign');
+  const [bcastTargetPage, setBcastTargetPage] = useState('kampanyalar');
+  const [bcastAlsoMembers, setBcastAlsoMembers] = useState(true);
+  const [isPublishingBcast, setIsPublishingBcast] = useState(false);
+
+  useEffect(() => {
+    fetch('/api/notifications', { cache: 'no-store' })
+      .then((r) => r.json())
+      .then((j) => {
+        if (j?.success && j?.data?.settings) {
+          setCustNotifSettings(j.data.settings);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  const handleCustNotifChange = (key, value) => {
+    setCustNotifSettings((prev) => ({ ...prev, [key]: value }));
+    setSavedSuccess(false);
+  };
+
+  const handlePublishBroadcast = async (e) => {
+    e.preventDefault();
+    if (!bcastTitle.trim() || !bcastMessage.trim()) {
+      alert('Lütfen bildirim başlığı ve mesajını giriniz.');
+      return;
+    }
+
+    setIsPublishingBcast(true);
+    try {
+      const res = await fetch('/api/notifications', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'add_broadcast',
+          title: bcastTitle.trim(),
+          message: bcastMessage.trim(),
+          type: bcastType,
+          targetPage: bcastTargetPage,
+          alsoSendToMembers: bcastAlsoMembers
+        })
+      });
+      const json = await res.json();
+      if (json?.success && json?.data?.settings) {
+        setCustNotifSettings(json.data.settings);
+        setBcastTitle('');
+        setBcastMessage('');
+        try {
+          localStorage.setItem('sandwich_notifications_updated', String(Date.now()));
+        } catch (err) {}
+        if (showToast) {
+          showToast('Canlı bildirim müşteri sayfasında yayınlandı! 🔔', 'success');
+        }
+      } else {
+        alert(json?.error || 'Bildirim yayınlanamadı.');
+      }
+    } catch (err) {
+      alert('Sunucu bağlantı hatası oluştu.');
+    } finally {
+      setIsPublishingBcast(false);
+    }
+  };
+
+  const handleDeleteBroadcast = async (id) => {
+    try {
+      const res = await fetch('/api/notifications', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'delete_broadcast', id })
+      });
+      const json = await res.json();
+      if (json?.success && json?.data?.settings) {
+        setCustNotifSettings(json.data.settings);
+        try {
+          localStorage.setItem('sandwich_notifications_updated', String(Date.now()));
+        } catch (err) {}
+      }
+    } catch (err) {}
+  };
+
   useEffect(() => {
     if (initialSubTab) {
       setActiveSubTab(initialSubTab);
@@ -116,7 +204,7 @@ export default function SettingsTab({
   };
 
   // Ayarları Kaydet
-  const handleSave = () => {
+  const handleSave = async () => {
     if (typeof window !== 'undefined') {
       try {
         localStorage.setItem('sandwich_admin_settings', JSON.stringify(settings));
@@ -127,6 +215,32 @@ export default function SettingsTab({
     if (onSaveSettings) {
       onSaveSettings(settings);
     }
+
+    if (activeSubTab === 'sound') {
+      setIsSavingCustNotif(true);
+      try {
+        const res = await fetch('/api/notifications', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'save_settings',
+            settings: custNotifSettings
+          })
+        });
+        const json = await res.json();
+        if (json?.success && json?.data?.settings) {
+          setCustNotifSettings(json.data.settings);
+          try {
+            localStorage.setItem('sandwich_notifications_updated', String(Date.now()));
+          } catch (err) {}
+        }
+      } catch (err) {
+        console.error('Müşteri bildirim ayarları kaydedilemedi:', err);
+      } finally {
+        setIsSavingCustNotif(false);
+      }
+    }
+
     setSavedSuccess(true);
     setTimeout(() => setSavedSuccess(false), 3000);
   };
@@ -253,11 +367,12 @@ export default function SettingsTab({
               )}
               <button
                 type="button"
+                disabled={isSavingCustNotif}
                 onClick={handleSave}
-                className="bg-stone-900 hover:bg-stone-800 text-white font-semibold px-4 py-2 rounded-xl text-xs transition-colors cursor-pointer flex items-center gap-2 shadow-xs active:scale-95"
+                className="bg-stone-900 hover:bg-stone-800 disabled:bg-stone-400 text-white font-semibold px-4 py-2 rounded-xl text-xs transition-colors cursor-pointer flex items-center gap-2 shadow-xs active:scale-95"
               >
-                <i className="fa-solid fa-floppy-disk text-xs"></i>
-                <span>Kaydet</span>
+                <i className={`fa-solid ${isSavingCustNotif ? 'fa-spinner animate-spin' : 'fa-floppy-disk'} text-xs`}></i>
+                <span>{isSavingCustNotif ? 'Kaydediliyor...' : 'Kaydet'}</span>
               </button>
             </div>
           )}
@@ -393,11 +508,318 @@ export default function SettingsTab({
 
       {/* SEKME 2: SES VE BİLDİRİM AYARLARI */}
       {activeSubTab === 'sound' && (
-        <div className="space-y-4">
+        <div className="space-y-5">
+          {/* KART 1: MÜŞTERİ SAYFASI BİLDİRİM MERKEZİ & DUYURU BANDI AYARLARI */}
+          <div className="bg-white p-4 sm:p-6 rounded-2xl border border-stone-200 shadow-xs space-y-5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-stone-100">
+              <div className="flex items-center gap-3">
+                <span className="w-10 h-10 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center text-base shrink-0">
+                  <i className="fa-solid fa-bell"></i>
+                </span>
+                <div>
+                  <h3 className="text-sm font-extrabold text-stone-900">
+                    Müşteri Sayfası Bildirim Merkezi &amp; Canlı Duyuru Ayarları
+                  </h3>
+                  <p className="text-xs text-stone-500 mt-0.5">
+                    Müşteri vitrinindeki bildirim zili, sipariş durumu uyarıları ve üst duyuru bandını buradan kontrol edin.
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                disabled={isSavingCustNotif}
+                onClick={handleSave}
+                className="bg-brand-600 hover:bg-brand-700 text-white font-bold px-4 py-2 rounded-xl text-xs transition-all cursor-pointer flex items-center justify-center gap-1.5 shadow-xs shrink-0"
+              >
+                <i className={`fa-solid ${isSavingCustNotif ? 'fa-spinner animate-spin' : 'fa-check'}`}></i>
+                <span>Bildirim Ayarlarını Uygula</span>
+              </button>
+            </div>
+
+            {/* 4 Anahtar (Switch) Kartı */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {[
+                {
+                  key: 'enabled',
+                  title: 'Müşteri Bildirim Zili Aktif',
+                  desc: 'Üst menüde (Navbar) bildirim zili ve açılır bildirim kutusunu gösterir.',
+                  icon: 'fa-solid fa-bell'
+                },
+                {
+                  key: 'orderStatusNotifications',
+                  title: 'Otomatik Sipariş Durumu Bildirimleri',
+                  desc: 'Sipariş onaylandığında, hazırlandığında veya kuryeye çıktığında müşteriye otomatik bildirim düşer.',
+                  icon: 'fa-solid fa-motorcycle'
+                },
+                {
+                  key: 'toastEnabled',
+                  title: 'Anlık Bildirim Balonu (Canlı Popup)',
+                  desc: 'Yeni bildirim gönderildiğinde müşterinin ekranında sağ üstte canlı baloncuk açılır.',
+                  icon: 'fa-solid fa-comment-dots'
+                },
+                {
+                  key: 'soundEnabled',
+                  title: 'Müşteri Bildirim Sesi',
+                  desc: 'Yeni bildirim ulaştığında müşteri ekranında hafif uyarı çanı çalar.',
+                  icon: 'fa-solid fa-music'
+                }
+              ].map((item) => {
+                const isOn = custNotifSettings[item.key] !== false;
+                return (
+                  <div
+                    key={item.key}
+                    onClick={() => handleCustNotifChange(item.key, !isOn)}
+                    className={`p-3.5 rounded-xl border transition-all cursor-pointer flex items-center justify-between gap-3 ${
+                      isOn
+                        ? 'border-emerald-300 bg-emerald-50/40'
+                        : 'border-stone-200 bg-stone-50/60 hover:border-stone-300'
+                    }`}
+                  >
+                    <div className="flex items-start gap-3 min-w-0">
+                      <span
+                        className={`w-8 h-8 rounded-lg flex items-center justify-center text-xs shrink-0 ${
+                          isOn ? 'bg-emerald-600 text-white' : 'bg-stone-200 text-stone-500'
+                        }`}
+                      >
+                        <i className={item.icon}></i>
+                      </span>
+                      <div className="min-w-0">
+                        <span className="text-xs font-bold text-stone-900 block">{item.title}</span>
+                        <span className="text-[11px] text-stone-500 block leading-snug mt-0.5">
+                          {item.desc}
+                        </span>
+                      </div>
+                    </div>
+
+                    <span
+                      className={`relative inline-flex h-6 w-11 shrink-0 rounded-full border-2 border-transparent transition-colors ${
+                        isOn ? 'bg-emerald-600' : 'bg-stone-300'
+                      }`}
+                    >
+                      <span
+                        className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition ${
+                          isOn ? 'translate-x-5' : 'translate-x-0'
+                        }`}
+                      />
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Üst Duyuru Bandı Düzenleyici */}
+            <div className="pt-4 border-t border-stone-100 space-y-3.5">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h4 className="text-xs font-extrabold text-stone-900 uppercase tracking-wider">
+                    Üst Canlı Duyuru &amp; Fırsat Bandı
+                  </h4>
+                  <p className="text-[11px] text-stone-500">
+                    Menü çubuğunun hemen altında tüm ziyaretçilere görünen renkli duyuru şeridi.
+                  </p>
+                </div>
+
+                <label className="inline-flex items-center gap-2 cursor-pointer text-xs font-bold text-stone-800">
+                  <input
+                    type="checkbox"
+                    checked={custNotifSettings.showBanner !== false}
+                    onChange={(e) => handleCustNotifChange('showBanner', e.target.checked)}
+                    className="w-4 h-4 accent-emerald-600 rounded"
+                  />
+                  <span>Bandı Göster</span>
+                </label>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-[11px] font-bold text-stone-700 mb-1">Görünüm Teması</label>
+                  <select
+                    value={custNotifSettings.bannerType || 'campaign'}
+                    onChange={(e) => handleCustNotifChange('bannerType', e.target.value)}
+                    className="app-select w-full bg-stone-50 border border-stone-200 rounded-xl px-3.5 py-2 text-xs font-bold text-stone-900 cursor-pointer"
+                  >
+                    <option value="campaign">🔥 Kampanya (Turuncu)</option>
+                    <option value="delivery">🛵 Sıcak Teslimat (Yeşil)</option>
+                    <option value="info">📢 Bilgilendirme (İndigo)</option>
+                    <option value="warning">⚠️ Önemli Uyarı (Kırmızı)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-bold text-stone-700 mb-1">Buton Hedef Sayfası</label>
+                  <select
+                    value={custNotifSettings.bannerActionPage || 'kampanyalar'}
+                    onChange={(e) => handleCustNotifChange('bannerActionPage', e.target.value)}
+                    className="app-select w-full bg-stone-50 border border-stone-200 rounded-xl px-3.5 py-2 text-xs font-bold text-stone-900 cursor-pointer"
+                  >
+                    <option value="kampanyalar">Kampanyalar Sayfası</option>
+                    <option value="menu">Menü &amp; Ürünler</option>
+                    <option value="iletisim">İletişim Sayfası</option>
+                    <option value="none">Buton Gösterme</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-bold text-stone-700 mb-1">Buton Yazısı</label>
+                  <input
+                    type="text"
+                    value={custNotifSettings.bannerActionLabel || ''}
+                    onChange={(e) => handleCustNotifChange('bannerActionLabel', e.target.value)}
+                    placeholder="Örn: Fırsatları Gör"
+                    className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-2 text-xs font-semibold text-stone-900 focus:outline-none focus:border-brand-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-bold text-stone-700 mb-1">Kısa Başlık</label>
+                  <input
+                    type="text"
+                    value={custNotifSettings.bannerTitle || ''}
+                    onChange={(e) => handleCustNotifChange('bannerTitle', e.target.value)}
+                    placeholder="Örn: Sıcak Paket Servis Aktif!"
+                    className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-2 text-xs font-semibold text-stone-900 focus:outline-none focus:border-brand-500"
+                  />
+                </div>
+
+                <div className="sm:col-span-2">
+                  <label className="block text-[11px] font-bold text-stone-700 mb-1">Duyuru Mesajı</label>
+                  <input
+                    type="text"
+                    value={custNotifSettings.bannerText || ''}
+                    onChange={(e) => handleCustNotifChange('bannerText', e.target.value)}
+                    placeholder="Örn: Torbalı içi her gün 03:00'e kadar sıcak teslimat..."
+                    className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-2 text-xs font-medium text-stone-900 focus:outline-none focus:border-brand-500"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* KART 2: HIZLI CANLI BİLDİRİM & KAMPANYA YAYINLAMA */}
+          <div className="bg-white p-4 sm:p-6 rounded-2xl border border-stone-200 shadow-xs space-y-4">
+            <div>
+              <h3 className="text-sm font-extrabold text-stone-900 flex items-center gap-2">
+                <i className="fa-solid fa-paper-plane text-indigo-600"></i>
+                <span>Müşteri Bildirim Kutusuna Canlı Duyuru / Kampanya Gönder</span>
+              </h3>
+              <p className="text-xs text-stone-500 mt-0.5">
+                Buradan yayınladığınız bildirimler sitedeki tüm ziyaretçi ve üyelerin bildirim zilinde anında görünür.
+              </p>
+            </div>
+
+            <form onSubmit={handlePublishBroadcast} className="space-y-3 bg-stone-50 p-4 rounded-2xl border border-stone-200/80">
+              <div className="grid grid-cols-1 sm:grid-cols-12 gap-3">
+                <div className="sm:col-span-6">
+                  <label className="block text-[11px] font-bold text-stone-700 mb-1">Bildirim Başlığı *</label>
+                  <input
+                    type="text"
+                    required
+                    value={bcastTitle}
+                    onChange={(e) => setBcastTitle(e.target.value)}
+                    placeholder="Örn: 🎉 Gece Menülerinde Özel Fırsat!"
+                    className="w-full bg-white border border-stone-200 rounded-xl px-3 py-2 text-xs font-semibold text-stone-900 focus:outline-none focus:border-indigo-500"
+                  />
+                </div>
+
+                <div className="sm:col-span-3">
+                  <label className="block text-[11px] font-bold text-stone-700 mb-1">Kategori</label>
+                  <select
+                    value={bcastType}
+                    onChange={(e) => setBcastType(e.target.value)}
+                    className="app-select w-full bg-white border border-stone-200 rounded-xl px-3 py-2 text-xs font-bold text-stone-900 cursor-pointer"
+                  >
+                    <option value="campaign">🎁 Kampanya</option>
+                    <option value="info">📢 Duyuru</option>
+                    <option value="warning">⚠️ Önemli Bilgi</option>
+                  </select>
+                </div>
+
+                <div className="sm:col-span-3">
+                  <label className="block text-[11px] font-bold text-stone-700 mb-1">Tıklanınca Açılacak Sayfa</label>
+                  <select
+                    value={bcastTargetPage}
+                    onChange={(e) => setBcastTargetPage(e.target.value)}
+                    className="app-select w-full bg-white border border-stone-200 rounded-xl px-3 py-2 text-xs font-bold text-stone-900 cursor-pointer"
+                  >
+                    <option value="kampanyalar">Kampanyalar</option>
+                    <option value="menu">Menü &amp; Ürünler</option>
+                    <option value="iletisim">İletişim</option>
+                    <option value="none">Yönlendirme Yok</option>
+                  </select>
+                </div>
+
+                <div className="sm:col-span-12">
+                  <label className="block text-[11px] font-bold text-stone-700 mb-1">Bildirim Mesajı *</label>
+                  <textarea
+                    rows={2}
+                    required
+                    value={bcastMessage}
+                    onChange={(e) => setBcastMessage(e.target.value)}
+                    placeholder="Müşterilerinize iletmek istediğiniz kampanya veya duyuru metnini yazın..."
+                    className="w-full bg-white border border-stone-200 rounded-xl p-3 text-xs text-stone-900 focus:outline-none focus:border-indigo-500 resize-none"
+                  />
+                </div>
+              </div>
+
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-1">
+                <label className="inline-flex items-center gap-2 cursor-pointer text-xs font-semibold text-stone-700">
+                  <input
+                    type="checkbox"
+                    checked={bcastAlsoMembers}
+                    onChange={(e) => setBcastAlsoMembers(e.target.checked)}
+                    className="w-4 h-4 accent-indigo-600 rounded"
+                  />
+                  <span>Kayıtlı tüm üyelerin kişisel bildirim kutusuna da kaydet</span>
+                </label>
+
+                <button
+                  type="submit"
+                  disabled={isPublishingBcast}
+                  className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs px-5 py-2.5 rounded-xl transition-all cursor-pointer flex items-center justify-center gap-2 shadow-xs shrink-0"
+                >
+                  <i className={`fa-solid ${isPublishingBcast ? 'fa-spinner animate-spin' : 'fa-bullhorn'}`}></i>
+                  <span>{isPublishingBcast ? 'Yayınlanıyor...' : 'Canlı Bildirimi Yayınla'}</span>
+                </button>
+              </div>
+            </form>
+
+            {/* Yayındaki Genel Duyurular Listesi */}
+            {(custNotifSettings.broadcasts || []).length > 0 && (
+              <div className="space-y-2 pt-1">
+                <span className="text-[11px] font-extrabold uppercase tracking-wider text-stone-400 block">
+                  Yayındaki Genel Bildirimler ({custNotifSettings.broadcasts.length})
+                </span>
+                <div className="divide-y divide-stone-100 border border-stone-200/80 rounded-xl overflow-hidden">
+                  {custNotifSettings.broadcasts.map((b) => (
+                    <div
+                      key={b.id}
+                      className="p-3 bg-white hover:bg-stone-50 flex items-center justify-between gap-3 text-xs"
+                    >
+                      <div className="min-w-0">
+                        <p className="font-bold text-stone-900 truncate">{b.title}</p>
+                        <p className="text-[11px] text-stone-500 truncate">{b.message}</p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteBroadcast(b.id)}
+                        className="text-stone-400 hover:text-rose-600 hover:bg-rose-50 p-2 rounded-lg transition-colors cursor-pointer shrink-0"
+                        title="Yayından Kaldır"
+                      >
+                        <i className="fa-solid fa-trash-can"></i>
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* KART 3: MUTFAK & KASA POS SİPARİŞ SESLİ UYARISI */}
           <div className="bg-white p-4 sm:p-6 rounded-2xl border border-stone-200 shadow-xs space-y-5">
             <div className="flex items-center justify-between pb-3 border-b border-stone-100">
               <div>
-                <h3 className="text-sm font-bold text-stone-900">Yeni Sipariş Sesli Uyarısı</h3>
+                <h3 className="text-sm font-bold text-stone-900">Mutfak &amp; Kasa Yeni Sipariş Sesli Uyarısı</h3>
                 <p className="text-xs text-stone-500 mt-0.5">
                   Müşteri yeni sipariş oluşturduğunda mutfak/kasa terminalinde sesli alarm çalar.
                 </p>

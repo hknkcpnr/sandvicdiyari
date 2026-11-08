@@ -138,8 +138,14 @@ export default function MembersTab({ onCustomerUpdated }) {
       }
 
       setIsNotifyModalOpen(false);
-      setMembers(json.data?.customers || members);
+      setMembers(Array.isArray(json.data?.customers) ? json.data.customers : members);
       if (onCustomerUpdated) onCustomerUpdated(json.data?.customers);
+
+      try {
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('sandwich_notifications_updated', String(Date.now()));
+        }
+      } catch (e) {}
 
       dispatch(
         showMessageModal({

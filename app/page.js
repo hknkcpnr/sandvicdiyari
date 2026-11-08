@@ -7,6 +7,7 @@ import { login, logout } from '@/store/slices/authSlice';
 import { showMessageModal, closeProfileModal, closeCheckoutModal } from '@/store/slices/uiSlice';
 import TopBar from '@/components/TopBar';
 import Navbar from '@/components/Navbar';
+import CustomerAnnouncementBanner from '@/components/CustomerAnnouncementBanner';
 import Footer from '@/components/Footer';
 
 // Customer Pages
@@ -145,6 +146,9 @@ export default function Home() {
 
       {/* Main Navbar */}
       <Navbar />
+
+      {/* Live Customer Announcement Banner (Managed via Admin Notification Settings) */}
+      <CustomerAnnouncementBanner />
 
       {/* Active Customer Page View */}
       <main className="flex-grow">

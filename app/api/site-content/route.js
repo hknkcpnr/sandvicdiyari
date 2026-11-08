@@ -1,10 +1,29 @@
 import { NextResponse } from 'next/server';
 import { db, DEFAULT_SITE_CONTENT } from '@/lib/db';
+import { rawPrisma } from '@/lib/prisma';
 
 export const dynamic = 'force-dynamic';
 
+const SITE_CONTENT_KEY = 'site_content';
+
 export async function GET() {
   try {
+    try {
+      if (rawPrisma && rawPrisma.systemSetting) {
+        const rec = await rawPrisma.systemSetting.findUnique({
+          where: { key: SITE_CONTENT_KEY }
+        });
+        if (rec && rec.value && typeof rec.value === 'object') {
+          return NextResponse.json({
+            success: true,
+            data: { ...DEFAULT_SITE_CONTENT, ...rec.value }
+          });
+        }
+      }
+    } catch (pgErr) {
+      console.warn('Prisma site-content read fallback:', pgErr.message);
+    }
+
     const data = db.getSiteContent();
     return NextResponse.json({
       success: true,
@@ -30,6 +49,19 @@ export async function POST(request) {
     }
 
     const updated = db.saveSiteContent(body);
+
+    try {
+      if (rawPrisma && rawPrisma.systemSetting) {
+        await rawPrisma.systemSetting.upsert({
+          where: { key: SITE_CONTENT_KEY },
+          update: { value: updated },
+          create: { key: SITE_CONTENT_KEY, value: updated }
+        });
+      }
+    } catch (pgErr) {
+      console.warn('Prisma site-content write warning:', pgErr.message);
+    }
+
     return NextResponse.json({
       success: true,
       message: 'Müşteri sayfası içeriği başarıyla güncellendi.',
@@ -43,4 +75,3 @@ export async function POST(request) {
     );
   }
 }
-
