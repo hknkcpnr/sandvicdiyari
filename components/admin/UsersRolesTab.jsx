@@ -348,10 +348,36 @@ export default function UsersRolesTab({ currentAdmin, onRolesOrUsersUpdated }) {
       const json = await res.json();
       if (json.success) {
         setCustomers(json.data.customers || []);
+
+        try {
+          if (typeof window !== 'undefined') {
+            const savedStr = localStorage.getItem('sd_current_user');
+            if (savedStr) {
+              const parsed = JSON.parse(savedStr);
+              if (
+                parsed?.id === cust.id ||
+                parsed?.email?.toLowerCase() === cust.email?.toLowerCase()
+              ) {
+                localStorage.removeItem('sd_current_user');
+                localStorage.removeItem('sd_auth_token');
+              }
+            }
+            localStorage.setItem(
+              'sandwich_session_event',
+              JSON.stringify({
+                action: 'deleted',
+                email: cust.email,
+                id: cust.id,
+                timestamp: Date.now()
+              })
+            );
+          }
+        } catch (e) {}
+
         dispatch(
           showMessageModal({
             title: 'Müşteri Silindi',
-            text: `${cust.name || cust.email} sistemden kaldırıldı.`,
+            text: `${cust.name || cust.email} sistemden kaldırıldı ve açık oturumu kapatıldı.`,
             type: 'info',
           })
         );

@@ -172,10 +172,25 @@ export default function MembersTab({ onCustomerUpdated }) {
       setMembers(json.data?.customers || members);
       if (onCustomerUpdated) onCustomerUpdated(json.data?.customers);
 
+      // Oturumu anında düşürmek için cross-tab bildirim yayınla
+      try {
+        if (typeof window !== 'undefined') {
+          localStorage.setItem(
+            'sandwich_session_event',
+            JSON.stringify({
+              action: 'blocked',
+              email: selectedMemberForBlock.email,
+              id: selectedMemberForBlock.id,
+              timestamp: Date.now()
+            })
+          );
+        }
+      } catch (e) {}
+
       dispatch(
         showMessageModal({
           title: 'Üye Engellendi 🚫',
-          text: `"${selectedMemberForBlock.name}" hesabı engellendi. Artık sipariş veremez ve oturum açamaz.`,
+          text: `"${selectedMemberForBlock.name}" hesabı engellendi. Artık sipariş veremez ve açık oturumu sonlandırıldı.`,
           type: 'warning'
         })
       );
@@ -238,10 +253,36 @@ export default function MembersTab({ onCustomerUpdated }) {
       setMembers(json.data?.customers || members.filter((m) => m.id !== member.id));
       if (onCustomerUpdated) onCustomerUpdated(json.data?.customers);
 
+      // Oturumu anında kapatmak için cross-tab bildirim yayınla & varsa yerel oturumu sil
+      try {
+        if (typeof window !== 'undefined') {
+          const savedStr = localStorage.getItem('sd_current_user');
+          if (savedStr) {
+            const parsed = JSON.parse(savedStr);
+            if (
+              parsed?.id === member.id ||
+              parsed?.email?.toLowerCase() === member.email?.toLowerCase()
+            ) {
+              localStorage.removeItem('sd_current_user');
+              localStorage.removeItem('sd_auth_token');
+            }
+          }
+          localStorage.setItem(
+            'sandwich_session_event',
+            JSON.stringify({
+              action: 'deleted',
+              email: member.email,
+              id: member.id,
+              timestamp: Date.now()
+            })
+          );
+        }
+      } catch (e) {}
+
       dispatch(
         showMessageModal({
           title: 'Üye Silindi 🗑️',
-          text: `"${member.name}" başarıyla silindi.`,
+          text: `"${member.name}" başarıyla silindi ve açık olan tüm oturumları kapatıldı.`,
           type: 'success'
         })
       );

@@ -3,7 +3,8 @@
 import { useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { setProducts } from '@/store/slices/productSlice';
-import { login } from '@/store/slices/authSlice';
+import { login, logout } from '@/store/slices/authSlice';
+import { showMessageModal, closeProfileModal, closeCheckoutModal } from '@/store/slices/uiSlice';
 import TopBar from '@/components/TopBar';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
@@ -30,12 +31,65 @@ export default function Home() {
   const { activePage } = useSelector((state) => state.ui);
 
   useEffect(() => {
+    // ------------------------------------------------------------------------
+    // OTURUM GÜVENLİK VE AKTİFLİK DOĞRULAMASI (/api/auth/me)
+    // ------------------------------------------------------------------------
+    // Admin panelinden üye silinmiş veya engellenmişse oturumu anında sonlandırır.
+    const verifyCurrentSession = async (userCandidate) => {
+      try {
+        const u = userCandidate || (() => {
+          try {
+            const raw = localStorage.getItem('sd_current_user');
+            return raw ? JSON.parse(raw) : null;
+          } catch (e) {
+            return null;
+          }
+        })();
+
+        if (!u || (!u.email && !u.id)) return;
+
+        const res = await fetch(
+          `/api/auth/me?email=${encodeURIComponent(u.email || '')}&id=${encodeURIComponent(u.id || '')}`
+        );
+        const result = await res.json();
+
+        // ÜYE SİLİNMİŞ VEYA ENGELLENMİŞSE OTURUMU DERHAL KAPAT
+        if (result && result.valid === false) {
+          dispatch(logout());
+          dispatch(closeProfileModal());
+          dispatch(closeCheckoutModal());
+          try {
+            localStorage.removeItem('sd_current_user');
+            localStorage.removeItem('sd_auth_token');
+          } catch (e) {}
+
+          const title = result.reason === 'blocked' ? 'Hesabınız Engellendi ⛔' : 'Oturum Kapatıldı ℹ️';
+          const text =
+            result.reason === 'blocked'
+              ? `Hesabınız yönetici tarafından engellenmiştir. (${result.blockReason || 'Kısıtlama'})`
+              : 'Hesabınız sistemden silindiği için oturumunuz otomatik olarak sonlandırıldı.';
+
+          dispatch(
+            showMessageModal({
+              title,
+              text,
+              type: 'warning'
+            })
+          );
+        }
+      } catch (err) {
+        // Çevrimdışı / geçici ağ hatası durumunda kullanıcıyı rahatsız etme
+      }
+    };
+
     try {
       const savedUser = localStorage.getItem('sd_current_user');
       if (savedUser) {
         const parsedUser = JSON.parse(savedUser);
         if (parsedUser && parsedUser.email) {
           dispatch(login({ user: parsedUser }));
+          // Sunucu ile hemen doğrula (silinmiş mi?)
+          verifyCurrentSession(parsedUser);
         }
       }
     } catch (e) {}
@@ -53,22 +107,33 @@ export default function Home() {
 
     loadProducts();
 
-    // Cross-tab real-time sync when admin changes inventory
+    // Cross-tab real-time sync when admin changes inventory or revokes user session
     const handleStorageChange = (e) => {
       if (e.key === 'sandwich_inventory_updated') {
         loadProducts();
       }
+      if (e.key === 'sandwich_session_event') {
+        verifyCurrentSession();
+      }
+    };
+
+    const handleWindowFocus = () => {
+      loadProducts();
+      verifyCurrentSession();
     };
 
     window.addEventListener('storage', handleStorageChange);
-    window.addEventListener('focus', loadProducts);
+    window.addEventListener('focus', handleWindowFocus);
 
     // Periodic lightweight sync every 3 seconds for instant reaction
-    const pollInterval = setInterval(loadProducts, 3000);
+    const pollInterval = setInterval(() => {
+      loadProducts();
+      verifyCurrentSession();
+    }, 3000);
 
     return () => {
       window.removeEventListener('storage', handleStorageChange);
-      window.removeEventListener('focus', loadProducts);
+      window.removeEventListener('focus', handleWindowFocus);
       clearInterval(pollInterval);
     };
   }, [dispatch]);

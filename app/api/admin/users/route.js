@@ -1,5 +1,6 @@
 import { db } from '@/lib/db';
 import { orm } from '@/lib/orm/postgresEngine';
+import { prisma } from '@/lib/prisma';
 import {
   ValidationError,
   handleApiError,
@@ -214,16 +215,30 @@ export async function DELETE(request) {
     }
 
     if (entityType === 'customer') {
+      try {
+        if (prisma && prisma.user) {
+          await prisma.user.deleteMany({
+            where: {
+              OR: [
+                { id: String(id) },
+                { email: String(id) }
+              ]
+            }
+          });
+        }
+      } catch (e) {}
+
       orm.executePrepared(
         'User',
         'DELETE',
-        'DELETE FROM "users" WHERE "id" = $1 RETURNING "id"',
+        'DELETE FROM "users" WHERE "id" = $1 OR "email" = $1 RETURNING "id"',
         [id],
         () => db.deleteUser(id)
       );
       return jsonSuccess({
         message: 'Müşteri kaydı silindi.',
         data: {
+          deletedId: id,
           customers: db.getUsers(),
           adminUsers: db.getAdminUsers(),
           roles: db.getRoles()
