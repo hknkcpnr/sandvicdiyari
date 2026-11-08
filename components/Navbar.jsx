@@ -176,11 +176,14 @@ export default function Navbar() {
 
                   {/* PROFİL AÇILIR DROPDOWN MENÜSÜ */}
                   {isUserDropdownOpen && (
-                    <div className="absolute right-0 mt-2.5 w-64 bg-white/98 backdrop-blur-md rounded-2xl shadow-2xl border border-stone-200/90 py-2.5 z-50 animate-dropdown overflow-hidden">
+                    <div
+                      style={{ backgroundColor: '#ffffff' }}
+                      className="absolute right-0 mt-2.5 w-72 bg-white rounded-2xl shadow-[0_20px_50px_rgba(15,23,42,0.22)] ring-1 ring-stone-900/5 border border-stone-200 pb-2 z-50 animate-dropdown overflow-hidden"
+                    >
                       {/* Kullanıcı Başlık Kartı */}
-                      <div className="px-4 py-3 bg-gradient-to-br from-stone-50 to-brand-50/40 border-b border-stone-100 mb-1.5">
+                      <div className="px-4 py-3.5 bg-gradient-to-br from-stone-50 via-white to-amber-50 border-b border-stone-100 mb-1.5">
                         <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-600 to-amber-500 text-white flex items-center justify-center font-black text-sm shadow-xs shrink-0">
+                          <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-600 to-amber-500 text-white flex items-center justify-center font-black text-sm shadow-sm shrink-0">
                             {initials}
                           </div>
                           <div className="min-w-0 flex-1">
@@ -199,16 +202,16 @@ export default function Navbar() {
                       </div>
 
                       {/* Menü Linkleri */}
-                      <div className="px-1.5 space-y-0.5">
+                      <div className="px-2 space-y-0.5 bg-white">
                         <button
                           type="button"
                           onClick={() => {
                             setIsUserDropdownOpen(false);
                             dispatch(openProfileModal());
                           }}
-                          className="w-full flex items-center gap-3 px-3 py-2 text-xs font-semibold text-stone-700 hover:text-brand-600 hover:bg-brand-50/70 rounded-xl transition-all cursor-pointer group"
+                          className="w-full flex items-center gap-3 px-3 py-2.5 text-xs font-semibold text-stone-700 hover:text-brand-700 hover:bg-amber-50 rounded-xl transition-all cursor-pointer group"
                         >
-                          <div className="w-7 h-7 rounded-lg bg-stone-100 group-hover:bg-brand-100/80 text-stone-500 group-hover:text-brand-600 flex items-center justify-center transition-colors">
+                          <div className="w-7 h-7 rounded-lg bg-stone-100 group-hover:bg-brand-100 text-stone-600 group-hover:text-brand-700 flex items-center justify-center transition-colors shrink-0">
                             <i className="fa-solid fa-clock-rotate-left text-xs"></i>
                           </div>
                           <span>Sipariş Geçmişim &amp; Takip</span>
@@ -220,9 +223,9 @@ export default function Navbar() {
                             setIsUserDropdownOpen(false);
                             dispatch(openProfileModal());
                           }}
-                          className="w-full flex items-center gap-3 px-3 py-2 text-xs font-semibold text-stone-700 hover:text-brand-600 hover:bg-brand-50/70 rounded-xl transition-all cursor-pointer group"
+                          className="w-full flex items-center gap-3 px-3 py-2.5 text-xs font-semibold text-stone-700 hover:text-brand-700 hover:bg-amber-50 rounded-xl transition-all cursor-pointer group"
                         >
-                          <div className="w-7 h-7 rounded-lg bg-stone-100 group-hover:bg-brand-100/80 text-stone-500 group-hover:text-brand-600 flex items-center justify-center transition-colors">
+                          <div className="w-7 h-7 rounded-lg bg-stone-100 group-hover:bg-brand-100 text-stone-600 group-hover:text-brand-700 flex items-center justify-center transition-colors shrink-0">
                             <i className="fa-solid fa-user-gear text-xs"></i>
                           </div>
                           <span>Profil &amp; Adres Bilgilerim</span>
@@ -234,9 +237,9 @@ export default function Navbar() {
                             setIsUserDropdownOpen(false);
                             dispatch(setActivePage('menu'));
                           }}
-                          className="w-full flex items-center gap-3 px-3 py-2 text-xs font-semibold text-stone-700 hover:text-brand-600 hover:bg-brand-50/70 rounded-xl transition-all cursor-pointer group"
+                          className="w-full flex items-center gap-3 px-3 py-2.5 text-xs font-semibold text-stone-700 hover:text-brand-700 hover:bg-amber-50 rounded-xl transition-all cursor-pointer group"
                         >
-                          <div className="w-7 h-7 rounded-lg bg-stone-100 group-hover:bg-brand-100/80 text-stone-500 group-hover:text-brand-600 flex items-center justify-center transition-colors">
+                          <div className="w-7 h-7 rounded-lg bg-stone-100 group-hover:bg-brand-100 text-stone-600 group-hover:text-brand-700 flex items-center justify-center transition-colors shrink-0">
                             <i className="fa-solid fa-heart text-xs"></i>
                           </div>
                           <span>Favori Sandviçlerim</span>
@@ -246,24 +249,24 @@ export default function Navbar() {
                         {isAdminUser && (
                           <a
                             href="/admin"
-                            className="w-full flex items-center gap-3 px-3 py-2 text-xs font-bold text-amber-700 hover:text-amber-800 hover:bg-amber-50 rounded-xl transition-all cursor-pointer group border border-amber-200/50 my-1"
+                            className="w-full flex items-center gap-3 px-3 py-2.5 text-xs font-bold text-amber-900 bg-amber-50/80 hover:bg-amber-100 rounded-xl transition-all cursor-pointer group border border-amber-200 my-1.5"
                           >
-                            <div className="w-7 h-7 rounded-lg bg-amber-100 text-amber-600 flex items-center justify-center">
+                            <div className="w-7 h-7 rounded-lg bg-amber-500 text-white flex items-center justify-center shadow-sm shrink-0">
                               <i className="fa-solid fa-shield-halved text-xs"></i>
                             </div>
                             <span className="flex-1 truncate">Yönetici Paneline Git</span>
-                            <i className="fa-solid fa-arrow-up-right-from-square text-[10px] text-amber-500"></i>
+                            <i className="fa-solid fa-arrow-up-right-from-square text-[10px] text-amber-600"></i>
                           </a>
                         )}
                       </div>
 
-                      <div className="border-t border-stone-100 mt-1 pt-1 px-1.5">
+                      <div className="border-t border-stone-100 mt-1.5 pt-1.5 px-2 bg-white">
                         <button
                           type="button"
                           onClick={handleLogout}
-                          className="w-full flex items-center gap-3 px-3 py-2 text-xs font-semibold text-rose-600 hover:bg-rose-50 rounded-xl transition-all cursor-pointer group"
+                          className="w-full flex items-center gap-3 px-3 py-2.5 text-xs font-bold text-rose-600 hover:bg-rose-50 rounded-xl transition-all cursor-pointer group"
                         >
-                          <div className="w-7 h-7 rounded-lg bg-rose-50 text-rose-500 group-hover:bg-rose-100 flex items-center justify-center transition-colors">
+                          <div className="w-7 h-7 rounded-lg bg-rose-50 text-rose-600 group-hover:bg-rose-100 flex items-center justify-center transition-colors shrink-0">
                             <i className="fa-solid fa-arrow-right-from-bracket text-xs"></i>
                           </div>
                           <span>Oturumu Kapat</span>
@@ -301,7 +304,11 @@ export default function Navbar() {
 
       {/* Modern Mobil Açılır Menü (Slide Down Drawer) */}
       {isMobileMenuOpen && (
-        <div id="mobile-menu" className="md:hidden border-t border-stone-200 bg-white/98 backdrop-blur-md px-4 py-3 shadow-2xl animate-dropdown-up space-y-2">
+        <div
+          id="mobile-menu"
+          style={{ backgroundColor: '#ffffff' }}
+          className="md:hidden border-t border-stone-200 bg-white px-4 py-3 shadow-2xl animate-dropdown-up space-y-2 relative z-50"
+        >
           {/* Sayfa Navigasyon Linkleri */}
           <div className="space-y-1">
             {navItems.map((item) => {
