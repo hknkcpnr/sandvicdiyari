@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useDispatch } from 'react-redux';
 import { showMessageModal } from '@/store/slices/uiSlice';
 import { formatTurkishPhoneInput, toWhatsAppPhone } from '@/lib/phoneUtils';
+import AdminPagination from './AdminPagination';
 
 export default function MembersTab({ onCustomerUpdated }) {
   const dispatch = useDispatch();
@@ -12,6 +13,8 @@ export default function MembersTab({ onCustomerUpdated }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all'); // 'all' | 'pending' | 'active' | 'blocked'
   const [approvingId, setApprovingId] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(6);
 
   // Bildirim Modalı Durumları
   const [isNotifyModalOpen, setIsNotifyModalOpen] = useState(false);
@@ -80,6 +83,19 @@ export default function MembersTab({ onCustomerUpdated }) {
       return name.includes(q) || email.includes(q) || phone.includes(q) || address.includes(q);
     });
   }, [members, searchQuery, statusFilter]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, statusFilter]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredMembers.length / pageSize));
+  const safeCurrentPage = Math.min(currentPage, totalPages);
+  const paginatedMembers = useMemo(() => {
+    return filteredMembers.slice(
+      (safeCurrentPage - 1) * pageSize,
+      safeCurrentPage * pageSize
+    );
+  }, [filteredMembers, safeCurrentPage, pageSize]);
 
   // Metrikler
   const stats = useMemo(() => {
@@ -686,7 +702,7 @@ export default function MembersTab({ onCustomerUpdated }) {
           </div>
         ) : (
           <div className="divide-y divide-stone-100">
-            {filteredMembers.map((member) => {
+            {paginatedMembers.map((member) => {
               const isBlocked = member.isBlocked === true;
               const initials = (member.name || 'Ü')
                 .split(' ')
@@ -875,6 +891,16 @@ export default function MembersTab({ onCustomerUpdated }) {
           </div>
         )}
       </div>
+
+      {/* SAYFALAMA KONTROLLERİ */}
+      <AdminPagination
+        currentPage={safeCurrentPage}
+        totalItems={filteredMembers.length}
+        pageSize={pageSize}
+        onPageChange={setCurrentPage}
+        onPageSizeChange={setPageSize}
+        itemLabel="üye"
+      />
 
       {/* 5. BİLDİRİM GÖNDERME MODALI */}
       {isNotifyModalOpen && (

@@ -14,6 +14,7 @@ import BlurredAmount from '@/components/admin/BlurredAmount';
 import SettingsTab, { DEFAULT_ADMIN_SETTINGS } from '@/components/admin/SettingsTab';
 import SiteContentEditorTab from '@/components/admin/SiteContentEditorTab';
 import MembersTab from '@/components/admin/MembersTab';
+import AdminPagination from '@/components/admin/AdminPagination';
 
 // Status styling and Turkish badge helpers
 const STATUS_CONFIG = {
@@ -295,8 +296,26 @@ export default function AdminDashboardPage() {
     { label: 'Soğuk İçecek', url: 'https://images.unsplash.com/photo-1622483767028-3f66f32aef97?auto=format&fit=crop&q=80&w=500', icon: '🥤' }
   ];
 
-  // Product Catalog Filters
+  // Product Catalog Filters & Pagination States
   const [productFilter, setProductFilter] = useState('all');
+  const [ordersPage, setOrdersPage] = useState(1);
+  const [ordersPageSize, setOrdersPageSize] = useState(6);
+  const [productsPage, setProductsPage] = useState(1);
+  const [productsPageSize, setProductsPageSize] = useState(6);
+  const [reviewsPage, setReviewsPage] = useState(1);
+  const [reviewsPageSize, setReviewsPageSize] = useState(6);
+
+  useEffect(() => {
+    setOrdersPage(1);
+  }, [orderStageFilter, orderSearch, paymentMethodFilter, paymentStatusFilter]);
+
+  useEffect(() => {
+    setProductsPage(1);
+  }, [productFilter]);
+
+  useEffect(() => {
+    setReviewsPage(1);
+  }, [reviewFilter, reviewSearch]);
 
   // Otomatik girişi iptal et: Sayfa ilk açıldığında localStorage oturumunu otomatik yüklemiyoruz
   // Kullanıcı adı ve şifre ile manuel giriş yapılmasını zorunlu kılıyoruz.
@@ -1128,6 +1147,24 @@ export default function AdminDashboardPage() {
     return p.category === productFilter;
   });
 
+  const safeOrdersPage = Math.min(
+    ordersPage,
+    Math.max(1, Math.ceil(filteredOrders.length / ordersPageSize))
+  );
+  const paginatedOrders = filteredOrders.slice(
+    (safeOrdersPage - 1) * ordersPageSize,
+    safeOrdersPage * ordersPageSize
+  );
+
+  const safeProductsPage = Math.min(
+    productsPage,
+    Math.max(1, Math.ceil(filteredProducts.length / productsPageSize))
+  );
+  const paginatedProducts = filteredProducts.slice(
+    (safeProductsPage - 1) * productsPageSize,
+    safeProductsPage * productsPageSize
+  );
+
   // ----------------------------------------------------
   // LOGIN SCREEN
   // ----------------------------------------------------
@@ -1917,7 +1954,7 @@ export default function AdminDashboardPage() {
                   <p className="font-semibold text-stone-600">Seçili filtrelere uygun sipariş bulunamadı.</p>
                 </div>
               ) : (
-                filteredOrders.map((order, idx) => {
+                paginatedOrders.map((order, idx) => {
                   const statusConf = STATUS_CONFIG[order.status] || STATUS_CONFIG['Yeni'];
                   const nextAction = getNextStep(order.status);
                   const isTerminal = order.status === 'Teslim Edildi' || order.status === 'İptal Edildi';
@@ -2267,6 +2304,17 @@ export default function AdminDashboardPage() {
                 })
               )}
             </div>
+
+            {filteredOrders.length > 0 && (
+              <AdminPagination
+                currentPage={safeOrdersPage}
+                totalItems={filteredOrders.length}
+                pageSize={ordersPageSize}
+                onPageChange={setOrdersPage}
+                onPageSizeChange={setOrdersPageSize}
+                itemLabel="sipariş"
+              />
+            )}
           </div>
         )}
 
@@ -2355,7 +2403,7 @@ export default function AdminDashboardPage() {
 
             {/* Products List */}
             <div className="bg-white rounded-2xl border border-stone-200 divide-y divide-stone-100 overflow-hidden shadow-xs">
-              {filteredProducts.map((p) => (
+              {paginatedProducts.map((p) => (
                 <div
                   key={p.id}
                   className="p-3.5 sm:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-stone-50/60 transition-colors"
@@ -2423,6 +2471,17 @@ export default function AdminDashboardPage() {
                 </div>
               ))}
             </div>
+
+            {filteredProducts.length > 0 && (
+              <AdminPagination
+                currentPage={safeProductsPage}
+                totalItems={filteredProducts.length}
+                pageSize={productsPageSize}
+                onPageChange={setProductsPage}
+                onPageSizeChange={setProductsPageSize}
+                itemLabel="ürün"
+              />
+            )}
           </div>
         )}
 
@@ -2621,9 +2680,18 @@ export default function AdminDashboardPage() {
                 );
               }
 
+              const safeReviewsPage = Math.min(
+                reviewsPage,
+                Math.max(1, Math.ceil(filtered.length / reviewsPageSize))
+              );
+              const paginatedReviews = filtered.slice(
+                (safeReviewsPage - 1) * reviewsPageSize,
+                safeReviewsPage * reviewsPageSize
+              );
+
               return (
                 <div className="space-y-3">
-                  {filtered.map((r) => {
+                  {paginatedReviews.map((r) => {
                     const isApproved = r.isApproved === true;
                     const initials = (r.name || 'Müşteri')
                       .split(' ')
@@ -2734,6 +2802,15 @@ export default function AdminDashboardPage() {
                       </div>
                     );
                   })}
+
+                  <AdminPagination
+                    currentPage={safeReviewsPage}
+                    totalItems={filtered.length}
+                    pageSize={reviewsPageSize}
+                    onPageChange={setReviewsPage}
+                    onPageSizeChange={setReviewsPageSize}
+                    itemLabel="değerlendirme"
+                  />
                 </div>
               );
             })()}

@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useDispatch } from 'react-redux';
 import { setProducts } from '@/store/slices/productSlice';
 import { showMessageModal } from '@/store/slices/uiSlice';
+import AdminPagination from './AdminPagination';
 
 export default function InventoryTab({ products = [], onRefreshProducts }) {
   const dispatch = useDispatch();
@@ -14,6 +15,8 @@ export default function InventoryTab({ products = [], onRefreshProducts }) {
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all'); // 'all' | 'in_stock' | 'low_stock' | 'out_of_stock'
   const [addAmounts, setAddAmounts] = useState({});
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(6);
 
   // Summary counts
   const [summary, setSummary] = useState({
@@ -252,6 +255,17 @@ export default function InventoryTab({ products = [], onRefreshProducts }) {
 
     return true;
   });
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, categoryFilter, statusFilter]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredItems.length / pageSize));
+  const safeCurrentPage = Math.min(currentPage, totalPages);
+  const paginatedItems = filteredItems.slice(
+    (safeCurrentPage - 1) * pageSize,
+    safeCurrentPage * pageSize
+  );
 
   const categories = [
     { id: 'all', label: 'Tüm Kategoriler' },
@@ -526,7 +540,7 @@ export default function InventoryTab({ products = [], onRefreshProducts }) {
               <div className="col-span-2 text-right">Satış & Takip</div>
             </div>
             <div className="divide-y divide-stone-100">
-              {filteredItems.map((product) => {
+              {paginatedItems.map((product) => {
                 const isAvailable = product.isAvailable !== false;
                 const isTracked = product.trackStock !== false;
                 const stockNum = typeof product.stock === 'number' ? product.stock : 25;
@@ -693,7 +707,7 @@ export default function InventoryTab({ products = [], onRefreshProducts }) {
 
           {/* MOBİL & TABLET: KUTU KUTU GÖRÜNÜM (lg altı ekranlar) */}
           <div id="inventory-card-grid-mobile" className="lg:hidden grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-            {filteredItems.map((product) => {
+            {paginatedItems.map((product) => {
               const isAvailable = product.isAvailable !== false;
               const isTracked = product.trackStock !== false;
               const stockNum = typeof product.stock === 'number' ? product.stock : 25;
@@ -859,6 +873,16 @@ export default function InventoryTab({ products = [], onRefreshProducts }) {
               );
             })}
           </div>
+
+          {/* 5. SAYFALAMA KONTROLLERİ */}
+          <AdminPagination
+            currentPage={safeCurrentPage}
+            totalItems={filteredItems.length}
+            pageSize={pageSize}
+            onPageChange={setCurrentPage}
+            onPageSizeChange={setPageSize}
+            itemLabel="ürün"
+          />
         </>
       )}
     </div>
