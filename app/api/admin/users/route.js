@@ -1,6 +1,7 @@
 import { db } from '@/lib/db';
 import { orm } from '@/lib/orm/postgresEngine';
-import { prisma } from '@/lib/prisma';
+import { prisma, rawPrisma } from '@/lib/prisma';
+import { hashPassword } from '@/lib/security/auth';
 import {
   ValidationError,
   handleApiError,
@@ -209,23 +210,75 @@ export async function POST(request) {
       throw new ValidationError('Ad Soyad ve E-Posta / Kullanıcı Adı zorunludur.');
     }
 
+    const roleId = sanitizeText(body.roleId || 'role_super_admin', 64, 'roleId', '/api/admin/users');
+    const isActive = typeof body.isActive === 'boolean' ? body.isActive : true;
+    const rawPass = body.pass ? String(body.pass).trim() : '';
+
     const userPayload = {
       ...body,
       name,
       email,
       phone,
-      roleId: sanitizeText(body.roleId || 'role_super_admin', 64, 'roleId', '/api/admin/users')
+      roleId,
+      isActive,
+      ...(rawPass ? { pass: rawPass } : {})
     };
 
-    const savedUser = orm.executePrepared(
-      'AdminUser',
-      body.id ? 'UPDATE' : 'INSERT',
-      body.id
-        ? 'UPDATE "admin_users" SET "name" = $1, "email" = $2, "phone" = $3, "role_id" = $4, "is_active" = $5, "updated_at" = NOW() WHERE "id" = $6 RETURNING *'
-        : 'INSERT INTO "admin_users" ("id", "name", "email", "phone", "pass_hash", "role_id", "role_name", "is_active") VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *',
-      [name, email, phone, userPayload.roleId],
-      () => db.saveAdminUser(userPayload)
-    );
+    const savedUser = db.saveAdminUser(userPayload);
+
+    // Sync to PostgreSQL / Prisma if available
+    try {
+      if (rawPrisma && rawPrisma.adminUser) {
+        const roles = db.getRoles();
+        const matchedRole = roles.find(r => String(r.id) === String(roleId)) || roles[0];
+        const passHash = rawPass ? hashPassword(rawPass) : (savedUser.pass || hashPassword('123456'));
+
+        if (rawPrisma.role && matchedRole) {
+          await rawPrisma.role.upsert({
+            where: { id: matchedRole.id },
+            update: {
+              name: matchedRole.name,
+              color: matchedRole.color || 'blue',
+              description: matchedRole.description || '',
+              permissions: matchedRole.permissions || ['orders']
+            },
+            create: {
+              id: matchedRole.id,
+              name: matchedRole.name,
+              code: matchedRole.code || `role_${Date.now()}`,
+              color: matchedRole.color || 'blue',
+              description: matchedRole.description || '',
+              isSystem: Boolean(matchedRole.isSystem),
+              permissions: matchedRole.permissions || ['orders']
+            }
+          });
+        }
+
+        await rawPrisma.adminUser.upsert({
+          where: { email },
+          update: {
+            name,
+            phone: phone || '',
+            roleId: matchedRole?.id || roleId,
+            roleName: matchedRole?.name || 'Yetkili',
+            isActive,
+            ...(rawPass ? { passHash } : {})
+          },
+          create: {
+            id: savedUser.id || `adm_${Date.now()}`,
+            name,
+            email,
+            phone: phone || '',
+            passHash,
+            roleId: matchedRole?.id || roleId,
+            roleName: matchedRole?.name || 'Yetkili',
+            isActive
+          }
+        });
+      }
+    } catch (pgErr) {
+      console.warn('Prisma AdminUser sync notice:', pgErr.message);
+    }
 
     return jsonSuccess({
       message: 'Kullanıcı başarıyla kaydedildi.',
@@ -299,6 +352,19 @@ export async function DELETE(request) {
         }
       });
     }
+
+    try {
+      if (rawPrisma && rawPrisma.adminUser) {
+        await rawPrisma.adminUser.deleteMany({
+          where: {
+            OR: [
+              { id: String(id) },
+              { email: String(id) }
+            ]
+          }
+        });
+      }
+    } catch (e) {}
 
     orm.executePrepared(
       'AdminUser',

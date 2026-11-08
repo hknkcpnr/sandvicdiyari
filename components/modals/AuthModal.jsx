@@ -141,53 +141,17 @@ export default function AuthModal() {
     setFormError('');
 
     const cleanLogin = (loginEmail || '').trim().toLowerCase();
-    const localUser = usersList.find((u) => {
-      const uEmail = (u.email || '').toLowerCase();
-      const uUsername = (u.username || '').toLowerCase();
-      const isMatch =
-        uEmail === cleanLogin ||
-        uUsername === cleanLogin ||
-        (cleanLogin === 'admin' && (uEmail.startsWith('admin') || uUsername === 'admin')) ||
-        (cleanLogin.includes('@') && uEmail === cleanLogin);
-      return isMatch && (u.pass === loginPass || loginPass === 'admin');
-    });
 
-    // İstemcide kayıtlıysa ve henüz onaylanmamışsa
-    if (localUser) {
-      const isAdmin = localUser.email?.startsWith('admin') || localUser.username === 'admin';
-      if (!isAdmin && localUser.phoneVerified === false) {
-        setPendingUser(localUser);
-        setIsWaitingApproval(true);
-        return;
-      }
-
-      dispatch(login({ email: loginEmail, pass: loginPass, user: localUser }));
-      dispatch(closeAuthModal());
-
-      if (cartItems.length > 0 && grandTotal >= MIN_ORDER_AMOUNT) {
-        dispatch(openCheckoutModal());
-      } else {
-        dispatch(
-          showMessageModal({
-            title: 'Giriş Başarılı 🚀',
-            text: `Tekrar hoş geldin, ${localUser.name}!`,
-            type: 'success',
-          })
-        );
-      }
-      return;
-    }
-
-    // API servisine bağlan
+    // 1. API servisine bağlan (Güncel onay ve kullanıcı durumunu sunucudan teyit et)
     try {
       const res = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: loginEmail, pass: loginPass })
+        body: JSON.stringify({ email: loginEmail.trim(), pass: loginPass })
       });
       const json = await res.json();
 
-      // Onay bekleyen kullanıcı kontrolü
+      // Onay bekleyen kullanıcı kontrolü (Yönetici henüz onaylamamışsa)
       if (json.pendingApproval) {
         setPendingUser(json.data?.user || { name: 'Değerli Müşterimiz', email: loginEmail, phone: '' });
         setIsWaitingApproval(true);
@@ -215,10 +179,42 @@ export default function AuthModal() {
         return;
       }
 
-      setFormError(json.error || 'E-posta veya şifreniz hatalı. Lütfen kontrol ediniz.');
+      // Sunucudan dönen hata mesajı
+      if (json.error) {
+        setFormError(json.error);
+        return;
+      }
     } catch (err) {
+      // Ağ hatası durumunda yerel kontrol fallback
+      const localUser = usersList.find((u) => {
+        const uEmail = (u.email || '').toLowerCase();
+        const uUsername = (u.username || '').toLowerCase();
+        const isMatch =
+          uEmail === cleanLogin ||
+          uUsername === cleanLogin ||
+          (cleanLogin === 'admin' && (uEmail.startsWith('admin') || uUsername === 'admin')) ||
+          (cleanLogin.includes('@') && uEmail === cleanLogin);
+        return isMatch && (u.pass === loginPass || loginPass === 'admin');
+      });
+
+      if (localUser) {
+        const isAdmin = localUser.email?.startsWith('admin') || localUser.username === 'admin';
+        if (!isAdmin && localUser.phoneVerified === false) {
+          setPendingUser(localUser);
+          setIsWaitingApproval(true);
+          return;
+        }
+
+        dispatch(login({ email: loginEmail, pass: loginPass, user: localUser }));
+        dispatch(closeAuthModal());
+        return;
+      }
+
       setFormError('Giriş yapılırken sunucu bağlantı hatası oluştu.');
+      return;
     }
+
+    setFormError('E-posta veya şifreniz hatalı. Lütfen kontrol ediniz.');
   };
 
   // --------------------------------------------------------------------------

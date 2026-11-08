@@ -324,7 +324,9 @@ export const prisma = {
             email: localUser.email,
             phone: localUser.phone || '',
             address: localUser.address || '',
-            passHash: String(localUser.pass)
+            passHash: String(localUser.pass),
+            phoneVerified: Boolean(args.data.phoneVerified),
+            phoneVerifiedAt: args.data.phoneVerified ? new Date() : null
           }
         });
         orm.executePrepared('User', 'INSERT', 'prisma.user.create($1)', [localUser.email], () => localUser.id);
@@ -421,6 +423,20 @@ export const prisma = {
         return await rawPrisma.adminUser.findMany({ include: { role: true } });
       } catch {
         return db.getAdminUsers();
+      }
+    },
+    findFirst: async (args?: Prisma.AdminUserFindFirstArgs) => {
+      try {
+        return await rawPrisma.adminUser.findFirst(args);
+      } catch {
+        return null;
+      }
+    },
+    findUnique: async (args: Prisma.AdminUserFindUniqueArgs) => {
+      try {
+        return await rawPrisma.adminUser.findUnique(args);
+      } catch {
+        return null;
       }
     }
   }

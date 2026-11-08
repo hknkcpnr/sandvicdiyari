@@ -90,7 +90,7 @@ export function sanitizeEmailOrUsername(
     throw new ValidationError('Kullanıcı adı veya e-posta adresi zorunludur.');
   }
   if (allowUsername && !clean.includes('@')) {
-    if (!/^[a-z0-9._-]{3,64}$/i.test(clean)) {
+    if (!/^[\p{L}\p{N}._\s-]{2,64}$/u.test(clean)) {
       throw new ValidationError('Geçersiz kullanıcı adı formatı.');
     }
     return clean;

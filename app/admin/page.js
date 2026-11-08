@@ -1122,7 +1122,7 @@ export default function AdminDashboardPage() {
           <form onSubmit={handleLogin} className="space-y-3.5">
             <div>
               <label className="block text-[11px] font-semibold text-stone-500 uppercase mb-1">
-                Kullanıcı Adı
+                Kullanıcı Adı, E-Posta veya Telefon
               </label>
               <input
                 type="text"
@@ -1130,7 +1130,7 @@ export default function AdminDashboardPage() {
                 autoComplete="username"
                 value={loginEmail}
                 onChange={(e) => setLoginEmail(e.target.value)}
-                placeholder="admin"
+                placeholder="admin, e-posta veya telefon"
                 className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3.5 py-2.5 text-xs text-stone-900 focus:outline-none focus:border-stone-400 font-medium"
               />
             </div>

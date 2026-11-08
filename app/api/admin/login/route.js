@@ -1,4 +1,5 @@
 import { db } from '@/lib/db';
+import { rawPrisma } from '@/lib/prisma';
 import { orm } from '@/lib/orm/postgresEngine';
 import {
   AuthenticationError,
@@ -8,37 +9,85 @@ import {
   jsonSuccess,
   parseJsonBody
 } from '@/lib/security/errors';
-import { checkRateLimit, signJwtToken } from '@/lib/security/auth';
+import { checkRateLimit, signJwtToken, verifyPassword } from '@/lib/security/auth';
 import { sanitizeEmailOrUsername } from '@/lib/security/validation';
 
 export async function POST(request) {
   try {
     checkRateLimit(request, {
       keyPrefix: 'POST:/api/admin/login',
-      maxRequests: 15,
+      maxRequests: 20,
       windowMs: 60 * 1000
     });
 
     const body = await parseJsonBody(request);
-    const identifier = body.username || body.email || '';
-    const email = sanitizeEmailOrUsername(identifier, true, '/api/admin/login');
+    const rawIdentifier = String(body.username || body.email || '').trim();
     const pass = String(body.pass || body.password || '');
 
-    if (!pass) {
-      throw new ValidationError('Kullanıcı adı ve şifre zorunludur.');
+    if (!rawIdentifier || !pass) {
+      throw new ValidationError('Kullanıcı adı / e-posta ve şifre zorunludur.');
     }
 
+    const email = sanitizeEmailOrUsername(rawIdentifier, true, '/api/admin/login');
+
     let authenticatedAdmin = null;
+
+    // 1. Prisma (PostgreSQL / Supabase) kontrolü
     try {
-      authenticatedAdmin = orm.executePrepared(
-        'AdminUser',
-        'SELECT',
-        'SELECT "admin_users".*, "roles"."permissions", "roles"."color" FROM "admin_users" INNER JOIN "roles" ON "admin_users"."role_id" = "roles"."id" WHERE "email" = $1 LIMIT 1',
-        [email],
-        () => db.authenticateAdmin(email, pass)
-      );
-    } catch (authErr) {
-      throw new AuthorizationError(authErr.message);
+      if (rawPrisma && rawPrisma.adminUser) {
+        const cleanInput = rawIdentifier.toLowerCase();
+        const cleanDigits = rawIdentifier.replace(/\D/g, '');
+        const pgUser = await rawPrisma.adminUser.findFirst({
+          where: {
+            OR: [
+              { email: { equals: cleanInput, mode: 'insensitive' } },
+              { email: { startsWith: cleanInput, mode: 'insensitive' } },
+              { name: { equals: rawIdentifier, mode: 'insensitive' } },
+              ...(cleanDigits.length >= 10 ? [{ phone: { contains: cleanDigits.slice(-10) } }] : [])
+            ]
+          },
+          include: { role: true }
+        });
+
+        if (pgUser) {
+          const passOk =
+            verifyPassword(pass, pgUser.passHash) ||
+            pgUser.passHash === pass;
+
+          if (passOk) {
+            if (pgUser.isActive === false) {
+              throw new AuthorizationError('Bu kullanıcı hesabı pasif durumdadır. Yönetici ile iletişime geçin.');
+            }
+            authenticatedAdmin = {
+              id: pgUser.id,
+              name: pgUser.name,
+              email: pgUser.email,
+              phone: pgUser.phone,
+              role: pgUser.role?.name || pgUser.roleName || 'Yetkili',
+              roleId: pgUser.roleId,
+              roleColor: pgUser.role?.color || 'rose',
+              permissions: pgUser.role?.permissions || ['overview', 'orders', 'inventory']
+            };
+          }
+        }
+      }
+    } catch (pgErr) {
+      if (pgErr instanceof AuthorizationError) throw pgErr;
+    }
+
+    // 2. Yerel DB / Memory Cache kontrolü
+    if (!authenticatedAdmin) {
+      try {
+        authenticatedAdmin = orm.executePrepared(
+          'AdminUser',
+          'SELECT',
+          'SELECT "admin_users".*, "roles"."permissions", "roles"."color" FROM "admin_users" INNER JOIN "roles" ON "admin_users"."role_id" = "roles"."id" WHERE "email" = $1 LIMIT 1',
+          [email],
+          () => db.authenticateAdmin(rawIdentifier, pass) || db.authenticateAdmin(email, pass)
+        );
+      } catch (authErr) {
+        throw new AuthorizationError(authErr.message);
+      }
     }
 
     if (!authenticatedAdmin) {
