@@ -32,6 +32,7 @@ export default function OverviewDashboard({
   orders = [],
   products = [],
   onOpenOrderDetail,
+  onAcceptOrder,
   onNavigateToOrders,
   onRefresh,
   onExportCsv,
@@ -371,8 +372,19 @@ export default function OverviewDashboard({
               </div>
             </div>
 
-            {/* Sağ: Hızlı İnceleme ve Siparişlere Git Butonları */}
-            <div className="flex items-center gap-2.5 shrink-0 self-stretch sm:self-auto justify-end pt-2 md:pt-0 border-t md:border-t-0 border-white/20">
+            {/* Sağ: Hızlı Onaylama, İnceleme ve Siparişlere Git Butonları */}
+            <div className="flex flex-wrap items-center gap-2.5 shrink-0 self-stretch sm:self-auto justify-end pt-2 md:pt-0 border-t md:border-t-0 border-white/20">
+              {latestNewOrder && onAcceptOrder && (
+                <button
+                  type="button"
+                  onClick={() => onAcceptOrder(latestNewOrder.id)}
+                  className="flex-1 sm:flex-none bg-emerald-500 hover:bg-emerald-600 text-white font-black px-4 py-2.5 rounded-xl text-xs sm:text-sm transition-all duration-200 shadow-lg ring-2 ring-white/50 cursor-pointer flex items-center justify-center gap-2 active:scale-95"
+                >
+                  <i className="fa-solid fa-check"></i>
+                  <span>Siparişi Onayla</span>
+                </button>
+              )}
+
               {latestNewOrder && onOpenOrderDetail && (
                 <button
                   type="button"
@@ -1071,6 +1083,18 @@ export default function OverviewDashboard({
                           amount={`₺${Number(order.total || order.subtotal || 0).toFixed(2)}`}
                           className="text-xs font-black text-stone-900 min-w-[70px] text-right"
                         />
+
+                        {(order.status === 'Yeni' || order.status === 'Görüntülendi') && onAcceptOrder && (
+                          <button
+                            type="button"
+                            onClick={() => onAcceptOrder(order.id)}
+                            className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs px-2.5 py-1.5 rounded-lg font-bold cursor-pointer flex items-center gap-1 shadow-xs active:scale-95 transition-all"
+                            title="Siparişi Hemen Onayla"
+                          >
+                            <i className="fa-solid fa-check text-[11px]"></i>
+                            <span>Onayla</span>
+                          </button>
+                        )}
 
                         {/* Detay & Fiş Button */}
                         <button

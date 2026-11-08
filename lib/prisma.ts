@@ -55,8 +55,34 @@ export function formatPrismaProduct(p: Record<string, unknown> | null) {
 export function formatPrismaOrder(o: Record<string, unknown> | null) {
   if (!o) return null;
   const subtotal = Number(o.subtotal ?? 0);
-  const deliveryFee = Number(o.deliveryFee ?? 0)
+  const deliveryFee = Number(o.deliveryFee ?? 0);
   const total = Number(o.total ?? subtotal + deliveryFee);
+
+  const rawItems = Array.isArray(o.items) ? o.items : [];
+  const items = rawItems.map((it: Record<string, unknown>) => {
+    const selectedOpts = Array.isArray(it.selectedOptions) ? it.selectedOptions : [];
+    const details =
+      typeof it.details === 'string' && it.details
+        ? it.details
+        : selectedOpts.length > 0
+        ? selectedOpts.join(', ')
+        : '';
+    return {
+      ...it,
+      id: it.productId ?? it.id,
+      price: Number(it.price ?? 0),
+      quantity: Number(it.quantity ?? 1),
+      details,
+      selectedOptions: selectedOpts
+    };
+  });
+
+  const rawHistory = Array.isArray(o.statusHistory) ? o.statusHistory : [];
+  const statusHistory = [...rawHistory].sort(
+    (a: Record<string, unknown>, b: Record<string, unknown>) =>
+      new Date(String(a.timestamp || 0)).getTime() - new Date(String(b.timestamp || 0)).getTime()
+  );
+
   return {
     ...o,
     phone: o.customerPhone || o.phone || '',
@@ -65,7 +91,9 @@ export function formatPrismaOrder(o: Record<string, unknown> | null) {
     date: o.dateLabel || o.date || new Date().toLocaleDateString('tr-TR'),
     subtotal,
     deliveryFee,
-    total
+    total,
+    items,
+    statusHistory
   };
 }
 
@@ -403,10 +431,10 @@ export const prisma = {
           orderBy: { createdAt: 'desc' }
         });
         orm.executePrepared('Order', 'SELECT', 'prisma.order.findMany({ include: { items: true, statusHistory: true } })', [], () => pgOrders.length);
-        if (localOrders.length >= pgOrders.length) {
-          return localOrders;
+        if (pgOrders.length > 0) {
+          return pgOrders.map((o) => formatPrismaOrder(o as unknown as Record<string, unknown>));
         }
-        return pgOrders.map((o) => formatPrismaOrder(o as unknown as Record<string, unknown>));
+        return localOrders;
       } catch {
         return localOrders;
       }
@@ -418,8 +446,23 @@ export const prisma = {
         const orderId = String(createdLocal.id);
         const orderNo = String(createdLocal.orderNumber || createdLocal.id);
         const itemsArr = Array.isArray(createdLocal.items) ? createdLocal.items : [];
-        await rawPrisma.$transaction(async (tx) => {
-          await tx.order.create({
+
+        const createdPg = await rawPrisma.$transaction(async (tx) => {
+          const existingProducts = await tx.product.findMany({ select: { id: true } });
+          const validProductIds = new Set(existingProducts.map((p) => p.id));
+
+          let linkedUserId: string | null = null;
+          if (createdLocal.userEmail) {
+            const matchedUser = await tx.user.findUnique({
+              where: { email: String(createdLocal.userEmail).toLowerCase() },
+              select: { id: true }
+            });
+            if (matchedUser) {
+              linkedUserId = matchedUser.id;
+            }
+          }
+
+          return await tx.order.create({
             data: {
               id: orderId,
               orderNumber: orderNo,
@@ -433,16 +476,29 @@ export const prisma = {
               deliveryFee: new Prisma.Decimal(Number(createdLocal.deliveryFee || 0)),
               total: new Prisma.Decimal(Number(createdLocal.total || 0)),
               userEmail: createdLocal.userEmail ? String(createdLocal.userEmail) : null,
+              userId: linkedUserId,
               status: String(createdLocal.status || 'Yeni'),
               dateLabel: String(createdLocal.date || new Date().toLocaleDateString('tr-TR')),
               items: {
-                create: itemsArr.map((it: Record<string, unknown>) => ({
-                  productId: typeof it.id === 'number' ? it.id : null,
-                  name: String(it.name || 'Ürün'),
-                  price: new Prisma.Decimal(Number(it.price || 0)),
-                  quantity: Number(it.quantity || 1),
-                  selectedOptions: (it.selectedOptions as Prisma.InputJsonValue) ?? []
-                }))
+                create: itemsArr.map((it: Record<string, unknown>) => {
+                  const candidateId = Number(it.id);
+                  const safeProductId =
+                    Number.isInteger(candidateId) && validProductIds.has(candidateId)
+                      ? candidateId
+                      : null;
+                  const opts = Array.isArray(it.selectedOptions)
+                    ? it.selectedOptions
+                    : typeof it.details === 'string' && it.details
+                    ? [it.details]
+                    : [];
+                  return {
+                    productId: safeProductId,
+                    name: String(it.name || 'Ürün'),
+                    price: new Prisma.Decimal(Number(it.price || 0)),
+                    quantity: Number(it.quantity || 1),
+                    selectedOptions: opts as Prisma.InputJsonValue
+                  };
+                })
               },
               statusHistory: {
                 create: [
@@ -453,12 +509,14 @@ export const prisma = {
                   }
                 ]
               }
-            }
+            },
+            include: { items: true, statusHistory: true }
           });
         });
         orm.executePrepared('Order', 'TRANSACTION', 'prisma.$transaction([prisma.order.create($1)])', [orderNo], () => orderNo);
-      } catch {
-        // Fallback
+        return formatPrismaOrder(createdPg as unknown as Record<string, unknown>);
+      } catch (err) {
+        console.error('Supabase Order Create Fallback:', err);
       }
       return createdLocal;
     }

@@ -127,9 +127,9 @@ export default function KitchenPosBell({
     return () => clearInterval(timer);
   }, []);
 
-  // Filter unviewed/unconfirmed 'Yeni' orders
+  // Filter unconfirmed 'Yeni' or 'Görüntülendi' orders (until approved as 'Onaylandı')
   const newOrders = useMemo(() => {
-    return orders.filter((o) => o.status === 'Yeni');
+    return orders.filter((o) => o.status === 'Yeni' || o.status === 'Görüntülendi');
   }, [orders]);
 
   const hasNewOrders = newOrders.length > 0;
@@ -336,6 +336,19 @@ export default function KitchenPosBell({
                 >
                   <i className="fa-solid fa-eye text-[11px]"></i>
                   <span className="truncate">İncele (#{newOrders[0].orderNumber || newOrders[0].id})</span>
+                </button>
+              )}
+
+              {/* Direct 1-Click Approve Oldest Pending Order */}
+              {onAcceptOrder && newOrders[0] && (
+                <button
+                  type="button"
+                  onClick={() => onAcceptOrder(newOrders[0].id)}
+                  className="flex-1 sm:flex-none justify-center px-3 sm:px-3.5 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-black text-[11px] sm:text-xs shadow-md ring-1 ring-white/40 transition-all active:scale-95 flex items-center gap-1.5 cursor-pointer truncate"
+                  title="Siparişi Hemen Onayla ve Mutfağa İlet"
+                >
+                  <i className="fa-solid fa-check text-[11px]"></i>
+                  <span className="truncate">Onayla</span>
                 </button>
               )}
 

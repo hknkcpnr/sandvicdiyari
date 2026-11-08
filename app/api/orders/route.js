@@ -60,7 +60,8 @@ export async function POST(request) {
     });
 
     const body = await parseJsonBody(request);
-    const catalogProducts = db.getProducts();
+    const pgProducts = await prisma.product.findMany();
+    const catalogProducts = Array.isArray(pgProducts) && pgProducts.length > 0 ? pgProducts : db.getProducts();
 
     // Server-side validation, XSS/SQLi sanitization, and authoritative price calculation
     const validatedOrder = validateAndPriceOrderPayload(body, catalogProducts, '/api/orders');

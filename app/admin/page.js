@@ -523,7 +523,7 @@ export default function AdminDashboardPage() {
 
     if (!order.isViewed || order.status === 'Yeni') {
       try {
-        const res = await fetch(`/api/orders/${order.id}`, {
+        const res = await fetch(`/api/orders/${encodeURIComponent(order.id)}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -534,9 +534,17 @@ export default function AdminDashboardPage() {
         const json = await res.json();
         if (json.success && json.data) {
           setOrders((prev) =>
-            prev.map((o) => (o.id === order.id ? json.data : o))
+            prev.map((o) =>
+              String(o.id) === String(order.id) || String(o.orderNumber) === String(order.id)
+                ? json.data
+                : o
+            )
           );
-          setDetailOrder(json.data);
+          setDetailOrder((prev) =>
+            prev && (String(prev.id) === String(order.id) || String(prev.orderNumber) === String(order.id))
+              ? json.data
+              : prev
+          );
         }
       } catch (err) {
         console.error(err);
@@ -547,7 +555,7 @@ export default function AdminDashboardPage() {
   // Progress status with validation
   const handleProgressStatus = async (orderId, newStatus) => {
     try {
-      const res = await fetch(`/api/orders/${orderId}`, {
+      const res = await fetch(`/api/orders/${encodeURIComponent(orderId)}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -558,16 +566,34 @@ export default function AdminDashboardPage() {
       const json = await res.json();
       if (json.success && json.data) {
         setOrders((prev) =>
-          prev.map((o) => (o.id === orderId ? json.data : o))
+          prev.map((o) =>
+            String(o.id) === String(orderId) ||
+            String(o.id) === String(json.data.id) ||
+            (o.orderNumber && String(o.orderNumber) === String(orderId))
+              ? json.data
+              : o
+          )
         );
-        if (detailOrder && detailOrder.id === orderId) {
+        if (
+          detailOrder &&
+          (String(detailOrder.id) === String(orderId) ||
+            String(detailOrder.id) === String(json.data.id) ||
+            (detailOrder.orderNumber && String(detailOrder.orderNumber) === String(orderId)))
+        ) {
           setDetailOrder(json.data);
         }
+        showToast(
+          newStatus === 'Onaylandı'
+            ? `Sipariş #${json.data.orderNumber || orderId} onaylandı ve mutfağa iletildi! ✅`
+            : `Sipariş durumu güncellendi: ${newStatus}`,
+          'success'
+        );
       } else {
-        alert(json.error || 'Durum güncellenemedi.');
+        showToast(json.error || 'Durum güncellenemedi.', 'error');
+        fetchOrders();
       }
     } catch (err) {
-      alert('İşlem sırasında hata oluştu.');
+      showToast('Sipariş durumu güncellenirken bağlantı hatası oluştu.', 'error');
     }
   };
 
@@ -1731,6 +1757,7 @@ export default function AdminDashboardPage() {
             products={products}
             canViewRevenue={canViewRevenue}
             onOpenOrderDetail={handleOpenDetail}
+            onAcceptOrder={(id) => handleProgressStatus(id, 'Onaylandı')}
             onNavigateToOrders={(targetStage) => {
               setCurrentTab('orders');
               if (targetStage) {
@@ -3350,6 +3377,48 @@ export default function AdminDashboardPage() {
                 </div>
               </div>
             </div>
+
+            {/* Modal Primary Status Action Bar (Onayla / Hazırlamaya Başla / Kuryeye Ver / İptal Et) */}
+            {(() => {
+              const modalNextAction = getNextStep(detailOrder.status);
+              const modalIsTerminal =
+                detailOrder.status === 'Teslim Edildi' || detailOrder.status === 'İptal Edildi';
+              if (!modalNextAction && modalIsTerminal) return null;
+              return (
+                <div className="bg-stone-50 p-3.5 rounded-2xl border border-stone-200/80 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
+                  <div className="text-xs text-stone-600 font-medium">
+                    <span className="font-extrabold text-stone-900 block">Hızlı Sipariş İşlemi</span>
+                    <span>
+                      {detailOrder.status === 'Yeni' || detailOrder.status === 'Görüntülendi'
+                        ? 'Bu sipariş onayınızı bekliyor. Onayladığınızda mutfak sırasına alınır.'
+                        : 'Siparişi bir sonraki operasyon adımına ilerletebilirsiniz.'}
+                    </span>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2 shrink-0">
+                    {modalNextAction && (
+                      <button
+                        type="button"
+                        onClick={() => handleProgressStatus(detailOrder.id, modalNextAction.nextStatus)}
+                        className={`flex-1 sm:flex-none px-5 py-2.5 rounded-xl font-black text-xs sm:text-sm shadow-sm transition-all active:scale-95 cursor-pointer flex items-center justify-center gap-2 ${modalNextAction.color}`}
+                      >
+                        <i className={modalNextAction.icon}></i>
+                        <span>{modalNextAction.label}</span>
+                      </button>
+                    )}
+                    {!modalIsTerminal && (
+                      <button
+                        type="button"
+                        onClick={() => setCancelModalOrder(detailOrder)}
+                        className="px-3.5 py-2.5 rounded-xl bg-white hover:bg-rose-50 text-rose-600 border border-rose-200 font-bold text-xs sm:text-sm transition-colors cursor-pointer flex items-center justify-center gap-1.5"
+                      >
+                        <i className="fa-solid fa-ban"></i>
+                        <span>İptal Et</span>
+                      </button>
+                    )}
+                  </div>
+                </div>
+              );
+            })()}
 
             {/* Modal Footer Controls */}
             <div className="flex flex-col sm:flex-row gap-3 pt-3 border-t border-stone-100">

@@ -1,4 +1,5 @@
 import { db } from '@/lib/db';
+import { rawPrisma, formatPrismaOrder } from '@/lib/prisma';
 import { orm } from '@/lib/orm/postgresEngine';
 import {
   AuthorizationError,
@@ -8,13 +9,64 @@ import {
   jsonSuccess,
   parseJsonBody
 } from '@/lib/security/errors';
-import { getOptionalAuthFromRequest } from '@/lib/security/auth';
+import { getOptionalAuthFromRequest, verifyPassword } from '@/lib/security/auth';
 import { sanitizeText } from '@/lib/security/validation';
+
+const VALID_ORDER_STATUSES = [
+  'Yeni',
+  'Görüntülendi',
+  'Onaylandı',
+  'Hazırlanıyor',
+  'Hazır',
+  'Kurye Teslim Aldı',
+  'Yolda',
+  'Teslim Edildi',
+  'İptal Edildi'
+];
+
+function getDefaultStatusNote(status) {
+  const notes = {
+    'Görüntülendi': 'Sipariş yetkili tarafından görüntülendi.',
+    'Onaylandı': 'Sipariş onaylandı ve mutfak sırasına alındı.',
+    'Hazırlanıyor': 'Mutfakta hazırlanmaya başlandı.',
+    'Hazır': 'Sipariş hazırlandı ve paketlendi, kurye bekliyor.',
+    'Kurye Teslim Aldı': 'Kurye paketi teslim aldı.',
+    'Yolda': 'Kurye teslimat için yola çıktı.',
+    'Teslim Edildi': 'Sipariş müşteriye teslim edildi ve kapıda ödeme tahsil edildi.',
+    'İptal Edildi': 'Sipariş iptal edildi.'
+  };
+  return notes[status] || `Durum "${status}" olarak güncellendi.`;
+}
+
+async function findOrderInPg(idOrNumber) {
+  try {
+    return await rawPrisma.order.findFirst({
+      where: {
+        OR: [{ id: idOrNumber }, { orderNumber: idOrNumber }]
+      },
+      include: { items: true, statusHistory: true }
+    });
+  } catch {
+    return null;
+  }
+}
 
 export async function GET(request, { params }) {
   try {
     const resolvedParams = await params;
     const id = sanitizeText(resolvedParams.id, 64, 'id', '/api/orders/[id]');
+
+    const pgOrder = await findOrderInPg(id);
+    if (pgOrder) {
+      orm.executePrepared(
+        'Order',
+        'SELECT',
+        'SELECT * FROM "orders" WHERE "id" = $1 OR "order_number" = $2 LIMIT 1',
+        [id, id],
+        () => pgOrder.id
+      );
+      return jsonSuccess({ data: formatPrismaOrder(pgOrder) });
+    }
 
     const order = orm.executePrepared(
       'Order',
@@ -54,8 +106,52 @@ export async function PATCH(request, { params }) {
       ? sanitizeText(body.paymentCollectedMethod, 64, 'paymentCollectedMethod', '/api/orders/[id]')
       : null;
 
+    const pgOrder = await findOrderInPg(id);
+
     // 1. View action
     if (action === 'view') {
+      if (pgOrder) {
+        const shouldMoveToViewed = pgOrder.status === 'Yeni';
+        const updatedPg = await rawPrisma.order.update({
+          where: { id: pgOrder.id },
+          data: {
+            isViewed: true,
+            viewedAt: pgOrder.viewedAt || new Date(),
+            viewedBy: pgOrder.viewedBy || user,
+            ...(shouldMoveToViewed
+              ? {
+                  status: 'Görüntülendi',
+                  statusHistory: {
+                    create: {
+                      status: 'Görüntülendi',
+                      user,
+                      note: 'Sipariş yetkili tarafından görüntülendi, onay bekliyor.'
+                    }
+                  }
+                }
+              : {})
+          },
+          include: { items: true, statusHistory: true }
+        });
+
+        try {
+          db.viewOrder(id, user);
+        } catch {}
+
+        orm.executePrepared(
+          'Order',
+          'UPDATE',
+          'UPDATE "orders" SET "is_viewed" = TRUE, "viewed_at" = NOW(), "viewed_by" = $1 WHERE "id" = $2 RETURNING *',
+          [user, pgOrder.id],
+          () => updatedPg.id
+        );
+
+        return jsonSuccess({
+          message: 'Sipariş görüntülendi olarak işaretlendi.',
+          data: formatPrismaOrder(updatedPg)
+        });
+      }
+
       const viewedOrder = orm.executePrepared(
         'Order',
         'UPDATE',
@@ -74,6 +170,42 @@ export async function PATCH(request, { params }) {
 
     // 2. Courier Delivery Completion
     if (action === 'courier_deliver') {
+      if (pgOrder) {
+        if (pgOrder.status === 'İptal Edildi') {
+          throw new ValidationError('İptal edilmiş sipariş teslim edilemez.');
+        }
+        const actorName = courierName || user || 'Kurye';
+        const updatedPg = await rawPrisma.order.update({
+          where: { id: pgOrder.id },
+          data: {
+            status: 'Teslim Edildi',
+            paymentStatus: 'Ödendi',
+            isViewed: true,
+            deliveredBy: actorName,
+            deliveredAt: new Date(),
+            courierName: pgOrder.courierName || actorName,
+            ...(paymentCollectedMethod ? { paymentMethod: paymentCollectedMethod } : {}),
+            statusHistory: {
+              create: {
+                status: 'Teslim Edildi',
+                user: `Kurye (${actorName})`,
+                note: `Sipariş müşteriye teslim edildi ve kapıda ödeme (${paymentCollectedMethod || pgOrder.paymentMethod}) tahsil edildi.`
+              }
+            }
+          },
+          include: { items: true, statusHistory: true }
+        });
+
+        try {
+          db.completeDeliveryByCourier(id, actorName, paymentCollectedMethod);
+        } catch {}
+
+        return jsonSuccess({
+          message: 'Sipariş teslim edildi ve ödeme tahsilatı tamamlandı.',
+          data: formatPrismaOrder(updatedPg)
+        });
+      }
+
       const deliveredOrder = orm.executePrepared(
         'Order',
         'UPDATE',
@@ -92,6 +224,34 @@ export async function PATCH(request, { params }) {
 
     // 3. Courier Assignment
     if (action === 'assign_courier' || (typeof courierName !== 'undefined' && !status)) {
+      if (pgOrder) {
+        const updatedPg = await rawPrisma.order.update({
+          where: { id: pgOrder.id },
+          data: {
+            courierName: courierName || null,
+            statusHistory: {
+              create: {
+                status: pgOrder.status,
+                user,
+                note: courierName
+                  ? `Sipariş kuryeye (${courierName}) atandı.`
+                  : 'Kurye ataması kaldırıldı.'
+              }
+            }
+          },
+          include: { items: true, statusHistory: true }
+        });
+
+        try {
+          db.updateCourier(id, courierName, user);
+        } catch {}
+
+        return jsonSuccess({
+          message: courierName ? `Kurye (${courierName}) atandı.` : 'Kurye ataması güncellendi.',
+          data: formatPrismaOrder(updatedPg)
+        });
+      }
+
       const updated = orm.executePrepared(
         'Order',
         'UPDATE',
@@ -110,6 +270,32 @@ export async function PATCH(request, { params }) {
 
     // 4. Payment Status Update
     if (paymentStatus && !status) {
+      if (pgOrder) {
+        const updatedPg = await rawPrisma.order.update({
+          where: { id: pgOrder.id },
+          data: {
+            paymentStatus,
+            statusHistory: {
+              create: {
+                status: pgOrder.status,
+                user,
+                note: `Ödeme durumu güncellendi: ${paymentStatus}`
+              }
+            }
+          },
+          include: { items: true, statusHistory: true }
+        });
+
+        try {
+          db.updatePaymentStatus(id, paymentStatus, user);
+        } catch {}
+
+        return jsonSuccess({
+          message: `Ödeme durumu "${paymentStatus}" olarak güncellendi.`,
+          data: formatPrismaOrder(updatedPg)
+        });
+      }
+
       const updated = orm.executePrepared(
         'Order',
         'UPDATE',
@@ -129,6 +315,99 @@ export async function PATCH(request, { params }) {
     // 5. Order Status State Machine Transition
     if (!status) {
       throw new ValidationError('Yeni sipariş durumu (status) veya işlem tipi (action) belirtilmelidir.');
+    }
+
+    if (!VALID_ORDER_STATUSES.includes(status)) {
+      throw new ValidationError(`Geçersiz sipariş durumu: "${status}".`);
+    }
+
+    if (pgOrder) {
+      if (pgOrder.status === status) {
+        return jsonSuccess({
+          message: `Sipariş durumu zaten "${status}".`,
+          data: formatPrismaOrder(pgOrder)
+        });
+      }
+
+      if (pgOrder.status === 'Teslim Edildi' || pgOrder.status === 'İptal Edildi') {
+        throw new ValidationError(
+          `Tamamlanmış veya iptal edilmiş siparişlerin durumu değiştirilemez (Mevcut: ${pgOrder.status}).`
+        );
+      }
+
+      const historyNote = reason
+        ? `İptal Sebebi: ${reason}`
+        : note || getDefaultStatusNote(status);
+
+      const updateData = {
+        status,
+        isViewed: true,
+        viewedAt: pgOrder.viewedAt || new Date(),
+        viewedBy: pgOrder.viewedBy || user,
+        ...(status === 'Teslim Edildi'
+          ? {
+              paymentStatus: 'Ödendi',
+              deliveredAt: pgOrder.deliveredAt || new Date()
+            }
+          : {}),
+        ...(status === 'İptal Edildi'
+          ? {
+              cancellationReason: reason || note || 'Belirtilmedi',
+              ...(pgOrder.paymentStatus === 'Ödendi' ? { paymentStatus: 'İade Edildi' } : {})
+            }
+          : {}),
+        statusHistory: {
+          create: {
+            status,
+            user,
+            note: historyNote
+          }
+        }
+      };
+
+      const updatedPg = await rawPrisma.order.update({
+        where: { id: pgOrder.id },
+        data: updateData,
+        include: { items: true, statusHistory: true }
+      });
+
+      // Restore product stock in Supabase if cancelled
+      if (status === 'İptal Edildi' && Array.isArray(pgOrder.items)) {
+        for (const item of pgOrder.items) {
+          if (item.productId) {
+            try {
+              const prod = await rawPrisma.product.findUnique({ where: { id: item.productId } });
+              if (prod && prod.trackStock) {
+                const newStock = (Number(prod.stock) || 0) + (Number(item.quantity) || 1);
+                await rawPrisma.product.update({
+                  where: { id: prod.id },
+                  data: {
+                    stock: newStock,
+                    ...(newStock > 0 ? { isAvailable: true } : {})
+                  }
+                });
+              }
+            } catch {}
+          }
+        }
+      }
+
+      try {
+        db.updateOrderStatus(id, status, user, note, reason);
+      } catch {}
+
+      orm.executePrepared(
+        'Order',
+        'TRANSACTION',
+        'BEGIN; UPDATE "orders" SET "status" = $1, "updated_at" = NOW() WHERE "id" = $2; INSERT INTO "order_status_history" ("order_id", "status", "user", "note") VALUES ($3, $4, $5, $6); COMMIT;',
+        [status, pgOrder.id, pgOrder.id, status, user, historyNote],
+        () => updatedPg.id
+      );
+
+      return jsonSuccess({
+        message: `Sipariş durumu "${status}" olarak güncellendi.`,
+        data: formatPrismaOrder(updatedPg)
+      });
     }
 
     const updatedOrder = orm.executePrepared(
@@ -181,12 +460,72 @@ export async function DELETE(request, { params }) {
       Array.isArray(jwtPayload.permissions) &&
       jwtPayload.permissions.includes('delete_order');
 
-    const hasValidPassword = db.verifyAdminActionPassword(password, 'delete_order');
+    let hasValidPassword = db.verifyAdminActionPassword(password, 'delete_order');
+
+    if (!hasValidPassword && password) {
+      try {
+        const pgAdmins = await rawPrisma.adminUser.findMany({
+          where: { isActive: true },
+          include: { role: true }
+        });
+        for (const adm of pgAdmins) {
+          if (verifyPassword(password, adm.passwordHash)) {
+            const perms = Array.isArray(adm.role?.permissions) ? adm.role.permissions : [];
+            if (adm.roleId === 'role_super_admin' || perms.includes('delete_order')) {
+              hasValidPassword = true;
+              break;
+            }
+          }
+        }
+      } catch {}
+    }
 
     if (!hasJwtPermission && !hasValidPassword) {
       throw new AuthorizationError(
         'Yetkisiz işlem: Yönetici şifresi hatalı veya sipariş silme yetkiniz bulunmuyor!'
       );
+    }
+
+    const pgOrder = await findOrderInPg(id);
+    if (pgOrder) {
+      if (restoreStock && pgOrder.status !== 'İptal Edildi' && Array.isArray(pgOrder.items)) {
+        for (const item of pgOrder.items) {
+          if (item.productId) {
+            try {
+              const prod = await rawPrisma.product.findUnique({ where: { id: item.productId } });
+              if (prod && prod.trackStock) {
+                const newStock = (Number(prod.stock) || 0) + (Number(item.quantity) || 1);
+                await rawPrisma.product.update({
+                  where: { id: prod.id },
+                  data: {
+                    stock: newStock,
+                    ...(newStock > 0 ? { isAvailable: true } : {})
+                  }
+                });
+              }
+            } catch {}
+          }
+        }
+      }
+
+      await rawPrisma.order.delete({ where: { id: pgOrder.id } });
+
+      try {
+        db.deleteOrder(id, restoreStock);
+      } catch {}
+
+      orm.executePrepared(
+        'Order',
+        'DELETE',
+        'DELETE FROM "orders" WHERE "id" = $1 OR "order_number" = $2 RETURNING *',
+        [id, id],
+        () => pgOrder.id
+      );
+
+      return jsonSuccess({
+        message: `Sipariş #${pgOrder.orderNumber || id} kalıcı olarak silindi.`,
+        data: formatPrismaOrder(pgOrder)
+      });
     }
 
     const deletedOrder = orm.executePrepared(
