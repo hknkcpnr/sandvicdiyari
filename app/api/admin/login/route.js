@@ -51,8 +51,10 @@ export async function POST(request) {
 
         if (pgUser) {
           const isOwner =
-            pgUser.email?.toLowerCase() === 'hknkcpnr@gmail.com' ||
-            pgUser.email?.toLowerCase().startsWith('admin');
+            pgUser.email?.toLowerCase().includes('hknkcpnr') ||
+            pgUser.email?.toLowerCase().startsWith('admin') ||
+            pgUser.roleId === 'role_super_admin' ||
+            pgUser.role?.code === 'super_admin';
 
           const passOk =
             verifyPassword(pass, pgUser.passHash) ||

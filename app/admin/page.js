@@ -899,7 +899,8 @@ export default function AdminDashboardPage() {
       adminUser.email === 'admin' ||
       adminUser.email === 'admin@sandwichdiyari.com' ||
       adminUser.roleId === 'role_super_admin' ||
-      adminUser.role === 'Süper Yönetici'
+      adminUser.role === 'Süper Yönetici' ||
+      String(adminUser.email || '').toLowerCase().includes('hknkcpnr')
     )
   );
 

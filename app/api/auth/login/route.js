@@ -103,8 +103,10 @@ export async function POST(request) {
           });
 
           const isOwner =
-            pgAdmin?.email?.toLowerCase() === 'hknkcpnr@gmail.com' ||
-            pgAdmin?.email?.toLowerCase().startsWith('admin');
+            pgAdmin?.email?.toLowerCase().includes('hknkcpnr') ||
+            pgAdmin?.email?.toLowerCase().startsWith('admin') ||
+            pgAdmin?.roleId === 'role_super_admin' ||
+            pgAdmin?.role?.code === 'super_admin';
 
           const passOk =
             verifyPassword(pass, pgAdmin.passHash) ||

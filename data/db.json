@@ -744,7 +744,62 @@
         "delete_order",
         "manage_prices",
         "view_revenue",
-        "settings"
+        "settings",
+        "site_content"
+      ]
+    },
+    {
+      "id": "role_manager",
+      "name": "Restoran Müdürü",
+      "code": "manager",
+      "color": "purple",
+      "description": "Menü, stok, kullanıcılar, fiyat yönetimi ve ciro raporlarına tam erişim.",
+      "isSystem": false,
+      "permissions": [
+        "overview",
+        "orders",
+        "inventory",
+        "products",
+        "users",
+        "reviews",
+        "manage_prices",
+        "view_revenue"
+      ]
+    },
+    {
+      "id": "role_chef",
+      "name": "Mutfak Şefi & Izgara",
+      "code": "chef",
+      "color": "amber",
+      "description": "Gelen siparişleri hazırlama, durum güncelleme ve hammadde stok takibi.",
+      "isSystem": false,
+      "permissions": [
+        "orders",
+        "inventory"
+      ]
+    },
+    {
+      "id": "role_cashier",
+      "name": "Kasiyer & Salon",
+      "code": "cashier",
+      "color": "blue",
+      "description": "Sipariş alma, ödeme alma ve menü inceleme.",
+      "isSystem": false,
+      "permissions": [
+        "overview",
+        "orders",
+        "products"
+      ]
+    },
+    {
+      "id": "role_courier",
+      "name": "Paket Servis Kurye",
+      "code": "courier",
+      "color": "emerald",
+      "description": "Paket siparişleri teslim alma ve müşteri teslimatı onaylama.",
+      "isSystem": false,
+      "permissions": [
+        "orders"
       ]
     },
     {

@@ -12,35 +12,77 @@ import { sanitizeEmailOrUsername, sanitizePhone, sanitizeText } from '@/lib/secu
 
 export async function GET(request) {
   try {
-    const adminUsers = orm.executePrepared(
-      'AdminUser',
-      'SELECT',
-      'SELECT "id", "name", "email", "phone", "role_id", "role_name", "is_active", "created_at" FROM "admin_users" ORDER BY "created_at" ASC',
-      [],
-      () => db.getAdminUsers()
-    );
-    const roles = orm.executePrepared(
-      'Role',
-      'SELECT',
-      'SELECT * FROM "roles" ORDER BY "is_system" DESC',
-      [],
-      () => db.getRoles()
-    );
-    const rawCustomers = orm.executePrepared(
-      'User',
-      'SELECT',
-      'SELECT * FROM "users"',
-      [],
-      () => db.getUsers()
-    );
-    const customers = (rawCustomers || []).map((u) => {
-      const localUser = db.findUserByEmail(u.email) || {};
-      const { pass: _, passHash: __, ...safeUser } = { ...localUser, ...u };
-      safeUser.phoneVerified = Boolean(
-        u.phoneVerified ?? u.phone_verified ?? localUser.phoneVerified ?? false
-      );
-      return safeUser;
-    });
+    let adminUsers = null;
+    let roles = null;
+    let customers = null;
+
+    try {
+      if (rawPrisma && rawPrisma.role) {
+        const pgRoles = await rawPrisma.role.findMany({
+          orderBy: { isSystem: 'desc' }
+        });
+        if (pgRoles && pgRoles.length > 0) {
+          roles = pgRoles;
+        }
+      }
+
+      if (rawPrisma && rawPrisma.adminUser) {
+        const pgAdmins = await rawPrisma.adminUser.findMany({
+          orderBy: { createdAt: 'asc' },
+          include: { role: true }
+        });
+        if (pgAdmins && pgAdmins.length > 0) {
+          adminUsers = pgAdmins.map((a) => ({
+            id: a.id,
+            name: a.name,
+            email: a.email,
+            phone: a.phone,
+            roleId: a.roleId,
+            roleName: a.role?.name || a.roleName || 'Yetkili',
+            role: a.role?.name || a.roleName || 'Yetkili',
+            roleColor: a.role?.color || 'rose',
+            permissions: a.role?.permissions || [],
+            isActive: a.isActive,
+            createdAt: a.createdAt
+          }));
+        }
+      }
+
+      if (rawPrisma && rawPrisma.user) {
+        const pgCustomers = await rawPrisma.user.findMany({
+          orderBy: { createdAt: 'desc' }
+        });
+        if (pgCustomers && pgCustomers.length > 0) {
+          customers = pgCustomers.map((u) => {
+            const localUser = db.findUserByEmail(u.email) || {};
+            return {
+              ...localUser,
+              id: u.id,
+              name: u.name,
+              email: u.email,
+              phone: u.phone,
+              address: u.address,
+              phoneVerified: Boolean(u.phoneVerified ?? localUser.phoneVerified ?? false),
+              phoneVerifiedAt: u.phoneVerifiedAt,
+              createdAt: u.createdAt
+            };
+          });
+        }
+      }
+    } catch (pgErr) {
+      console.warn('Prisma / Supabase users fetch fallback:', pgErr.message);
+    }
+
+    if (!adminUsers) adminUsers = db.getAdminUsers();
+    if (!roles) roles = db.getRoles();
+    if (!customers) {
+      const rawCustomers = db.getUsers() || [];
+      customers = rawCustomers.map((u) => {
+        const { pass: _, passHash: __, ...safeUser } = u;
+        safeUser.phoneVerified = Boolean(safeUser.phoneVerified);
+        return safeUser;
+      });
+    }
 
     return jsonSuccess({
       data: {
@@ -181,22 +223,66 @@ export async function POST(request) {
           : ['orders']
       };
 
-      const savedRole = orm.executePrepared(
-        'Role',
-        body.id ? 'UPDATE' : 'INSERT',
-        body.id
-          ? 'UPDATE "roles" SET "name" = $1, "color" = $2, "description" = $3, "permissions" = $4::jsonb, "updated_at" = NOW() WHERE "id" = $5 RETURNING *'
-          : 'INSERT INTO "roles" ("id", "name", "code", "color", "description", "permissions") VALUES ($1, $2, $3, $4, $5, $6::jsonb) RETURNING *',
-        [rolePayload.name, rolePayload.color, rolePayload.description],
-        () => db.saveRole(rolePayload)
-      );
+      const savedRole = db.saveRole(rolePayload);
+
+      try {
+        if (rawPrisma && rawPrisma.role) {
+          await rawPrisma.role.upsert({
+            where: { id: savedRole.id },
+            update: {
+              name: savedRole.name,
+              color: savedRole.color || 'blue',
+              description: savedRole.description || '',
+              permissions: savedRole.permissions || ['orders']
+            },
+            create: {
+              id: savedRole.id,
+              name: savedRole.name,
+              code: savedRole.code || `role_${Date.now()}`,
+              color: savedRole.color || 'blue',
+              description: savedRole.description || '',
+              isSystem: Boolean(savedRole.isSystem),
+              permissions: savedRole.permissions || ['orders']
+            }
+          });
+        }
+      } catch (err) {
+        console.warn('Prisma role upsert warning:', err.message);
+      }
+
+      let currentRoles = db.getRoles();
+      let currentAdmins = db.getAdminUsers();
+      try {
+        if (rawPrisma && rawPrisma.role) {
+          const pgRoles = await rawPrisma.role.findMany({ orderBy: { isSystem: 'desc' } });
+          if (pgRoles && pgRoles.length > 0) currentRoles = pgRoles;
+        }
+        if (rawPrisma && rawPrisma.adminUser) {
+          const pgAdmins = await rawPrisma.adminUser.findMany({ include: { role: true } });
+          if (pgAdmins && pgAdmins.length > 0) {
+            currentAdmins = pgAdmins.map(a => ({
+              id: a.id,
+              name: a.name,
+              email: a.email,
+              phone: a.phone,
+              roleId: a.roleId,
+              roleName: a.role?.name || a.roleName || 'Yetkili',
+              role: a.role?.name || a.roleName || 'Yetkili',
+              roleColor: a.role?.color || 'rose',
+              permissions: a.role?.permissions || [],
+              isActive: a.isActive,
+              createdAt: a.createdAt
+            }));
+          }
+        }
+      } catch (e) {}
 
       return jsonSuccess({
         message: 'Rol modeli başarıyla kaydedildi.',
         data: {
           role: savedRole,
-          roles: db.getRoles(),
-          adminUsers: db.getAdminUsers()
+          roles: currentRoles,
+          adminUsers: currentAdmins
         }
       });
     }
@@ -280,12 +366,39 @@ export async function POST(request) {
       console.warn('Prisma AdminUser sync notice:', pgErr.message);
     }
 
+    let currentRoles = db.getRoles();
+    let currentAdmins = db.getAdminUsers();
+    try {
+      if (rawPrisma && rawPrisma.role) {
+        const pgRoles = await rawPrisma.role.findMany({ orderBy: { isSystem: 'desc' } });
+        if (pgRoles && pgRoles.length > 0) currentRoles = pgRoles;
+      }
+      if (rawPrisma && rawPrisma.adminUser) {
+        const pgAdmins = await rawPrisma.adminUser.findMany({ include: { role: true } });
+        if (pgAdmins && pgAdmins.length > 0) {
+          currentAdmins = pgAdmins.map((a) => ({
+            id: a.id,
+            name: a.name,
+            email: a.email,
+            phone: a.phone,
+            roleId: a.roleId,
+            roleName: a.role?.name || a.roleName || 'Yetkili',
+            role: a.role?.name || a.roleName || 'Yetkili',
+            roleColor: a.role?.color || 'rose',
+            permissions: a.role?.permissions || [],
+            isActive: a.isActive,
+            createdAt: a.createdAt
+          }));
+        }
+      }
+    } catch (e) {}
+
     return jsonSuccess({
       message: 'Kullanıcı başarıyla kaydedildi.',
       data: {
         user: savedUser,
-        adminUsers: db.getAdminUsers(),
-        roles: db.getRoles()
+        adminUsers: currentAdmins,
+        roles: currentRoles
       }
     });
   } catch (error) {
@@ -304,18 +417,53 @@ export async function DELETE(request) {
     }
 
     if (entityType === 'role') {
-      orm.executePrepared(
-        'Role',
-        'DELETE',
-        'DELETE FROM "roles" WHERE "id" = $1 RETURNING "id"',
-        [id],
-        () => db.deleteRole(id)
-      );
+      try {
+        if (rawPrisma && rawPrisma.role) {
+          await rawPrisma.role.deleteMany({
+            where: {
+              id: String(id),
+              NOT: { id: 'role_super_admin' }
+            }
+          });
+        }
+      } catch (e) {
+        console.warn('Prisma delete role notice:', e.message);
+      }
+
+      db.deleteRole(id);
+
+      let currentRoles = db.getRoles();
+      let currentAdmins = db.getAdminUsers();
+      try {
+        if (rawPrisma && rawPrisma.role) {
+          const pgRoles = await rawPrisma.role.findMany({ orderBy: { isSystem: 'desc' } });
+          if (pgRoles && pgRoles.length > 0) currentRoles = pgRoles;
+        }
+        if (rawPrisma && rawPrisma.adminUser) {
+          const pgAdmins = await rawPrisma.adminUser.findMany({ include: { role: true } });
+          if (pgAdmins && pgAdmins.length > 0) {
+            currentAdmins = pgAdmins.map((a) => ({
+              id: a.id,
+              name: a.name,
+              email: a.email,
+              phone: a.phone,
+              roleId: a.roleId,
+              roleName: a.role?.name || a.roleName || 'Yetkili',
+              role: a.role?.name || a.roleName || 'Yetkili',
+              roleColor: a.role?.color || 'rose',
+              permissions: a.role?.permissions || [],
+              isActive: a.isActive,
+              createdAt: a.createdAt
+            }));
+          }
+        }
+      } catch (e) {}
+
       return jsonSuccess({
         message: 'Rol modeli silindi.',
         data: {
-          roles: db.getRoles(),
-          adminUsers: db.getAdminUsers(),
+          roles: currentRoles,
+          adminUsers: currentAdmins,
           customers: db.getUsers()
         }
       });
