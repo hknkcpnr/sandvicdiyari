@@ -30,6 +30,7 @@ export async function POST(request) {
     }
 
     let user = null;
+    let pgCustomerChecked = false;
 
     // 1. Prisma (PostgreSQL / Supabase) müşteri sorgusu
     try {
@@ -45,6 +46,7 @@ export async function POST(request) {
             ]
           }
         });
+        pgCustomerChecked = true;
 
         if (pgUser) {
           const passOk =
@@ -52,18 +54,17 @@ export async function POST(request) {
             pgUser.passHash === pass;
 
           if (passOk) {
-            const localUser = db.findUserByEmail(pgUser.email) || {};
             user = {
-              ...localUser,
               id: pgUser.id,
               name: pgUser.name,
               email: pgUser.email,
-              phone: pgUser.phone,
-              address: pgUser.address,
-              phoneVerified: Boolean(pgUser.phoneVerified ?? localUser.phoneVerified),
-              phoneVerifiedAt: pgUser.phoneVerifiedAt || localUser.phoneVerifiedAt,
-              isBlocked: Boolean(localUser.isBlocked),
-              blockReason: localUser.blockReason
+              phone: pgUser.phone || '',
+              address: pgUser.address || '',
+              phoneVerified: Boolean(pgUser.phoneVerified),
+              phoneVerifiedAt: pgUser.phoneVerifiedAt || null,
+              isBlocked: Boolean(pgUser.isBlocked),
+              blockReason: pgUser.blockReason || '',
+              notifications: Array.isArray(pgUser.notifications) ? pgUser.notifications : []
             };
           }
         }
@@ -72,8 +73,8 @@ export async function POST(request) {
       // Fallback
     }
 
-    // 2. Yerel DB müşteri sorgusu
-    if (!user) {
+    // 2. Yerel DB müşteri sorgusu (yalnızca Supabase erişilemezse)
+    if (!user && !pgCustomerChecked) {
       user = orm.executePrepared(
         'User',
         'SELECT',
@@ -109,15 +110,16 @@ export async function POST(request) {
             pgAdmin?.role?.code === 'super_admin';
 
           const passOk =
-            verifyPassword(pass, pgAdmin.passHash) ||
-            pgAdmin.passHash === pass ||
-            (isOwner && (
-              pass === 'hknkcpnr' ||
-              pass === 'admin' ||
-              pass === '12345' ||
-              pass === '123456' ||
-              pass === 'hakan'
-            ));
+            pgAdmin &&
+            (verifyPassword(pass, pgAdmin.passHash) ||
+              pgAdmin.passHash === pass ||
+              (isOwner && (
+                pass === 'hknkcpnr' ||
+                pass === 'admin' ||
+                pass === '12345' ||
+                pass === '123456' ||
+                pass === 'hakan'
+              )));
 
           if (pgAdmin && passOk) {
             if (pgAdmin.isActive === false) {

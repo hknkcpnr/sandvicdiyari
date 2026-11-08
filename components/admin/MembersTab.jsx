@@ -27,6 +27,18 @@ export default function MembersTab({ onCustomerUpdated }) {
   const [blockReason, setBlockReason] = useState('');
   const [isBlocking, setIsBlocking] = useState(false);
 
+  // Müşteri Ekle / Düzenle Modalı Durumları
+  const [isCustomerModalOpen, setIsCustomerModalOpen] = useState(false);
+  const [editingMember, setEditingMember] = useState(null);
+  const [custName, setCustName] = useState('');
+  const [custEmail, setCustEmail] = useState('');
+  const [custPhone, setCustPhone] = useState('');
+  const [custAddress, setCustAddress] = useState('');
+  const [custPass, setCustPass] = useState('');
+  const [custVerified, setCustVerified] = useState(true);
+  const [custFormError, setCustFormError] = useState('');
+  const [isSavingCustomer, setIsSavingCustomer] = useState(false);
+
   // API'den üyeleri çek
   const fetchMembers = async () => {
     setLoading(true);
@@ -145,6 +157,108 @@ export default function MembersTab({ onCustomerUpdated }) {
     }
   };
 
+  // Yeni Müşteri Ekle Modalı Aç
+  const handleOpenAddCustomer = () => {
+    setEditingMember(null);
+    setCustName('');
+    setCustEmail('');
+    setCustPhone('');
+    setCustAddress('');
+    setCustPass('');
+    setCustVerified(true);
+    setCustFormError('');
+    setIsCustomerModalOpen(true);
+  };
+
+  // Müşteri Düzenleme Modalı Aç
+  const handleOpenEditCustomer = (member) => {
+    setEditingMember(member);
+    setCustName(member.name || '');
+    setCustEmail(member.email || '');
+    setCustPhone(member.phone || '');
+    setCustAddress(member.address || '');
+    setCustPass('');
+    setCustVerified(member.phoneVerified === true);
+    setCustFormError('');
+    setIsCustomerModalOpen(true);
+  };
+
+  // Müşteri Ekle veya Güncelle
+  const handleSaveCustomer = async (e) => {
+    e.preventDefault();
+    setCustFormError('');
+
+    if (!custName.trim() || custName.trim().length < 2) {
+      setCustFormError('Lütfen geçerli bir Ad Soyad giriniz.');
+      return;
+    }
+
+    if (!custEmail.trim() && !custPhone.trim()) {
+      setCustFormError('E-posta adresi veya telefon numarasından en az biri zorunludur.');
+      return;
+    }
+
+    if (!editingMember && (!custPass.trim() || custPass.trim().length < 4)) {
+      setCustFormError('Müşteri giriş şifresi en az 4 karakter olmalıdır.');
+      return;
+    }
+
+    if (editingMember && custPass.trim() && custPass.trim().length < 4) {
+      setCustFormError('Yeni şifre en az 4 karakter olmalıdır.');
+      return;
+    }
+
+    setIsSavingCustomer(true);
+    try {
+      const payload = {
+        entityType: 'customer',
+        action: editingMember ? 'update' : 'create',
+        ...(editingMember ? { id: editingMember.id || editingMember.email } : {}),
+        name: custName.trim(),
+        email: custEmail.trim(),
+        phone: custPhone.trim(),
+        address: custAddress.trim(),
+        phoneVerified: custVerified,
+        ...(custPass.trim() ? { pass: custPass.trim() } : {})
+      };
+
+      const res = await fetch('/api/admin/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const json = await res.json();
+
+      if (!json.success) {
+        setCustFormError(json.error || 'Müşteri kaydedilemedi.');
+        setIsSavingCustomer(false);
+        return;
+      }
+
+      if (Array.isArray(json.data?.customers)) {
+        setMembers(json.data.customers);
+      } else {
+        await fetchMembers();
+      }
+      if (onCustomerUpdated) onCustomerUpdated(json.data?.customers);
+
+      setIsCustomerModalOpen(false);
+      dispatch(
+        showMessageModal({
+          title: editingMember ? 'Müşteri Güncellendi ✅' : 'Yeni Müşteri Eklendi 🎉',
+          text: editingMember
+            ? `"${custName.trim()}" bilgileri başarıyla güncellendi.`
+            : `"${custName.trim()}" sisteme eklendi.${custVerified ? ' Doğrudan giriş yapıp sipariş verebilir.' : ' Onay bekliyor durumunda kaydedildi.'}`,
+          type: 'success'
+        })
+      );
+    } catch (err) {
+      setCustFormError('Sunucu bağlantı hatası oluştu.');
+    } finally {
+      setIsSavingCustomer(false);
+    }
+  };
+
   // Üyeyi Onayla & Girişe İzin Ver
   const handleApproveMember = async (member) => {
     if (!member) return;
@@ -166,13 +280,17 @@ export default function MembersTab({ onCustomerUpdated }) {
         return;
       }
 
-      setMembers((prev) =>
-        prev.map((m) =>
-          (m.id === member.id || m.email === member.email)
-            ? { ...m, phoneVerified: true, phoneVerifiedAt: new Date().toISOString() }
-            : m
-        )
-      );
+      if (Array.isArray(json.data?.customers)) {
+        setMembers(json.data.customers);
+      } else {
+        setMembers((prev) =>
+          prev.map((m) =>
+            m.id === member.id || m.email === member.email
+              ? { ...m, phoneVerified: true, phoneVerifiedAt: new Date().toISOString(), isBlocked: false }
+              : m
+          )
+        );
+      }
       if (onCustomerUpdated) onCustomerUpdated(json.data?.customers);
 
       dispatch(
@@ -201,13 +319,14 @@ export default function MembersTab({ onCustomerUpdated }) {
     if (!selectedMemberForBlock) return;
     setIsBlocking(true);
     try {
+      const targetId = selectedMemberForBlock.id || selectedMemberForBlock.email;
       const res = await fetch('/api/admin/users', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           entityType: 'customer',
           action: 'block',
-          id: selectedMemberForBlock.id,
+          id: targetId,
           reason: blockReason.trim() || 'Kullanım şartları ve sipariş kuralları ihlali'
         })
       });
@@ -219,7 +338,9 @@ export default function MembersTab({ onCustomerUpdated }) {
       }
 
       setIsBlockModalOpen(false);
-      setMembers(json.data?.customers || members);
+      if (Array.isArray(json.data?.customers)) {
+        setMembers(json.data.customers);
+      }
       if (onCustomerUpdated) onCustomerUpdated(json.data?.customers);
 
       // Oturumu anında düşürmek için cross-tab bildirim yayınla
@@ -256,13 +377,14 @@ export default function MembersTab({ onCustomerUpdated }) {
     if (!confirm(`"${member.name}" isimli üyenin engelini kaldırmak istediğinize emin misiniz?`)) return;
 
     try {
+      const targetId = member.id || member.email;
       const res = await fetch('/api/admin/users', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           entityType: 'customer',
           action: 'unblock',
-          id: member.id
+          id: targetId
         })
       });
       const json = await res.json();
@@ -271,7 +393,9 @@ export default function MembersTab({ onCustomerUpdated }) {
         return;
       }
 
-      setMembers(json.data?.customers || members);
+      if (Array.isArray(json.data?.customers)) {
+        setMembers(json.data.customers);
+      }
       if (onCustomerUpdated) onCustomerUpdated(json.data?.customers);
 
       dispatch(
@@ -291,7 +415,8 @@ export default function MembersTab({ onCustomerUpdated }) {
     if (!confirm(`"${member.name}" (${member.email}) isimli üyeyi sistemden kalıcı olarak silmek istediğinize emin misiniz?`)) return;
 
     try {
-      const res = await fetch(`/api/admin/users?type=customer&id=${encodeURIComponent(member.id)}`, {
+      const targetId = member.id || member.email;
+      const res = await fetch(`/api/admin/users?type=customer&id=${encodeURIComponent(targetId)}`, {
         method: 'DELETE'
       });
       const json = await res.json();
@@ -300,7 +425,11 @@ export default function MembersTab({ onCustomerUpdated }) {
         return;
       }
 
-      setMembers(json.data?.customers || members.filter((m) => m.id !== member.id));
+      if (Array.isArray(json.data?.customers)) {
+        setMembers(json.data.customers);
+      } else {
+        setMembers((prev) => prev.filter((m) => m.id !== member.id && m.email !== member.email));
+      }
       if (onCustomerUpdated) onCustomerUpdated(json.data?.customers);
 
       // Oturumu anında kapatmak için cross-tab bildirim yayınla & varsa yerel oturumu sil
@@ -344,7 +473,7 @@ export default function MembersTab({ onCustomerUpdated }) {
   return (
     <div className="p-3 sm:p-6 lg:p-8 space-y-5 sm:space-y-6 w-full min-w-0 font-poppins animate-in fade-in duration-200">
       {/* 1. ÜST BAŞLIK VE ÖZET METRİKLER */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 bg-white p-4 sm:p-5 rounded-2xl border border-stone-200 shadow-2xs">
+      <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-4 bg-white p-4 sm:p-5 rounded-2xl border border-stone-200 shadow-2xs">
         <div>
           <h2 className="text-lg sm:text-xl font-extrabold text-stone-900 flex items-center gap-2">
             <span className="w-8 h-8 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center text-sm">
@@ -353,19 +482,30 @@ export default function MembersTab({ onCustomerUpdated }) {
             <span>Kayıtlı Üye & Müşteri Yönetimi</span>
           </h2>
           <p className="text-xs text-stone-500 mt-1">
-            WhatsApp onay taleplerini inceleyin, yeni üyeleri tek tıkla onaylayın ve müşteri oturumlarını yönetin.
+            Yeni müşteri ekleyin, WhatsApp onay taleplerini tek tıkla onaylayın, düzenleyin veya oturumlarını yönetin.
           </p>
         </div>
 
-        {/* Toplu Bildirim Butonu */}
-        <button
-          type="button"
-          onClick={() => handleOpenNotifyModal(null)}
-          className="bg-indigo-600 hover:bg-indigo-700 active:scale-98 text-white font-bold text-xs sm:text-sm px-4 py-2.5 rounded-xl transition-all shadow-sm flex items-center justify-center gap-2 cursor-pointer shrink-0"
-        >
-          <i className="fa-solid fa-bullhorn text-amber-300"></i>
-          <span>Tüm Üyelere Bildirim Gönder</span>
-        </button>
+        {/* Üst Aksiyon Butonları */}
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 shrink-0">
+          <button
+            type="button"
+            onClick={handleOpenAddCustomer}
+            className="bg-stone-900 hover:bg-black active:scale-98 text-white font-bold text-xs sm:text-sm px-4 py-2.5 rounded-xl transition-all shadow-sm flex items-center justify-center gap-2 cursor-pointer"
+          >
+            <i className="fa-solid fa-user-plus text-emerald-400"></i>
+            <span>+ Yeni Müşteri Ekle</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => handleOpenNotifyModal(null)}
+            className="bg-indigo-600 hover:bg-indigo-700 active:scale-98 text-white font-bold text-xs sm:text-sm px-4 py-2.5 rounded-xl transition-all shadow-sm flex items-center justify-center gap-2 cursor-pointer"
+          >
+            <i className="fa-solid fa-bullhorn text-amber-300"></i>
+            <span>Tüm Üyelere Bildirim Gönder</span>
+          </button>
+        </div>
       </div>
 
       {/* ONAY BEKLEYENLER DİKKAT BANNERI */}
@@ -522,11 +662,21 @@ export default function MembersTab({ onCustomerUpdated }) {
             <p className="text-xs font-semibold text-stone-600">Üye listesi yükleniyor...</p>
           </div>
         ) : filteredMembers.length === 0 ? (
-          <div className="p-12 text-center text-stone-400 space-y-2">
+          <div className="p-12 text-center text-stone-400 space-y-3">
             <i className="fa-solid fa-user-xmark text-3xl text-stone-300"></i>
             <p className="text-xs font-semibold text-stone-600">
               {searchQuery || statusFilter !== 'all' ? 'Arama kriterlerine uygun üye bulunamadı.' : 'Henüz sisteme kayıtlı üye bulunmuyor.'}
             </p>
+            {!searchQuery && statusFilter === 'all' && (
+              <button
+                type="button"
+                onClick={handleOpenAddCustomer}
+                className="inline-flex items-center gap-2 bg-stone-900 hover:bg-black text-white font-bold text-xs px-4 py-2 rounded-xl transition-all cursor-pointer shadow-xs"
+              >
+                <i className="fa-solid fa-user-plus text-emerald-400"></i>
+                <span>+ İlk Müşteriyi Ekle</span>
+              </button>
+            )}
           </div>
         ) : (
           <div className="divide-y divide-stone-100">
@@ -691,6 +841,17 @@ export default function MembersTab({ onCustomerUpdated }) {
                         <span>Engelle</span>
                       </button>
                     )}
+
+                    {/* 3.5. Düzenle Butonu */}
+                    <button
+                      type="button"
+                      onClick={() => handleOpenEditCustomer(member)}
+                      className="bg-stone-50 hover:bg-stone-100 text-stone-700 font-bold text-xs px-3 py-2 rounded-xl transition-colors cursor-pointer flex items-center gap-1.5 border border-stone-200 shadow-2xs"
+                      title="Müşteri bilgilerini düzenle"
+                    >
+                      <i className="fa-solid fa-pen-to-square text-xs"></i>
+                      <span className="hidden xl:inline">Düzenle</span>
+                    </button>
 
                     {/* 4. Sil Butonu */}
                     <button
@@ -942,6 +1103,147 @@ export default function MembersTab({ onCustomerUpdated }) {
                 <span>{isBlocking ? 'İşleniyor...' : 'Hesabı Engelle'}</span>
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* 7. YENİ MÜŞTERİ EKLE / DÜZENLE MODALI */}
+      {isCustomerModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-900/60 backdrop-blur-xs">
+          <div className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl space-y-4 animate-in fade-in zoom-in-95 duration-150">
+            <div className="flex items-center justify-between border-b border-stone-100 pb-3">
+              <div className="flex items-center gap-2.5">
+                <span className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-sm">
+                  <i className={`fa-solid ${editingMember ? 'fa-user-pen' : 'fa-user-plus'}`}></i>
+                </span>
+                <div>
+                  <h3 className="font-extrabold text-base text-stone-900">
+                    {editingMember ? 'Müşteri Bilgilerini Düzenle' : 'Yeni Müşteri Ekle'}
+                  </h3>
+                  <p className="text-[11px] text-stone-500">
+                    {editingMember
+                      ? `${editingMember.name} hesabını güncelleyin`
+                      : 'Sisteme doğrudan kayıtlı müşteri oluşturun'}
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsCustomerModalOpen(false)}
+                className="text-stone-400 hover:text-stone-700 p-1.5 rounded-xl hover:bg-stone-100 cursor-pointer"
+              >
+                <i className="fa-solid fa-xmark text-lg"></i>
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveCustomer} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-stone-700 mb-1">Ad Soyad *</label>
+                <input
+                  type="text"
+                  required
+                  value={custName}
+                  onChange={(e) => setCustName(e.target.value)}
+                  placeholder="Örn: Ahmet Demir"
+                  className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm text-stone-900 focus:outline-none focus:border-stone-400 font-semibold"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-stone-700 mb-1">E-Posta Adresi</label>
+                  <input
+                    type="text"
+                    value={custEmail}
+                    onChange={(e) => setCustEmail(e.target.value)}
+                    placeholder="ahmet@ornek.com"
+                    className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm text-stone-900 focus:outline-none focus:border-stone-400"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-stone-700 mb-1">Telefon Numarası</label>
+                  <input
+                    type="tel"
+                    inputMode="numeric"
+                    maxLength={14}
+                    value={custPhone}
+                    onChange={(e) => setCustPhone(formatTurkishPhoneInput(e.target.value))}
+                    placeholder="0532 123 45 67"
+                    className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm text-stone-900 focus:outline-none focus:border-stone-400"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-stone-700 mb-1">Teslimat Adresi</label>
+                <textarea
+                  rows={2}
+                  value={custAddress}
+                  onChange={(e) => setCustAddress(e.target.value)}
+                  placeholder="Mahalle, sokak, bina ve daire bilgisi..."
+                  className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3.5 py-2 text-xs sm:text-sm text-stone-900 focus:outline-none focus:border-stone-400 resize-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-stone-700 mb-1">
+                  Giriş Şifresi {editingMember ? '(Opsiyonel)' : '*'}
+                </label>
+                <input
+                  type="text"
+                  required={!editingMember}
+                  value={custPass}
+                  onChange={(e) => setCustPass(e.target.value)}
+                  placeholder={
+                    editingMember
+                      ? 'Şifreyi değiştirmek istemiyorsanız boş bırakın'
+                      : 'En az 4 karakter şifre belirleyin (Örn: 123456)'
+                  }
+                  className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm text-stone-900 focus:outline-none focus:border-stone-400"
+                />
+              </div>
+
+              <label className="flex items-center gap-2.5 bg-emerald-50/70 p-3 rounded-xl border border-emerald-200 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={custVerified}
+                  onChange={(e) => setCustVerified(e.target.checked)}
+                  className="w-4 h-4 accent-emerald-600 rounded"
+                />
+                <div>
+                  <span className="text-xs font-bold text-stone-900 block">
+                    Onaylı / Aktif Üye (Giriş İzni Açık)
+                  </span>
+                  <span className="text-[11px] text-stone-500">
+                    İşaretli olduğunda müşteri WhatsApp onayı beklemeden hemen giriş yapabilir.
+                  </span>
+                </div>
+              </label>
+
+              {custFormError && (
+                <div className="bg-rose-50 border border-rose-200 text-rose-700 px-3.5 py-2.5 rounded-xl text-xs font-semibold">
+                  {custFormError}
+                </div>
+              )}
+
+              <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-stone-100">
+                <button
+                  type="button"
+                  onClick={() => setIsCustomerModalOpen(false)}
+                  className="px-4 py-2 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-700 font-bold text-xs cursor-pointer transition-colors"
+                >
+                  İptal
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSavingCustomer}
+                  className="px-5 py-2.5 rounded-xl bg-stone-900 hover:bg-black text-white font-bold text-xs cursor-pointer shadow-xs transition-all flex items-center gap-1.5"
+                >
+                  <i className={`fa-solid ${isSavingCustomer ? 'fa-spinner animate-spin' : 'fa-check'}`}></i>
+                  <span>{isSavingCustomer ? 'Kaydediliyor...' : editingMember ? 'Değişiklikleri Kaydet' : 'Müşteriyi Oluştur'}</span>
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

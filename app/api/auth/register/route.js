@@ -1,5 +1,5 @@
 import { db } from '@/lib/db';
-import { prisma } from '@/lib/prisma';
+import { rawPrisma } from '@/lib/prisma';
 import {
   ConflictError,
   ValidationError,
@@ -7,7 +7,7 @@ import {
   jsonSuccess,
   parseJsonBody
 } from '@/lib/security/errors';
-import { checkRateLimit } from '@/lib/security/auth';
+import { checkRateLimit, hashPassword } from '@/lib/security/auth';
 import {
   sanitizeEmailOrUsername,
   sanitizePhone,
@@ -36,52 +36,96 @@ export async function POST(request) {
       throw new ValidationError('Şifre en az 4 karakter olmalıdır.');
     }
 
+    let pgConnected = false;
     let existingPrisma = null;
+
     try {
-      if (prisma && prisma.user) {
-        existingPrisma = await prisma.user.findUnique({
-          where: { email }
+      if (rawPrisma && rawPrisma.user) {
+        existingPrisma = await rawPrisma.user.findFirst({
+          where: {
+            email: { equals: email, mode: 'insensitive' }
+          }
         });
+        pgConnected = true;
       }
-    } catch (e) {}
+    } catch (e) {
+      console.warn('Prisma register lookup warning:', e.message);
+    }
 
-    const existingLocal = db.findUserByEmail(email);
-
-    if (existingPrisma || existingLocal) {
-      throw new ConflictError('Bu e-posta adresi ile zaten bir hesap mevcut.');
+    if (pgConnected) {
+      if (existingPrisma) {
+        throw new ConflictError('Bu e-posta adresi ile zaten bir hesap mevcut.');
+      }
+    } else {
+      const existingLocal = db.findUserByEmail(email);
+      if (existingLocal) {
+        throw new ConflictError('Bu e-posta adresi ile zaten bir hesap mevcut.');
+      }
     }
 
     // Yeni kayıt: Restoran sahibi yönetim panelinden onaylayana kadar phoneVerified = false
     const phoneVerified = false;
+    const newId = `u_${Date.now()}`;
+    const passHash = hashPassword(pass);
 
     let newUser = null;
     try {
-      if (prisma && prisma.user) {
-        newUser = await prisma.user.create({
+      if (rawPrisma && rawPrisma.user) {
+        const created = await rawPrisma.user.create({
           data: {
+            id: newId,
             name,
             email,
-            phone,
-            phoneVerified,
-            address,
-            pass
+            phone: phone || '',
+            address: address || '',
+            passHash,
+            phoneVerified: false,
+            phoneVerifiedAt: null,
+            isBlocked: false,
+            blockReason: '',
+            notifications: []
           }
+        });
+        newUser = {
+          id: created.id,
+          name: created.name,
+          email: created.email,
+          phone: created.phone,
+          address: created.address,
+          phoneVerified: created.phoneVerified,
+          isBlocked: created.isBlocked,
+          createdAt: created.createdAt
+        };
+      }
+    } catch (e) {
+      console.warn('Prisma register create warning:', e.message);
+    }
+
+    // Yerel DB yedeğine de senkronize et (tek kayıt)
+    let localCreated = null;
+    try {
+      const existingLocal = db.findUserByEmail(email);
+      if (!existingLocal) {
+        localCreated = db.createUser({
+          name,
+          email,
+          phone,
+          phoneVerified,
+          address,
+          pass
         });
       }
     } catch (e) {}
 
-    // Yerel DB'ye de kaydet
-    const localCreated = db.createUser({
+    const finalRecord = newUser || localCreated || {
+      id: newId,
       name,
       email,
       phone,
-      phoneVerified,
       address,
-      pass
-    });
-
-    const finalRecord = newUser || localCreated;
-    const { pass: _, ...userSafe } = finalRecord;
+      phoneVerified: false
+    };
+    const { pass: _, passHash: __, ...userSafe } = finalRecord;
 
     return jsonSuccess(
       {

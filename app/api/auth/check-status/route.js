@@ -1,5 +1,5 @@
 import { db } from '@/lib/db';
-import { prisma } from '@/lib/prisma';
+import { rawPrisma } from '@/lib/prisma';
 import { jsonSuccess, handleApiError, ValidationError } from '@/lib/security/errors';
 import { signJwtToken } from '@/lib/security/auth';
 import { sanitizeEmailOrUsername } from '@/lib/security/validation';
@@ -14,26 +14,30 @@ export async function GET(request) {
       throw new ValidationError('E-posta veya telefon numarası gereklidir.');
     }
 
-    const cleanEmail = rawEmail ? sanitizeEmailOrUsername(rawEmail, false, '/api/auth/check-status') : '';
+    const cleanEmail = rawEmail ? sanitizeEmailOrUsername(rawEmail, true, '/api/auth/check-status') : '';
     const cleanPhoneDigits = rawPhone.replace(/\D/g, '');
 
-    // 1. Prisma / PostgreSQL
+    // 1. Prisma / Supabase PostgreSQL
     let dbUser = null;
+    let pgConnected = false;
     try {
-      if (prisma && prisma.user) {
-        dbUser = await prisma.user.findFirst({
+      if (rawPrisma && rawPrisma.user) {
+        dbUser = await rawPrisma.user.findFirst({
           where: {
             OR: [
-              ...(cleanEmail ? [{ email: cleanEmail }] : []),
-              ...(cleanPhoneDigits ? [{ phone: { contains: cleanPhoneDigits.slice(-10) } }] : [])
+              ...(cleanEmail ? [{ email: { equals: cleanEmail, mode: 'insensitive' } }] : []),
+              ...(cleanPhoneDigits.length >= 10 ? [{ phone: { contains: cleanPhoneDigits.slice(-10) } }] : [])
             ]
           }
         });
+        pgConnected = true;
       }
-    } catch (e) {}
+    } catch (e) {
+      console.warn('Prisma check-status warning:', e.message);
+    }
 
-    // 2. Yerel DB
-    const localUser = cleanEmail ? db.findUserByEmail(cleanEmail) : null;
+    // 2. Yerel DB yedeği (yalnızca Supabase erişilemezse)
+    const localUser = !pgConnected && cleanEmail ? db.findUserByEmail(cleanEmail) : null;
     const user = dbUser || localUser;
 
     if (!user) {
@@ -41,6 +45,14 @@ export async function GET(request) {
         approved: false,
         notFound: true,
         message: 'Kullanıcı kaydı bulunamadı.'
+      });
+    }
+
+    if (user.isBlocked) {
+      return jsonSuccess({
+        approved: false,
+        blocked: true,
+        message: `Hesabınız yönetici tarafından engellenmiştir. Sebep: ${user.blockReason || 'Yönetici kısıtlaması'}`
       });
     }
 
@@ -73,4 +85,3 @@ export async function GET(request) {
     return handleApiError(error, '/api/auth/check-status', request);
   }
 }
-

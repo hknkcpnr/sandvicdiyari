@@ -54,8 +54,12 @@ model User {
   phone           String    @default("") @db.VarChar(32)
   phoneVerified   Boolean   @default(false) @map("phone_verified")
   phoneVerifiedAt DateTime? @map("phone_verified_at") @db.Timestamptz(6)
-  address         String    @db.Text
+  address         String    @default("") @db.Text
   passHash        String    @map("pass_hash") @db.VarChar(255)
+  isBlocked       Boolean   @default(false) @map("is_blocked")
+  blockReason     String?   @default("") @map("block_reason") @db.VarChar(255)
+  blockedAt       DateTime? @map("blocked_at") @db.Timestamptz(6)
+  notifications   Json?     @default("[]") @db.JsonB
   orders          Order[]
   createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt       DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)

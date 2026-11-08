@@ -287,11 +287,19 @@ export const prisma = {
   },
 
   user: {
-    findMany: async () => {
+    findMany: async (args?: Prisma.UserFindManyArgs) => {
       try {
-        return await rawPrisma.user.findMany({ orderBy: { createdAt: 'desc' } });
+        return await rawPrisma.user.findMany(args ?? { orderBy: { createdAt: 'desc' } });
       } catch {
         return db.getUsers();
+      }
+    },
+
+    findFirst: async (args: Prisma.UserFindFirstArgs) => {
+      try {
+        return await rawPrisma.user.findFirst(args);
+      } catch {
+        return null;
       }
     },
 
@@ -309,31 +317,80 @@ export const prisma = {
         // Fallback
       }
       if (args.where.email) return db.findUserByEmail(args.where.email);
+      if (args.where.id) return db.getUserByIdOrEmail(args.where.id);
       return null;
     },
 
     create: async (args: {
-      data: { name: string; email: string; phone: string; address: string; pass: string; phoneVerified?: boolean };
+      data: {
+        id?: string;
+        name: string;
+        email: string;
+        phone?: string;
+        address?: string;
+        pass?: string;
+        passHash?: string;
+        phoneVerified?: boolean;
+        phoneVerifiedAt?: Date | null;
+        isBlocked?: boolean;
+        blockReason?: string;
+      };
     }) => {
-      const localUser = db.createUser(args.data);
+      const localUser = db.createUser({
+        name: args.data.name,
+        email: args.data.email,
+        phone: args.data.phone || '',
+        address: args.data.address || '',
+        pass: args.data.pass || '123456',
+        phoneVerified: Boolean(args.data.phoneVerified)
+      });
+      const targetId = String(args.data.id || localUser.id);
+      const targetPassHash = String(args.data.passHash || localUser.pass);
       try {
-        await rawPrisma.user.create({
+        const pgCreated = await rawPrisma.user.create({
           data: {
-            id: String(localUser.id),
+            id: targetId,
             name: localUser.name,
             email: localUser.email,
             phone: localUser.phone || '',
             address: localUser.address || '',
-            passHash: String(localUser.pass),
+            passHash: targetPassHash,
             phoneVerified: Boolean(args.data.phoneVerified),
-            phoneVerifiedAt: args.data.phoneVerified ? new Date() : null
+            phoneVerifiedAt: args.data.phoneVerified ? (args.data.phoneVerifiedAt || new Date()) : null,
+            isBlocked: Boolean(args.data.isBlocked),
+            blockReason: args.data.blockReason || ''
           }
         });
-        orm.executePrepared('User', 'INSERT', 'prisma.user.create($1)', [localUser.email], () => localUser.id);
-      } catch {
-        // Fallback
+        orm.executePrepared('User', 'INSERT', 'prisma.user.create($1)', [localUser.email], () => pgCreated.id);
+        return {
+          ...localUser,
+          id: pgCreated.id,
+          phoneVerified: pgCreated.phoneVerified,
+          phoneVerifiedAt: pgCreated.phoneVerifiedAt,
+          isBlocked: pgCreated.isBlocked,
+          blockReason: pgCreated.blockReason,
+          createdAt: pgCreated.createdAt
+        };
+      } catch (err) {
+        console.warn('Prisma user.create warning:', err);
       }
       return localUser;
+    },
+
+    update: async (args: Prisma.UserUpdateArgs) => {
+      return await rawPrisma.user.update(args);
+    },
+
+    updateMany: async (args: Prisma.UserUpdateManyArgs) => {
+      return await rawPrisma.user.updateMany(args);
+    },
+
+    delete: async (args: Prisma.UserDeleteArgs) => {
+      return await rawPrisma.user.delete(args);
+    },
+
+    deleteMany: async (args: Prisma.UserDeleteManyArgs) => {
+      return await rawPrisma.user.deleteMany(args);
     }
   },
 
