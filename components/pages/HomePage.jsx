@@ -368,14 +368,24 @@ export default function HomePage() {
           </div>
         )}
 
-        {/* 5. Müşteri Yorumları Vitrini (Sade, Ferah & Modern Tasarım) */}
+        {/* 5. Müşteri Yorumları Vitrini (Özel Işıltılı & Dokulu Başlık Alanı) */}
         {reviewsSection.visible !== false && (
           <div className="py-2">
-            <div className="rounded-3xl p-6 sm:p-10 lg:p-12 border border-stone-200/80 bg-stone-50/60 shadow-xs relative">
+            <div className="rounded-3xl p-6 sm:p-10 lg:p-12 border border-stone-200/90 bg-white shadow-xs relative overflow-hidden">
+              {/* Arka Plan 1: Üst Sıcak Işık Halkası (Spotlight Glow) */}
+              <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-4xl h-72 bg-gradient-to-b from-amber-200/40 via-orange-100/25 to-transparent rounded-full blur-3xl pointer-events-none z-0"></div>
+
+              {/* Arka Plan 2: Modern Geometrik Nokta Izgarası (Dot Pattern Texture) */}
+              <div className="absolute top-0 inset-x-0 h-80 bg-[radial-gradient(#e28743_1.2px,transparent_1.2px)] [background-size:24px_24px] opacity-20 [mask-image:radial-gradient(ellipse_75%_55%_at_50%_30%,#000_40%,transparent_100%)] pointer-events-none z-0"></div>
+
+              {/* Arka Plan 3: Sol ve Sağ Zarif Filigran Tırnak İkonları */}
+              <i className="fa-solid fa-quote-left absolute top-8 left-4 sm:left-10 text-6xl sm:text-8xl text-amber-500/10 select-none pointer-events-none -rotate-6 z-0"></i>
+              <i className="fa-solid fa-quote-right absolute top-8 right-4 sm:right-10 text-6xl sm:text-8xl text-orange-500/10 select-none pointer-events-none rotate-6 z-0"></i>
+
               {/* Başlık & Güven Rozeti */}
               <div className="text-center max-w-2xl mx-auto mb-10 space-y-3 relative z-10">
-                <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-amber-50 text-amber-900 border border-amber-200 text-xs font-bold shadow-2xs">
-                  <span className="flex text-amber-400 text-xs gap-0.5">
+                <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-gradient-to-r from-amber-50 via-orange-50 to-amber-50 text-amber-950 border border-amber-300/80 text-xs font-bold shadow-sm shadow-amber-500/10">
+                  <span className="flex text-amber-500 text-xs gap-0.5">
                     <i className="fa-solid fa-star"></i>
                     <i className="fa-solid fa-star"></i>
                     <i className="fa-solid fa-star"></i>
@@ -384,13 +394,13 @@ export default function HomePage() {
                   </span>
                   <span>4.9 / 5.0 Memnuniyet</span>
                   <span className="w-1 h-1 rounded-full bg-amber-400"></span>
-                  <span className="text-stone-500 font-semibold">Doğrulanmış Siparişler</span>
+                  <span className="text-stone-600 font-semibold">Doğrulanmış Siparişler</span>
                 </div>
 
                 <h3 className="text-2xl sm:text-4xl font-black text-stone-900 tracking-tight">
                   {reviewsSection.title || 'Lezzet Severler Ne Diyor?'}
                 </h3>
-                <p className="text-stone-500 text-xs sm:text-sm leading-relaxed max-w-lg mx-auto">
+                <p className="text-stone-500 text-xs sm:text-sm leading-relaxed max-w-lg mx-auto font-medium">
                   {reviewsSection.subtitle ||
                     "Torbalı'da her gün yüzlerce sıcak siparişi lezzet tutkunlarıyla buluşturuyoruz."}
                 </p>
