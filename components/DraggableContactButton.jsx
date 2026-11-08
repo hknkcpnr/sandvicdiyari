@@ -161,8 +161,8 @@ export default function DraggableContactButton() {
             <div className="relative flex items-center justify-center">
               {/* WhatsApp İkonu */}
               <i className="fa-brands fa-whatsapp text-[28px] drop-shadow-sm"></i>
-              {/* Telefon İkon Rozeti */}
-              <span className="absolute -bottom-1 -right-1.5 w-5 h-5 bg-amber-500 rounded-full border border-white flex items-center justify-center text-[9px] text-stone-950 font-black shadow-md">
+              {/* Telefon İkon Rozeti (Büyütüldü & Yana Doğru Kaydırıldı) */}
+              <span className="absolute -bottom-1 -right-2.5 w-6 h-6 bg-amber-500 rounded-full border-2 border-white flex items-center justify-center text-[11px] text-stone-950 font-black shadow-md">
                 <i className="fa-solid fa-phone"></i>
               </span>
             </div>
