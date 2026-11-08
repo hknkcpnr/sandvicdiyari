@@ -14,9 +14,9 @@ export default function MessageModal() {
   return (
     <div
       id="message-modal"
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-900/50 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-900/50 backdrop-blur-sm overflow-y-auto"
     >
-      <div className="bg-white rounded-2xl max-w-sm w-full p-6 text-center space-y-4 shadow-xl animate-in fade-in zoom-in-95 duration-200">
+      <div className="bg-white rounded-2xl max-w-sm w-full p-6 text-center space-y-4 shadow-xl animate-in fade-in zoom-in-95 duration-200 my-auto max-h-[92vh] overflow-y-auto">
         <div
           id="msg-icon"
           className={`w-12 h-12 rounded-full flex items-center justify-center text-xl mx-auto ${

@@ -56,26 +56,50 @@ export async function POST(request) {
       );
     }
 
-    const uploadDir = path.join(process.cwd(), 'public', 'uploads');
-    if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir, { recursive: true });
+    let publicUrl = '';
+    try {
+      const uploadDir = path.join(process.cwd(), 'public', 'uploads');
+      if (!fs.existsSync(uploadDir)) {
+        fs.mkdirSync(uploadDir, { recursive: true });
+      }
+
+      const safeBaseName = path
+        .basename(originalName, ext)
+        .replace(/[^a-zA-Z0-9_-]/g, '_')
+        .slice(0, 40);
+      const randomToken = crypto.randomBytes(4).toString('hex');
+      const fileName = `product_${Date.now()}_${randomToken}_${safeBaseName}${ext}`;
+      const filePath = path.join(uploadDir, fileName);
+
+      // Ensure resolved path stays strictly inside uploadDir (Path Traversal protection)
+      if (path.resolve(filePath).startsWith(path.resolve(uploadDir))) {
+        fs.writeFileSync(filePath, buffer);
+        publicUrl = `/uploads/${fileName}`;
+      }
+    } catch (fsErr) {
+      // Vercel serverless / read-only filesystem fallback: data URI
+      const mime =
+        ext === '.png'
+          ? 'image/png'
+          : ext === '.webp'
+          ? 'image/webp'
+          : ext === '.gif'
+          ? 'image/gif'
+          : 'image/jpeg';
+      publicUrl = `data:${mime};base64,${buffer.toString('base64')}`;
     }
 
-    const safeBaseName = path
-      .basename(originalName, ext)
-      .replace(/[^a-zA-Z0-9_-]/g, '_')
-      .slice(0, 40);
-    const randomToken = crypto.randomBytes(4).toString('hex');
-    const fileName = `product_${Date.now()}_${randomToken}_${safeBaseName}${ext}`;
-    const filePath = path.join(uploadDir, fileName);
-
-    // Ensure resolved path stays strictly inside uploadDir (Path Traversal protection)
-    if (!path.resolve(filePath).startsWith(path.resolve(uploadDir))) {
-      throw new ValidationError('Geçersiz dosya yolu tespit edildi.');
+    if (!publicUrl) {
+      const mime =
+        ext === '.png'
+          ? 'image/png'
+          : ext === '.webp'
+          ? 'image/webp'
+          : ext === '.gif'
+          ? 'image/gif'
+          : 'image/jpeg';
+      publicUrl = `data:${mime};base64,${buffer.toString('base64')}`;
     }
-
-    fs.writeFileSync(filePath, buffer);
-    const publicUrl = `/uploads/${fileName}`;
 
     return jsonSuccess(
       {

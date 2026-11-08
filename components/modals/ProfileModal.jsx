@@ -133,9 +133,9 @@ export default function ProfileModal() {
   return (
     <div
       id="profile-modal"
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-stone-900/60 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-stone-900/60 backdrop-blur-sm overflow-y-auto"
     >
-      <div className="bg-white rounded-3xl max-w-3xl w-full p-6 sm:p-9 shadow-2xl relative space-y-5 animate-in fade-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto">
+      <div className="bg-white rounded-3xl max-w-3xl w-full p-5 sm:p-9 shadow-2xl relative space-y-5 animate-in fade-in zoom-in-95 duration-200 my-auto max-h-[92vh] overflow-y-auto">
         <div className="flex justify-between items-center border-b border-stone-100 pb-4">
           <div className="flex items-center gap-3">
             <div

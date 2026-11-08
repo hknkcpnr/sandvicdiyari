@@ -90,7 +90,7 @@ model Product {
   price             Decimal     @db.Decimal(10, 2)
   category          String      @db.VarChar(64)
   badge             String?     @db.VarChar(64)
-  image             String      @db.VarChar(500)
+  image             String      @db.Text
   calories          String?     @db.VarChar(64)
   prepTime          String?     @map("prep_time") @db.VarChar(64)
   rating            Decimal     @default(4.80) @db.Decimal(3, 2)

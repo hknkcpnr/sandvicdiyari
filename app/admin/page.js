@@ -903,22 +903,19 @@ export default function AdminDashboardPage() {
         const json = await res.json();
         if (json.success && json.data) {
           dispatch(updateProduct(json.data));
+          fetchProducts();
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('sandwich_inventory_updated', String(Date.now()));
+          }
+          setIsAddProductOpen(false);
+          resetProductForm();
+          showToast(`"${payload.name}" başarıyla güncellendi.`, 'success');
         } else {
-          dispatch(updateProduct({ id: editingProduct.id, ...payload }));
+          showToast(json.error || 'Ürün güncellenemedi.', 'error');
         }
       } catch (err) {
-        dispatch(updateProduct({ id: editingProduct.id, ...payload }));
+        showToast('Sunucu bağlantı hatası oluştu.', 'error');
       }
-
-      setIsAddProductOpen(false);
-      resetProductForm();
-      dispatch(
-        showMessageModal({
-          title: 'Ürün Güncellendi',
-          text: `"${payload.name}" görseli ve bilgileriyle başarıyla güncellendi.`,
-          type: 'success',
-        })
-      );
     } else {
       // Add new product
       try {
@@ -930,22 +927,19 @@ export default function AdminDashboardPage() {
         const json = await res.json();
         if (json.success && json.data) {
           dispatch(addProduct(json.data));
+          fetchProducts();
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('sandwich_inventory_updated', String(Date.now()));
+          }
+          setIsAddProductOpen(false);
+          resetProductForm();
+          showToast(`"${payload.name}" başarıyla menüye eklendi.`, 'success');
         } else {
-          dispatch(addProduct(payload));
+          showToast(json.error || 'Ürün eklenirken bir hata oluştu.', 'error');
         }
       } catch (err) {
-        dispatch(addProduct(payload));
+        showToast('Sunucu bağlantı hatası oluştu.', 'error');
       }
-
-      setIsAddProductOpen(false);
-      resetProductForm();
-      dispatch(
-        showMessageModal({
-          title: 'Ürün Eklendi',
-          text: `"${payload.name}" görseliyle birlikte menüye başarıyla eklendi.`,
-          type: 'success',
-        })
-      );
     }
   };
 
@@ -3311,8 +3305,8 @@ export default function AdminDashboardPage() {
 
       {/* MODAL: YENİ ÜRÜN EKLEME / DÜZENLEME (RESİM YÜKLEME VE ŞABLON DESTEĞİ İLE) */}
       {isAddProductOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-stone-900/60 backdrop-blur-xs animate-in fade-in duration-150">
-          <div className="bg-white rounded-3xl max-w-4xl w-full p-6 sm:p-9 border border-stone-200 shadow-2xl space-y-6">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-stone-900/60 backdrop-blur-xs animate-in fade-in duration-150 overflow-y-auto">
+          <div className="bg-white rounded-3xl max-w-4xl w-full p-4 sm:p-8 border border-stone-200 shadow-2xl space-y-5 my-auto max-h-[92vh] overflow-y-auto">
             {/* Modal Header */}
             <div className="flex justify-between items-center pb-4 border-b border-stone-100">
               <div className="flex items-center gap-3">
@@ -3690,8 +3684,8 @@ export default function AdminDashboardPage() {
 
       {/* MODAL: SİPARİŞ DETAYI, ADİSYON & DURUM GEÇMİŞİ */}
       {detailOrder && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-stone-900/50 backdrop-blur-xs animate-in fade-in duration-150">
-          <div className="bg-white rounded-3xl max-w-3xl w-full p-6 sm:p-8 border border-stone-200 shadow-2xl space-y-5">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-stone-900/50 backdrop-blur-xs animate-in fade-in duration-150 overflow-y-auto">
+          <div className="bg-white rounded-3xl max-w-3xl w-full p-4 sm:p-8 border border-stone-200 shadow-2xl space-y-5 my-auto max-h-[92vh] overflow-y-auto">
             {/* Header */}
             <div className="flex justify-between items-start pb-4 border-b border-stone-100">
               <div>
@@ -3978,8 +3972,8 @@ export default function AdminDashboardPage() {
 
       {/* MODAL: SİPARİŞ İPTAL ONAY & GEREKÇE */}
       {cancelModalOrder && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-stone-900/50 backdrop-blur-xs animate-in fade-in duration-150">
-          <div className="bg-white rounded-3xl max-w-lg w-full p-7 sm:p-9 border border-stone-200 shadow-2xl space-y-5">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-stone-900/50 backdrop-blur-xs animate-in fade-in duration-150 overflow-y-auto">
+          <div className="bg-white rounded-3xl max-w-lg w-full p-5 sm:p-8 border border-stone-200 shadow-2xl space-y-5 my-auto max-h-[92vh] overflow-y-auto">
             <div>
               <h4 className="font-extrabold text-red-600 text-lg">Siparişi İptal Et</h4>
               <p className="text-xs sm:text-sm text-stone-500 mt-1">
@@ -4038,8 +4032,8 @@ export default function AdminDashboardPage() {
 
       {/* MODAL: YÖNETİCİ ONAYLI SİPARİŞ SİLME */}
       {deleteModalOrder && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-stone-900/60 backdrop-blur-xs animate-in fade-in duration-150">
-          <div className="bg-white rounded-3xl max-w-xl w-full p-7 sm:p-9 border border-rose-200 shadow-2xl space-y-5">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-stone-900/60 backdrop-blur-xs animate-in fade-in duration-150 overflow-y-auto">
+          <div className="bg-white rounded-3xl max-w-xl w-full p-5 sm:p-8 border border-rose-200 shadow-2xl space-y-5 my-auto max-h-[92vh] overflow-y-auto">
             <div className="flex items-start gap-3.5">
               <div className="w-12 h-12 rounded-2xl bg-rose-100 text-rose-600 flex items-center justify-center text-xl shrink-0 shadow-inner">
                 <i className="fa-solid fa-shield-halved"></i>

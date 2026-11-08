@@ -40,12 +40,18 @@ export async function POST(request) {
     const desc = sanitizeText(body.description || body.desc || 'Özel şef sandviçimiz.', 500, 'Açıklama', '/api/products');
     const category = sanitizeText(body.category || 'sandwich', 64, 'Kategori', '/api/products');
     const badge = body.badge ? sanitizeText(body.badge, 64, 'Rozet', '/api/products') : null;
-    const image = sanitizeText(
-      body.image || 'https://images.unsplash.com/photo-1509722747041-616f39b57569?w=500',
-      500,
-      'Görsel URL',
-      '/api/products'
-    );
+    let image = 'https://images.unsplash.com/photo-1509722747041-616f39b57569?w=500';
+    if (typeof body.image === 'string' && body.image.trim()) {
+      const rawImg = body.image.trim();
+      if (
+        rawImg.startsWith('data:image/') ||
+        rawImg.startsWith('http://') ||
+        rawImg.startsWith('https://') ||
+        rawImg.startsWith('/')
+      ) {
+        image = rawImg.slice(0, 10000000);
+      }
+    }
     const calories = sanitizeText(body.calories || '450 kcal', 64, 'Kalori', '/api/products');
     const prepTime = sanitizeText(body.prepTime || '15 dk', 64, 'Hazırlama Süresi', '/api/products');
 
@@ -64,7 +70,6 @@ export async function POST(request) {
       data: {
         name,
         desc,
-        description: desc,
         price: Number(numericPrice.toFixed(2)),
         category,
         badge,

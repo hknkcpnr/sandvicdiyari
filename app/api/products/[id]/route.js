@@ -40,9 +40,20 @@ export async function PUT(request, { params }) {
     }
     if (typeof body.desc !== 'undefined') {
       sanitizedUpdates.desc = sanitizeText(body.desc, 500, 'Açıklama', '/api/products/[id]');
+    } else if (typeof body.description !== 'undefined') {
+      sanitizedUpdates.desc = sanitizeText(body.description, 500, 'Açıklama', '/api/products/[id]');
     }
-    if (typeof body.description !== 'undefined') {
-      sanitizedUpdates.description = sanitizeText(body.description, 500, 'Açıklama', '/api/products/[id]');
+    delete sanitizedUpdates.description;
+    if (typeof body.image === 'string' && body.image.trim()) {
+      const rawImg = body.image.trim();
+      if (
+        rawImg.startsWith('data:image/') ||
+        rawImg.startsWith('http://') ||
+        rawImg.startsWith('https://') ||
+        rawImg.startsWith('/')
+      ) {
+        sanitizedUpdates.image = rawImg.slice(0, 10000000);
+      }
     }
     if (typeof body.price !== 'undefined') {
       const p = Number(body.price);

@@ -100,9 +100,9 @@ export default function OptionsModal() {
   return (
     <div
       id="options-modal"
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-stone-900/60 backdrop-blur-sm animate-in fade-in duration-200"
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-stone-900/60 backdrop-blur-sm animate-in fade-in duration-200 overflow-y-auto"
     >
-      <div className="bg-white rounded-3xl max-w-3xl w-full p-6 sm:p-9 shadow-2xl relative space-y-5">
+      <div className="bg-white rounded-3xl max-w-3xl w-full p-5 sm:p-9 shadow-2xl relative space-y-5 my-auto max-h-[92vh] overflow-y-auto">
         {/* Banner: Ekstra Ürünler İçin Ek Ücret Alınır */}
         <div className="bg-rose-50 border border-rose-200 text-rose-700 px-4 py-2 rounded-2xl text-xs font-black flex items-center justify-between">
           <span className="flex items-center gap-1.5">

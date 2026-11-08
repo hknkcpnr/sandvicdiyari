@@ -293,7 +293,7 @@ export default function AuthModal() {
       id="auth-modal"
       className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-stone-950/60 backdrop-blur-xs overflow-y-auto animate-in fade-in duration-150"
     >
-      <div className="bg-white rounded-3xl max-w-4xl w-full shadow-2xl relative overflow-hidden border border-stone-200 my-auto grid grid-cols-1 md:grid-cols-12 min-h-[580px]">
+      <div className="bg-white rounded-3xl max-w-4xl w-full shadow-2xl relative border border-stone-200 my-auto max-h-[92vh] overflow-y-auto grid grid-cols-1 md:grid-cols-12">
         
         {/* =================================================================== */}
         {/* SOL PANEL: GİRİŞ & KAYIT ÖZEL DİNAMİK MODEL FOTOĞRAFI             */}
