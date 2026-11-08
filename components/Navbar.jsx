@@ -77,23 +77,23 @@ export default function Navbar() {
 
   return (
     <nav className="sticky top-0 z-40 bg-white/95 backdrop-blur-md shadow-sm border-b border-stone-200">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-20">
-          {/* Logo */}
+      <div className="max-w-7xl mx-auto px-3.5 sm:px-6 lg:px-8">
+        <div className="flex justify-between items-center h-14 sm:h-20">
+          {/* Logo (Mobilde Kompakt & Minimal, Masaüstünde Ferah) */}
           <button
             onClick={() => dispatch(setActivePage('home'))}
-            className="flex items-center gap-2.5 sm:gap-3 group shrink-0 text-left cursor-pointer"
+            className="flex items-center gap-2 sm:gap-3 group shrink-0 text-left cursor-pointer"
           >
             <img
               src="/logo.png?v=2"
               alt="Sandviç Diyarı Logo"
-              className="h-9 sm:h-11 w-auto object-contain drop-shadow-sm group-hover:scale-105 transition-transform shrink-0"
+              className="h-7 sm:h-11 w-auto object-contain drop-shadow-sm group-hover:scale-105 transition-transform shrink-0"
             />
-            <div className="flex items-baseline gap-1.5">
-              <span className="text-xl sm:text-2xl font-extrabold tracking-tight text-stone-900">
+            <div className="flex items-baseline gap-1 sm:gap-1.5">
+              <span className="text-base sm:text-2xl font-extrabold tracking-tight text-stone-900">
                 Sandviç
               </span>
-              <span className="text-xl sm:text-2xl font-extrabold tracking-tight text-brand-600">
+              <span className="text-base sm:text-2xl font-extrabold tracking-tight text-brand-600">
                 Diyarı
               </span>
             </div>
@@ -122,11 +122,11 @@ export default function Navbar() {
           </div>
 
           {/* Sağ Bölüm (Bildirimler, Sepet ve Kullanıcı) */}
-          <div className="flex items-center gap-2 sm:gap-3">
+          <div className="flex items-center gap-1.5 sm:gap-3">
             {/* Müşteri Bildirim Merkezi Zili */}
             <CustomerNotificationBell />
 
-            {/* Sepet Butonu */}
+            {/* Sepet Butonu (Mobilde Minimalist, Masaüstünde Fiyat Detaylı) */}
             <button
               onClick={() => {
                 if (!currentUser || !currentUser.email) {
@@ -135,16 +135,16 @@ export default function Navbar() {
                 }
                 dispatch(toggleCart());
               }}
-              className="relative bg-brand-50 hover:bg-brand-100 text-brand-900 p-3 rounded-2xl transition-all border border-brand-200 flex items-center gap-2 cursor-pointer"
+              className="relative bg-brand-50 hover:bg-brand-100 text-brand-900 p-2 sm:p-3 rounded-xl sm:rounded-2xl transition-all border border-brand-200 flex items-center gap-1.5 sm:gap-2 cursor-pointer shrink-0"
             >
-              <i className="fa-solid fa-bag-shopping text-lg"></i>
+              <i className="fa-solid fa-bag-shopping text-sm sm:text-lg"></i>
               <span id="cart-total-header" className="hidden sm:inline font-bold text-sm">
                 ₺{subtotal.toFixed(2)}
               </span>
               {totalCount > 0 && (
                 <span
                   id="cart-badge"
-                  className="absolute -top-1.5 -right-1.5 bg-brand-600 text-white text-[11px] font-bold w-5 h-5 rounded-full flex items-center justify-center shadow-md"
+                  className="absolute -top-1 -right-1 sm:-top-1.5 sm:-right-1.5 bg-brand-600 text-white text-[9px] sm:text-[11px] font-bold w-4 h-4 sm:w-5 sm:h-5 rounded-full flex items-center justify-center shadow-md ring-2 ring-white"
                 >
                   {totalCount}
                 </span>
@@ -300,17 +300,17 @@ export default function Navbar() {
               )}
             </div>
 
-            {/* Mobil Menü Butonu */}
+            {/* Mobil Menü Butonu (Kompakt & Minimal) */}
             <button
               onClick={() => dispatch(toggleMobileMenu())}
               aria-label="Açılır Menü"
-              className={`md:hidden p-2.5 rounded-2xl text-lg transition-all cursor-pointer border ${
+              className={`md:hidden p-2 rounded-xl text-sm transition-all cursor-pointer border flex items-center justify-center shrink-0 ${
                 isMobileMenuOpen
                   ? 'bg-brand-500 text-white border-brand-600 shadow-md'
                   : 'bg-stone-50 hover:bg-stone-100 text-stone-700 border-stone-200'
               }`}
             >
-              <i className={isMobileMenuOpen ? 'fa-solid fa-xmark' : 'fa-solid fa-bars-staggered'}></i>
+              <i className={isMobileMenuOpen ? 'fa-solid fa-xmark text-sm' : 'fa-solid fa-bars-staggered text-sm'}></i>
             </button>
           </div>
         </div>

@@ -305,13 +305,13 @@ export default function CustomerNotificationBell() {
   return (
     <>
       <div className="relative" ref={dropdownRef}>
-        {/* ZİL BUTONU */}
+        {/* ZİL BUTONU (Mobilde Zarif & Minimal, Masaüstünde Ferah) */}
         <button
           type="button"
           onClick={() => setIsOpen((prev) => !prev)}
           aria-label="Bildirimler"
           title="Bildirimler ve Duyurular"
-          className={`relative p-3 rounded-2xl transition-all border cursor-pointer flex items-center justify-center ${
+          className={`relative p-2 sm:p-3 rounded-xl sm:rounded-2xl transition-all border cursor-pointer flex items-center justify-center ${
             isOpen
               ? 'bg-brand-500 text-white border-brand-600 shadow-md ring-2 ring-brand-500/20'
               : unreadCount > 0
@@ -320,13 +320,13 @@ export default function CustomerNotificationBell() {
           }`}
         >
           <i
-            className={`fa-solid fa-bell text-base sm:text-lg transition-transform ${
+            className={`fa-solid fa-bell text-sm sm:text-lg transition-transform ${
               unreadCount > 0 && !isOpen ? 'animate-bounce' : ''
             }`}
           ></i>
 
           {unreadCount > 0 && (
-            <span className="absolute -top-1.5 -right-1.5 min-w-[20px] h-5 px-1 bg-rose-600 text-white text-[10px] font-black rounded-full flex items-center justify-center shadow-md ring-2 ring-white">
+            <span className="absolute -top-1 -right-1 sm:-top-1.5 sm:-right-1.5 min-w-[16px] sm:min-w-[20px] h-4 sm:h-5 px-1 bg-rose-600 text-white text-[9px] sm:text-[10px] font-black rounded-full flex items-center justify-center shadow-md ring-2 ring-white">
               {unreadCount > 9 ? '9+' : unreadCount}
             </span>
           )}
@@ -336,7 +336,7 @@ export default function CustomerNotificationBell() {
         {isOpen && (
           <div
             style={{ backgroundColor: '#ffffff' }}
-            className="fixed left-3 right-3 top-20 sm:absolute sm:left-auto sm:right-0 sm:top-full sm:mt-2.5 sm:w-96 bg-white rounded-2xl shadow-[0_22px_55px_rgba(15,23,42,0.24)] ring-1 ring-stone-900/5 border border-stone-200 z-50 animate-dropdown overflow-hidden"
+            className="fixed left-3 right-3 top-16 sm:absolute sm:left-auto sm:right-0 sm:top-full sm:mt-2.5 sm:w-96 bg-white rounded-2xl shadow-[0_22px_55px_rgba(15,23,42,0.24)] ring-1 ring-stone-900/5 border border-stone-200 z-50 animate-dropdown overflow-hidden"
           >
             {/* Üst Başlık */}
             <div className="px-4 py-3.5 bg-gradient-to-r from-stone-50 via-white to-amber-50/70 border-b border-stone-200/80 flex items-center justify-between gap-2">

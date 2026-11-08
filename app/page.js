@@ -32,6 +32,7 @@ import CheckoutModal from '@/components/modals/CheckoutModal';
 import MessageModal from '@/components/modals/MessageModal';
 import LiveOrderTracker from '@/components/LiveOrderTracker';
 import FloatingCartBar from '@/components/FloatingCartBar';
+import DraggableContactButton from '@/components/DraggableContactButton';
 
 export default function Home() {
   const dispatch = useDispatch();
@@ -194,6 +195,7 @@ export default function Home() {
       <MessageModal />
       <LiveOrderTracker />
       <FloatingCartBar />
+      <DraggableContactButton />
     </div>
   );
 }

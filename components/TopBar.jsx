@@ -41,7 +41,7 @@ export default function TopBar() {
   if (contact.visible === false) return null;
 
   return (
-    <div className="bg-stone-900 text-stone-300 text-xs py-2 px-4 border-b border-stone-800">
+    <div className="hidden md:block bg-stone-900 text-stone-300 text-xs py-2 px-4 border-b border-stone-800">
       <div className="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-1.5">
         <div className="flex items-center gap-3.5 flex-wrap justify-center sm:justify-start">
           {/* Live Open / Closed Badge */}
