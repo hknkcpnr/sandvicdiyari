@@ -73,10 +73,12 @@ export async function POST(request) {
               name: pgUser.name,
               email: pgUser.email,
               phone: pgUser.phone,
-              role: pgUser.role?.name || pgUser.roleName || 'Yetkili',
-              roleId: pgUser.roleId,
-              roleColor: pgUser.role?.color || 'rose',
-              permissions: pgUser.role?.permissions || ['overview', 'orders', 'inventory']
+              role: isOwner ? 'Süper Yönetici' : (pgUser.role?.name || pgUser.roleName || 'Yetkili'),
+              roleId: isOwner ? 'role_super_admin' : pgUser.roleId,
+              roleColor: isOwner ? 'rose' : (pgUser.role?.color || 'rose'),
+              permissions: isOwner
+                ? ['overview', 'orders', 'inventory', 'products', 'users', 'reviews', 'api', 'delete_order', 'manage_prices', 'view_revenue', 'settings', 'site_content']
+                : (pgUser.role?.permissions || ['overview', 'orders', 'inventory'])
             };
           }
         }
