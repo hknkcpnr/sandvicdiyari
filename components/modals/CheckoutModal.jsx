@@ -330,7 +330,7 @@ export default function CheckoutModal() {
               <select
                 value={neighborhood}
                 onChange={(e) => setNeighborhood(e.target.value)}
-                className="w-full bg-stone-50 border border-stone-200 rounded-2xl px-3.5 py-3 text-xs sm:text-sm focus:outline-none focus:border-brand-500 font-semibold text-stone-800 cursor-pointer"
+                className="app-select w-full bg-stone-50 hover:bg-white border border-stone-200 hover:border-brand-400 rounded-2xl px-4 py-3 text-xs sm:text-sm focus:outline-none focus:border-brand-500 font-bold text-stone-800 cursor-pointer shadow-2xs transition-all"
               >
                 {TORBALI_NEIGHBORHOODS.map((nh) => (
                   <option key={nh.name} value={nh.name}>

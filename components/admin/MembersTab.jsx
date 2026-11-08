@@ -905,7 +905,7 @@ export default function MembersTab({ onCustomerUpdated }) {
               <select
                 value={blockReason}
                 onChange={(e) => setBlockReason(e.target.value)}
-                className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3.5 py-2.5 text-xs text-stone-900 focus:outline-none focus:border-rose-400 font-medium mb-2"
+                className="app-select w-full bg-stone-50 hover:bg-stone-100/60 border border-stone-200 hover:border-rose-400 rounded-2xl px-4 py-3 text-xs text-stone-900 focus:outline-none focus:border-rose-500 font-bold mb-2 cursor-pointer shadow-2xs transition-all"
               >
                 <option value="">Sebep seçin (veya aşağıya yazın)...</option>
                 <option value="Hatalı / Asılsız Siparişler">🚫 Hatalı / Asılsız Siparişler</option>

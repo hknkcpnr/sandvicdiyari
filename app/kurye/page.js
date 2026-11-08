@@ -372,7 +372,7 @@ export default function CourierPortalPage() {
               <select
                 value={activeCourier}
                 onChange={(e) => handleCourierSelect(e.target.value)}
-                className="bg-stone-900 border border-stone-700 text-white font-bold text-xs rounded-xl px-2.5 py-1.5 focus:outline-none focus:border-brand-500 cursor-pointer w-full max-w-xs shadow-inner"
+                className="app-select-dark bg-stone-900 hover:bg-stone-800 border border-stone-700 hover:border-brand-500 text-white font-bold text-xs rounded-2xl px-3.5 py-2 focus:outline-none focus:ring-2 focus:ring-brand-500/20 cursor-pointer w-full max-w-xs shadow-inner transition-all"
               >
                 <option value="all">👥 Tüm Kuryeler (Ortak Ekran)</option>
                 {PRESET_COURIERS.map((c) => (

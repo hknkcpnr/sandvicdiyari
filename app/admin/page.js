@@ -1390,30 +1390,40 @@ export default function AdminDashboardPage() {
                       title={item.label}
                       className={`w-full flex items-center ${
                         sidebarCollapsed
-                          ? 'md:justify-center md:h-11 md:px-0 justify-between px-3 py-2.5'
-                          : 'justify-between px-3 py-2.5'
-                      } rounded-xl font-medium transition-colors cursor-pointer relative group ${
+                          ? 'md:justify-center md:h-11 md:px-0 justify-between px-3.5 py-2.5'
+                          : 'justify-between px-3.5 py-2.5'
+                      } rounded-2xl font-semibold text-xs sm:text-sm transition-all duration-200 cursor-pointer relative group ${
                         active
-                          ? 'bg-stone-900 text-white font-semibold shadow-xs'
-                          : 'text-stone-600 hover:text-stone-900 hover:bg-stone-100'
+                          ? 'bg-gradient-to-r from-stone-900 to-stone-800 text-white shadow-sm ring-1 ring-black/5'
+                          : 'text-stone-600 hover:text-stone-950 hover:bg-stone-100/90'
                       }`}
                     >
-                      <div className={`flex items-center ${sidebarCollapsed ? 'md:justify-center gap-2.5' : 'gap-2.5 min-w-0'}`}>
-                        <i className={`${item.icon} ${sidebarCollapsed ? 'md:text-base text-sm w-4 text-center' : 'text-sm w-4 text-center'}`}></i>
-                        <span className={`truncate ${sidebarCollapsed ? 'md:hidden inline' : ''}`}>{item.label}</span>
+                      <div className={`flex items-center ${sidebarCollapsed ? 'md:justify-center gap-3' : 'gap-3 min-w-0'}`}>
+                        <div className={`w-7 h-7 rounded-xl flex items-center justify-center transition-colors shrink-0 ${
+                          active
+                            ? 'bg-white/10 text-white'
+                            : 'bg-stone-100 text-stone-500 group-hover:bg-brand-50 group-hover:text-brand-600'
+                        }`}>
+                          <i className={`${item.icon} text-xs`}></i>
+                        </div>
+                        <span className={`truncate tracking-tight ${sidebarCollapsed ? 'md:hidden inline' : ''}`}>
+                          {item.label}
+                        </span>
                       </div>
 
                       <div className={`flex items-center gap-1.5 ${sidebarCollapsed ? 'md:hidden' : ''}`}>
                         {item.badge && (
-                          <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold shrink-0 ${item.badgeColor}`}>
+                          <span className={`text-[10px] px-2 py-0.5 rounded-full font-black uppercase tracking-wider shrink-0 shadow-2xs ${item.badgeColor}`}>
                             {item.badge}
                           </span>
                         )}
-                        <i
-                          className={`fa-solid fa-chevron-down text-[10px] text-stone-400 transition-transform duration-300 ease-out ${
-                            isExpanded ? 'rotate-180 text-white' : ''
-                          }`}
-                        ></i>
+                        <div className={`w-6 h-6 rounded-lg flex items-center justify-center transition-all duration-300 ease-out ${
+                          isExpanded
+                            ? 'rotate-180 bg-white/20 text-white'
+                            : 'text-stone-400 group-hover:text-stone-700'
+                        }`}>
+                          <i className="fa-solid fa-chevron-down text-[10px]"></i>
+                        </div>
                       </div>
 
                       {sidebarCollapsed && item.badge && (
@@ -1424,16 +1434,16 @@ export default function AdminDashboardPage() {
                       )}
                     </button>
 
-                    {/* AÇILIR ALT MENÜ (ANIMASYONLU AKORDEON DROPDOWN) */}
+                    {/* AÇILIR ALT MENÜ (MODERN KART AKORDEON DROPDOWN) */}
                     <div
-                      className={`grid transition-all duration-300 ease-in-out ${
+                      className={`grid transition-all duration-300 ease-out ${
                         isExpanded && !sidebarCollapsed
-                          ? 'grid-rows-[1fr] opacity-100 mt-1'
+                          ? 'grid-rows-[1fr] opacity-100 mt-1.5'
                           : 'grid-rows-[0fr] opacity-0 pointer-events-none'
                       }`}
                     >
                       <div className="overflow-hidden">
-                        <div className="pl-6 pr-1 py-0.5 space-y-1">
+                        <div className="ml-3 pl-3 py-1 space-y-1 border-l-2 border-stone-200/80 bg-stone-50/70 rounded-r-2xl pr-1.5">
                           {item.subItems.map((sub) => {
                             const isSubActive =
                               (item.id === 'site_content' && currentTab === 'site_content' && selectedSiteContentSubTab === sub.id) ||
@@ -1449,16 +1459,21 @@ export default function AdminDashboardPage() {
                                   if (item.id === 'settings') setSelectedSettingsSubTab(sub.id);
                                   setMobileSidebarOpen(false);
                                 }}
-                                className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 cursor-pointer ${
+                                className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-bold transition-all duration-200 cursor-pointer ${
                                   isSubActive
-                                    ? 'bg-brand-500/10 text-brand-700 font-bold border-l-2 border-brand-500 pl-2 translate-x-1 shadow-2xs'
-                                    : 'text-stone-500 hover:text-stone-900 hover:bg-stone-100 hover:translate-x-1'
+                                    ? 'bg-gradient-to-r from-brand-500 to-amber-500 text-white shadow-xs translate-x-0.5'
+                                    : 'text-stone-600 hover:text-stone-950 hover:bg-white/80 hover:translate-x-1'
                                 }`}
                               >
-                                <span className="flex items-center gap-2 truncate">
-                                  <i className={`${sub.icon} text-[10px] w-3.5 text-center ${isSubActive ? 'text-brand-600' : 'text-stone-400'}`}></i>
+                                <span className="flex items-center gap-2.5 truncate">
+                                  <i className={`${sub.icon} text-xs w-4 text-center ${
+                                    isSubActive ? 'text-white' : 'text-stone-400 group-hover:text-stone-600'
+                                  }`}></i>
                                   <span className="truncate">{sub.label}</span>
                                 </span>
+                                {isSubActive && (
+                                  <span className="w-1.5 h-1.5 rounded-full bg-white shadow-xs shrink-0 animate-pulse"></span>
+                                )}
                               </button>
                             );
                           })}
@@ -1746,7 +1761,7 @@ export default function AdminDashboardPage() {
                 <select
                   value={orderStageFilter}
                   onChange={(e) => setOrderStageFilter(e.target.value)}
-                  className="w-full bg-stone-50 border border-stone-300 text-stone-900 text-xs font-bold rounded-xl px-3 py-2.5 cursor-pointer focus:outline-none focus:ring-2 focus:ring-stone-900 shadow-2xs"
+                  className="app-select w-full bg-stone-50 hover:bg-white border border-stone-300 hover:border-brand-500 text-stone-900 text-xs font-bold rounded-2xl px-4 py-3 cursor-pointer shadow-xs focus:ring-3 focus:ring-brand-500/15"
                 >
                   <option value="all">📦 Tüm Siparişler ({orders.length})</option>
                   <option value="new">🔔 Yeni &amp; Görüntülenen ({newOrdersCount})</option>
@@ -1814,23 +1829,23 @@ export default function AdminDashboardPage() {
                   <select
                     value={paymentMethodFilter}
                     onChange={(e) => setPaymentMethodFilter(e.target.value)}
-                    className="bg-stone-50 border border-stone-200 rounded-xl px-2.5 py-2 text-xs text-stone-700 focus:outline-none font-medium truncate"
+                    className="app-select bg-stone-50 hover:bg-white border border-stone-200 hover:border-stone-300 rounded-xl px-3 py-2 text-xs text-stone-800 font-bold focus:ring-2 focus:ring-brand-500/15 cursor-pointer shadow-2xs truncate"
                   >
-                    <option value="all">Tüm Yöntemler</option>
-                    <option value="Kapıda Nakit">Kapıda Nakit</option>
-                    <option value="Kredi Kartı">Kapıda Kart / POS</option>
+                    <option value="all">💳 Tüm Yöntemler</option>
+                    <option value="Kapıda Nakit">💵 Kapıda Nakit</option>
+                    <option value="Kredi Kartı">💳 Kapıda Kart / POS</option>
                   </select>
 
                   {/* Ödeme Durumu Filtresi */}
                   <select
                     value={paymentStatusFilter}
                     onChange={(e) => setPaymentStatusFilter(e.target.value)}
-                    className="bg-stone-50 border border-stone-200 rounded-xl px-2.5 py-2 text-xs text-stone-700 focus:outline-none font-medium truncate"
+                    className="app-select bg-stone-50 hover:bg-white border border-stone-200 hover:border-stone-300 rounded-xl px-3 py-2 text-xs text-stone-800 font-bold focus:ring-2 focus:ring-brand-500/15 cursor-pointer shadow-2xs truncate"
                   >
-                    <option value="all">Tüm Durumlar</option>
-                    <option value="Bekleniyor">Bekleniyor</option>
-                    <option value="Ödendi">Ödendi</option>
-                    <option value="İade Edildi">İade</option>
+                    <option value="all">⚡ Tüm Durumlar</option>
+                    <option value="Bekleniyor">⏳ Bekleniyor</option>
+                    <option value="Ödendi">✅ Ödendi</option>
+                    <option value="İade Edildi">↩️ İade</option>
                   </select>
                 </div>
               </div>
@@ -2088,10 +2103,10 @@ export default function AdminDashboardPage() {
                             <select
                               value={order.courierName || ''}
                               onChange={(e) => handleAssignCourier(order.id, e.target.value)}
-                              className={`border rounded-lg px-2.5 py-1.5 text-[11px] font-bold focus:outline-none focus:border-brand-500 cursor-pointer w-full ${
+                              className={`app-select border rounded-xl px-3 py-2 text-xs font-extrabold focus:outline-none focus:ring-2 focus:ring-brand-500/20 cursor-pointer w-full transition-all shadow-2xs ${
                                 order.courierName
-                                  ? 'bg-emerald-50 border-emerald-300 text-emerald-900'
-                                  : 'bg-stone-50 border-stone-200 text-stone-600'
+                                  ? 'bg-emerald-50/90 border-emerald-300 text-emerald-950'
+                                  : 'bg-stone-50 hover:bg-stone-100/80 border-stone-200 text-stone-700'
                               }`}
                             >
                               <option value="">Kurye Seçilmedi</option>
@@ -2268,7 +2283,7 @@ export default function AdminDashboardPage() {
                 <select
                   value={productFilter}
                   onChange={(e) => setProductFilter(e.target.value)}
-                  className="w-full bg-stone-50 border border-stone-300 text-stone-900 text-xs font-bold rounded-xl px-3 py-2.5 cursor-pointer focus:outline-none focus:ring-2 focus:ring-stone-900 shadow-2xs"
+                  className="app-select w-full bg-stone-50 hover:bg-white border border-stone-300 hover:border-brand-500 text-stone-900 text-xs font-bold rounded-2xl px-4 py-3 cursor-pointer shadow-xs focus:ring-3 focus:ring-brand-500/15"
                 >
                   <option value="all">Tüm Ürünler ({products.length})</option>
                   <option value="menu">🍱 Menüler (Avantajlı)</option>
@@ -2881,7 +2896,7 @@ export default function AdminDashboardPage() {
                       <select
                         value={prodCategory}
                         onChange={(e) => setProdCategory(e.target.value)}
-                        className="w-full bg-stone-50 border border-stone-200 rounded-2xl px-3.5 py-3 text-sm text-stone-900 focus:outline-none focus:border-brand-500 focus:bg-white font-semibold transition-all cursor-pointer"
+                        className="app-select w-full bg-stone-50 hover:bg-stone-100/60 border border-stone-200 hover:border-brand-400 rounded-2xl px-4 py-3 text-sm text-stone-900 focus:outline-none focus:border-brand-500 focus:bg-white font-semibold transition-all cursor-pointer shadow-2xs"
                       >
                         <option value="menu">🍱 Menülü (Avantajlı Paket)</option>
                         <option value="sandwich">🥪 Sandviç (Bireysel Satış)</option>
@@ -3466,7 +3481,7 @@ export default function AdminDashboardPage() {
               <select
                 value={cancelReason}
                 onChange={(e) => setCancelReason(e.target.value)}
-                className="w-full bg-stone-50 border border-stone-200 rounded-2xl px-4 py-3.5 text-sm font-semibold focus:outline-none focus:border-red-500"
+                className="app-select w-full bg-stone-50 hover:bg-stone-100/60 border border-stone-200 rounded-2xl px-4 py-3.5 text-sm font-semibold focus:outline-none focus:border-red-500 cursor-pointer shadow-2xs"
               >
                 <option value="Müşteri talebi">Müşteri talebi</option>
                 <option value="Adres servis alanı dışı">Adres servis alanı dışı</option>

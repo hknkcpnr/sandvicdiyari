@@ -833,7 +833,7 @@ export default function UsersRolesTab({ currentAdmin, onRolesOrUsersUpdated }) {
                   <select
                     value={userRoleId}
                     onChange={(e) => setUserRoleId(e.target.value)}
-                    className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm font-semibold text-stone-900 focus:outline-none focus:border-stone-400 cursor-pointer"
+                    className="app-select w-full bg-stone-50 hover:bg-stone-100/60 border border-stone-200 hover:border-brand-400 rounded-2xl px-4 py-3 text-xs sm:text-sm font-bold text-stone-900 focus:outline-none focus:border-brand-500 cursor-pointer shadow-2xs transition-all"
                   >
                     {roles.map((r) => (
                       <option key={r.id} value={r.id}>
@@ -918,7 +918,7 @@ export default function UsersRolesTab({ currentAdmin, onRolesOrUsersUpdated }) {
                   <select
                     value={roleColor}
                     onChange={(e) => setRoleColor(e.target.value)}
-                    className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3.5 py-2 text-xs sm:text-sm font-semibold text-stone-900 focus:outline-none focus:border-stone-400 cursor-pointer"
+                    className="app-select w-full bg-stone-50 hover:bg-stone-100/60 border border-stone-200 hover:border-brand-400 rounded-2xl px-4 py-3 text-xs sm:text-sm font-bold text-stone-900 focus:outline-none focus:border-brand-500 cursor-pointer shadow-2xs transition-all"
                   >
                     {Object.entries(ROLE_COLORS).map(([key, val]) => (
                       <option key={key} value={key}>

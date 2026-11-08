@@ -230,7 +230,7 @@ export default function SettingsTab({
             <select
               value={activeSubTab}
               onChange={(e) => handleSubTabSwitch(e.target.value)}
-              className="bg-stone-50 hover:bg-stone-100 border border-stone-300 text-stone-800 text-xs font-bold rounded-xl px-2.5 py-2 cursor-pointer focus:outline-none transition-colors shadow-2xs"
+              className="app-select bg-stone-50 hover:bg-white border border-stone-300 hover:border-brand-500 text-stone-900 text-xs font-bold rounded-2xl px-4 py-2.5 cursor-pointer focus:outline-none focus:ring-3 focus:ring-brand-500/15 transition-all shadow-xs"
               title="Ayar Sayfası Değiştir"
             >
               <option value="appearance">🔤 Yazı Boyutu &amp; Arayüz</option>

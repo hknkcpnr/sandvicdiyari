@@ -135,7 +135,7 @@ export default function IletisimPage() {
                     id="fb-type"
                     value={type}
                     onChange={(e) => setType(e.target.value)}
-                    className="w-full bg-stone-950 border border-stone-800 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-brand-500 text-white"
+                    className="app-select-dark w-full bg-stone-950 hover:bg-stone-900 border border-stone-800 hover:border-stone-700 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:border-brand-500 text-white font-semibold cursor-pointer shadow-2xs transition-all"
                   >
                     <option value="Öneri / İstek">Öneri & İstek</option>
                     <option value="Şikayet">Şikayet (Lezzet / Kurye / Servis)</option>

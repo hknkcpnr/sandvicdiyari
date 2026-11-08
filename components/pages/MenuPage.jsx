@@ -163,12 +163,12 @@ export default function MenuPage() {
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value)}
-                className="bg-white border border-stone-200/90 rounded-xl px-3 py-2.5 text-xs font-semibold text-stone-700 focus:outline-none focus:border-stone-400 shadow-2xs cursor-pointer flex-1 sm:flex-initial"
+                className="app-select bg-white hover:bg-stone-50 border border-stone-200 hover:border-brand-400 rounded-2xl px-3.5 py-2.5 text-xs font-bold text-stone-800 focus:outline-none focus:border-brand-500 shadow-2xs cursor-pointer flex-1 sm:flex-initial transition-all"
               >
-                <option value="default">Önerilen</option>
-                <option value="price-asc">Fiyat: Artan</option>
-                <option value="price-desc">Fiyat: Azalan</option>
-                <option value="name">İsim (A-Z)</option>
+                <option value="default">✨ Önerilen Sıralama</option>
+                <option value="price-asc">💵 Fiyat: En Düşük</option>
+                <option value="price-desc">💎 Fiyat: En Yüksek</option>
+                <option value="name">🔤 İsim: A'dan Z'ye</option>
               </select>
 
               {/* Sadece Açık / Stokta Olanlar */}

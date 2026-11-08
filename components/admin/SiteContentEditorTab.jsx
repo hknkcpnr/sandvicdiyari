@@ -265,7 +265,7 @@ export default function SiteContentEditorTab({ initialSubTab = 'hero', onSubTabC
             <select
               value={activeSubTab}
               onChange={(e) => handleSubTabChange(e.target.value)}
-              className="w-full bg-stone-50 hover:bg-stone-100 border border-stone-300 focus:border-stone-900 text-stone-900 text-xs font-bold rounded-xl px-3 py-2 cursor-pointer focus:outline-none transition-colors shadow-2xs"
+              className="app-select w-full bg-stone-50 hover:bg-white border border-stone-300 hover:border-brand-500 text-stone-900 text-xs font-bold rounded-2xl px-4 py-2.5 cursor-pointer focus:outline-none focus:ring-3 focus:ring-brand-500/15 transition-all shadow-xs"
             >
               <option value="hero">🌟 Manşet &amp; Hero (Ana Karşılama)</option>
               <option value="campaigns">🔥 Günün Kampanyaları Vitrini</option>
@@ -762,7 +762,7 @@ export default function SiteContentEditorTab({ initialSubTab = 'hero', onSubTabC
                     newMenusSection: { ...prev.newMenusSection, itemCount: Number(e.target.value) },
                   }))
                 }
-                className="w-full text-xs bg-stone-50 border border-stone-300 rounded-xl px-3.5 py-2.5 font-bold cursor-pointer"
+                className="app-select w-full text-xs bg-stone-50 hover:bg-white border border-stone-300 hover:border-brand-500 rounded-2xl px-4 py-2.5 font-bold cursor-pointer transition-all shadow-2xs"
               >
                 <option value={3}>3 Adet Ürün (Tek Sıra)</option>
                 <option value={6}>6 Adet Ürün (İki Sıra)</option>
@@ -900,7 +900,7 @@ export default function SiteContentEditorTab({ initialSubTab = 'hero', onSubTabC
                   <select
                     value={feat.icon || 'fa-solid fa-seedling'}
                     onChange={(e) => updateFeatureItem(idx, 'icon', e.target.value)}
-                    className="w-full text-xs bg-stone-50 border border-stone-300 rounded-xl px-2.5 py-1.5 font-bold cursor-pointer"
+                    className="app-select w-full text-xs bg-stone-50 hover:bg-white border border-stone-300 hover:border-brand-500 rounded-2xl px-3.5 py-2 font-bold cursor-pointer transition-all shadow-2xs"
                   >
                     {FEATURE_ICON_OPTIONS.map((opt) => (
                       <option key={opt.value} value={opt.value}>

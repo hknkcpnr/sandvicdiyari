@@ -405,7 +405,7 @@ export default function InventoryTab({ products = [], onRefreshProducts }) {
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                className="w-full bg-stone-50 border border-stone-300 text-stone-900 text-xs font-bold rounded-xl px-3 py-2 cursor-pointer shadow-2xs"
+                className="app-select w-full bg-stone-50 hover:bg-white border border-stone-300 hover:border-brand-500 text-stone-900 text-xs font-bold rounded-2xl px-4 py-2.5 cursor-pointer shadow-xs focus:ring-3 focus:ring-brand-500/15"
               >
                 <option value="all">Tüm Durumlar</option>
                 <option value="in_stock">🟢 Satışta Olanlar</option>
@@ -448,7 +448,7 @@ export default function InventoryTab({ products = [], onRefreshProducts }) {
             <select
               value={categoryFilter}
               onChange={(e) => setCategoryFilter(e.target.value)}
-              className="w-full bg-stone-50 border border-stone-300 text-stone-900 text-xs font-bold rounded-xl px-3 py-2 cursor-pointer shadow-2xs"
+              className="app-select w-full bg-stone-50 hover:bg-white border border-stone-300 hover:border-brand-500 text-stone-900 text-xs font-bold rounded-2xl px-4 py-2.5 cursor-pointer shadow-xs focus:ring-3 focus:ring-brand-500/15"
             >
               {categories.map((c) => (
                 <option key={c.id} value={c.id}>

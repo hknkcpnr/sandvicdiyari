@@ -416,7 +416,7 @@ export default function AdminPage() {
                   <select
                     value={newProdCategory}
                     onChange={(e) => setNewProdCategory(e.target.value)}
-                    className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-2.5 text-xs font-medium text-stone-800 focus:outline-none focus:border-brand-500"
+                    className="app-select w-full bg-stone-50 hover:bg-white border border-stone-200 hover:border-brand-400 rounded-2xl px-3.5 py-2.5 text-xs font-bold text-stone-800 focus:outline-none focus:border-brand-500 shadow-2xs transition-all cursor-pointer"
                   >
                     <option value="menu">Menü (Avantajlı Menülü Satış)</option>
                     <option value="sandwich">Sandviç (Bireysel Satış)</option>
@@ -460,7 +460,7 @@ export default function AdminPage() {
                 <select
                   value={newProdImage}
                   onChange={(e) => setNewProdImage(e.target.value)}
-                  className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-2.5 text-xs font-medium text-stone-800 focus:outline-none focus:border-brand-500"
+                  className="app-select w-full bg-stone-50 hover:bg-white border border-stone-200 hover:border-brand-400 rounded-2xl px-3.5 py-2.5 text-xs font-bold text-stone-800 focus:outline-none focus:border-brand-500 shadow-2xs transition-all cursor-pointer"
                 >
                   <option value="/images/kasap_kofte_ekmek.jpg">Kasap Köfte Ekmek Görseli</option>
                   <option value="/images/megzi_durum.jpg">Megzi Dürüm Görseli</option>

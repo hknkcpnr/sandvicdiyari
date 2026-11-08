@@ -449,7 +449,7 @@ export default function OverviewDashboard({
           <select
             value={dateFilter}
             onChange={(e) => setDateFilter(e.target.value)}
-            className="w-full bg-stone-50 border border-stone-300 text-stone-900 text-xs font-bold rounded-xl px-3 py-2.5 cursor-pointer focus:outline-none focus:ring-2 focus:ring-stone-900 shadow-2xs"
+            className="app-select w-full bg-stone-50 hover:bg-white border border-stone-300 hover:border-brand-500 text-stone-900 text-xs font-bold rounded-2xl px-4 py-3 cursor-pointer shadow-xs focus:ring-3 focus:ring-brand-500/15"
           >
             <option value="today">📅 Bugün</option>
             <option value="yesterday">📅 Dün</option>
