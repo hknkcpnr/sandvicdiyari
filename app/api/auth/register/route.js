@@ -43,11 +43,14 @@ export async function POST(request) {
       throw new ConflictError('Bu e-posta adresi ile zaten bir hesap mevcut.');
     }
 
+    const phoneVerified = Boolean(body.phoneVerified);
+
     const newUser = await prisma.user.create({
       data: {
         name,
         email,
         phone,
+        phoneVerified,
         address,
         pass
       }

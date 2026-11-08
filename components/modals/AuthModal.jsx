@@ -59,21 +59,20 @@ export default function AuthModal() {
   const [kvkkConsent, setKvkkConsent] = useState(false);
   const [isKvkkModalOpen, setIsKvkkModalOpen] = useState(false);
 
-  // WhatsApp OTP Doğrulama Süreci Durumları
-  const [regStep, setRegStep] = useState('form');         // 'form': Bilgi Girişi, 'otp': WhatsApp Kod Onayı
+  // WhatsApp Cloud API OTP Doğrulama Süreci Durumları
   const [otpInput, setOtpInput] = useState('');           // Kullanıcının girdiği 6 haneli kod
-  const [generatedOtp, setGeneratedOtp] = useState('');   // Sunucunun ürettiği doğrulama kodu
-  const [senderPhone, setSenderPhone] = useState('0553 855 76 12'); // Resmi gönderici onay hattı
-  const [whatsappUrl, setWhatsappUrl] = useState('');     // WhatsApp Web/App yönlendirme bağlantısı
-  const [directSenderUrl, setDirectSenderUrl] = useState(''); // 0553 855 76 12 doğrudan hat linki
   const [otpError, setOtpError] = useState('');           // Hata mesajları
+  const [otpSuccessMsg, setOtpSuccessMsg] = useState(''); // Başarılı bildirim mesajı
   const [isSendingOtp, setIsSendingOtp] = useState(false); // Kod gönderim yükleniyor durumu
-  const [countdown, setCountdown] = useState(0);          // Kalan kod geçerlilik süresi (saniye - 3 dk / 180 sn)
+  const [isVerifyingOtp, setIsVerifyingOtp] = useState(false); // Doğrulama yükleniyor durumu
+  const [otpSent, setOtpSent] = useState(false);          // Kod gönderildi mi?
+  const [isPhoneVerified, setIsPhoneVerified] = useState(false); // Telefon onaylandı mı?
+  const [countdown, setCountdown] = useState(0);          // Kalan kod geçerlilik süresi (5 dk / 300 sn)
+  const [resendCooldown, setResendCooldown] = useState(0); // 60 saniyelik tekrar gönderme süresi
 
   // --------------------------------------------------------------------------
-  // GERİ SAYIM SAYACI (OTP 3 DAKİKA / 180 SANİYE KONTROLÜ)
+  // GERİ SAYIM SAYACI (OTP 5 DAKİKA / 300 SANİYE KONTROLÜ)
   // --------------------------------------------------------------------------
-  // Kod gönderildiğinde 3 dakikalık (180 sn) geri sayım başlatır ve her saniye 1 azaltır.
   useEffect(() => {
     if (countdown <= 0) return;
     const timer = setInterval(() => {
@@ -88,10 +87,27 @@ export default function AuthModal() {
     return () => clearInterval(timer);
   }, [countdown > 0]);
 
+  // --------------------------------------------------------------------------
+  // TEKRAR KOD GÖNDERME COOLDOWN SAYACI (60 SANİYE)
+  // --------------------------------------------------------------------------
+  useEffect(() => {
+    if (resendCooldown <= 0) return;
+    const timer = setInterval(() => {
+      setResendCooldown((prev) => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [resendCooldown > 0]);
+
   // Modal kapalıysa DOM'a hiçbir şey render etme (Performans optimizasyonu)
   if (!isAuthModalOpen) return null;
 
-  // Saniyeyi "03:00" biçiminde dakika:saniye formatına çevirir
+  // Saniyeyi "05:00" biçiminde dakika:saniye formatına çevirir
   const formatTime = (sec) => {
     const m = Math.floor(sec / 60);
     const s = sec % 60;
@@ -179,12 +195,101 @@ export default function AuthModal() {
   };
 
   // --------------------------------------------------------------------------
-  // KAYIT OL - 1. ADIM: WHATSAPP DOĞRULAMA KODU GÖNDERME
+  // WHATSAPP OTP GÖNDERME (/api/auth/send-whatsapp-otp)
   // --------------------------------------------------------------------------
-  // Form alanlarını (ad, e-posta, geçerli TR telefon, KVKK) kontrol eder
-  // ve kullanıcıya WhatsApp üzerinden 6 haneli doğrulama kodu gönderir.
-  const handleSendWhatsAppCode = async (e) => {
-    if (e) e.preventDefault();
+  const handleSendWhatsAppOtp = async () => {
+    setOtpError('');
+    setOtpSuccessMsg('');
+
+    if (!isValidTurkishPhone(regPhone)) {
+      setOtpError('Lütfen geçerli bir cep telefonu numarası giriniz (Örn: 0532 123 45 67).');
+      return;
+    }
+
+    if (resendCooldown > 0) {
+      setOtpError(`Yeni bir kod göndermeden önce lütfen ${resendCooldown} saniye bekleyiniz.`);
+      return;
+    }
+
+    setIsSendingOtp(true);
+    try {
+      const res = await fetch('/api/auth/send-whatsapp-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone: regPhone })
+      });
+      const json = await res.json();
+
+      if (!json.success) {
+        setOtpError(json.error || 'Doğrulama kodu gönderilemedi. Lütfen tekrar deneyin.');
+        setIsSendingOtp(false);
+        return;
+      }
+
+      setOtpSent(true);
+      setCountdown(json.data?.expiresInSeconds || 300);
+      setResendCooldown(json.data?.cooldownSeconds || 60);
+      setOtpInput('');
+      setOtpSuccessMsg('WhatsApp doğrulama kodu gönderildi.');
+    } catch (err) {
+      setOtpError('Bağlantı hatası oluştu. Lütfen tekrar deneyiniz.');
+    } finally {
+      setIsSendingOtp(false);
+    }
+  };
+
+  // --------------------------------------------------------------------------
+  // WHATSAPP OTP DOĞRULAMA (/api/auth/verify-whatsapp-otp)
+  // --------------------------------------------------------------------------
+  const handleVerifyOtp = async () => {
+    setOtpError('');
+    setOtpSuccessMsg('');
+
+    if (countdown <= 0) {
+      setOtpError('Doğrulama kodunun 5 dakikalık süresi doldu. Lütfen "Tekrar Kod Gönder" butonuna tıklayınız.');
+      return;
+    }
+
+    const cleanCode = otpInput.trim();
+    if (!cleanCode || cleanCode.length !== 6) {
+      setOtpError('Lütfen WhatsApp ile gelen 6 haneli doğrulama kodunu eksiksiz giriniz.');
+      return;
+    }
+
+    setIsVerifyingOtp(true);
+    try {
+      const res = await fetch('/api/auth/verify-whatsapp-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          phone: regPhone,
+          code: cleanCode
+        })
+      });
+      const json = await res.json();
+
+      if (!json.success) {
+        setOtpError(json.error || 'Girdiğiniz WhatsApp doğrulama kodu hatalı.');
+        setIsVerifyingOtp(false);
+        return;
+      }
+
+      setIsPhoneVerified(true);
+      setOtpSent(false);
+      setOtpError('');
+      setOtpSuccessMsg('✓ Telefon numaranız başarıyla doğrulandı.');
+    } catch (err) {
+      setOtpError('Doğrulama sırasında bağlantı hatası oluştu.');
+    } finally {
+      setIsVerifyingOtp(false);
+    }
+  };
+
+  // --------------------------------------------------------------------------
+  // KAYIT TAMAMLAMA VE OTURUM AÇMA
+  // --------------------------------------------------------------------------
+  const handleRegisterSubmit = async (e) => {
+    e.preventDefault();
     setOtpError('');
 
     // E-posta mükerrerlik kontrolü
@@ -199,9 +304,14 @@ export default function AuthModal() {
       return;
     }
 
-    // Türkiye cep telefonu formatı kontrolü (05XX XXX XX XX)
     if (!isValidTurkishPhone(regPhone)) {
       setOtpError('Lütfen geçerli bir cep telefonu numarası giriniz (Örn: 0532 123 45 67).');
+      return;
+    }
+
+    // Telefon doğrulanmış mı kontrolü
+    if (!isPhoneVerified) {
+      setOtpError('Lütfen kaydı tamamlamadan önce "WhatsApp ile Kod Gönder" butonuna basarak telefon numaranızı doğrulayınız.');
       return;
     }
 
@@ -211,98 +321,13 @@ export default function AuthModal() {
       return;
     }
 
-    setIsSendingOtp(true);
-    try {
-      // WhatsApp OTP API'sine istek at
-      const res = await fetch('/api/auth/whatsapp-otp', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'send',
-          phone: regPhone,
-          name: regName
-        })
-      });
-      const json = await res.json();
-
-      if (!json.success) {
-        setOtpError(json.error || 'Kod gönderilemedi.');
-        setIsSendingOtp(false);
-        return;
-      }
-
-      // Başarılı kod gönderimi sonrası OTP ekranına geç (3 dakika = 180 saniye)
-      setGeneratedOtp(String(json.data.code));
-      setSenderPhone(json.data.senderPhone || '0553 855 76 12');
-      setWhatsappUrl(json.data.whatsappUrl || '');
-      setDirectSenderUrl(json.data.directSenderUrl || '');
-      setOtpInput('');
-      setCountdown(json.data.expiresInSeconds || 180);
-      setRegStep('otp');
-    } catch (err) {
-      // Çevrimdışı/Yedek fallback kodu (3 dakika geçerli)
-      const fallbackCode = String(Math.floor(100000 + Math.random() * 900000));
-      setGeneratedOtp(fallbackCode);
-      setSenderPhone('0553 855 76 12');
-      setWhatsappUrl(`https://wa.me/${toWhatsAppPhone(regPhone)}?text=${encodeURIComponent(`🥪 Sandwich Diyarı\nOnay Kodunuz: ${fallbackCode}\n(3 dakika geçerlidir)`)}`);
-      setOtpInput('');
-      setCountdown(180);
-      setRegStep('otp');
-    } finally {
-      setIsSendingOtp(false);
-    }
-  };
-
-  // --------------------------------------------------------------------------
-  // KAYIT OL - 2. ADIM: WHATSAPP KODUNU DOĞRULAMA VE ÜYELİK TAMAMLAMA
-  // --------------------------------------------------------------------------
-  // Girilen 6 haneli kodu kontrol eder, geçerliyse kullanıcı kaydını oluşturur
-  // ve oturum açtırarak siparişe devam etmesini sağlar.
-  const handleVerifyAndRegister = async (e) => {
-    e.preventDefault();
-    setOtpError('');
-
-    // Süre doldu mu kontrolü
-    if (countdown <= 0) {
-      setOtpError('Doğrulama kodunun süresi doldu. Lütfen "Tekrar Kod Gönder" butonuna tıklayın.');
-      return;
-    }
-
-    const cleanInput = otpInput.trim();
-    if (!cleanInput || cleanInput.length < 6) {
-      setOtpError('Lütfen WhatsApp ile gönderilen 6 haneli doğrulama kodunu eksiksiz giriniz.');
-      return;
-    }
-
-    // Kodun sunucu ve istemci doğrulaması
-    let isVerified = false;
-    try {
-      const res = await fetch('/api/auth/whatsapp-otp', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'verify',
-          phone: regPhone,
-          code: cleanInput
-        })
-      });
-      const json = await res.json();
-      isVerified = Boolean(json.success || cleanInput === generatedOtp);
-    } catch (err) {
-      isVerified = cleanInput === generatedOtp;
-    }
-
-    if (!isVerified) {
-      setOtpError('Girdiğiniz WhatsApp doğrulama kodu hatalı! Lütfen kontrol edip tekrar deneyin.');
-      return;
-    }
-
-    // Yeni kullanıcı nesnesi oluştur
     const formattedPhone = formatTurkishPhoneInput(regPhone);
     const newUser = {
       name: regName,
       email: regEmail,
       phone: formattedPhone,
+      phoneVerified: true,
+      phoneVerifiedAt: new Date().toISOString(),
       address: regAddress,
       pass: regPass,
       whatsappVerified: true
@@ -310,9 +335,6 @@ export default function AuthModal() {
 
     // Redux store'a kaydet ve modalı kapat
     dispatch(register(newUser));
-    setRegStep('form');
-    setOtpInput('');
-    setGeneratedOtp('');
     dispatch(closeAuthModal());
 
     // Sepet doluysa sipariş tamamlama penceresine geçir
@@ -321,8 +343,8 @@ export default function AuthModal() {
     } else {
       dispatch(
         showMessageModal({
-          title: 'WhatsApp Doğrulaması Başarılı! 🎉',
-          text: `Telefon numaran doğrulandı ve üyeliğin oluşturuldu, ${regName}! Aramıza hoş geldin.`,
+          title: 'Üyeliğiniz Tamamlandı! 🎉',
+          text: `Telefon numaranız WhatsApp ile doğrulandı ve hesabınız oluşturuldu, ${regName}! Aramıza hoş geldiniz.`,
           type: 'success',
         })
       );
@@ -505,10 +527,10 @@ export default function AuthModal() {
             )}
 
             {/* --------------------------------------------------------------- */}
-            {/* KAYIT OL - ADIM 1: BİLGİ FORMU                                 */}
+            {/* KAYIT OL FORMU (WHATSAPP CLOUD API OTP DOĞRULAMA ENTEGRELİ)   */}
             {/* --------------------------------------------------------------- */}
-            {authModalTab === 'register' && regStep === 'form' && (
-              <form id="register-form" onSubmit={handleSendWhatsAppCode} className="space-y-3.5">
+            {authModalTab === 'register' && (
+              <form id="register-form" onSubmit={handleRegisterSubmit} className="space-y-3.5">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <label className="block text-xs font-semibold text-stone-700 mb-1.5">
@@ -540,46 +562,150 @@ export default function AuthModal() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <div className="flex items-center justify-between mb-1.5">
-                      <label className="text-xs font-semibold text-stone-700">
-                        WhatsApp Telefon Numaranız
-                      </label>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setRegPhone('0553 855 76 12');
-                          setOtpError('');
-                        }}
-                        className="text-[10px] font-semibold text-emerald-700 hover:underline cursor-pointer"
-                        title="Bu numarayla test etmek için tıkla"
-                      >
-                        0553 855 76 12 Doldur
-                      </button>
-                    </div>
-                    <input
-                      type="tel"
-                      id="reg-phone"
-                      inputMode="numeric"
-                      maxLength={14}
-                      required
-                      value={regPhone}
-                      onChange={(e) => {
-                        setRegPhone(formatTurkishPhoneInput(e.target.value));
-                        setOtpError('');
-                      }}
-                      className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:border-emerald-500 text-stone-800 focus:bg-white"
-                      placeholder="05XX XXX XX XX"
-                    />
-                    <div className="flex items-start gap-1.5 mt-1.5 text-[11px] text-stone-500 leading-tight">
-                      <i className="fa-brands fa-whatsapp text-emerald-600 mt-0.5 shrink-0"></i>
-                      <span>
-                        Onay kodu <strong className="text-emerald-700 font-semibold">0553 855 76 12</strong> onay hattımızdan kayıt olan numaranıza <strong>3 dakika (180 sn)</strong> geçerlilik süresiyle iletilecektir.
+                {/* TELEFON NUMARASI VE WHATSAPP DOĞRULAMA BÖLÜMÜ */}
+                <div className="bg-stone-50/80 border border-stone-200/90 rounded-2xl p-3.5 space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-semibold text-stone-800 flex items-center gap-1.5">
+                      <i className="fa-brands fa-whatsapp text-emerald-600 text-sm"></i>
+                      <span>Telefon Numarası</span>
+                    </label>
+                    {isPhoneVerified ? (
+                      <span className="bg-emerald-100 text-emerald-800 border border-emerald-300 text-[11px] font-bold px-2.5 py-0.5 rounded-full flex items-center gap-1">
+                        <i className="fa-solid fa-circle-check text-emerald-600"></i>
+                        Doğrulandı
                       </span>
-                    </div>
+                    ) : (
+                      <span className="text-[10px] text-stone-500 font-medium">
+                        WhatsApp OTP Doğrulaması
+                      </span>
+                    )}
                   </div>
 
+                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                    <div className="relative flex-1">
+                      <input
+                        type="tel"
+                        id="reg-phone"
+                        inputMode="numeric"
+                        maxLength={14}
+                        required
+                        disabled={isPhoneVerified}
+                        value={regPhone}
+                        onChange={(e) => {
+                          setRegPhone(formatTurkishPhoneInput(e.target.value));
+                          setOtpError('');
+                          setOtpSuccessMsg('');
+                          if (isPhoneVerified) setIsPhoneVerified(false);
+                          if (otpSent) setOtpSent(false);
+                        }}
+                        className={`w-full border rounded-xl px-3.5 py-2.5 text-sm focus:outline-none transition-colors ${
+                          isPhoneVerified
+                            ? 'bg-emerald-50/70 border-emerald-300 text-emerald-950 font-semibold'
+                            : 'bg-white border-stone-200 focus:border-emerald-500 text-stone-800'
+                        }`}
+                        placeholder="05XX XXX XX XX"
+                      />
+                      {isPhoneVerified && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsPhoneVerified(false);
+                            setOtpSent(false);
+                            setOtpInput('');
+                          }}
+                          className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[11px] text-stone-400 hover:text-stone-700 underline cursor-pointer"
+                        >
+                          Değiştir
+                        </button>
+                      )}
+                    </div>
+
+                    {!isPhoneVerified && (
+                      <button
+                        type="button"
+                        onClick={handleSendWhatsAppOtp}
+                        disabled={isSendingOtp || !isValidTurkishPhone(regPhone) || resendCooldown > 0}
+                        className="bg-emerald-600 hover:bg-emerald-700 disabled:bg-stone-300 disabled:cursor-not-allowed text-white font-bold text-xs px-4 py-2.5 rounded-xl transition-colors shrink-0 flex items-center justify-center gap-1.5 cursor-pointer shadow-xs"
+                      >
+                        <i className="fa-brands fa-whatsapp text-sm"></i>
+                        <span>
+                          {isSendingOtp
+                            ? 'Gönderiliyor...'
+                            : resendCooldown > 0
+                            ? `Tekrar (${resendCooldown}s)`
+                            : 'WhatsApp ile Kod Gönder'}
+                        </span>
+                      </button>
+                    )}
+                  </div>
+
+                  {/* KOD GÖNDERİLDİĞİNDE AÇILAN OTP GİRİŞ ALANI */}
+                  {!isPhoneVerified && otpSent && (
+                    <div className="bg-emerald-50/90 border border-emerald-200 rounded-xl p-3 space-y-2.5 animate-in fade-in duration-200">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="font-semibold text-emerald-900 flex items-center gap-1.5">
+                          <i className="fa-brands fa-whatsapp text-emerald-600"></i>
+                          WhatsApp doğrulama kodu gönderildi.
+                        </span>
+                        <span
+                          className={`font-mono text-xs font-bold px-2 py-0.5 rounded ${
+                            countdown > 30 ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' : 'bg-rose-100 text-rose-700 border border-rose-300 animate-pulse'
+                          }`}
+                        >
+                          {formatTime(countdown)}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="text"
+                          inputMode="numeric"
+                          maxLength={6}
+                          value={otpInput}
+                          disabled={isVerifyingOtp || countdown <= 0}
+                          onChange={(e) => {
+                            setOtpInput(e.target.value.replace(/\D/g, ''));
+                            setOtpError('');
+                          }}
+                          placeholder="000000"
+                          className="flex-1 bg-white border border-stone-300 focus:border-emerald-500 rounded-xl px-3 py-2 text-center font-mono text-lg font-bold tracking-[0.25em] text-stone-900 focus:outline-none"
+                        />
+                        <button
+                          type="button"
+                          onClick={handleVerifyOtp}
+                          disabled={isVerifyingOtp || otpInput.trim().length !== 6 || countdown <= 0}
+                          className="bg-brand-500 hover:bg-brand-600 disabled:bg-stone-300 disabled:cursor-not-allowed text-white font-bold text-xs px-4 py-2.5 rounded-xl transition-colors cursor-pointer shrink-0 shadow-xs"
+                        >
+                          {isVerifyingOtp ? 'Doğrulanıyor...' : 'Kodu Doğrula'}
+                        </button>
+                      </div>
+
+                      <div className="flex items-center justify-between pt-1 text-[11px] text-stone-600">
+                        <span>Kod gelmedi mi?</span>
+                        <button
+                          type="button"
+                          onClick={handleSendWhatsAppOtp}
+                          disabled={isSendingOtp || resendCooldown > 0}
+                          className="text-emerald-700 hover:text-emerald-800 font-bold hover:underline disabled:text-stone-400 disabled:no-underline cursor-pointer"
+                        >
+                          {resendCooldown > 0
+                            ? `Tekrar Kod Gönder (${resendCooldown}s)`
+                            : 'Tekrar Kod Gönder'}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* BAŞARILI DOĞRULAMA ROZETİ */}
+                  {isPhoneVerified && (
+                    <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs px-3.5 py-2.5 rounded-xl flex items-center gap-2 animate-in fade-in duration-200">
+                      <i className="fa-solid fa-circle-check text-emerald-600 text-base shrink-0"></i>
+                      <span className="font-bold">✓ Telefon numaranız doğrulandı.</span>
+                    </div>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <label className="block text-xs font-semibold text-stone-700 mb-1.5">
                       Şifre
@@ -594,21 +720,21 @@ export default function AuthModal() {
                       placeholder="••••••••"
                     />
                   </div>
-                </div>
 
-                <div>
-                  <label className="block text-xs font-semibold text-stone-700 mb-1.5">
-                    Teslimat Adresi
-                  </label>
-                  <textarea
-                    id="reg-address"
-                    required
-                    rows={2}
-                    value={regAddress}
-                    onChange={(e) => setRegAddress(e.target.value)}
-                    className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3.5 py-2 text-xs sm:text-sm focus:outline-none focus:border-brand-500 text-stone-800 resize-none focus:bg-white"
-                    placeholder="Torbalı Mahallesi, Sokak, No..."
-                  />
+                  <div>
+                    <label className="block text-xs font-semibold text-stone-700 mb-1.5">
+                      Teslimat Adresi
+                    </label>
+                    <input
+                      type="text"
+                      id="reg-address"
+                      required
+                      value={regAddress}
+                      onChange={(e) => setRegAddress(e.target.value)}
+                      className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:border-brand-500 text-stone-800 focus:bg-white"
+                      placeholder="Torbalı Mahallesi, Sokak, No..."
+                    />
+                  </div>
                 </div>
 
                 {/* 6698 Sayılı KVKK ve Açık Rıza Onay Kutusu */}
@@ -648,171 +774,22 @@ export default function AuthModal() {
                   </div>
                 )}
 
-                {/* WhatsApp Kod Gönder Butonu */}
-                <button
-                  type="submit"
-                  disabled={isSendingOtp}
-                  className="w-full bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 text-white font-bold py-3 rounded-xl text-sm transition-colors flex items-center justify-center gap-2 cursor-pointer"
-                >
-                  <i className="fa-brands fa-whatsapp text-base"></i>
-                  <span>{isSendingOtp ? 'Kod Gönderiliyor...' : "WhatsApp'tan Kod Gönder"}</span>
-                </button>
-              </form>
-            )}
-
-            {/* --------------------------------------------------------------- */}
-            {/* KAYIT OL - ADIM 2: WHATSAPP OTP DOĞRULAMA (3 DAKİKA SÜRE)      */}
-            {/* --------------------------------------------------------------- */}
-            {authModalTab === 'register' && regStep === 'otp' && (
-              <form id="register-otp-form" onSubmit={handleVerifyAndRegister} className="space-y-4">
-                {/* Gönderici Hat (0553 855 76 12), Alıcı Numara ve 3 Dakikalık Geri Sayım Kartı */}
-                <div className="bg-emerald-50/90 border border-emerald-200 rounded-xl p-3.5 text-xs text-stone-700 space-y-2.5">
-                  <div className="flex items-center justify-between pb-2 border-b border-emerald-200/60">
-                    <div>
-                      <span className="text-[10px] uppercase font-bold tracking-wider text-emerald-800 block">Gönderen Onay Hattı</span>
-                      <span className="font-bold text-emerald-950 flex items-center gap-1 text-xs sm:text-sm">
-                        <i className="fa-solid fa-shield-halved text-emerald-600"></i>
-                        {senderPhone}
-                      </span>
-                    </div>
-                    <div className="text-right">
-                      <span className="text-[10px] uppercase font-bold tracking-wider text-stone-500 block">Kayıt Olan Numara</span>
-                      <span className="font-bold text-stone-900 text-xs sm:text-sm">
-                        {regPhone}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center justify-between pt-0.5">
-                    <span className="text-[11px] text-emerald-900 font-medium flex items-center gap-1.5">
-                      <i className="fa-regular fa-clock text-emerald-600"></i>
-                      Kod Geçerlilik Süresi:
-                    </span>
-                    <span
-                      className={`text-xs font-mono font-bold px-2.5 py-0.5 rounded-md ${
-                        countdown > 30
-                          ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
-                          : countdown > 0
-                          ? 'bg-amber-100 text-amber-800 border border-amber-300 animate-pulse'
-                          : 'bg-rose-100 text-rose-700 border border-rose-300'
-                      }`}
-                    >
-                      {formatTime(countdown)} {countdown > 0 ? '(3 dk)' : '(Süre Doldu)'}
-                    </span>
-                  </div>
-
-                  {whatsappUrl && (
-                    <div className="flex items-center justify-between pt-1 text-[11px]">
-                      <span className="text-stone-600">Mesajı WhatsApp'ta aç:</span>
-                      <a
-                        href={whatsappUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-emerald-700 font-bold hover:underline flex items-center gap-1"
-                      >
-                        <i className="fa-brands fa-whatsapp text-emerald-600"></i>
-                        <span>WhatsApp Mesajını Gör</span>
-                      </a>
-                    </div>
-                  )}
-
-                  {generatedOtp && (
-                    <div className="pt-2 border-t border-emerald-200/60 flex items-center justify-between">
-                      <span className="text-[11px] text-emerald-900 font-medium">Doğrulama Kodunuz:</span>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          if (countdown > 0) {
-                            setOtpInput(generatedOtp);
-                            setOtpError('');
-                          }
-                        }}
-                        disabled={countdown <= 0}
-                        className="bg-emerald-600 hover:bg-emerald-700 disabled:bg-stone-300 disabled:cursor-not-allowed text-white font-mono font-bold text-xs px-2.5 py-1 rounded-lg cursor-pointer transition-colors shadow-2xs flex items-center gap-1"
-                        title="Kodu otomatik kutuya yazmak için tıklayın"
-                      >
-                        <span>{generatedOtp}</span>
-                        <span className="font-sans font-normal opacity-90 text-[10px] ml-1">(Doldur)</span>
-                      </button>
-                    </div>
-                  )}
-                </div>
-
-                {/* Doğrulama Kodu Giriş Alanı */}
-                <div>
-                  <div className="flex items-center justify-between mb-1.5">
-                    <label className="text-xs font-semibold text-stone-700">
-                      6 Haneli Onay Kodu
-                    </label>
-                    <span className="text-[11px] text-stone-500">
-                      {countdown > 0 ? `${formatTime(countdown)} kaldı` : 'Süre bitti'}
-                    </span>
-                  </div>
-                  <input
-                    type="text"
-                    inputMode="numeric"
-                    maxLength={6}
-                    required
-                    disabled={countdown <= 0}
-                    value={otpInput}
-                    onChange={(e) => {
-                      setOtpInput(e.target.value.replace(/\D/g, ''));
-                      setOtpError('');
-                    }}
-                    className={`w-full border rounded-xl px-4 py-2.5 text-center font-mono text-xl font-bold tracking-[0.3em] focus:outline-none transition-colors ${
-                      countdown <= 0
-                        ? 'bg-stone-100 border-stone-200 text-stone-400 cursor-not-allowed'
-                        : 'bg-stone-50 border-stone-300 focus:border-emerald-500 text-stone-900 focus:bg-white'
-                    }`}
-                    placeholder="000000"
-                  />
-                </div>
-
-                {countdown <= 0 && (
-                  <div className="bg-rose-50 border border-rose-200 text-rose-700 text-xs px-3.5 py-2.5 rounded-xl flex items-center gap-2">
-                    <i className="fa-solid fa-clock-rotate-left text-rose-500 shrink-0"></i>
-                    <span>3 dakikalık kod geçerlilik süresi doldu. Lütfen <strong>"Tekrar Kod Gönder"</strong> butonuna basınız.</span>
+                {/* Başarı Bildirim Kutusu */}
+                {otpSuccessMsg && !otpError && !isPhoneVerified && (
+                  <div className="bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs px-3.5 py-2 rounded-xl flex items-center gap-2">
+                    <i className="fa-solid fa-circle-check text-emerald-500 shrink-0"></i>
+                    <span>{otpSuccessMsg}</span>
                   </div>
                 )}
 
-                {otpError && countdown > 0 && (
-                  <div className="bg-rose-50 border border-rose-200 text-rose-700 text-xs px-3.5 py-2 rounded-xl flex items-center gap-2">
-                    <i className="fa-solid fa-circle-exclamation text-rose-500 shrink-0"></i>
-                    <span>{otpError}</span>
-                  </div>
-                )}
-
+                {/* Kaydı Tamamla Butonu */}
                 <button
                   type="submit"
-                  disabled={countdown <= 0 || otpInput.length < 6}
-                  className="w-full bg-brand-500 hover:bg-brand-600 disabled:bg-stone-300 disabled:cursor-not-allowed text-white font-bold py-3 rounded-xl text-sm transition-colors cursor-pointer"
+                  className="w-full bg-brand-500 hover:bg-brand-600 text-white font-bold py-3 rounded-xl text-sm transition-colors cursor-pointer flex items-center justify-center gap-2 shadow-sm"
                 >
-                  {countdown <= 0 ? 'Süre Doldu (Tekrar Kod İsteyiniz)' : 'Kodu Onayla ve Üyeliği Tamamla'}
+                  <i className="fa-solid fa-user-check"></i>
+                  <span>Kayıt Ol ve Tamamla</span>
                 </button>
-
-                {/* Geri Dön ve Yeniden Kod İste Linkleri */}
-                <div className="flex items-center justify-between pt-1 text-xs">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setRegStep('form');
-                      setOtpError('');
-                    }}
-                    className="text-stone-500 hover:text-stone-800 cursor-pointer flex items-center gap-1"
-                  >
-                    <i className="fa-solid fa-arrow-left"></i>
-                    Numarayı Değiştir
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleSendWhatsAppCode}
-                    disabled={isSendingOtp}
-                    className="text-emerald-700 hover:text-emerald-800 font-bold cursor-pointer flex items-center gap-1"
-                  >
-                    <i className="fa-solid fa-rotate-right"></i>
-                    {isSendingOtp ? 'Kod Gönderiliyor...' : 'Tekrar Kod Gönder (3 dk)'}
-                  </button>
-                </div>
               </form>
             )}
           </div>

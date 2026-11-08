@@ -312,7 +312,7 @@ export const prisma = {
     },
 
     create: async (args: {
-      data: { name: string; email: string; phone: string; address: string; pass: string };
+      data: { name: string; email: string; phone: string; address: string; pass: string; phoneVerified?: boolean };
     }) => {
       const localUser = db.createUser(args.data);
       try {
