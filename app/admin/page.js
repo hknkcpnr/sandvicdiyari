@@ -210,7 +210,8 @@ export default function AdminDashboardPage() {
   const [currentTab, setCurrentTab] = useState('overview'); // 'overview' | 'orders' | 'products' | 'reviews' | 'api' | 'settings' | 'site_content'
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
-  const [siteContentExpanded, setSiteContentExpanded] = useState(false);
+  const [siteEditorDrawerOpen, setSiteEditorDrawerOpen] = useState(false);
+  const [siteEditorWide, setSiteEditorWide] = useState(false);
   const [selectedSiteContentSubTab, setSelectedSiteContentSubTab] = useState('hero');
   const [settingsExpanded, setSettingsExpanded] = useState(false);
   const [selectedSettingsSubTab, setSelectedSettingsSubTab] = useState('appearance');
@@ -909,6 +910,15 @@ export default function AdminDashboardPage() {
     (Array.isArray(adminUser?.permissions) && adminUser.permissions.includes('view_revenue'))
   );
 
+  const canEditSiteContent = Boolean(
+    adminUser && (
+      isSuperAdmin ||
+      !adminUser.permissions ||
+      !Array.isArray(adminUser.permissions) ||
+      adminUser.permissions.includes('site_content')
+    )
+  );
+
   // Excel / CSV Dışa Aktarma
   const exportOrdersToCsv = (orderList) => {
     if (!orderList || orderList.length === 0) {
@@ -1165,6 +1175,7 @@ export default function AdminDashboardPage() {
             </a>
           </div>
         </div>
+
         {/* GLOBAL TOAST POPUP (Geri Bildirim & Durum Bildirimleri) */}
       {toast && (
         <div className="fixed bottom-6 right-6 z-50 animate-in fade-in slide-in-from-bottom-3 duration-200">
@@ -1322,22 +1333,6 @@ export default function AdminDashboardPage() {
                   : 'bg-stone-100 text-stone-600',
               },
               {
-                id: 'site_content',
-                label: 'Sayfa Düzenleri',
-                icon: 'fa-solid fa-paintbrush',
-                badge: 'Vitrin',
-                badgeColor: 'bg-amber-50 text-amber-800 font-bold',
-                hasSubmenu: true,
-                subItems: [
-                  { id: 'hero', label: 'Manşet & Hero', icon: 'fa-solid fa-panorama' },
-                  { id: 'campaigns', label: 'Kampanyalar', icon: 'fa-solid fa-fire' },
-                  { id: 'newMenus', label: 'Yeni Menüler', icon: 'fa-solid fa-burger' },
-                  { id: 'features', label: 'Neden Biz?', icon: 'fa-solid fa-shield-heart' },
-                  { id: 'reviews', label: 'Müşteri Yorumları', icon: 'fa-regular fa-star' },
-                  { id: 'contact', label: 'İletişim & Şube', icon: 'fa-solid fa-phone' },
-                ]
-              },
-              {
                 id: 'settings',
                 label: 'Sistem Ayarları',
                 icon: 'fa-solid fa-sliders',
@@ -1346,7 +1341,6 @@ export default function AdminDashboardPage() {
                 hasSubmenu: true,
                 subItems: [
                   { id: 'appearance', label: 'Yazı Boyutu & Arayüz', icon: 'fa-solid fa-text-height' },
-                  { id: 'site_content', label: 'Müşteri Sayfası & Vitrin', icon: 'fa-solid fa-paintbrush' },
                   { id: 'users', label: 'Kullanıcılar & Roller', icon: 'fa-solid fa-user-shield' },
                   { id: 'sound', label: 'Ses & Bildirimler', icon: 'fa-solid fa-volume-high' },
                   { id: 'receipt', label: 'Fiş & Adisyon Baskısı', icon: 'fa-solid fa-receipt' },
@@ -1363,18 +1357,11 @@ export default function AdminDashboardPage() {
               .map((item) => {
               const active = currentTab === item.id;
               if (item.hasSubmenu) {
-                const isExpanded =
-                  item.id === 'site_content'
-                    ? siteContentExpanded
-                    : item.id === 'settings'
-                    ? settingsExpanded
-                    : false;
+                const isExpanded = item.id === 'settings' ? settingsExpanded : false;
 
                 const toggleExpanded = () => {
                   setCurrentTab(item.id);
-                  if (item.id === 'site_content') {
-                    setSiteContentExpanded((prev) => !prev);
-                  } else if (item.id === 'settings') {
+                  if (item.id === 'settings') {
                     setSettingsExpanded((prev) => !prev);
                   }
                   if (sidebarCollapsed) {
@@ -1692,6 +1679,20 @@ export default function AdminDashboardPage() {
             >
               <i className={`fa-solid fa-rotate-right text-xs ${loadingOrders ? 'fa-spin text-amber-500' : ''}`}></i>
             </button>
+
+            {/* Sağ Taraf: Sayfa Düzenleri & Vitrin Stüdyosu Açma Butonu */}
+            {canEditSiteContent && (
+              <button
+                type="button"
+                onClick={() => setSiteEditorDrawerOpen(true)}
+                className="inline-flex items-center gap-2 px-3 sm:px-3.5 py-2 rounded-xl bg-gradient-to-r from-brand-600 to-amber-500 hover:from-brand-700 hover:to-amber-600 text-white font-extrabold text-xs shadow-sm hover:shadow-md transition-all cursor-pointer active:scale-95 shrink-0"
+                title="Sayfa Düzenleri & Vitrin Stüdyosunu Sağ Panelde Aç"
+              >
+                <i className="fa-solid fa-paintbrush text-xs"></i>
+                <span className="hidden sm:inline">Sayfa Düzenleri</span>
+                <span className="sm:hidden">Vitrin</span>
+              </button>
+            )}
           </div>
         </header>
 
@@ -3640,6 +3641,128 @@ export default function AdminDashboardPage() {
               </div>
             </form>
           </div>
+        </div>
+      )}
+
+      {/* SAĞ KENAR HIZLI ERİŞİM KULAKÇIĞI (SAYFA DÜZENLERİ) */}
+      {canEditSiteContent && !siteEditorDrawerOpen && (
+        <button
+          type="button"
+          onClick={() => setSiteEditorDrawerOpen(true)}
+          title="Sayfa Düzenleri & Vitrin Stüdyosunu Sağda Aç"
+          className="hidden lg:flex fixed right-0 top-1/2 -translate-y-1/2 z-30 flex-col items-center gap-2 py-3.5 px-2.5 rounded-l-2xl bg-gradient-to-b from-stone-900 to-stone-800 hover:from-brand-600 hover:to-amber-600 text-white shadow-xl border border-r-0 border-white/15 transition-all duration-200 cursor-pointer group"
+        >
+          <span className="w-7 h-7 rounded-xl bg-amber-500/20 group-hover:bg-white/20 text-amber-400 group-hover:text-white flex items-center justify-center transition-colors">
+            <i className="fa-solid fa-paintbrush text-xs"></i>
+          </span>
+          <span
+            className="text-[10px] font-extrabold uppercase tracking-widest text-stone-200 group-hover:text-white"
+            style={{ writingMode: 'vertical-rl' }}
+          >
+            Sayfa Düzenle
+          </span>
+        </button>
+      )}
+
+      {/* SAĞDAN AÇILIR SAYFA DÜZENLERİ & VİTRİN STÜDYOSU ÇEKMECESİ (DRAWER) */}
+      {canEditSiteContent && siteEditorDrawerOpen && (
+        <div className="fixed inset-0 z-50 flex justify-end">
+          {/* Yarı Saydam Arka Plan */}
+          <div
+            onClick={() => setSiteEditorDrawerOpen(false)}
+            className="fixed inset-0 bg-stone-950/50 backdrop-blur-xs animate-in fade-in duration-200"
+            aria-hidden="true"
+          />
+
+          {/* Sağ Panel Çekmecesi */}
+          <aside
+            style={{ backgroundColor: '#ffffff' }}
+            className={`relative z-10 h-full w-full ${
+              siteEditorWide ? 'max-w-5xl' : 'max-w-3xl'
+            } bg-white border-l border-stone-200 shadow-[-24px_0_64px_rgba(15,23,42,0.28)] flex flex-col transition-all duration-300 animate-in slide-in-from-right`}
+          >
+            {/* Sağ Çekmece Üst Başlık ve Hızlı Bölüm Sekmeleri */}
+            <div className="bg-white border-b border-stone-200 px-4 sm:px-6 py-3.5 space-y-3 shrink-0">
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-brand-600 to-amber-500 text-white flex items-center justify-center shadow-md shrink-0">
+                    <i className="fa-solid fa-paintbrush text-sm"></i>
+                  </div>
+                  <div className="min-w-0">
+                    <h3 className="text-sm sm:text-base font-extrabold text-stone-900 truncate">
+                      Sayfa Düzenleri &amp; Vitrin Stüdyosu
+                    </h3>
+                    <p className="text-[11px] text-stone-500 truncate">
+                      Müşteri ana sayfası manşet, kampanya, menü ve iletişim alanlarını sağ panelden yönetin
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setSiteEditorWide((prev) => !prev)}
+                    className="hidden lg:inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-700 font-bold text-xs transition-colors cursor-pointer"
+                    title={siteEditorWide ? 'Paneli Daralt' : 'Paneli Genişlet'}
+                  >
+                    <i
+                      className={`fa-solid ${
+                        siteEditorWide ? 'fa-compress' : 'fa-expand'
+                      } text-xs`}
+                    ></i>
+                    <span>{siteEditorWide ? 'Daralt' : 'Genişlet'}</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setSiteEditorDrawerOpen(false)}
+                    className="w-9 h-9 rounded-xl bg-stone-100 hover:bg-rose-50 text-stone-600 hover:text-rose-600 flex items-center justify-center transition-colors cursor-pointer"
+                    aria-label="Sayfa Düzenleme Panelini Kapat"
+                    title="Kapat"
+                  >
+                    <i className="fa-solid fa-xmark text-base"></i>
+                  </button>
+                </div>
+              </div>
+
+              {/* Hızlı Bölüm Geçiş Hapları */}
+              <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-0.5">
+                {[
+                  { id: 'hero', label: 'Manşet & Hero', icon: 'fa-solid fa-panorama' },
+                  { id: 'campaigns', label: 'Kampanyalar', icon: 'fa-solid fa-fire' },
+                  { id: 'newMenus', label: 'Yeni Menüler', icon: 'fa-solid fa-burger' },
+                  { id: 'features', label: 'Neden Biz?', icon: 'fa-solid fa-shield-heart' },
+                  { id: 'reviews', label: 'Müşteri Yorumları', icon: 'fa-regular fa-star' },
+                  { id: 'contact', label: 'İletişim & Şube', icon: 'fa-solid fa-phone' },
+                ].map((sec) => {
+                  const activeSec = selectedSiteContentSubTab === sec.id;
+                  return (
+                    <button
+                      key={sec.id}
+                      type="button"
+                      onClick={() => setSelectedSiteContentSubTab(sec.id)}
+                      className={`shrink-0 px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+                        activeSec
+                          ? 'bg-gradient-to-r from-brand-600 to-amber-500 text-white shadow-xs'
+                          : 'bg-stone-100 hover:bg-stone-200 text-stone-600 hover:text-stone-900'
+                      }`}
+                    >
+                      <i className={`${sec.icon} text-[11px]`}></i>
+                      <span>{sec.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Sağ Çekmece İçerik Alanı */}
+            <div className="flex-1 overflow-y-auto p-4 sm:p-6 bg-stone-50/80">
+              <SiteContentEditorTab
+                initialSubTab={selectedSiteContentSubTab}
+                onSubTabChange={setSelectedSiteContentSubTab}
+              />
+            </div>
+          </aside>
         </div>
       )}
 
