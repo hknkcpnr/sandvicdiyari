@@ -18,6 +18,7 @@ const globalForPrisma = globalThis as unknown as {
 export const rawPrisma: PrismaClient =
   globalForPrisma.rawPrisma ??
   new PrismaClient({
+    datasourceUrl: process.env.POSTGRES_PRISMA_URL || process.env.DATABASE_URL,
     log: process.env.NODE_ENV === 'development' ? ['error', 'warn'] : ['error']
   });
 
@@ -54,7 +55,7 @@ export function formatPrismaProduct(p: Record<string, unknown> | null) {
 export function formatPrismaOrder(o: Record<string, unknown> | null) {
   if (!o) return null;
   const subtotal = Number(o.subtotal ?? 0);
-  const deliveryFee = Number(o.deliveryFee ?? 0);
+  const deliveryFee = Number(o.deliveryFee ?? 0)
   const total = Number(o.total ?? subtotal + deliveryFee);
   return {
     ...o,
@@ -217,7 +218,7 @@ export const prisma = {
           where: { id: Number(args.where.id) },
           data: args.data as any
         });
-      } catch {}
+      } catch { }
       return localUpdated;
     },
 
@@ -227,7 +228,7 @@ export const prisma = {
         await rawPrisma.review.delete({
           where: { id: Number(args.where.id) }
         });
-      } catch {}
+      } catch { }
       return { success: ok };
     },
 
@@ -249,7 +250,7 @@ export const prisma = {
             comment: args.data.comment
           }
         });
-      } catch {}
+      } catch { }
       return localRev;
     }
   },
