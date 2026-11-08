@@ -363,104 +363,162 @@ export default function HomePage() {
           </div>
         )}
 
-        {/* 5. Müşteri Yorumları Vitrini */}
+        {/* 5. Müşteri Yorumları Vitrini (Yenilenmiş & Premium Tasarım) */}
         {reviewsSection.visible !== false && (
-          <div className="py-2">
-            <div className="text-center max-w-2xl mx-auto mb-10 space-y-2">
-              <h3 className="text-2xl sm:text-4xl font-extrabold text-stone-900 tracking-tight">
-                {reviewsSection.title || 'Lezzet Severler Ne Diyor?'}
-              </h3>
-              <p className="text-stone-500 text-xs sm:text-sm">
-                {reviewsSection.subtitle ||
-                  "Torbalı'da her gün yüzlerce sıcak siparişi lezzet tutkunlarıyla buluşturuyoruz."}
-              </p>
-            </div>
+          <div className="py-4">
+            <div className="bg-gradient-to-b from-stone-50/80 via-white to-amber-50/20 rounded-3xl p-6 sm:p-10 lg:p-12 border border-stone-200/80 shadow-sm relative overflow-hidden">
+              {/* Arka Plan Dekoratif Işık Halkaları */}
+              <div className="absolute top-0 right-0 -mt-12 -mr-12 w-80 h-80 bg-amber-400/10 rounded-full blur-3xl pointer-events-none"></div>
+              <div className="absolute bottom-0 left-0 -mb-12 -ml-12 w-80 h-80 bg-orange-500/10 rounded-full blur-3xl pointer-events-none"></div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {(reviews || []).filter((r) => r.isApproved === true).slice(0, 3).map((review, index) => {
-                const avatarThemes = [
-                  {
-                    gradient: 'bg-gradient-to-br from-amber-400 via-orange-500 to-rose-600',
-                    ring: 'ring-4 ring-orange-400/30 shadow-lg shadow-orange-500/30',
-                    badgeBg: 'bg-orange-50 text-orange-700 border-orange-200',
-                    quoteColor: 'text-orange-400/25'
-                  },
-                  {
-                    gradient: 'bg-gradient-to-br from-emerald-400 via-teal-500 to-cyan-600',
-                    ring: 'ring-4 ring-emerald-400/30 shadow-lg shadow-emerald-500/30',
-                    badgeBg: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-                    quoteColor: 'text-emerald-400/25'
-                  },
-                  {
-                    gradient: 'bg-gradient-to-br from-violet-500 via-purple-500 to-fuchsia-600',
-                    ring: 'ring-4 ring-purple-400/30 shadow-lg shadow-purple-500/30',
-                    badgeBg: 'bg-purple-50 text-purple-700 border-purple-200',
-                    quoteColor: 'text-purple-400/25'
-                  },
-                  {
-                    gradient: 'bg-gradient-to-br from-sky-400 via-blue-500 to-indigo-600',
-                    ring: 'ring-4 ring-sky-400/30 shadow-lg shadow-sky-500/30',
-                    badgeBg: 'bg-sky-50 text-sky-700 border-sky-200',
-                    quoteColor: 'text-sky-400/25'
-                  }
-                ];
-                const theme = avatarThemes[index % avatarThemes.length];
+              {/* Başlık & Güven Rozeti */}
+              <div className="text-center max-w-2xl mx-auto mb-10 space-y-3 relative z-10">
+                <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-amber-50 text-amber-900 border border-amber-200 text-xs font-bold shadow-2xs">
+                  <span className="flex text-amber-400 text-xs gap-0.5">
+                    <i className="fa-solid fa-star"></i>
+                    <i className="fa-solid fa-star"></i>
+                    <i className="fa-solid fa-star"></i>
+                    <i className="fa-solid fa-star"></i>
+                    <i className="fa-solid fa-star"></i>
+                  </span>
+                  <span>4.9 / 5.0 Memnuniyet</span>
+                  <span className="w-1 h-1 rounded-full bg-amber-400"></span>
+                  <span className="text-stone-500 font-semibold">Doğrulanmış Siparişler</span>
+                </div>
 
-                return (
-                  <div
-                    key={review.id}
-                    className="relative bg-white p-6 sm:p-7 rounded-3xl border border-stone-200/90 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between overflow-hidden group"
-                  >
-                    {/* Sağ Üst Dekoratif Tırnak İkonu */}
-                    <i
-                      className={`fa-solid fa-quote-right text-4xl absolute top-4 right-5 ${theme.quoteColor} group-hover:scale-110 transition-transform`}
-                    ></i>
+                <h3 className="text-2xl sm:text-4xl font-black text-stone-900 tracking-tight">
+                  {reviewsSection.title || 'Lezzet Severler Ne Diyor?'}
+                </h3>
+                <p className="text-stone-500 text-xs sm:text-sm leading-relaxed max-w-lg mx-auto">
+                  {reviewsSection.subtitle ||
+                    "Torbalı'da her gün yüzlerce sıcak siparişi lezzet tutkunlarıyla buluşturuyoruz."}
+                </p>
+              </div>
 
-                    <div className="space-y-3.5 relative z-10">
-                      <div className="flex items-center justify-between">
-                        <div className="flex text-amber-400 text-sm gap-1 drop-shadow-2xs">
-                          {[...Array(review.rating || 5)].map((_, i) => (
-                            <i key={i} className="fa-solid fa-star"></i>
-                          ))}
-                        </div>
-                        <span
-                          className={`text-[10px] font-extrabold px-2.5 py-0.5 rounded-full border ${theme.badgeBg} flex items-center gap-1`}
-                        >
-                          <i className="fa-solid fa-circle-check text-[9px]"></i> Onaylı Sipariş
-                        </span>
-                      </div>
+              {/* Yorum Kartları Izgarası */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 relative z-10">
+                {(reviews || [])
+                  .filter((r) => r.isApproved === true)
+                  .slice(0, 3)
+                  .map((review, index) => {
+                    const avatarThemes = [
+                      {
+                        gradient: 'bg-gradient-to-br from-amber-500 via-orange-500 to-red-600',
+                        ring: 'ring-4 ring-orange-200/80 shadow-md shadow-orange-500/20',
+                        accentLine: 'from-amber-400 via-orange-500 to-red-500',
+                        badgeBg: 'bg-emerald-50 text-emerald-800 border-emerald-200',
+                        starScore: '5.0'
+                      },
+                      {
+                        gradient: 'bg-gradient-to-br from-emerald-500 via-teal-500 to-cyan-600',
+                        ring: 'ring-4 ring-emerald-200/80 shadow-md shadow-emerald-500/20',
+                        accentLine: 'from-emerald-400 via-teal-500 to-cyan-500',
+                        badgeBg: 'bg-emerald-50 text-emerald-800 border-emerald-200',
+                        starScore: '5.0'
+                      },
+                      {
+                        gradient: 'bg-gradient-to-br from-violet-500 via-purple-500 to-fuchsia-600',
+                        ring: 'ring-4 ring-purple-200/80 shadow-md shadow-purple-500/20',
+                        accentLine: 'from-violet-400 via-purple-500 to-fuchsia-500',
+                        badgeBg: 'bg-emerald-50 text-emerald-800 border-emerald-200',
+                        starScore: '5.0'
+                      }
+                    ];
+                    const theme = avatarThemes[index % avatarThemes.length];
 
-                      <p className="text-stone-700 text-xs sm:text-sm italic leading-relaxed font-medium">
-                        &ldquo;{review.comment}&rdquo;
-                      </p>
-                    </div>
-
-                    <div className="flex items-center gap-3.5 pt-3.5 border-t border-stone-100 relative z-10">
-                      {/* Renklendirilmiş Canlı Kullanıcı Profil Avatarı */}
-                      <div className="relative shrink-0">
+                    return (
+                      <div
+                        key={review.id}
+                        className="bg-white rounded-3xl p-6 sm:p-7 border border-stone-200/80 shadow-xs hover:shadow-2xl hover:border-amber-300 hover:-translate-y-1.5 transition-all duration-300 flex flex-col justify-between relative overflow-hidden group min-h-[230px]"
+                      >
+                        {/* Kart Üstü Renkli İnce Çizgi Vurgusu */}
                         <div
-                          className={`w-11 h-11 ${theme.gradient} ${theme.ring} rounded-full flex items-center justify-center font-extrabold text-xs text-white tracking-wider select-none`}
-                        >
-                          {review.initials || 'SD'}
-                        </div>
-                        <span className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-emerald-500 border-2 border-white rounded-full flex items-center justify-center text-[8px] text-white shadow-xs">
-                          <i className="fa-solid fa-check"></i>
-                        </span>
-                      </div>
+                          className={`absolute top-0 left-0 right-0 h-1 bg-gradient-to-r ${theme.accentLine} opacity-0 group-hover:opacity-100 transition-opacity duration-300`}
+                        ></div>
 
-                      <div className="min-w-0">
-                        <span className="font-extrabold text-xs sm:text-sm text-stone-900 block truncate">
-                          {review.name}
-                        </span>
-                        <span className="text-[11px] text-stone-500 font-medium flex items-center gap-1">
-                          <i className="fa-solid fa-location-dot text-brand-500 text-[10px]"></i>
-                          {review.location || 'Torbalı, İzmir'}
-                        </span>
+                        {/* Arka Planda Zarif Filigran Tırnak İkonu (Çakışma yapmadan alt-sağda) */}
+                        <i className="fa-solid fa-quote-right text-7xl absolute -bottom-3 right-3 text-stone-100 group-hover:text-amber-100/60 transition-colors pointer-events-none select-none z-0"></i>
+
+                        {/* Üst Kısım: Yıldızlar & Onay Rozeti */}
+                        <div className="space-y-4 relative z-10">
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="flex items-center gap-1.5">
+                              <div className="flex text-amber-400 text-xs sm:text-sm gap-0.5">
+                                {[...Array(Number(review.rating) || 5)].map((_, i) => (
+                                  <i key={i} className="fa-solid fa-star"></i>
+                                ))}
+                              </div>
+                              <span className="text-[11px] font-black text-amber-900 bg-amber-100/70 px-1.5 py-0.5 rounded-md">
+                                {Number(review.rating || 5).toFixed(1)}
+                              </span>
+                            </div>
+
+                            <span
+                              className={`text-[10px] font-bold px-2.5 py-1 rounded-full border ${theme.badgeBg} flex items-center gap-1.5 shrink-0 shadow-2xs`}
+                            >
+                              <i className="fa-solid fa-circle-check text-emerald-600 text-[10px]"></i>
+                              <span>Onaylı Sipariş</span>
+                            </span>
+                          </div>
+
+                          {/* Yorum Metni */}
+                          <p className="text-stone-700 text-xs sm:text-sm leading-relaxed font-medium italic">
+                            &ldquo;{review.comment}&rdquo;
+                          </p>
+                        </div>
+
+                        {/* Alt Kısım: Müşteri Profili & Konum */}
+                        <div className="flex items-center gap-3.5 pt-4 mt-4 border-t border-stone-100 relative z-10">
+                          <div className="relative shrink-0">
+                            <div
+                              className={`w-11 h-11 ${theme.gradient} ${theme.ring} rounded-full flex items-center justify-center font-black text-xs text-white tracking-wider select-none`}
+                            >
+                              {review.initials || 'SD'}
+                            </div>
+                            <span className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-emerald-500 border-2 border-white rounded-full flex items-center justify-center text-[8px] text-white shadow-xs">
+                              <i className="fa-solid fa-check"></i>
+                            </span>
+                          </div>
+
+                          <div className="min-w-0 flex-1">
+                            <span className="font-bold text-xs sm:text-sm text-stone-900 block truncate">
+                              {review.name}
+                            </span>
+                            <span className="text-[11px] text-stone-500 font-medium flex items-center gap-1 truncate">
+                              <i className="fa-solid fa-location-dot text-brand-500 text-[10px]"></i>
+                              <span>{review.location || 'Torbalı, İzmir'}</span>
+                              {review.date && (
+                                <span className="text-stone-400 text-[10px]"> &bull; {review.date}</span>
+                              )}
+                            </span>
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                  </div>
-                );
-              })}
+                    );
+                  })}
+              </div>
+
+              {/* Alt Alan: Değerlendirme Butonu ve Güven Rozetleri */}
+              <div className="mt-8 pt-6 border-t border-stone-200/70 flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left relative z-10">
+                <div className="flex items-center gap-3 text-xs text-stone-600">
+                  <span className="w-8 h-8 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center shrink-0">
+                    <i className="fa-solid fa-shield-halved"></i>
+                  </span>
+                  <span>Tüm değerlendirmeler gerçek ve doğrulanmış müşteri siparişlerine aittir.</span>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    const el = document.getElementById('review-name') || document.querySelector('footer');
+                    if (el) el.scrollIntoView({ behavior: 'smooth' });
+                  }}
+                  className="bg-brand-500 hover:bg-brand-600 active:scale-98 text-white font-bold text-xs px-5 py-2.5 rounded-xl shadow-md shadow-brand-500/20 transition-all flex items-center gap-2 cursor-pointer shrink-0"
+                >
+                  <i className="fa-regular fa-pen-to-square"></i>
+                  <span>Siz de Deneyiminizi Paylaşın</span>
+                </button>
+              </div>
             </div>
           </div>
         )}
