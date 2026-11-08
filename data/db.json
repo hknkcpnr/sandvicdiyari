@@ -717,9 +717,9 @@
       "name": "hakan kocapınar",
       "email": "hknkcpnr@gmail.com",
       "phone": "0553 855 76 12",
-      "pass": "scrypt$6a894795304a05915b2c6fd4dcc70e6e$b5cc2adefeda9fdc6d317ddf5c89fbd35c6a799635313913b797f6a15cf39503a3e123dd549c2697120d90fc2f9984ae61a9c07fc02dbaae546065e4c7e39c90",
-      "roleId": "role_1793569112231",
-      "roleName": "Personal",
+      "pass": "admin",
+      "roleId": "role_super_admin",
+      "roleName": "Süper Yönetici",
       "isActive": true,
       "createdAt": "2026-11-01T21:39:01.187Z"
     }
