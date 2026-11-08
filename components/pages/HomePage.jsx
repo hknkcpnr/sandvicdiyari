@@ -368,31 +368,10 @@ export default function HomePage() {
           </div>
         )}
 
-        {/* 5. Müşteri Yorumları Vitrini (Soluk Atmosferik Arka Plan Görseli İle) */}
+        {/* 5. Müşteri Yorumları Vitrini (Sade, Ferah & Modern Tasarım) */}
         {reviewsSection.visible !== false && (
-          <div className="py-4">
-            <div className="rounded-3xl p-6 sm:p-10 lg:p-12 border border-stone-200/80 shadow-sm relative overflow-hidden bg-stone-50/50">
-              {/* Arka Plan Soluk Görsel Katmanı */}
-              <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden">
-                <img
-                  src={
-                    reviewsSection.bgImage ||
-                    'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&q=80&w=1600'
-                  }
-                  alt="Lezzet Severler Arka Planı"
-                  className="w-full h-full object-cover object-center opacity-15 scale-105"
-                  onError={(e) => {
-                    e.currentTarget.onerror = null;
-                    e.currentTarget.src = '/images/hero_sandwich_banner.jpg';
-                  }}
-                />
-                <div className="absolute inset-0 bg-gradient-to-b from-white/90 via-stone-50/75 to-amber-50/85 backdrop-blur-[1px]"></div>
-              </div>
-
-              {/* Arka Plan Dekoratif Işık Halkaları */}
-              <div className="absolute top-0 right-0 -mt-12 -mr-12 w-80 h-80 bg-amber-400/15 rounded-full blur-3xl pointer-events-none"></div>
-              <div className="absolute bottom-0 left-0 -mb-12 -ml-12 w-80 h-80 bg-orange-500/10 rounded-full blur-3xl pointer-events-none"></div>
-
+          <div className="py-2">
+            <div className="rounded-3xl p-6 sm:p-10 lg:p-12 border border-stone-200/80 bg-stone-50/60 shadow-xs relative">
               {/* Başlık & Güven Rozeti */}
               <div className="text-center max-w-2xl mx-auto mb-10 space-y-3 relative z-10">
                 <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-amber-50 text-amber-900 border border-amber-200 text-xs font-bold shadow-2xs">
