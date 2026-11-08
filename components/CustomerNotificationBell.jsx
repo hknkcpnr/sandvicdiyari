@@ -332,8 +332,8 @@ export default function CustomerNotificationBell() {
                   <i className="fa-solid fa-bell"></i>
                 </span>
                 <div>
-                  <h3 className="text-xs sm:text-sm font-extrabold text-stone-900 leading-tight flex items-center gap-1.5">
-                    <span>Bildirim Merkezi</span>
+                  <h3 className="text-xs sm:text-sm font-extrabold text-stone-900 leading-tight flex items-center gap-1.5 select-none">
+                    <span>Bildirimler</span>
                     {unreadCount > 0 && (
                       <span className="bg-rose-100 text-rose-700 text-[10px] font-black px-2 py-0.5 rounded-full">
                         {unreadCount} Yeni
