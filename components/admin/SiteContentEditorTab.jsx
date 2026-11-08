@@ -716,7 +716,7 @@ export default function SiteContentEditorTab({ initialSubTab = 'hero', onSubTabC
         <div className="bg-white p-4 sm:p-6 rounded-2xl border border-stone-200 shadow-xs space-y-4">
           <h3 className="text-xs font-bold text-stone-900 flex items-center gap-2 border-b border-stone-100 pb-2">
             <i className="fa-solid fa-burger text-amber-500"></i>
-            <span>En Yeni Menüler Vitrini Ayarları</span>
+            <span>En İyi Menüler Vitrini Ayarları</span>
           </h3>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -731,7 +731,7 @@ export default function SiteContentEditorTab({ initialSubTab = 'hero', onSubTabC
                     newMenusSection: { ...prev.newMenusSection, badgeText: e.target.value },
                   }))
                 }
-                placeholder="Taze Çıktı"
+                placeholder="Avantajlı Paketler"
                 className="w-full text-xs bg-stone-50 border border-stone-300 rounded-xl px-3.5 py-2.5 font-medium"
               />
             </div>
@@ -747,7 +747,7 @@ export default function SiteContentEditorTab({ initialSubTab = 'hero', onSubTabC
                     newMenusSection: { ...prev.newMenusSection, title: e.target.value },
                   }))
                 }
-                placeholder="En Yeni Menülerimiz"
+                placeholder="En İyi Menülerimiz"
                 className="w-full text-xs bg-stone-50 border border-stone-300 rounded-xl px-3.5 py-2.5 font-bold"
               />
             </div>

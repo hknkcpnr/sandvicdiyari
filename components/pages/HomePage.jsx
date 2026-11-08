@@ -82,7 +82,12 @@ export default function HomePage() {
   const featuresSection = siteContent?.featuresSection || DEFAULT_SITE_CONTENT.featuresSection;
   const reviewsSection = siteContent?.reviewsSection || DEFAULT_SITE_CONTENT.reviewsSection;
 
-  const newMenus = products.slice(0, newMenusSection.itemCount || 3);
+  // En iyi avantajlı menüler (öncelikli olarak category: 'menu' olanlar)
+  const menuCategoryProducts = (products || []).filter((p) => p.category === 'menu');
+  const bestMenus = (menuCategoryProducts.length > 0 ? menuCategoryProducts : products || []).slice(
+    0,
+    newMenusSection.itemCount || 3
+  );
 
   return (
     <div id="page-home" className="page-content animate-in fade-in duration-300">
@@ -195,8 +200,39 @@ export default function HomePage() {
         </header>
       )}
 
-      {/* 2. Ana Sayfa Kampanya ve Yeni Menüler Vitrini */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 space-y-16">
+      {/* 2. Ana Sayfa Vitrini (Banner Altında: İlk Olarak En İyi Menülerimiz) */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16 space-y-16">
+        {/* En İyi Menüler Alanı (Doğrudan Banner Altında) */}
+        {newMenusSection.visible !== false && (
+          <div>
+            <div className="flex items-end justify-between mb-4 sm:mb-6">
+              <div>
+                <span className="text-[11px] font-bold text-brand-600 uppercase tracking-wider block mb-0.5">
+                  {newMenusSection.badgeText || 'Avantajlı Paketler'}
+                </span>
+                <h3 className="text-xl sm:text-2xl font-extrabold text-stone-900 tracking-tight">
+                  {newMenusSection.title || 'En İyi Menülerimiz'}
+                </h3>
+              </div>
+              {newMenusSection.btnAllVisible !== false && (
+                <button
+                  onClick={() => dispatch(setActivePage('menu'))}
+                  className="text-xs sm:text-sm font-bold text-brand-600 hover:text-brand-700 flex items-center gap-1 cursor-pointer transition-colors active:scale-95"
+                >
+                  <span>{newMenusSection.btnAllText || 'Tümünü Gör'}</span>
+                  <i className="fa-solid fa-chevron-right text-[10px]"></i>
+                </button>
+              )}
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5 sm:gap-5 lg:gap-6">
+              {bestMenus.map((product) => (
+                <ProductCard key={product.id} product={product} />
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Kampanya Ürünleri Alanı (Katalog Görünümü) */}
         {campaignsSection.visible !== false && (
           <div>
@@ -279,37 +315,6 @@ export default function HomePage() {
                   </div>
                 );
               })}
-            </div>
-          </div>
-        )}
-
-        {/* 3. Yeni Menüler Alanı (Minimal & Mobil Uyumlu) */}
-        {newMenusSection.visible !== false && (
-          <div>
-            <div className="flex items-end justify-between mb-4 sm:mb-6">
-              <div>
-                <span className="text-[11px] font-bold text-brand-600 uppercase tracking-wider block mb-0.5">
-                  {newMenusSection.badgeText || 'Taze Çıktı'}
-                </span>
-                <h3 className="text-xl sm:text-2xl font-extrabold text-stone-900 tracking-tight">
-                  {newMenusSection.title || 'En Yeni Menülerimiz'}
-                </h3>
-              </div>
-              {newMenusSection.btnAllVisible !== false && (
-                <button
-                  onClick={() => dispatch(setActivePage('menu'))}
-                  className="text-xs sm:text-sm font-bold text-brand-600 hover:text-brand-700 flex items-center gap-1 cursor-pointer transition-colors active:scale-95"
-                >
-                  <span>{newMenusSection.btnAllText || 'Tümünü Gör'}</span>
-                  <i className="fa-solid fa-chevron-right text-[10px]"></i>
-                </button>
-              )}
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5 sm:gap-5 lg:gap-6">
-              {newMenus.map((product) => (
-                <ProductCard key={product.id} product={product} />
-              ))}
             </div>
           </div>
         )}
