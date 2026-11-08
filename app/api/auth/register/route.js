@@ -1,3 +1,4 @@
+import { db } from '@/lib/db';
 import { prisma } from '@/lib/prisma';
 import {
   ConflictError,
@@ -6,7 +7,7 @@ import {
   jsonSuccess,
   parseJsonBody
 } from '@/lib/security/errors';
-import { checkRateLimit, signJwtToken } from '@/lib/security/auth';
+import { checkRateLimit } from '@/lib/security/auth';
 import {
   sanitizeEmailOrUsername,
   sanitizePhone,
@@ -35,41 +36,59 @@ export async function POST(request) {
       throw new ValidationError('Şifre en az 4 karakter olmalıdır.');
     }
 
-    const existing = await prisma.user.findUnique({
-      where: { email }
-    });
+    let existingPrisma = null;
+    try {
+      if (prisma && prisma.user) {
+        existingPrisma = await prisma.user.findUnique({
+          where: { email }
+        });
+      }
+    } catch (e) {}
 
-    if (existing) {
+    const existingLocal = db.findUserByEmail(email);
+
+    if (existingPrisma || existingLocal) {
       throw new ConflictError('Bu e-posta adresi ile zaten bir hesap mevcut.');
     }
 
-    const phoneVerified = Boolean(body.phoneVerified);
+    // Yeni kayıt: Restoran sahibi yönetim panelinden onaylayana kadar phoneVerified = false
+    const phoneVerified = false;
 
-    const newUser = await prisma.user.create({
-      data: {
-        name,
-        email,
-        phone,
-        phoneVerified,
-        address,
-        pass
+    let newUser = null;
+    try {
+      if (prisma && prisma.user) {
+        newUser = await prisma.user.create({
+          data: {
+            name,
+            email,
+            phone,
+            phoneVerified,
+            address,
+            pass
+          }
+        });
       }
+    } catch (e) {}
+
+    // Yerel DB'ye de kaydet
+    const localCreated = db.createUser({
+      name,
+      email,
+      phone,
+      phoneVerified,
+      address,
+      pass
     });
 
-    const { pass: _, ...userSafe } = newUser;
-    const token = signJwtToken({
-      sub: String(newUser.id),
-      email: newUser.email,
-      name: newUser.name,
-      type: 'customer'
-    });
+    const finalRecord = newUser || localCreated;
+    const { pass: _, ...userSafe } = finalRecord;
 
     return jsonSuccess(
       {
-        message: 'Hesabınız başarıyla oluşturuldu!',
+        message: 'Kayıt talebiniz alındı! Lütfen WhatsApp üzerinden onay isteyiniz.',
+        pendingApproval: true,
         data: {
-          user: userSafe,
-          token
+          user: userSafe
         }
       },
       201

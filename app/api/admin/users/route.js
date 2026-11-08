@@ -35,6 +35,9 @@ export async function GET(request) {
     const customers = (rawCustomers || []).map((u) => {
       const localUser = db.findUserByEmail(u.email) || {};
       const { pass: _, passHash: __, ...safeUser } = { ...localUser, ...u };
+      safeUser.phoneVerified = Boolean(
+        u.phoneVerified ?? u.phone_verified ?? localUser.phoneVerified ?? false
+      );
       return safeUser;
     });
 
@@ -74,6 +77,57 @@ export async function POST(request) {
           message: customerId === 'all' ? 'Tüm üyelere bildirim başarıyla iletildi.' : 'Üyeye bildirim başarıyla iletildi.',
           data: {
             result,
+            customers: db.getUsers()
+          }
+        });
+      }
+
+      if (action === 'approve') {
+        const updated = db.approveUser(customerId);
+        try {
+          if (prisma && prisma.user) {
+            await prisma.user.updateMany({
+              where: {
+                OR: [
+                  { id: customerId },
+                  { email: customerId }
+                ]
+              },
+              data: {
+                phoneVerified: true,
+                phoneVerifiedAt: new Date()
+              }
+            });
+          }
+        } catch (e) {}
+
+        return jsonSuccess({
+          message: 'Müşteri hesabı başarıyla onaylandı ve oturum açma izni verildi.',
+          data: {
+            customer: updated,
+            customers: db.getUsers()
+          }
+        });
+      }
+
+      if (action === 'delete') {
+        db.deleteUser(customerId);
+        try {
+          if (prisma && prisma.user) {
+            await prisma.user.deleteMany({
+              where: {
+                OR: [
+                  { id: customerId },
+                  { email: customerId }
+                ]
+              }
+            });
+          }
+        } catch (e) {}
+
+        return jsonSuccess({
+          message: 'Müşteri kaydı sistemden silindi.',
+          data: {
             customers: db.getUsers()
           }
         });

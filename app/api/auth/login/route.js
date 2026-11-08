@@ -46,6 +46,23 @@ export async function POST(request) {
       );
     }
 
+    const isAdmin = String(user.email || '').toLowerCase().startsWith('admin') || user.username === 'admin';
+    const isApproved = Boolean(user.phoneVerified ?? user.phone_verified);
+
+    if (!isAdmin && !isApproved) {
+      return jsonSuccess({
+        message: 'Hesabınız henüz restoran yöneticisi tarafından onaylanmamıştır. Lütfen WhatsApp üzerinden onay talebinizi iletiniz.',
+        pendingApproval: true,
+        data: {
+          user: {
+            name: user.name,
+            email: user.email,
+            phone: user.phone
+          }
+        }
+      });
+    }
+
     const { pass: _, ...userSafe } = user;
     const token = signJwtToken({
       sub: String(user.id || user.email),

@@ -54,19 +54,25 @@ export const authSlice = createSlice({
       }
     },
     register: (state, action) => {
+      const isApproved = Boolean(action.payload.phoneVerified);
       const newUser = {
         ...action.payload,
         phone: formatTurkishPhoneInput(action.payload.phone || ''),
         id: action.payload.id || 'u_' + Date.now(),
-        orders: action.payload.orders || []
+        orders: action.payload.orders || [],
+        phoneVerified: isApproved
       };
-      state.usersList.push(newUser);
-      state.currentUser = newUser;
-      try {
-        if (typeof window !== 'undefined') {
-          localStorage.setItem('sd_current_user', JSON.stringify(newUser));
-        }
-      } catch (e) {}
+      if (!state.usersList.some(u => u.email.toLowerCase() === newUser.email.toLowerCase())) {
+        state.usersList.push(newUser);
+      }
+      if (isApproved) {
+        state.currentUser = newUser;
+        try {
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('sd_current_user', JSON.stringify(newUser));
+          }
+        } catch (e) {}
+      }
     },
     logout: (state) => {
       state.currentUser = null;

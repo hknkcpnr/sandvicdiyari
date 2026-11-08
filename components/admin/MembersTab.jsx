@@ -10,7 +10,8 @@ export default function MembersTab({ onCustomerUpdated }) {
   const [members, setMembers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all'); // 'all' | 'active' | 'blocked'
+  const [statusFilter, setStatusFilter] = useState('all'); // 'all' | 'pending' | 'active' | 'blocked'
+  const [approvingId, setApprovingId] = useState(null);
 
   // Bildirim Modalı Durumları
   const [isNotifyModalOpen, setIsNotifyModalOpen] = useState(false);
@@ -50,9 +51,13 @@ export default function MembersTab({ onCustomerUpdated }) {
   const filteredMembers = useMemo(() => {
     const q = searchQuery.trim().toLowerCase();
     return members.filter((m) => {
+      const isApproved = m.phoneVerified === true;
+      const isBlocked = m.isBlocked === true;
+
       // Durum Filtresi
-      if (statusFilter === 'active' && m.isBlocked === true) return false;
-      if (statusFilter === 'blocked' && m.isBlocked !== true) return false;
+      if (statusFilter === 'pending' && (isApproved || isBlocked)) return false;
+      if (statusFilter === 'active' && (!isApproved || isBlocked)) return false;
+      if (statusFilter === 'blocked' && !isBlocked) return false;
 
       // Arama Filtresi
       if (!q) return true;
@@ -68,9 +73,10 @@ export default function MembersTab({ onCustomerUpdated }) {
   const stats = useMemo(() => {
     const total = members.length;
     const blocked = members.filter((m) => m.isBlocked === true).length;
-    const active = total - blocked;
+    const pending = members.filter((m) => m.phoneVerified !== true && m.isBlocked !== true).length;
+    const active = members.filter((m) => m.phoneVerified === true && m.isBlocked !== true).length;
     const totalOrders = members.reduce((sum, m) => sum + (Array.isArray(m.orders) ? m.orders.length : 0), 0);
-    return { total, active, blocked, totalOrders };
+    return { total, pending, active, blocked, totalOrders };
   }, [members]);
 
   // Bildirim Modalı Aç
@@ -136,6 +142,50 @@ export default function MembersTab({ onCustomerUpdated }) {
       alert('Bildirim gönderilirken bir hata oluştu.');
     } finally {
       setIsSendingNotify(false);
+    }
+  };
+
+  // Üyeyi Onayla & Girişe İzin Ver
+  const handleApproveMember = async (member) => {
+    if (!member) return;
+    const targetId = member.id || member.email;
+    setApprovingId(targetId);
+    try {
+      const res = await fetch('/api/admin/users', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          entityType: 'customer',
+          action: 'approve',
+          id: targetId
+        })
+      });
+      const json = await res.json();
+      if (!json.success) {
+        alert(json.error || 'Üyelik onaylanamadı.');
+        return;
+      }
+
+      setMembers((prev) =>
+        prev.map((m) =>
+          (m.id === member.id || m.email === member.email)
+            ? { ...m, phoneVerified: true, phoneVerifiedAt: new Date().toISOString() }
+            : m
+        )
+      );
+      if (onCustomerUpdated) onCustomerUpdated(json.data?.customers);
+
+      dispatch(
+        showMessageModal({
+          title: 'Üyelik Onaylandı! 🎉',
+          text: `"${member.name}" başarıyla onaylandı ve oturum açma yetkisi verildi. Müşteri web sitesinden giriş yapabilir.`,
+          type: 'success'
+        })
+      );
+    } catch (err) {
+      alert('Onaylama işlemi sırasında bir hata oluştu.');
+    } finally {
+      setApprovingId(null);
     }
   };
 
@@ -303,7 +353,7 @@ export default function MembersTab({ onCustomerUpdated }) {
             <span>Kayıtlı Üye & Müşteri Yönetimi</span>
           </h2>
           <p className="text-xs text-stone-500 mt-1">
-            Sistemde kayıtlı üyeleri listeleyin, şüpheli hesapları engelleyin ve SMS/WhatsApp bildirimleri gönderin.
+            WhatsApp onay taleplerini inceleyin, yeni üyeleri tek tıkla onaylayın ve müşteri oturumlarını yönetin.
           </p>
         </div>
 
@@ -318,6 +368,34 @@ export default function MembersTab({ onCustomerUpdated }) {
         </button>
       </div>
 
+      {/* ONAY BEKLEYENLER DİKKAT BANNERI */}
+      {stats.pending > 0 && (
+        <div className="bg-gradient-to-r from-amber-50 via-amber-100/70 to-emerald-50 border-2 border-amber-300 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-xs animate-in fade-in duration-200">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-amber-500 text-white flex items-center justify-center text-lg shrink-0 shadow-xs">
+              <i className="fa-brands fa-whatsapp"></i>
+            </div>
+            <div>
+              <h3 className="font-extrabold text-stone-900 text-sm sm:text-base flex items-center gap-2">
+                <span>WhatsApp Onayı Bekleyen {stats.pending} Müşteri Var!</span>
+                <span className="bg-amber-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full animate-pulse">Yeni Talep</span>
+              </h3>
+              <p className="text-xs text-stone-600 mt-0.5">
+                Müşteriler WhatsApp üzerinden kayıt onayı istedi. Aşağıdaki listeden tek tıkla onaylayıp sisteme girmelerine izin verebilirsiniz.
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => setStatusFilter('pending')}
+            className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-xl transition-all shadow-xs cursor-pointer shrink-0 flex items-center gap-1.5"
+          >
+            <i className="fa-solid fa-user-clock text-xs"></i>
+            <span>Onay Bekleyenleri Göster ({stats.pending})</span>
+          </button>
+        </div>
+      )}
+
       {/* 2. DÖRT İSTATİSTİK KARTI */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         <div className="bg-white p-4 rounded-2xl border border-stone-200/90 shadow-2xs flex items-center justify-between">
@@ -327,6 +405,16 @@ export default function MembersTab({ onCustomerUpdated }) {
           </div>
           <span className="w-10 h-10 rounded-xl bg-stone-100 text-stone-600 flex items-center justify-center text-base shrink-0">
             <i className="fa-solid fa-users"></i>
+          </span>
+        </div>
+
+        <div className="bg-white p-4 rounded-2xl border border-stone-200/90 shadow-2xs flex items-center justify-between">
+          <div>
+            <span className="text-[11px] font-bold uppercase tracking-wider text-amber-600 block">Onay Bekleyen</span>
+            <span className="text-xl sm:text-2xl font-black text-amber-700 mt-0.5 block">{stats.pending}</span>
+          </div>
+          <span className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center text-base shrink-0">
+            <i className="fa-solid fa-user-clock"></i>
           </span>
         </div>
 
@@ -349,16 +437,6 @@ export default function MembersTab({ onCustomerUpdated }) {
             <i className="fa-solid fa-user-slash"></i>
           </span>
         </div>
-
-        <div className="bg-white p-4 rounded-2xl border border-stone-200/90 shadow-2xs flex items-center justify-between">
-          <div>
-            <span className="text-[11px] font-bold uppercase tracking-wider text-amber-600 block">Üye Siparişleri</span>
-            <span className="text-xl sm:text-2xl font-black text-amber-700 mt-0.5 block">{stats.totalOrders}</span>
-          </div>
-          <span className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center text-base shrink-0">
-            <i className="fa-solid fa-box-open"></i>
-          </span>
-        </div>
       </div>
 
       {/* 3. ARAMA VE FİLTRELEME ÇUBUĞU */}
@@ -373,6 +451,24 @@ export default function MembersTab({ onCustomerUpdated }) {
             }`}
           >
             Tümü ({stats.total})
+          </button>
+          <button
+            type="button"
+            onClick={() => setStatusFilter('pending')}
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+              statusFilter === 'pending'
+                ? 'bg-amber-500 text-white shadow-xs'
+                : 'text-amber-800 hover:text-amber-950 font-extrabold'
+            }`}
+          >
+            <span>Onay Bekleyenler</span>
+            {stats.pending > 0 && (
+              <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-black ${
+                statusFilter === 'pending' ? 'bg-white text-amber-800' : 'bg-amber-200 text-amber-900'
+              }`}>
+                {stats.pending}
+              </span>
+            )}
           </button>
           <button
             type="button"
@@ -479,6 +575,11 @@ export default function MembersTab({ onCustomerUpdated }) {
                             <i className="fa-solid fa-ban text-[9px]"></i>
                             <span>Engellendi</span>
                           </span>
+                        ) : member.phoneVerified !== true ? (
+                          <span className="bg-amber-100 text-amber-900 border border-amber-300 text-[10px] font-extrabold px-2 py-0.5 rounded-md inline-flex items-center gap-1 animate-pulse">
+                            <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                            <span>⏳ Onay Bekliyor</span>
+                          </span>
                         ) : (
                           <span className="bg-emerald-50 text-emerald-800 border border-emerald-200 text-[10px] font-bold px-2 py-0.5 rounded-md inline-flex items-center gap-1">
                             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
@@ -524,8 +625,22 @@ export default function MembersTab({ onCustomerUpdated }) {
                     </div>
                   </div>
 
-                  {/* Sağ: Aksiyon Butonları (Bildirim, Engelle/Kaldır, WhatsApp, Sil) */}
+                  {/* Sağ: Aksiyon Butonları (Onayla, Bildirim, Engelle/Kaldır, WhatsApp, Sil) */}
                   <div className="flex flex-wrap items-center gap-2 self-end sm:self-center shrink-0">
+                    {/* ONAY BEKLEYEN ÜYE: ONAYLA VE GİRİŞ İZNİ VER */}
+                    {!isBlocked && member.phoneVerified !== true && (
+                      <button
+                        type="button"
+                        disabled={approvingId === (member.id || member.email)}
+                        onClick={() => handleApproveMember(member)}
+                        className="bg-emerald-600 hover:bg-emerald-700 disabled:bg-stone-300 text-white font-black text-xs px-3.5 py-2 rounded-xl transition-all cursor-pointer flex items-center gap-1.5 shadow-xs active:scale-95"
+                        title="Üyeliği Onayla ve Giriş İzni Ver"
+                      >
+                        <i className={`fa-solid ${approvingId === (member.id || member.email) ? 'fa-spinner animate-spin' : 'fa-check'} text-xs`}></i>
+                        <span>{approvingId === (member.id || member.email) ? 'Onaylanıyor...' : 'Onayla & İzin Ver'}</span>
+                      </button>
+                    )}
+
                     {/* 1. Bildirim Gönder Butonu */}
                     <button
                       type="button"
@@ -534,20 +649,23 @@ export default function MembersTab({ onCustomerUpdated }) {
                       title="Bu üyeye SMS, WhatsApp veya sistem bildirimi ilet"
                     >
                       <i className="fa-solid fa-bell text-xs"></i>
-                      <span>Bildirim Gönder</span>
+                      <span>Bildirim</span>
                     </button>
 
                     {/* 2. WhatsApp Butonu */}
                     {waUrl && (
                       <a
-                        href={waUrl}
+                        href={member.phoneVerified !== true
+                          ? `https://wa.me/${toWhatsAppPhone(member.phone)}?text=${encodeURIComponent(`Merhaba Sn. ${member.name}, Sandviç Diyarı kaydınız için teşekkür ederiz. Hesabınız inceleniyor / onaylandı.`)}`
+                          : waUrl
+                        }
                         target="_blank"
                         rel="noopener noreferrer"
                         className="bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-bold text-xs px-3 py-2 rounded-xl transition-colors cursor-pointer flex items-center gap-1.5 border border-emerald-200/80 shadow-2xs"
-                        title="WhatsApp üzerinden mesaj başlat"
+                        title="WhatsApp üzerinden mesaj gönder"
                       >
                         <i className="fa-brands fa-whatsapp text-emerald-600 text-sm"></i>
-                        <span className="hidden lg:inline">WhatsApp</span>
+                        <span className="hidden lg:inline">{member.phoneVerified !== true ? "WhatsApp Yaz" : "WhatsApp"}</span>
                       </a>
                     )}
 
