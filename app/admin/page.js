@@ -478,16 +478,63 @@ export default function AdminDashboardPage() {
     }
   };
 
+  const [reviewsSubTab, setReviewsSubTab] = useState('reviews'); // 'reviews' | 'feedbacks'
+  const [adminFeedbacks, setAdminFeedbacks] = useState([]);
+  const [loadingFeedbacks, setLoadingFeedbacks] = useState(false);
+  const [feedbackSearch, setFeedbackSearch] = useState('');
+  const [feedbackTypeFilter, setFeedbackTypeFilter] = useState('all');
+  const [feedbacksPage, setFeedbacksPage] = useState(1);
+  const [feedbacksPageSize, setFeedbacksPageSize] = useState(6);
+
+  useEffect(() => {
+    setFeedbacksPage(1);
+  }, [feedbackSearch, feedbackTypeFilter]);
+
+  const fetchFeedbacks = async () => {
+    setLoadingFeedbacks(true);
+    try {
+      const res = await fetch('/api/feedback');
+      const json = await res.json();
+      if (json.success && Array.isArray(json.data)) {
+        setAdminFeedbacks(json.data);
+      }
+    } catch (err) {
+      console.error('Geri bildirimler yüklenirken hata:', err);
+    } finally {
+      setLoadingFeedbacks(false);
+    }
+  };
+
+  const handleDeleteFeedback = async (feedbackId) => {
+    if (!confirm('Bu geri bildirim mesajını kalıcı olarak silmek istediğinize emin misiniz?')) return;
+    try {
+      const res = await fetch(`/api/feedback?id=${encodeURIComponent(feedbackId)}`, {
+        method: 'DELETE',
+      });
+      const json = await res.json();
+      if (json.success) {
+        setAdminFeedbacks((prev) => prev.filter((f) => String(f.id) !== String(feedbackId)));
+        showToast('Geri bildirim mesajı sistemden silindi.', 'success');
+      } else {
+        showToast(json.error || 'Silinemedi.', 'error');
+      }
+    } catch (err) {
+      showToast('Bağlantı hatası.', 'error');
+    }
+  };
+
   useEffect(() => {
     if (adminUser) {
       fetchOrders();
       fetchProducts();
       fetchReviews();
+      fetchFeedbacks();
       const intervalSec = typeof adminSettings?.autoRefreshInterval === 'number' ? adminSettings.autoRefreshInterval : 30;
       if (intervalSec > 0) {
         const timer = setInterval(() => {
           fetchOrders();
           fetchReviews();
+          fetchFeedbacks();
         }, intervalSec * 1000);
         return () => clearInterval(timer);
       }
@@ -1388,6 +1435,8 @@ export default function AdminDashboardPage() {
                 icon: 'fa-regular fa-star',
                 badge: adminReviews.filter(r => r.isApproved !== true).length > 0
                   ? `${adminReviews.filter(r => r.isApproved !== true).length} Yeni`
+                  : adminFeedbacks.length > 0
+                  ? `${adminFeedbacks.length} Mesaj`
                   : adminReviews.length > 0
                   ? adminReviews.length
                   : null,
@@ -2503,16 +2552,61 @@ export default function AdminDashboardPage() {
               <div className="flex items-center gap-2 shrink-0">
                 <button
                   type="button"
-                  onClick={fetchReviews}
-                  disabled={loadingReviews}
+                  onClick={() => {
+                    fetchReviews();
+                    fetchFeedbacks();
+                  }}
+                  disabled={loadingReviews || loadingFeedbacks}
                   className="bg-stone-100 hover:bg-stone-200 text-stone-700 font-semibold px-3 py-2 rounded-xl text-xs flex items-center gap-1.5 transition-colors cursor-pointer"
-                  title="Yorumları Yenile"
+                  title="Yenile"
                 >
-                  <i className={`fa-solid fa-arrows-rotate text-xs ${loadingReviews ? 'fa-spin text-brand-600' : ''}`}></i>
+                  <i className={`fa-solid fa-arrows-rotate text-xs ${loadingReviews || loadingFeedbacks ? 'fa-spin text-brand-600' : ''}`}></i>
                   <span>Yenile</span>
                 </button>
               </div>
             </div>
+
+            {/* ALT SEKMELER: Müşteri Değerlendirmeleri & İletişim / Şikayet / Öneri Mesajları */}
+            <div className="flex border-b border-stone-200 gap-2 overflow-x-auto">
+              <button
+                type="button"
+                onClick={() => setReviewsSubTab('reviews')}
+                className={`pb-3 px-4 text-xs font-bold transition-all border-b-2 flex items-center gap-2 cursor-pointer whitespace-nowrap ${
+                  reviewsSubTab === 'reviews'
+                    ? 'border-brand-500 text-brand-600'
+                    : 'border-transparent text-stone-500 hover:text-stone-800'
+                }`}
+              >
+                <i className="fa-regular fa-star"></i>
+                <span>Restoran Yorumları &amp; Puanlar ({adminReviews.length})</span>
+                {adminReviews.filter((r) => r.isApproved !== true).length > 0 && (
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-500 text-white animate-pulse">
+                    {adminReviews.filter((r) => r.isApproved !== true).length} Yeni Onay
+                  </span>
+                )}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setReviewsSubTab('feedbacks')}
+                className={`pb-3 px-4 text-xs font-bold transition-all border-b-2 flex items-center gap-2 cursor-pointer whitespace-nowrap ${
+                  reviewsSubTab === 'feedbacks'
+                    ? 'border-brand-500 text-brand-600'
+                    : 'border-transparent text-stone-500 hover:text-stone-800'
+                }`}
+              >
+                <i className="fa-regular fa-envelope"></i>
+                <span>İletişim &amp; Öneri Mesajları ({adminFeedbacks.length})</span>
+                {adminFeedbacks.length > 0 && (
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-blue-100 text-blue-800">
+                    {adminFeedbacks.length}
+                  </span>
+                )}
+              </button>
+            </div>
+
+            {reviewsSubTab === 'reviews' && (
+              <div className="space-y-4 sm:space-y-6">
 
             {/* 2. DURUM KARTLARI */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
@@ -2814,6 +2908,278 @@ export default function AdminDashboardPage() {
                 </div>
               );
             })()}
+            </div>
+            )}
+
+            {/* ALT SEKME 2: İLETİŞİM / ŞİKAYET / ÖNERİ GERİ BİLDİRİM MESAJLARI */}
+            {reviewsSubTab === 'feedbacks' && (
+              <div className="space-y-4 sm:space-y-6">
+                {/* 1. ÖZET METRİK KARTLARI */}
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                  <div className="bg-white p-3.5 sm:p-4 rounded-2xl border border-stone-200 shadow-xs">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-bold text-stone-500 uppercase tracking-wider">Toplam Mesaj</span>
+                      <span className="w-7 h-7 rounded-lg bg-blue-100 text-blue-600 flex items-center justify-center text-xs">
+                        <i className="fa-regular fa-envelope"></i>
+                      </span>
+                    </div>
+                    <div className="text-xl sm:text-2xl font-black text-stone-900 mt-1">
+                      {adminFeedbacks.length}
+                    </div>
+                  </div>
+
+                  <div className="bg-white p-3.5 sm:p-4 rounded-2xl border border-stone-200 shadow-xs">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-bold text-emerald-700 uppercase tracking-wider">Öneri &amp; İstek</span>
+                      <span className="w-7 h-7 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center text-xs">
+                        <i className="fa-solid fa-lightbulb"></i>
+                      </span>
+                    </div>
+                    <div className="text-xl sm:text-2xl font-black text-emerald-900 mt-1">
+                      {adminFeedbacks.filter((f) => String(f.type || '').includes('Öneri') || String(f.type || '').includes('İstek')).length}
+                    </div>
+                  </div>
+
+                  <div className="bg-white p-3.5 sm:p-4 rounded-2xl border border-stone-200 shadow-xs">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-bold text-rose-700 uppercase tracking-wider">Şikayet / Sorun</span>
+                      <span className="w-7 h-7 rounded-lg bg-rose-100 text-rose-700 flex items-center justify-center text-xs">
+                        <i className="fa-solid fa-triangle-exclamation"></i>
+                      </span>
+                    </div>
+                    <div className="text-xl sm:text-2xl font-black text-rose-900 mt-1">
+                      {adminFeedbacks.filter((f) => String(f.type || '').includes('Şikayet')).length}
+                    </div>
+                  </div>
+
+                  <div className="bg-white p-3.5 sm:p-4 rounded-2xl border border-stone-200 shadow-xs">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-bold text-stone-500 uppercase tracking-wider">Son 24 Saat</span>
+                      <span className="w-7 h-7 rounded-lg bg-stone-100 text-stone-600 flex items-center justify-center text-xs">
+                        <i className="fa-solid fa-clock"></i>
+                      </span>
+                    </div>
+                    <div className="text-xl sm:text-2xl font-black text-stone-900 mt-1">
+                      {
+                        adminFeedbacks.filter((f) => {
+                          if (!f.createdAt) return false;
+                          const age = Date.now() - new Date(f.createdAt).getTime();
+                          return !Number.isNaN(age) && age < 24 * 60 * 60 * 1000;
+                        }).length
+                      }
+                    </div>
+                  </div>
+                </div>
+
+                {/* 2. FİLTRE VE ARAMA ÇUBUĞU */}
+                <div className="bg-white p-3 sm:p-4 rounded-2xl border border-stone-200 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
+                    <button
+                      type="button"
+                      onClick={() => setFeedbackTypeFilter('all')}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
+                        feedbackTypeFilter === 'all'
+                          ? 'bg-stone-900 text-white shadow-2xs'
+                          : 'bg-stone-100 text-stone-600 hover:bg-stone-200'
+                      }`}
+                    >
+                      Tümü ({adminFeedbacks.length})
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setFeedbackTypeFilter('Öneri / İstek')}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
+                        feedbackTypeFilter === 'Öneri / İstek'
+                          ? 'bg-emerald-700 text-white shadow-2xs'
+                          : 'bg-emerald-50 text-emerald-800 hover:bg-emerald-100'
+                      }`}
+                    >
+                      Öneri / İstek
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setFeedbackTypeFilter('Şikayet')}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
+                        feedbackTypeFilter === 'Şikayet'
+                          ? 'bg-rose-700 text-white shadow-2xs'
+                          : 'bg-rose-50 text-rose-800 hover:bg-rose-100'
+                      }`}
+                    >
+                      Şikayetler
+                    </button>
+                  </div>
+
+                  <div className="relative w-full sm:w-64">
+                    <i className="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-stone-400 text-xs"></i>
+                    <input
+                      type="text"
+                      value={feedbackSearch}
+                      onChange={(e) => setFeedbackSearch(e.target.value)}
+                      placeholder="İsim, e-posta veya mesaj ara..."
+                      className="w-full pl-8 pr-3 py-1.5 bg-stone-50 border border-stone-300 rounded-xl text-xs font-medium focus:outline-none focus:border-stone-900 transition-colors"
+                    />
+                    {feedbackSearch && (
+                      <button
+                        type="button"
+                        onClick={() => setFeedbackSearch('')}
+                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-700 text-xs"
+                      >
+                        <i className="fa-solid fa-xmark"></i>
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* 3. GERİ BİLDİRİM MESAJ LİSTESİ */}
+                {(() => {
+                  const filtered = adminFeedbacks.filter((f) => {
+                    if (feedbackTypeFilter !== 'all' && !String(f.type || '').includes(feedbackTypeFilter)) {
+                      return false;
+                    }
+                    if (feedbackSearch.trim()) {
+                      const q = feedbackSearch.toLowerCase();
+                      const matchName = String(f.name || '').toLowerCase().includes(q);
+                      const matchEmail = String(f.email || '').toLowerCase().includes(q);
+                      const matchMsg = String(f.message || '').toLowerCase().includes(q);
+                      if (!matchName && !matchEmail && !matchMsg) return false;
+                    }
+                    return true;
+                  });
+
+                  if (filtered.length === 0) {
+                    return (
+                      <div className="bg-white p-10 rounded-2xl border border-stone-200 text-center space-y-3">
+                        <div className="w-12 h-12 rounded-2xl bg-stone-100 text-stone-400 flex items-center justify-center mx-auto text-xl">
+                          <i className="fa-regular fa-folder-open"></i>
+                        </div>
+                        <h4 className="font-bold text-stone-800 text-sm">Geri Bildirim Bulunamadı</h4>
+                        <p className="text-xs text-stone-500 max-w-sm mx-auto">
+                          {feedbackSearch ? 'Arama kriterlerinize uyan mesaj yok.' : 'Henüz iletişim formundan iletilmiş bir geri bildirim mesajı bulunmuyor.'}
+                        </p>
+                      </div>
+                    );
+                  }
+
+                  const safeFeedbacksPage = Math.min(
+                    feedbacksPage,
+                    Math.max(1, Math.ceil(filtered.length / feedbacksPageSize))
+                  );
+                  const paginatedFeedbacks = filtered.slice(
+                    (safeFeedbacksPage - 1) * feedbacksPageSize,
+                    safeFeedbacksPage * feedbacksPageSize
+                  );
+
+                  return (
+                    <div className="space-y-3">
+                      {paginatedFeedbacks.map((fb) => {
+                        const initials = (fb.name || 'G')
+                          .toString()
+                          .trim()
+                          .split(/\s+/)
+                          .filter(Boolean)
+                          .slice(0, 2)
+                          .map((n) => n[0]?.toUpperCase())
+                          .join('') || 'G';
+                        const isComplaint = String(fb.type || '').toLowerCase().includes('şikayet');
+                        const isSuggestion = String(fb.type || '').toLowerCase().includes('öneri');
+
+                        return (
+                          <div
+                            key={fb.id}
+                            className={`bg-white p-4 sm:p-5 rounded-2xl border shadow-xs transition-all ${
+                              isComplaint
+                                ? 'border-rose-300 bg-rose-50/15'
+                                : 'border-stone-200 hover:border-stone-300'
+                            }`}
+                          >
+                            <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+                              <div className="flex items-start gap-3.5 flex-1 min-w-0">
+                                <div className={`w-10 h-10 rounded-full text-white font-bold text-xs flex items-center justify-center shrink-0 shadow-2xs ${
+                                  isComplaint
+                                    ? 'bg-rose-600'
+                                    : isSuggestion
+                                    ? 'bg-emerald-600'
+                                    : 'bg-stone-700'
+                                }`}>
+                                  {initials}
+                                </div>
+
+                                <div className="space-y-1.5 flex-1 min-w-0">
+                                  <div className="flex flex-wrap items-center gap-2">
+                                    <span className="font-bold text-stone-900 text-sm">{fb.name}</span>
+                                    {fb.email && (
+                                      <a
+                                        href={`mailto:${fb.email}`}
+                                        className="text-xs text-blue-600 hover:underline flex items-center gap-1 font-medium"
+                                        title="E-posta gönder"
+                                      >
+                                        <i className="fa-regular fa-envelope text-[10px]"></i>
+                                        <span>{fb.email}</span>
+                                      </a>
+                                    )}
+                                    {fb.createdAt && (
+                                      <span className="text-[11px] text-stone-400">
+                                        &bull; {new Date(fb.createdAt).toLocaleString('tr-TR')}
+                                      </span>
+                                    )}
+
+                                    <span className={`text-[10px] font-extrabold px-2.5 py-0.5 rounded-full border ${
+                                      isComplaint
+                                        ? 'bg-rose-100 text-rose-900 border-rose-300'
+                                        : isSuggestion
+                                        ? 'bg-emerald-100 text-emerald-900 border-emerald-300'
+                                        : 'bg-stone-100 text-stone-700 border-stone-300'
+                                    }`}>
+                                      {fb.type || 'Öneri / İstek'}
+                                    </span>
+                                  </div>
+
+                                  <p className="text-stone-800 text-xs sm:text-sm leading-relaxed bg-stone-50 p-3 rounded-xl border border-stone-100 whitespace-pre-wrap">
+                                    {fb.message}
+                                  </p>
+                                </div>
+                              </div>
+
+                              <div className="flex sm:flex-col items-center sm:items-end gap-2 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-stone-100 justify-end">
+                                {fb.email && (
+                                  <a
+                                    href={`mailto:${fb.email}?subject=Sandviç Diyarı - Geri Bildiriminiz Hakkında`}
+                                    className="px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 shadow-2xs"
+                                    title="Müşteriye yanıt ver"
+                                  >
+                                    <i className="fa-solid fa-reply text-xs"></i>
+                                    <span>Yanıtla</span>
+                                  </a>
+                                )}
+
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteFeedback(fb.id)}
+                                  className="text-stone-400 hover:text-rose-600 hover:bg-rose-50 px-2.5 py-1.5 rounded-xl text-xs font-semibold transition-colors cursor-pointer flex items-center gap-1"
+                                  title="Geri bildirim mesajını sil"
+                                >
+                                  <i className="fa-regular fa-trash-can text-xs"></i>
+                                  <span>Sil</span>
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+
+                      <AdminPagination
+                        currentPage={safeFeedbacksPage}
+                        totalItems={filtered.length}
+                        pageSize={feedbacksPageSize}
+                        onPageChange={setFeedbacksPage}
+                        onPageSizeChange={setFeedbacksPageSize}
+                        itemLabel="mesaj"
+                      />
+                    </div>
+                  );
+                })()}
+              </div>
+            )}
           </div>
         )}
 

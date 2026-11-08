@@ -233,7 +233,32 @@ export const prisma = {
   },
 
   review: {
-    findMany: async (args?: { where?: { isApproved?: boolean } }) => {
+    findMany: async (args?: { where?: { isApproved?: boolean }; orderBy?: any }) => {
+      try {
+        const whereClause: any = {};
+        if (args?.where && typeof args.where.isApproved === 'boolean') {
+          whereClause.isApproved = args.where.isApproved;
+        }
+        const rows = await rawPrisma.review.findMany({
+          where: whereClause,
+          orderBy: { createdAt: 'desc' }
+        });
+        if (rows && rows.length > 0) {
+          return rows.map((r: any) => ({
+            id: r.id,
+            name: r.name,
+            initials: r.initials || (r.name ? r.name.substring(0, 2).toUpperCase() : 'SD'),
+            location: r.location || 'Torbalı, İzmir',
+            rating: Number(r.rating || 5),
+            comment: r.comment,
+            isApproved: Boolean(r.isApproved),
+            date: r.createdAt ? new Date(r.createdAt).toLocaleDateString('tr-TR') : 'Bugün',
+            createdAt: r.createdAt
+          }));
+        }
+      } catch (err) {
+        console.warn('Prisma review.findMany fallback to local db:', err);
+      }
       const approvedOnly = args?.where?.isApproved === true;
       const list = db.getReviews(approvedOnly);
       if (approvedOnly) {
@@ -243,46 +268,63 @@ export const prisma = {
     },
 
     update: async (args: { where: { id: number | string }; data: { isApproved?: boolean } }) => {
-      const localUpdated = db.updateReview(args.where.id, args.data);
+      const targetId = Number(args.where.id);
+      let pgUpdated: any = null;
       try {
-        await rawPrisma.review.update({
-          where: { id: Number(args.where.id) },
-          data: args.data as any
-        });
-      } catch { }
-      return localUpdated;
+        if (!Number.isNaN(targetId)) {
+          pgUpdated = await rawPrisma.review.update({
+            where: { id: targetId },
+            data: { isApproved: args.data.isApproved }
+          });
+        }
+      } catch (err) {
+        console.warn('Prisma review.update error in pg:', err);
+      }
+      const localUpdated = db.updateReview(args.where.id, args.data);
+      return pgUpdated || localUpdated;
     },
 
     delete: async (args: { where: { id: number | string } }) => {
-      const ok = db.deleteReview(args.where.id);
+      const targetId = Number(args.where.id);
+      let pgDeleted = false;
       try {
-        await rawPrisma.review.delete({
-          where: { id: Number(args.where.id) }
-        });
-      } catch { }
-      return { success: ok };
+        if (!Number.isNaN(targetId)) {
+          await rawPrisma.review.delete({
+            where: { id: targetId }
+          });
+          pgDeleted = true;
+        }
+      } catch (err) {
+        console.warn('Prisma review.delete error in pg:', err);
+      }
+      const ok = db.deleteReview(args.where.id);
+      return { success: pgDeleted || ok };
     },
 
     create: async (args: { data: { name: string; rating: number; comment: string; location?: string; isApproved?: boolean } }) => {
-      const localRev = db.createReview(args.data);
+      const initials = (args.data.name || 'SD')
+        .split(' ')
+        .map((n) => n[0])
+        .join('')
+        .substring(0, 2)
+        .toUpperCase();
+      let pgCreated: any = null;
       try {
-        const initials = (args.data.name || 'SD')
-          .split(' ')
-          .map((n) => n[0])
-          .join('')
-          .substring(0, 2)
-          .toUpperCase();
-        await rawPrisma.review.create({
+        pgCreated = await rawPrisma.review.create({
           data: {
             name: args.data.name,
             initials,
             location: args.data.location || 'Torbalı, İzmir',
             rating: Number(args.data.rating || 5),
-            comment: args.data.comment
+            comment: args.data.comment,
+            isApproved: Boolean(args.data.isApproved)
           }
         });
-      } catch { }
-      return localRev;
+      } catch (err) {
+        console.warn('Prisma review.create error in pg:', err);
+      }
+      const localRev = db.createReview(args.data);
+      return pgCreated || localRev;
     }
   },
 
@@ -314,6 +356,22 @@ export const prisma = {
       } catch {
         return localFb;
       }
+    },
+
+    delete: async (args: { where: { id: number | string } }) => {
+      const targetId = Number(args.where.id);
+      let pgDeleted = false;
+      try {
+        if (!Number.isNaN(targetId)) {
+          await rawPrisma.feedback.delete({
+            where: { id: targetId }
+          });
+          pgDeleted = true;
+        }
+      } catch (err) {
+        console.warn('Prisma feedback.delete error in pg:', err);
+      }
+      return { success: pgDeleted };
     }
   },
 

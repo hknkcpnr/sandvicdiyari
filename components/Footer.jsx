@@ -20,12 +20,15 @@ export default function Footer() {
       name: reviewName,
       rating,
       comment: reviewComment,
-      initials: reviewName
-        .split(' ')
+      initials: (reviewName || 'M')
+        .toString()
+        .trim()
+        .split(/\s+/)
+        .filter(Boolean)
         .map((n) => n[0])
         .join('')
         .substring(0, 2)
-        .toUpperCase(),
+        .toUpperCase() || 'M',
       location: 'Torbalı, İzmir',
       isApproved: false
     };

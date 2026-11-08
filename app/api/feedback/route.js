@@ -8,6 +8,38 @@ import {
 import { checkRateLimit } from '@/lib/security/auth';
 import { sanitizeEmailOrUsername, sanitizeText } from '@/lib/security/validation';
 
+export const dynamic = 'force-dynamic';
+
+export async function GET(request) {
+  try {
+    const list = await prisma.feedback.findMany();
+    return jsonSuccess({
+      count: list.length,
+      data: list
+    });
+  } catch (error) {
+    return handleApiError(error, '/api/feedback', request);
+  }
+}
+
+export async function DELETE(request) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get('id');
+    if (!id) {
+      throw new ValidationError('Silinecek geri bildirim ID zorunludur.');
+    }
+    await prisma.feedback.delete({
+      where: { id }
+    });
+    return jsonSuccess({
+      message: 'Geri bildirim başarıyla silindi.'
+    });
+  } catch (error) {
+    return handleApiError(error, '/api/feedback', request);
+  }
+}
+
 export async function POST(request) {
   try {
     checkRateLimit(request, {

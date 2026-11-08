@@ -190,16 +190,18 @@ model OrderStatusHistory {
 }
 
 model Review {
-  id        Int      @id @default(autoincrement())
-  name      String   @db.VarChar(150)
-  initials  String   @db.VarChar(8)
-  location  String   @default("İstanbul") @db.VarChar(100)
-  rating    Int      @default(5)
-  comment   String   @db.Text
-  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  id         Int      @id @default(autoincrement())
+  name       String   @db.VarChar(150)
+  initials   String   @db.VarChar(8)
+  location   String   @default("İstanbul") @db.VarChar(100)
+  rating     Int      @default(5)
+  comment    String   @db.Text
+  isApproved Boolean  @default(false) @map("is_approved")
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
 
   @@index([rating])
   @@index([createdAt])
+  @@index([isApproved])
   @@map("reviews")
 }
 
