@@ -15,7 +15,7 @@
   - Canlı ciro, Z-Raporu ve satış istatistikleri.
   - Rol bazlı yetkilendirme (Süper Yönetici, Mutfak Şefi, Kasiyer).
   - Site içerik ve görsel yönetim editörü.
-- **Çift Katmanlı Veritabanı:** PostgreSQL 18 + Prisma ORM ve kesintisiz yerel JSON fallback mimarisi.
+- **Çift Katmanlı Veritabanı:** Supabase PostgreSQL + Prisma ORM ve kesintisiz yerel JSON fallback mimarisi.
 - **Yüksek Güvenlik:** Scrypt şifreleme, HMAC-SHA256 imzalı JWT oturumları, Price Tampering koruması ve sunucu taraflı doğrulama.
 
 ---
