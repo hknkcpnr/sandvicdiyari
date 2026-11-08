@@ -22,6 +22,7 @@ export default function Navbar() {
 
   const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
   const userDropdownRef = useRef(null);
+  const mobileMenuRef = useRef(null);
 
   // Dışarı tıklandığında kullanıcı profil açılır menüsünü kapat
   useEffect(() => {
@@ -33,6 +34,26 @@ export default function Navbar() {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  // Mobilde menü açıkken boşluğa (dışarı) tıklandığında/dokunulduğunda menüyü kapat
+  useEffect(() => {
+    function handleOutsideTap(event) {
+      if (!isMobileMenuOpen) return;
+      if (
+        mobileMenuRef.current &&
+        !mobileMenuRef.current.contains(event.target) &&
+        !event.target.closest('button[aria-label="Açılır Menü"]')
+      ) {
+        dispatch(toggleMobileMenu());
+      }
+    }
+    document.addEventListener('mousedown', handleOutsideTap);
+    document.addEventListener('touchstart', handleOutsideTap, { passive: true });
+    return () => {
+      document.removeEventListener('mousedown', handleOutsideTap);
+      document.removeEventListener('touchstart', handleOutsideTap);
+    };
+  }, [isMobileMenuOpen, dispatch]);
 
   const navItems = [
     { id: 'home', label: 'Ana Sayfa', icon: 'fa-solid fa-house' },
@@ -318,11 +339,20 @@ export default function Navbar() {
 
       {/* Modern Mobil Açılır Menü (Slide Down Drawer) */}
       {isMobileMenuOpen && (
-        <div
-          id="mobile-menu"
-          style={{ backgroundColor: '#ffffff' }}
-          className="md:hidden border-t border-stone-200 bg-white px-4 py-3 shadow-2xl animate-dropdown-up space-y-2 relative z-50"
-        >
+        <>
+          {/* Boşluğa / dışarı tıklandığında menüyü anında kapatan arka plan katmanı */}
+          <div
+            onClick={() => dispatch(toggleMobileMenu())}
+            className="fixed inset-0 top-14 sm:top-20 bg-stone-900/30 backdrop-blur-2xs z-40 md:hidden animate-in fade-in duration-150"
+            aria-hidden="true"
+          />
+
+          <div
+            id="mobile-menu"
+            ref={mobileMenuRef}
+            style={{ backgroundColor: '#ffffff' }}
+            className="md:hidden border-t border-stone-200 bg-white px-4 py-3 shadow-2xl animate-dropdown-up space-y-2 relative z-50"
+          >
           {/* Sayfa Navigasyon Linkleri */}
           <div className="space-y-1">
             {navItems.map((item) => {
@@ -426,7 +456,8 @@ export default function Navbar() {
             )}
           </div>
         </div>
-      )}
+      </>
+    )}
     </nav>
   );
 }
