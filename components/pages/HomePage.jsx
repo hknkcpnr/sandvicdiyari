@@ -367,14 +367,97 @@ export default function HomePage() {
 
             <div className="relative z-10 grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-6 md:divide-x md:divide-white/10">
               {(featuresSection.items || []).map((feat, idx) => {
-                const isCourier = idx === 1 || feat.icon?.includes('motorcycle') || feat.title?.toLowerCase().includes('kurye');
-                const isPan = idx === 0 || feat.icon?.includes('pan') || feat.icon?.includes('seedling') || feat.title?.toLowerCase().includes('malzeme');
+                const isOrder = idx === 0 || feat.title?.toLowerCase().includes('sipariş') || feat.icon?.includes('bell');
+                const isPan = idx === 1 || feat.title?.toLowerCase().includes('hazır') || feat.icon?.includes('fire') || feat.icon?.includes('pan');
+                const isCourier = idx === 2 || feat.title?.toLowerCase().includes('kurye') || feat.icon?.includes('motorcycle');
 
                 return (
-                  <div key={feat.id || idx} className="group px-4 sm:px-6 py-2 flex flex-col items-center text-center space-y-3">
-                    {isCourier ? (
-                      /* SARI KURYE TESLİMAT İKONU */
-                      <div className="courier-badge-icon w-[58px] h-[58px]">
+                  <div key={feat.id || idx} className="group px-4 sm:px-6 py-2 flex flex-col items-center text-center space-y-3.5">
+                    {isOrder ? (
+                      /* 1. SARI SİPARİŞ İKONU */
+                      <div className="order-badge-icon w-[74px] h-[74px] sm:w-[82px] sm:h-[82px] shrink-0">
+                        <svg viewBox="0 0 120 100" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+                          <defs>
+                            <linearGradient id={`orderGold-${idx}`} x1="0%" y1="0%" x2="100%" y2="100%">
+                              <stop offset="0%" stopColor="#FEF08A" />
+                              <stop offset="35%" stopColor="#FBBF24" />
+                              <stop offset="75%" stopColor="#F59E0B" />
+                              <stop offset="100%" stopColor="#B45309" />
+                            </linearGradient>
+                          </defs>
+
+                          {/* Sipariş Işıltıları & Ses Dalgaları */}
+                          <path className="order-wave wave-1" d="M 32 32 C 30 24 35 16 44 12" stroke="#FEF08A" strokeWidth="2.5" strokeLinecap="round" fill="none" />
+                          <path className="order-wave wave-2" d="M 88 32 C 90 24 85 16 76 12" stroke="#FEF08A" strokeWidth="2.5" strokeLinecap="round" fill="none" />
+                          <circle className="order-sparkle spark-1" cx="24" cy="24" r="2.5" fill="#ffffff" />
+                          <circle className="order-sparkle spark-2" cx="96" cy="22" r="3" fill="#FEF08A" />
+
+                          {/* Zil Çanı ve Buton (Sallanan Gövde) */}
+                          <g className="order-bell-ring">
+                            <rect x="57" y="24" width="6" height="8" rx="2" fill="#78350F" />
+                            <ellipse cx="60" cy="24" rx="5" ry="3" fill={`url(#orderGold-${idx})`} />
+                            <path d="M 28 62 C 28 38 42 30 60 30 C 78 30 92 38 92 62 Z" fill={`url(#orderGold-${idx})`} stroke="#B45309" strokeWidth="1.2" />
+                            <path d="M 36 58 C 36 42 46 36 60 36" stroke="#ffffff" strokeWidth="2" strokeLinecap="round" opacity="0.6" fill="none" />
+                            <ellipse cx="60" cy="62" rx="34" ry="7" fill={`url(#orderGold-${idx})`} />
+                            <ellipse cx="60" cy="63" rx="30" ry="5" fill="#78350F" />
+                            <circle cx="60" cy="63" r="3.5" fill="#FEF08A" />
+                          </g>
+
+                          {/* Taban Standı */}
+                          <g className="order-bell-base">
+                            <ellipse cx="60" cy="74" rx="42" ry="9" fill="#18181B" stroke="#27272A" strokeWidth="2" />
+                            <ellipse cx="60" cy="72" rx="38" ry="7" fill="#27272A" />
+                            <ellipse cx="60" cy="70" rx="24" ry="4" fill={`url(#orderGold-${idx})`} opacity="0.9" />
+                          </g>
+
+                          {/* Sipariş Onay Rozeti (Zıplayan) */}
+                          <g className="order-badge-pop">
+                            <circle cx="86" cy="38" r="11" fill="#10B981" stroke="#ffffff" strokeWidth="2" />
+                            <path d="M 81 38 L 84 41 L 91 34" stroke="#ffffff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+                          </g>
+                        </svg>
+                      </div>
+                    ) : isPan ? (
+                      /* 2. SARI PİŞİRME TAVASI İKONU */
+                      <div className="pan-badge-icon w-[74px] h-[74px] sm:w-[82px] sm:h-[82px] shrink-0">
+                        <svg viewBox="0 0 120 100" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+                          <defs>
+                            <linearGradient id={`panGoldGrad-${idx}`} x1="0%" y1="0%" x2="100%" y2="100%">
+                              <stop offset="0%" stopColor="#FEF08A" />
+                              <stop offset="35%" stopColor="#FBBF24" />
+                              <stop offset="75%" stopColor="#F59E0B" />
+                              <stop offset="100%" stopColor="#B45309" />
+                            </linearGradient>
+                          </defs>
+
+                          {/* Buharlar */}
+                          <circle className="steam-dot steam-1" cx="68" cy="34" r="3" fill="#FEF08A" />
+                          <circle className="steam-dot steam-2" cx="84" cy="30" r="2.5" fill="#ffffff" />
+
+                          {/* Havaya Zıplayan Lezzet */}
+                          <g className="pan-food-flip">
+                            <ellipse cx="77" cy="50" rx="14" ry="7.5" fill="#18181B" />
+                            <ellipse cx="77" cy="50" rx="11" ry="5.5" fill="#F59E0B" />
+                            <circle cx="77" cy="49" r="3.2" fill="#FEF08A" />
+                          </g>
+
+                          {/* Sote Yapan Tava */}
+                          <g className="pan-cook-shake">
+                            <path d="M 43 56 C 40 54 36 55 35 57 C 36 61 40 63 43 62 Z" fill="#78350F" />
+                            <path d="M 37 57 C 26 59 16 63 8 66 C 4 67.5 3 71.5 6 73.5 C 8.5 75 13 74 17 72 C 26 68 34 65 41 63 Z" fill={`url(#panGoldGrad-${idx})`} />
+                            <ellipse cx="9" cy="70" rx="2.5" ry="1.8" fill="#0b0d11" />
+
+                            <path d="M 44 54 C 44 69 59 81 77 81 C 95 81 110 69 110 54 L 110 60 C 110 75 95 87 77 87 C 59 87 44 75 44 60 Z" fill="#92400E" />
+
+                            <ellipse cx="77" cy="54" rx="33" ry="15" fill={`url(#panGoldGrad-${idx})`} />
+                            <ellipse cx="77" cy="53" rx="28" ry="11.5" fill="#18181B" />
+                            <ellipse cx="77" cy="54" rx="23" ry="8" fill="#27272A" />
+                          </g>
+                        </svg>
+                      </div>
+                    ) : isCourier ? (
+                      /* 3. SARI KURYE TESLİMAT İKONU */
+                      <div className="courier-badge-icon w-[74px] h-[74px] sm:w-[82px] sm:h-[82px] shrink-0">
                         <svg viewBox="0 0 120 100" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
                           <defs>
                             <linearGradient id={`courierGold-${idx}`} x1="0%" y1="0%" x2="100%" y2="100%">
@@ -427,46 +510,8 @@ export default function HomePage() {
                           </g>
                         </svg>
                       </div>
-                    ) : isPan ? (
-                      /* SARI PİŞİRME TAVASI İKONU */
-                      <div className="pan-badge-icon w-[58px] h-[58px]">
-                        <svg viewBox="0 0 120 100" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
-                          <defs>
-                            <linearGradient id={`panGoldGrad-${idx}`} x1="0%" y1="0%" x2="100%" y2="100%">
-                              <stop offset="0%" stopColor="#FEF08A" />
-                              <stop offset="35%" stopColor="#FBBF24" />
-                              <stop offset="75%" stopColor="#F59E0B" />
-                              <stop offset="100%" stopColor="#B45309" />
-                            </linearGradient>
-                          </defs>
-
-                          {/* Buharlar */}
-                          <circle className="steam-dot steam-1" cx="68" cy="34" r="3" fill="#FEF08A" />
-                          <circle className="steam-dot steam-2" cx="84" cy="30" r="2.5" fill="#ffffff" />
-
-                          {/* Havaya Zıplayan Lezzet */}
-                          <g className="pan-food-flip">
-                            <ellipse cx="77" cy="50" rx="14" ry="7.5" fill="#18181B" />
-                            <ellipse cx="77" cy="50" rx="11" ry="5.5" fill="#F59E0B" />
-                            <circle cx="77" cy="49" r="3.2" fill="#FEF08A" />
-                          </g>
-
-                          {/* Sote Yapan Tava */}
-                          <g className="pan-cook-shake">
-                            <path d="M 43 56 C 40 54 36 55 35 57 C 36 61 40 63 43 62 Z" fill="#78350F" />
-                            <path d="M 37 57 C 26 59 16 63 8 66 C 4 67.5 3 71.5 6 73.5 C 8.5 75 13 74 17 72 C 26 68 34 65 41 63 Z" fill={`url(#panGoldGrad-${idx})`} />
-                            <ellipse cx="9" cy="70" rx="2.5" ry="1.8" fill="#0b0d11" />
-
-                            <path d="M 44 54 C 44 69 59 81 77 81 C 95 81 110 69 110 54 L 110 60 C 110 75 95 87 77 87 C 59 87 44 75 44 60 Z" fill="#92400E" />
-
-                            <ellipse cx="77" cy="54" rx="33" ry="15" fill={`url(#panGoldGrad-${idx})`} />
-                            <ellipse cx="77" cy="53" rx="28" ry="11.5" fill="#18181B" />
-                            <ellipse cx="77" cy="54" rx="23" ry="8" fill="#27272A" />
-                          </g>
-                        </svg>
-                      </div>
                     ) : (
-                      <i className={`${feat.icon || 'fa-solid fa-seedling'} text-3xl sm:text-4xl text-brand-400 drop-shadow`}></i>
+                      <i className={`${feat.icon || 'fa-solid fa-seedling'} text-4xl text-brand-400 drop-shadow`}></i>
                     )}
                     <h4 className="font-extrabold text-lg sm:text-xl text-white tracking-tight">
                       {feat.title}

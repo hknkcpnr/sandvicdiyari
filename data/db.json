@@ -857,21 +857,21 @@
       "items": [
         {
           "id": "f1",
-          "icon": "fa-solid fa-seedling",
-          "title": "%100 Günlük Malzeme",
-          "desc": "Sebzelerimiz ve çıtır ekmeklerimiz her sabah yerel taze üreticilerden günlük olarak temin edilir."
+          "icon": "fa-solid fa-bell-concierge",
+          "title": "Sipariş",
+          "desc": "Web sitemizden veya WhatsApp üzerinden dilediğiniz lezzetleri tek tıkla kolayca sipariş verin."
         },
         {
           "id": "f2",
-          "icon": "fa-solid fa-motorcycle",
-          "title": "Hızlı & Sıcak Kurye Servisi",
-          "desc": "Özel ısı yalıtımlı kurye çantalarımız ve deneyimli kuryelerimizle lezzetler sıcacık kapınıza gelir."
+          "icon": "fa-solid fa-fire-burner",
+          "title": "Hazırlama",
+          "desc": "Siparişiniz usta eller tarafından taptaze malzemelerle ızgara ve tavada anında sıcacık pişirilir."
         },
         {
           "id": "f3",
-          "icon": "fa-solid fa-shield-heart",
-          "title": "Hijyen & Güven",
-          "desc": "Gıda güvenliği ve hijyen standartlarına uygun mutfağımızda tüm siparişleriniz özenle üretilir."
+          "icon": "fa-solid fa-motorcycle",
+          "title": "Kurye",
+          "desc": "Özel ısı yalıtımlı çantalarımız ve hızlı kuryelerimizle siparişiniz hiç beklemeden kapınıza ulaşır."
         }
       ]
     },
