@@ -356,7 +356,49 @@ export default function HomePage() {
             <div className="pointer-events-none absolute -top-24 -right-24 w-72 h-72 rounded-full bg-brand-500/15 blur-3xl z-0"></div>
             <div className="pointer-events-none absolute -bottom-24 -left-24 w-72 h-72 rounded-full bg-amber-500/15 blur-3xl z-0"></div>
 
-            <div className="relative z-10 text-center max-w-2xl mx-auto mb-10 space-y-2">
+            <div className="relative z-10 text-center max-w-2xl mx-auto mb-10 space-y-3 flex flex-col items-center">
+              {/* SARI PİŞİRME TAVASI İKONU */}
+              <div className="pan-badge-icon w-[58px] h-[58px] mb-0.5">
+                <svg viewBox="0 0 120 100" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+                  <defs>
+                    {/* Görselindeki Canlı Altın/Sarı Tonlar */}
+                    <linearGradient id="panGoldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                      <stop offset="0%" stopColor="#FEF08A" />
+                      <stop offset="35%" stopColor="#FBBF24" />
+                      <stop offset="75%" stopColor="#F59E0B" />
+                      <stop offset="100%" stopColor="#B45309" />
+                    </linearGradient>
+                  </defs>
+
+                  {/* Buharlar */}
+                  <circle className="steam-dot steam-1" cx="68" cy="34" r="3" fill="#FEF08A" />
+                  <circle className="steam-dot steam-2" cx="84" cy="30" r="2.5" fill="#ffffff" />
+
+                  {/* Havaya Zıplayan Lezzet */}
+                  <g className="pan-food-flip">
+                    <ellipse cx="77" cy="50" rx="14" ry="7.5" fill="#18181B" />
+                    <ellipse cx="77" cy="50" rx="11" ry="5.5" fill="#F59E0B" />
+                    <circle cx="77" cy="49" r="3.2" fill="#FEF08A" />
+                  </g>
+
+                  {/* Sote Yapan Tava */}
+                  <g className="pan-cook-shake">
+                    {/* Kulp Bağlantısı & Kulp */}
+                    <path d="M 43 56 C 40 54 36 55 35 57 C 36 61 40 63 43 62 Z" fill="#78350F" />
+                    <path d="M 37 57 C 26 59 16 63 8 66 C 4 67.5 3 71.5 6 73.5 C 8.5 75 13 74 17 72 C 26 68 34 65 41 63 Z" fill="url(#panGoldGrad)" />
+                    <ellipse cx="9" cy="70" rx="2.5" ry="1.8" fill="#0b0d11" />
+
+                    {/* Derinlik & Kalınlık */}
+                    <path d="M 44 54 C 44 69 59 81 77 81 C 95 81 110 69 110 54 L 110 60 C 110 75 95 87 77 87 C 59 87 44 75 44 60 Z" fill="#92400E" />
+
+                    {/* Tava Ağzı ve İç Bölgesi */}
+                    <ellipse cx="77" cy="54" rx="33" ry="15" fill="url(#panGoldGrad)" />
+                    <ellipse cx="77" cy="53" rx="28" ry="11.5" fill="#18181B" />
+                    <ellipse cx="77" cy="54" rx="23" ry="8" fill="#27272A" />
+                  </g>
+                </svg>
+              </div>
+
               <span className="text-xs font-bold text-brand-400 uppercase tracking-widest block">
                 {featuresSection.badgeText || 'Kalite Garantisi'}
               </span>

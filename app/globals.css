@@ -238,6 +238,52 @@ button, a {
   animation: menuPopIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
+/* ==========================================================================
+   SARI PİŞİRME TAVASI İKONU & ANİMASYONLARI (Neden Sandviç Diyarı)
+   ========================================================================== */
+
+.pan-badge-icon {
+  display: inline-block;
+  cursor: pointer;
+  filter: drop-shadow(0 6px 14px rgba(245, 158, 11, 0.4));
+  transition: transform 0.2s ease;
+}
+.pan-badge-icon:hover {
+  transform: scale(1.14);
+}
+.pan-cook-shake {
+  transform-origin: 22px 64px;
+  animation: panShake 1.5s ease-in-out infinite;
+}
+.pan-food-flip {
+  transform-origin: 75px 52px;
+  animation: foodJump 1.5s cubic-bezier(0.25, 0.7, 0.3, 1) infinite;
+}
+.steam-dot {
+  opacity: 0;
+  animation: steamRise 1.7s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+.steam-2 {
+  animation-delay: 0.55s;
+}
+
+@keyframes panShake {
+  0%, 100% { transform: rotate(0deg) translate(0, 0); }
+  20% { transform: rotate(-14deg) translate(-4px, -2px); }
+  45% { transform: rotate(8deg) translate(5px, 2px); }
+  70% { transform: rotate(-4deg) translate(-2px, -1px); }
+}
+@keyframes foodJump {
+  0%, 100% { transform: translate(0, 0) rotate(0deg) scale(1); }
+  30% { transform: translate(2px, -26px) rotate(180deg) scale(1.1); }
+  65% { transform: translate(1px, -4px) rotate(350deg) scale(0.96); }
+}
+@keyframes steamRise {
+  0% { transform: translateY(0) scale(0.6); opacity: 0; }
+  40% { opacity: 0.85; }
+  100% { transform: translateY(-22px) scale(1.3); opacity: 0; }
+}
+
 /* Modern Özel Select Açılır Kutu Stili */
 .app-select {
   appearance: none !important;
