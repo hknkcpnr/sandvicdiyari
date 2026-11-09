@@ -7,6 +7,18 @@ export const dynamic = 'force-dynamic';
 
 const SITE_CONTENT_KEY = 'site_content';
 
+function sanitizeSiteContent(content) {
+  if (!content || typeof content !== 'object') return content;
+  const clone = JSON.parse(JSON.stringify(content));
+  if (clone.featuresSection && typeof clone.featuresSection.title === 'string') {
+    clone.featuresSection.title = clone.featuresSection.title.replace(/sandwich/gi, 'Sandviç');
+  }
+  if (clone.hero && typeof clone.hero.titleSecondary === 'string') {
+    clone.hero.titleSecondary = clone.hero.titleSecondary.replace(/sandwich/gi, 'Sandviç');
+  }
+  return clone;
+}
+
 export async function GET() {
   try {
     try {
@@ -17,7 +29,7 @@ export async function GET() {
         if (rec && rec.value && typeof rec.value === 'object') {
           return NextResponse.json({
             success: true,
-            data: { ...DEFAULT_SITE_CONTENT, ...rec.value }
+            data: sanitizeSiteContent({ ...DEFAULT_SITE_CONTENT, ...rec.value })
           });
         }
       }
@@ -28,7 +40,7 @@ export async function GET() {
     const data = db.getSiteContent();
     return NextResponse.json({
       success: true,
-      data: data || DEFAULT_SITE_CONTENT
+      data: sanitizeSiteContent(data || DEFAULT_SITE_CONTENT)
     });
   } catch (error) {
     console.error('GET /api/site-content error:', error);
@@ -55,7 +67,8 @@ export async function POST(request) {
       );
     }
 
-    const updated = db.saveSiteContent(body);
+    const sanitizedBody = sanitizeSiteContent(body);
+    const updated = db.saveSiteContent(sanitizedBody);
 
     try {
       if (rawPrisma && rawPrisma.systemSetting) {
@@ -72,7 +85,7 @@ export async function POST(request) {
     return NextResponse.json({
       success: true,
       message: 'Müşteri sayfası içeriği başarıyla güncellendi.',
-      data: updated
+      data: sanitizeSiteContent(updated)
     });
   } catch (error) {
     console.error('POST /api/site-content error:', error);

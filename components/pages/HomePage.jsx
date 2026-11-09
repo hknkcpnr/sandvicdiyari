@@ -358,10 +358,10 @@ export default function HomePage() {
 
             <div className="relative z-10 text-center max-w-2xl mx-auto mb-10 space-y-2 flex flex-col items-center">
               <span className="text-xs font-bold text-brand-400 uppercase tracking-widest block">
-                {featuresSection.badgeText || 'Kalite Garantisi'}
+                {(featuresSection.badgeText || 'Kalite Garantisi').replace(/sandwich/gi, 'Sandviç')}
               </span>
               <h3 className="text-2xl sm:text-4xl font-extrabold text-white tracking-tight drop-shadow-sm">
-                {(featuresSection.title || 'Neden Sandviç Diyarı?').replace(/Sandwich/gi, 'Sandviç')}
+                {(featuresSection.title || 'Neden Sandviç Diyarı?').replace(/sandwich/gi, 'Sandviç')}
               </h3>
             </div>
 

@@ -20,6 +20,7 @@ export const AVAILABLE_PERMISSIONS = [
   { id: 'manage_prices', label: 'Fiyat Güncelleme', icon: 'fa-solid fa-tags', desc: 'Ürün fiyatlarını değiştirme yetkisi' },
   { id: 'settings', label: 'Sistem & Panel Ayarları', icon: 'fa-solid fa-sliders', desc: 'Arayüz font boyutu, ses, fiş ve sistem ayarları' },
   { id: 'site_content', label: 'Müşteri Sayfası Tasarım & İçerik', icon: 'fa-solid fa-paintbrush', desc: 'Vitrin başlıkları, banner, görseller ve kampanya bölümlerini düzenleme' },
+  { id: 'courier_delivery', label: 'Kurye Portalı & Teslimat', icon: 'fa-solid fa-motorcycle', desc: 'Kurye teslimat portalına giriş, üzerine atanan siparişleri görme, yol tarifi alma ve teslimat tamamlama yetkisi' },
 ];
 
 const ROLE_COLORS = {
@@ -28,6 +29,7 @@ const ROLE_COLORS = {
   amber: { label: 'Kehribar', bg: 'bg-amber-50', text: 'text-amber-800', border: 'border-amber-200', dot: 'bg-amber-500' },
   emerald: { label: 'Yeşil', bg: 'bg-emerald-50', text: 'text-emerald-700', border: 'border-emerald-200', dot: 'bg-emerald-500' },
   blue: { label: 'Mavi', bg: 'bg-blue-50', text: 'text-blue-700', border: 'border-blue-200', dot: 'bg-blue-500' },
+  sky: { label: 'Açık Mavi', bg: 'bg-sky-50', text: 'text-sky-700', border: 'border-sky-200', dot: 'bg-sky-500' },
   purple: { label: 'Mor', bg: 'bg-purple-50', text: 'text-purple-700', border: 'border-purple-200', dot: 'bg-purple-500' },
 };
 

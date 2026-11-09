@@ -268,6 +268,52 @@ export async function PATCH(request, { params }) {
       });
     }
 
+    // 3.1. Set Estimated Arrival Time (ETA) by Courier
+    const eta = body.courierEta || body.estimatedDeliveryTime
+      ? sanitizeText(body.courierEta || body.estimatedDeliveryTime, 64, 'courierEta', '/api/orders/[id]')
+      : null;
+
+    if (action === 'set_eta' || (eta && !status && typeof courierName === 'undefined' && !paymentStatus)) {
+      const actorName = courierName || user || 'Kurye';
+      if (pgOrder) {
+        const updatedPg = await rawPrisma.order.update({
+          where: { id: pgOrder.id },
+          data: {
+            statusHistory: {
+              create: {
+                status: pgOrder.status,
+                user: `Kurye (${actorName})`,
+                note: `⏱️ Tahmini Varış Süresi: ${eta} olarak güncellendi.`
+              }
+            }
+          },
+          include: { items: true, statusHistory: true }
+        });
+
+        try {
+          db.updateCourierEta(id, eta, actorName);
+        } catch {}
+
+        const formatted = formatPrismaOrder(updatedPg);
+        formatted.courierEta = eta;
+        formatted.estimatedDeliveryTime = eta;
+
+        return jsonSuccess({
+          message: `Tahmini varış süresi (${eta}) müşteriye bildirildi.`,
+          data: formatted
+        });
+      }
+
+      const updated = db.updateCourierEta(id, eta, actorName);
+      if (!updated) {
+        throw new NotFoundError('Sipariş bulunamadı.');
+      }
+      return jsonSuccess({
+        message: `Tahmini varış süresi (${eta}) müşteriye bildirildi.`,
+        data: updated
+      });
+    }
+
     // 4. Payment Status Update
     if (paymentStatus && !status) {
       if (pgOrder) {
