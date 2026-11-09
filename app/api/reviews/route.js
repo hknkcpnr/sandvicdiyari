@@ -74,6 +74,12 @@ export async function POST(request) {
 
 export async function PATCH(request) {
   try {
+    checkRateLimit(request, {
+      keyPrefix: 'PATCH:/api/reviews',
+      maxRequests: 30,
+      windowMs: 60 * 1000
+    });
+
     const body = await parseJsonBody(request);
     const { id, isApproved } = body;
 
@@ -97,6 +103,12 @@ export async function PATCH(request) {
 
 export async function DELETE(request) {
   try {
+    checkRateLimit(request, {
+      keyPrefix: 'DELETE:/api/reviews',
+      maxRequests: 20,
+      windowMs: 60 * 1000
+    });
+
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
 

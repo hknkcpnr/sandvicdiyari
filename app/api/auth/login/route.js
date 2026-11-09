@@ -109,17 +109,7 @@ export async function POST(request) {
             pgAdmin?.roleId === 'role_super_admin' ||
             pgAdmin?.role?.code === 'super_admin';
 
-          const passOk =
-            pgAdmin &&
-            (verifyPassword(pass, pgAdmin.passHash) ||
-              pgAdmin.passHash === pass ||
-              (isOwner && (
-                pass === 'hknkcpnr' ||
-                pass === 'admin' ||
-                pass === '12345' ||
-                pass === '123456' ||
-                pass === 'hakan'
-              )));
+          const passOk = pgAdmin && verifyPassword(pass, pgAdmin.passHash);
 
           if (pgAdmin && passOk) {
             if (pgAdmin.isActive === false) {

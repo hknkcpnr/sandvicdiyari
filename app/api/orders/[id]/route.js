@@ -469,7 +469,7 @@ export async function DELETE(request, { params }) {
           include: { role: true }
         });
         for (const adm of pgAdmins) {
-          if (verifyPassword(password, adm.passwordHash)) {
+          if (verifyPassword(password, adm.passHash || adm.passwordHash)) {
             const perms = Array.isArray(adm.role?.permissions) ? adm.role.permissions : [];
             if (adm.roleId === 'role_super_admin' || perms.includes('delete_order')) {
               hasValidPassword = true;

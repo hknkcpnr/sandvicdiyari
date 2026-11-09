@@ -8,6 +8,7 @@ import {
   jsonSuccess,
   parseJsonBody
 } from '@/lib/security/errors';
+import { checkRateLimit } from '@/lib/security/auth';
 import { sanitizeText } from '@/lib/security/validation';
 
 function computeInventorySummary(products) {
@@ -58,6 +59,12 @@ export async function GET(request) {
 
 export async function PUT(request) {
   try {
+    checkRateLimit(request, {
+      keyPrefix: 'PUT:/api/inventory',
+      maxRequests: 60,
+      windowMs: 60 * 1000
+    });
+
     const body = await parseJsonBody(request);
     const { id, isAvailable, stock, delta, trackStock, criticalThreshold, bulkAction, amount } = body;
 

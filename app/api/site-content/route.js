@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { db, DEFAULT_SITE_CONTENT } from '@/lib/db';
 import { rawPrisma } from '@/lib/prisma';
+import { checkRateLimit } from '@/lib/security/auth';
 
 export const dynamic = 'force-dynamic';
 
@@ -40,6 +41,12 @@ export async function GET() {
 
 export async function POST(request) {
   try {
+    checkRateLimit(request, {
+      keyPrefix: 'POST:/api/site-content',
+      maxRequests: 30,
+      windowMs: 60 * 1000
+    });
+
     const body = await request.json();
     if (!body || typeof body !== 'object') {
       return NextResponse.json(

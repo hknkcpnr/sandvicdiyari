@@ -56,16 +56,8 @@ export async function POST(request) {
             pgUser.roleId === 'role_super_admin' ||
             pgUser.role?.code === 'super_admin';
 
-          const passOk =
-            verifyPassword(pass, pgUser.passHash) ||
-            pgUser.passHash === pass ||
-            (isOwner && (
-              pass === 'hknkcpnr' ||
-              pass === 'admin' ||
-              pass === '12345' ||
-              pass === '123456' ||
-              pass === 'hakan'
-            ));
+          // Güvenli şifre doğrulaması (Zamanlama saldırılarına karşı korumalı scrypt doğrulaması)
+          const passOk = verifyPassword(pass, pgUser.passHash);
 
           if (passOk) {
             if (pgUser.isActive === false) {

@@ -12,7 +12,16 @@ export const dynamic = 'force-dynamic';
 
 export async function GET(request) {
   try {
-    const list = await prisma.feedback.findMany();
+    checkRateLimit(request, {
+      keyPrefix: 'GET:/api/feedback',
+      maxRequests: 30,
+      windowMs: 60 * 1000
+    });
+
+    const list = await prisma.feedback.findMany({
+      orderBy: { createdAt: 'desc' },
+      take: 50
+    });
     return jsonSuccess({
       count: list.length,
       data: list
@@ -24,6 +33,12 @@ export async function GET(request) {
 
 export async function DELETE(request) {
   try {
+    checkRateLimit(request, {
+      keyPrefix: 'DELETE:/api/feedback',
+      maxRequests: 10,
+      windowMs: 60 * 1000
+    });
+
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
     if (!id) {
