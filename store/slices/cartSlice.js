@@ -50,6 +50,12 @@ export const cartSlice = createSlice({
         descriptionDetails.push(`İçecek: ${drink}`);
       }
       const sauceEntries = Object.entries(sauces || {}).filter(([_, count]) => count > 0);
+      const totalSauceCount = sauceEntries.reduce((sum, [_, count]) => sum + (Number(count) || 0), 0);
+      const freeLimit = typeof action.payload.freeSauceLimit === 'number' ? action.payload.freeSauceLimit : 2;
+      const extraPricePerSauce = typeof action.payload.extraSaucePrice === 'number' ? action.payload.extraSaucePrice : 5;
+      const chargeableSauceCount = Math.max(0, totalSauceCount - freeLimit);
+      const extraSauceFee = chargeableSauceCount * extraPricePerSauce;
+
       if (sauceEntries.length > 0) {
         const sauceNames = {
           sarimsakli: 'Sarımsaklı Mayonez',
@@ -61,7 +67,11 @@ export const cartSlice = createSlice({
           ...(action.payload.sauceLabels || {})
         };
         const formatted = sauceEntries.map(([k, count]) => `${sauceNames[k] || k} (${count} Adet)`);
-        descriptionDetails.push(`Soslar: ${formatted.join(', ')}`);
+        let sauceText = `Soslar: ${formatted.join(', ')}`;
+        if (chargeableSauceCount > 0) {
+          sauceText += ` (+${chargeableSauceCount} Adet Ekstra Sos: +₺${extraSauceFee.toFixed(2)})`;
+        }
+        descriptionDetails.push(sauceText);
       }
 
       let extraPrice = 0;
@@ -74,7 +84,7 @@ export const cartSlice = createSlice({
         descriptionDetails.push(`Not: "${note.trim()}"`);
       }
 
-      const finalPrice = product.price + extraPrice;
+      const finalPrice = product.price + extraPrice + extraSauceFee;
       const cartKey = `${product.id}-${drink || ''}-${JSON.stringify(sauces || {})}-${(extras || []).map(e => e.name).sort().join()}-${note || ''}`;
 
       const existingIndex = state.items.findIndex(item => item.cartKey === cartKey);

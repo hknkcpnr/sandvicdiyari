@@ -20,6 +20,8 @@ export default function OptionsModal() {
 
   const [selectedDrink, setSelectedDrink] = useState('Kutu Pepsi (330ml)');
   const [saucesList, setSaucesList] = useState(DEFAULT_PRODUCT_OPTIONS.sauces);
+  const [freeSauceLimit, setFreeSauceLimit] = useState(DEFAULT_PRODUCT_OPTIONS.freeSauceLimit ?? 2);
+  const [extraSaucePrice, setExtraSaucePrice] = useState(DEFAULT_PRODUCT_OPTIONS.extraSaucePrice ?? 5);
   const [extras, setExtras] = useState(
     DEFAULT_PRODUCT_OPTIONS.extras.map((e) => ({ ...e, checked: false }))
   );
@@ -36,6 +38,12 @@ export default function OptionsModal() {
         const res = await fetch('/api/options');
         const json = await res.json();
         if (isMounted && json && json.success && json.data) {
+          if (typeof json.data.freeSauceLimit === 'number') {
+            setFreeSauceLimit(json.data.freeSauceLimit);
+          }
+          if (typeof json.data.extraSaucePrice === 'number') {
+            setExtraSaucePrice(json.data.extraSaucePrice);
+          }
           if (Array.isArray(json.data.sauces)) {
             setSaucesList(json.data.sauces);
           }
@@ -81,6 +89,20 @@ export default function OptionsModal() {
   const availableSauces = (saucesList || []).filter((s) => s.isAvailable !== false);
   const availableExtras = (extras || []).filter((e) => e.isAvailable !== false);
 
+  const totalSauceCount = Object.values(sauceCounts || {}).reduce(
+    (sum, c) => sum + (Number(c) || 0),
+    0
+  );
+  const paidSauceCount = Math.max(0, totalSauceCount - freeSauceLimit);
+  const extraSauceCost = paidSauceCount * extraSaucePrice;
+
+  const extrasCost = extras
+    .filter((e) => e.checked && e.isAvailable !== false)
+    .reduce((sum, e) => sum + (Number(e.price) || 0), 0);
+
+  const currentTotalPrice =
+    Number(selectedProductForOptions.price || 0) + extrasCost + extraSauceCost;
+
   const handleToggleExtra = (index) => {
     setExtras((prev) =>
       prev.map((extra, i) =>
@@ -109,6 +131,8 @@ export default function OptionsModal() {
         product: selectedProductForOptions,
         sauces: sauceCounts,
         sauceLabels,
+        freeSauceLimit,
+        extraSaucePrice,
         extras: selectedExtras,
         drink: isMenu ? selectedDrink : null,
         note,
@@ -164,9 +188,16 @@ export default function OptionsModal() {
               <h4 id="opt-modal-title" className="font-extrabold text-lg text-stone-900 leading-snug">
                 {selectedProductForOptions.name}
               </h4>
-              <span id="opt-modal-price" className="text-base font-black text-brand-600">
-                ₺{Number(selectedProductForOptions.price).toFixed(2)}
-              </span>
+              <div className="flex items-baseline gap-2">
+                <span id="opt-modal-price" className="text-base font-black text-brand-600">
+                  ₺{currentTotalPrice.toFixed(2)}
+                </span>
+                {(extrasCost > 0 || extraSauceCost > 0) && (
+                  <span className="text-[11px] font-semibold text-stone-400">
+                    (Baz: ₺{Number(selectedProductForOptions.price).toFixed(2)})
+                  </span>
+                )}
+              </div>
             </div>
           </div>
           <button
@@ -178,13 +209,31 @@ export default function OptionsModal() {
         </div>
 
         <div className="space-y-5 text-left">
-          {/* Sos Seçimleri & Adetleri (Ücretsiz) */}
+          {/* Sos Seçimleri & Adetleri (Ücretsiz Sınırı) */}
           <div>
-            <label className="block text-xs font-bold text-stone-800 uppercase mb-2 flex items-center justify-between">
-              <span>Sos Seçimleri & Adetleri</span>
-              <span className="text-[10px] font-semibold text-emerald-600 bg-emerald-50 px-2.5 py-0.5 rounded-md border border-emerald-200">
-                Ücretsiz
+            <label className="block text-xs font-bold text-stone-800 uppercase mb-2 flex flex-wrap items-center justify-between gap-1.5">
+              <span className="flex items-center gap-1.5">
+                <i className="fa-solid fa-bottle-droplet text-amber-500"></i>
+                Sos Seçimleri &amp; Adetleri
               </span>
+              <div className="flex items-center gap-1.5">
+                <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
+                  {freeSauceLimit > 0 ? `İlk ${freeSauceLimit} Adet Ücretsiz` : 'Tümü Ücretli'}
+                </span>
+                {extraSaucePrice > 0 && (
+                  <span
+                    className={`text-[10px] font-bold px-2 py-0.5 rounded-md border transition-all ${
+                      paidSauceCount > 0
+                        ? 'bg-amber-100 text-amber-900 border-amber-300 font-black'
+                        : 'bg-stone-50 text-stone-600 border-stone-200'
+                    }`}
+                  >
+                    {paidSauceCount > 0
+                      ? `+${paidSauceCount} Adet Ekstra (+₺${extraSauceCost.toFixed(2)})`
+                      : `Sonrası +₺${extraSaucePrice} / Adet`}
+                  </span>
+                )}
+              </div>
             </label>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5" id="sauces-container">
               {availableSauces.length === 0 ? (
@@ -324,7 +373,8 @@ export default function OptionsModal() {
               onClick={handleConfirm}
               className="w-full bg-brand-500 hover:bg-brand-600 text-white font-black py-4 rounded-2xl shadow-lg shadow-brand-500/25 text-sm transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-95"
             >
-              <i className="fa-solid fa-bag-shopping"></i> Sepete Ekle
+              <i className="fa-solid fa-bag-shopping"></i>
+              <span>Sepete Ekle &bull; ₺{currentTotalPrice.toFixed(2)}</span>
             </button>
           ) : (
             <button

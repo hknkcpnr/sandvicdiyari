@@ -20,6 +20,8 @@ export async function GET() {
           return NextResponse.json({
             success: true,
             data: {
+              freeSauceLimit: typeof val.freeSauceLimit === 'number' ? val.freeSauceLimit : DEFAULT_PRODUCT_OPTIONS.freeSauceLimit,
+              extraSaucePrice: typeof val.extraSaucePrice === 'number' ? val.extraSaucePrice : DEFAULT_PRODUCT_OPTIONS.extraSaucePrice,
               sauces: Array.isArray(val.sauces) ? val.sauces : DEFAULT_PRODUCT_OPTIONS.sauces,
               extras: Array.isArray(val.extras) ? val.extras : DEFAULT_PRODUCT_OPTIONS.extras,
               drinks: Array.isArray(val.drinks) ? val.drinks : DEFAULT_PRODUCT_OPTIONS.drinks
@@ -90,7 +92,17 @@ export async function POST(request) {
         })).filter(d => d.name.length > 0)
       : DEFAULT_PRODUCT_OPTIONS.drinks;
 
+    const freeSauceLimit = typeof body.freeSauceLimit === 'number'
+      ? Math.max(0, Math.min(20, Math.floor(body.freeSauceLimit)))
+      : DEFAULT_PRODUCT_OPTIONS.freeSauceLimit;
+
+    const extraSaucePrice = typeof body.extraSaucePrice === 'number'
+      ? Math.max(0, Math.min(100, Number(body.extraSaucePrice)))
+      : DEFAULT_PRODUCT_OPTIONS.extraSaucePrice;
+
     const payloadToSave = {
+      freeSauceLimit,
+      extraSaucePrice,
       sauces: cleanSauces,
       extras: cleanExtras,
       drinks: cleanDrinks
@@ -123,3 +135,4 @@ export async function POST(request) {
     );
   }
 }
+

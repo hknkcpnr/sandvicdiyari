@@ -16,6 +16,8 @@ export default function OptionsManagementTab() {
 
   // Data state
   const [sauces, setSauces] = useState(DEFAULT_PRODUCT_OPTIONS.sauces);
+  const [freeSauceLimit, setFreeSauceLimit] = useState(DEFAULT_PRODUCT_OPTIONS.freeSauceLimit ?? 2);
+  const [extraSaucePrice, setExtraSaucePrice] = useState(DEFAULT_PRODUCT_OPTIONS.extraSaucePrice ?? 5);
   const [extras, setExtras] = useState(DEFAULT_PRODUCT_OPTIONS.extras);
   const [drinks, setDrinks] = useState(DEFAULT_PRODUCT_OPTIONS.drinks);
 
@@ -35,6 +37,8 @@ export default function OptionsManagementTab() {
       const res = await fetch('/api/options');
       const json = await res.json();
       if (json.success && json.data) {
+        if (typeof json.data.freeSauceLimit === 'number') setFreeSauceLimit(json.data.freeSauceLimit);
+        if (typeof json.data.extraSaucePrice === 'number') setExtraSaucePrice(json.data.extraSaucePrice);
         if (Array.isArray(json.data.sauces)) setSauces(json.data.sauces);
         if (Array.isArray(json.data.extras)) setExtras(json.data.extras);
         if (Array.isArray(json.data.drinks)) setDrinks(json.data.drinks);
@@ -51,8 +55,10 @@ export default function OptionsManagementTab() {
   }, []);
 
   // Save all options to server
-  const persistOptions = async (updatedSauces, updatedExtras, updatedDrinks) => {
+  const persistOptions = async (updatedSauces, updatedExtras, updatedDrinks, limitOverride, priceOverride) => {
     const payload = {
+      freeSauceLimit: typeof limitOverride === 'number' ? limitOverride : freeSauceLimit,
+      extraSaucePrice: typeof priceOverride === 'number' ? priceOverride : extraSaucePrice,
       sauces: updatedSauces || sauces,
       extras: updatedExtras || extras,
       drinks: updatedDrinks || drinks,
@@ -81,6 +87,28 @@ export default function OptionsManagementTab() {
       return false;
     } finally {
       setSaving(false);
+    }
+  };
+
+  // Save free sauce quota policy
+  const handleSaveSaucePolicy = async (limitVal, priceVal) => {
+    const targetLimit = typeof limitVal === 'number' ? limitVal : freeSauceLimit;
+    const targetPrice = typeof priceVal === 'number' ? priceVal : extraSaucePrice;
+
+    if (typeof limitVal === 'number') setFreeSauceLimit(limitVal);
+    if (typeof priceVal === 'number') setExtraSaucePrice(priceVal);
+
+    const ok = await persistOptions(sauces, extras, drinks, targetLimit, targetPrice);
+    if (ok) {
+      dispatch(
+        showMessageModal({
+          title: 'Sos Politikası Kaydedildi! 🥫',
+          text: targetLimit > 0
+            ? `İlk ${targetLimit} adet sos ücretsiz sunulacak. Kotayı aşan her sos için +₺${Number(targetPrice).toFixed(2)} eklenecektir.`
+            : `Tüm soslar adet başına +₺${Number(targetPrice).toFixed(2)} olarak ücretlendirilecek.`,
+          type: 'success',
+        })
+      );
     }
   };
 
@@ -240,13 +268,17 @@ export default function OptionsManagementTab() {
   // Reset to initial defaults
   const handleResetDefaults = async () => {
     if (!confirm('Tüm sos ve ekstraları varsayılan fabrika ayarlarına sıfırlamak istiyor musunuz?')) return;
+    setFreeSauceLimit(DEFAULT_PRODUCT_OPTIONS.freeSauceLimit ?? 2);
+    setExtraSaucePrice(DEFAULT_PRODUCT_OPTIONS.extraSaucePrice ?? 5);
     setSauces(DEFAULT_PRODUCT_OPTIONS.sauces);
     setExtras(DEFAULT_PRODUCT_OPTIONS.extras);
     setDrinks(DEFAULT_PRODUCT_OPTIONS.drinks);
     const ok = await persistOptions(
       DEFAULT_PRODUCT_OPTIONS.sauces,
       DEFAULT_PRODUCT_OPTIONS.extras,
-      DEFAULT_PRODUCT_OPTIONS.drinks
+      DEFAULT_PRODUCT_OPTIONS.drinks,
+      DEFAULT_PRODUCT_OPTIONS.freeSauceLimit ?? 2,
+      DEFAULT_PRODUCT_OPTIONS.extraSaucePrice ?? 5
     );
     if (ok) {
       dispatch(
@@ -361,14 +393,16 @@ export default function OptionsManagementTab() {
 
         <div className="bg-white p-4 sm:p-5 rounded-2xl border border-stone-200/90 shadow-2xs">
           <div className="flex items-center justify-between text-xs text-stone-500 font-bold mb-1">
-            <span>Sos Ücreti</span>
-            <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
-              <i className="fa-solid fa-gift text-sm"></i>
+            <span>Sos Kotası & Politika</span>
+            <div className="w-8 h-8 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center">
+              <i className="fa-solid fa-scale-balanced text-sm"></i>
             </div>
           </div>
-          <div className="text-2xl font-black text-emerald-600">Ücretsiz</div>
-          <div className="text-[11px] font-semibold text-stone-400 mt-1">
-            Sandviç başına dilediği kadar
+          <div className="text-xl sm:text-2xl font-black text-amber-600">
+            {freeSauceLimit > 0 ? `${freeSauceLimit} Adet Bedava` : 'Tümü Ücretli'}
+          </div>
+          <div className="text-[11px] font-semibold text-stone-500 mt-1">
+            {extraSaucePrice > 0 ? `Kota Aşımı: +₺${extraSaucePrice}/Adet` : 'Sınırsız Ücretsiz'}
           </div>
         </div>
 
@@ -475,7 +509,125 @@ export default function OptionsManagementTab() {
         </div>
       </div>
 
-      {/* 4. SOS LİSTESİ BÖLÜMÜ */}
+      {/* 4. SOS KOTASI & ÜCRETLENDİRME POLİTİKASI (YÖNETİCİ BELİRLER) */}
+      {activeSubTab === 'sauces' && (
+        <div className="bg-gradient-to-br from-amber-500/10 via-amber-50/50 to-white p-4 sm:p-6 rounded-3xl border border-amber-200/90 shadow-xs space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-amber-500 text-white flex items-center justify-center shadow-md shadow-amber-500/25 shrink-0">
+                <i className="fa-solid fa-scale-balanced text-lg"></i>
+              </div>
+              <div>
+                <h3 className="font-extrabold text-stone-900 text-sm sm:text-base flex items-center gap-2">
+                  <span>Ücretsiz Sos Kotası &amp; Ekstra Sos Ücretlendirmesi</span>
+                  <span className="text-[10px] font-bold bg-amber-200 text-amber-900 px-2 py-0.5 rounded-full">
+                    Kural
+                  </span>
+                </h3>
+                <p className="text-xs text-stone-500 mt-0.5">
+                  Müşteri sandviç veya menü seçerken bu sınıra kadar ücretsiz sos seçebilir; sınır aşıldığında kalan soslar için belirlenen ilave ücret sepete yansıtılır.
+                </p>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => handleSaveSaucePolicy(freeSauceLimit, extraSaucePrice)}
+              disabled={saving}
+              className="bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold px-4 py-2.5 rounded-xl flex items-center justify-center gap-2 cursor-pointer shadow-xs active:scale-95 transition-all shrink-0"
+            >
+              <i className="fa-solid fa-floppy-disk"></i>
+              <span>{saving ? 'Kaydediliyor...' : 'Politikayı Kaydet'}</span>
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5 pt-1">
+            <div className="bg-white p-4 rounded-2xl border border-amber-200/80 shadow-2xs">
+              <label className="block text-xs font-bold text-stone-800 uppercase mb-1">
+                Ücretsiz Sos Sınırı (Adet)
+              </label>
+              <div className="flex items-center gap-2">
+                <input
+                  type="number"
+                  min="0"
+                  max="20"
+                  value={freeSauceLimit}
+                  onChange={(e) => setFreeSauceLimit(Math.max(0, parseInt(e.target.value) || 0))}
+                  className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3.5 py-2 text-sm font-extrabold text-stone-900 focus:outline-none focus:border-amber-500"
+                />
+                <span className="text-xs font-bold text-stone-500 whitespace-nowrap">Adet</span>
+              </div>
+              <span className="text-[11px] text-stone-400 block mt-1">
+                Örn: 2 seçilirse ilk 2 sos tamamen bedavadır.
+              </span>
+            </div>
+
+            <div className="bg-white p-4 rounded-2xl border border-amber-200/80 shadow-2xs">
+              <label className="block text-xs font-bold text-stone-800 uppercase mb-1">
+                Kotayı Aşan Her Sosun Ücreti (₺)
+              </label>
+              <div className="flex items-center gap-2">
+                <input
+                  type="number"
+                  min="0"
+                  max="100"
+                  step="0.5"
+                  value={extraSaucePrice}
+                  onChange={(e) => setExtraSaucePrice(Math.max(0, parseFloat(e.target.value) || 0))}
+                  className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3.5 py-2 text-sm font-extrabold text-brand-600 focus:outline-none focus:border-amber-500"
+                />
+                <span className="text-xs font-bold text-stone-500 whitespace-nowrap">₺ / Adet</span>
+              </div>
+              <span className="text-[11px] text-stone-400 block mt-1">
+                Örn: 5 seçilirse, 3. sostan itibaren tanesi ₺5 eklenir.
+              </span>
+            </div>
+
+            <div className="bg-white p-4 rounded-2xl border border-amber-200/80 shadow-2xs sm:col-span-2 lg:col-span-1 flex flex-col justify-between">
+              <div>
+                <label className="block text-xs font-bold text-stone-800 uppercase mb-1.5">
+                  Hızlı Hazır Şablonlar
+                </label>
+                <div className="grid grid-cols-2 gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => handleSaveSaucePolicy(2, 5)}
+                    className="text-[11px] font-bold p-1.5 rounded-lg bg-stone-100 hover:bg-amber-100 text-stone-700 hover:text-amber-900 transition-colors cursor-pointer text-center"
+                  >
+                    2 Bedava / +₺5
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleSaveSaucePolicy(3, 7.5)}
+                    className="text-[11px] font-bold p-1.5 rounded-lg bg-stone-100 hover:bg-amber-100 text-stone-700 hover:text-amber-900 transition-colors cursor-pointer text-center"
+                  >
+                    3 Bedava / +₺7.5
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleSaveSaucePolicy(1, 5)}
+                    className="text-[11px] font-bold p-1.5 rounded-lg bg-stone-100 hover:bg-amber-100 text-stone-700 hover:text-amber-900 transition-colors cursor-pointer text-center"
+                  >
+                    1 Bedava / +₺5
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleSaveSaucePolicy(99, 0)}
+                    className="text-[11px] font-bold p-1.5 rounded-lg bg-stone-100 hover:bg-emerald-100 text-stone-700 hover:text-emerald-900 transition-colors cursor-pointer text-center"
+                  >
+                    Hepsi Bedava
+                  </button>
+                </div>
+              </div>
+              <span className="text-[10px] text-stone-400 mt-2 block">
+                Şablona tıkladığınızda kural anında kaydedilir ve yürürlüğe girer.
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 5. SOS LİSTESİ BÖLÜMÜ */}
       {activeSubTab === 'sauces' && (
         <div className="bg-white rounded-2xl border border-stone-200 divide-y divide-stone-100 overflow-hidden shadow-xs">
           <div className="p-4 bg-stone-50/70 flex items-center justify-between text-xs font-bold text-stone-600 border-b border-stone-200/80">
@@ -831,3 +983,4 @@ export default function OptionsManagementTab() {
     </div>
   );
 }
+

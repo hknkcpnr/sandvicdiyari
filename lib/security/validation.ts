@@ -143,11 +143,14 @@ function extractOptionExtraPrice(selectedOptions?: string[]): number {
   let extra = 0;
   for (const opt of selectedOptions) {
     const str = String(opt || '');
-    const match = str.match(/\+\s*(?:₺\s*)?(\d+(?:[.,]\d+)?)\s*(?:₺|TL)?/i);
-    if (match && match[1]) {
-      const val = parseFloat(match[1].replace(',', '.'));
-      if (!Number.isNaN(val) && val > 0 && val <= 500) {
-        extra += val;
+    const regex = /\+\s*(?:₺\s*)?(\d+(?:[.,]\d+)?)\s*(?:₺|TL)?/gi;
+    let match: RegExpExecArray | null;
+    while ((match = regex.exec(str)) !== null) {
+      if (match && match[1]) {
+        const val = parseFloat(match[1].replace(',', '.'));
+        if (!Number.isNaN(val) && val > 0 && val <= 500) {
+          extra += val;
+        }
       }
     }
   }
@@ -230,12 +233,14 @@ export function validateAndPriceOrderPayload(
         p.name.toLowerCase() === itemName.toLowerCase()
     );
 
-    const sanitizedOptions: string[] = Array.isArray(itemObj.selectedOptions)
+    const sanitizedOptions: string[] = Array.isArray(itemObj.selectedOptions) && itemObj.selectedOptions.length > 0
       ? itemObj.selectedOptions
         .slice(0, 20)
         .map(opt => sanitizeText(opt, 120, 'Seçenek', endpoint))
         .filter(Boolean)
-      : [];
+      : (typeof itemObj.details === 'string' && itemObj.details.trim())
+        ? itemObj.details.split('|').map(s => sanitizeText(s.trim(), 200, 'Detay', endpoint)).filter(Boolean)
+        : [];
 
     let authoritativeUnitPrice: number;
     if (dbProduct) {
