@@ -75,6 +75,7 @@ export interface OrderItem {
   quantity: number;
   selectedOptions?: string[];
   image?: string;
+  details?: string;
 }
 
 export interface OrderStatusHistoryEntry {

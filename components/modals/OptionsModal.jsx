@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import {
   closeOptionsModal,
@@ -9,6 +9,7 @@ import {
   showMessageModal
 } from '@/store/slices/uiSlice';
 import { addToCart } from '@/store/slices/cartSlice';
+import { DEFAULT_PRODUCT_OPTIONS } from '@/lib/productOptionsDefaults';
 
 export default function OptionsModal() {
   const dispatch = useDispatch();
@@ -18,19 +19,67 @@ export default function OptionsModal() {
   const { currentUser } = useSelector((state) => state.auth);
 
   const [selectedDrink, setSelectedDrink] = useState('Kutu Pepsi (330ml)');
-  const [extras, setExtras] = useState([
-    { name: 'Ekstra Kaşar Peyniri', price: 20, checked: false },
-    { name: 'Ekstra Cheddar Peyniri', price: 25, checked: false },
-    { name: 'Ekstra Köfte / Kasap Köfte', price: 40, checked: false },
-    { name: 'Jalapeno Acı Biber', price: 15, checked: false },
-    { name: 'Karamelize Soğan', price: 15, checked: false },
-    { name: 'Ekstra Çıtır Patates', price: 50, checked: false },
-  ]);
+  const [saucesList, setSaucesList] = useState(DEFAULT_PRODUCT_OPTIONS.sauces);
+  const [extras, setExtras] = useState(
+    DEFAULT_PRODUCT_OPTIONS.extras.map((e) => ({ ...e, checked: false }))
+  );
+  const [drinkOptions, setDrinkOptions] = useState(
+    DEFAULT_PRODUCT_OPTIONS.drinks.map((d) => (typeof d === 'string' ? d : d.name))
+  );
   const [note, setNote] = useState('');
+
+  // Fetch dynamic options from backend API
+  useEffect(() => {
+    let isMounted = true;
+    async function fetchDynamicOptions() {
+      try {
+        const res = await fetch('/api/options');
+        const json = await res.json();
+        if (isMounted && json && json.success && json.data) {
+          if (Array.isArray(json.data.sauces)) {
+            setSaucesList(json.data.sauces);
+          }
+          if (Array.isArray(json.data.extras)) {
+            setExtras((prev) => {
+              const prevCheckedMap = {};
+              (prev || []).forEach((p) => {
+                if (p.checked) prevCheckedMap[p.id || p.name] = true;
+              });
+              return json.data.extras.map((e) => ({
+                ...e,
+                checked: !!prevCheckedMap[e.id || e.name],
+              }));
+            });
+          }
+          if (Array.isArray(json.data.drinks)) {
+            setDrinkOptions(
+              json.data.drinks
+                .filter((d) => (typeof d === 'object' ? d.isAvailable !== false : true))
+                .map((d) => (typeof d === 'string' ? d : d.name))
+            );
+          }
+        }
+      } catch (err) {
+        console.warn('Options API fetch fallback:', err);
+      }
+    }
+
+    if (isOptionsModalOpen) {
+      fetchDynamicOptions();
+    }
+
+    return () => {
+      isMounted = false;
+    };
+  }, [isOptionsModalOpen]);
 
   if (!isOptionsModalOpen || !selectedProductForOptions) return null;
 
   const isMenu = selectedProductForOptions.category === 'menu';
+
+  // Only show available sauces and extras to the customer
+  const availableSauces = (saucesList || []).filter((s) => s.isAvailable !== false);
+  const availableExtras = (extras || []).filter((e) => e.isAvailable !== false);
 
   const handleToggleExtra = (index) => {
     setExtras((prev) =>
@@ -46,11 +95,20 @@ export default function OptionsModal() {
       dispatch(openAuthModal('login'));
       return;
     }
-    const selectedExtras = extras.filter((e) => e.checked);
+    const selectedExtras = extras.filter((e) => e.checked && e.isAvailable !== false);
+
+    // Build sauceLabels map for dynamic cart and adisyon display
+    const sauceLabels = {};
+    (saucesList || []).forEach((s) => {
+      const key = s.id || s.key || s.name;
+      sauceLabels[key] = s.name || s.label;
+    });
+
     dispatch(
       addToCart({
         product: selectedProductForOptions,
         sauces: sauceCounts,
+        sauceLabels,
         extras: selectedExtras,
         drink: isMenu ? selectedDrink : null,
         note,
@@ -64,38 +122,13 @@ export default function OptionsModal() {
         type: 'success',
       })
     );
-    // Reset state
+    // Reset form state
     setNote('');
-    setSelectedDrink('Kutu Pepsi (330ml)');
-    setExtras([
-      { name: 'Ekstra Kaşar Peyniri', price: 20, checked: false },
-      { name: 'Ekstra Cheddar Peyniri', price: 25, checked: false },
-      { name: 'Ekstra Köfte / Kasap Köfte', price: 40, checked: false },
-      { name: 'Jalapeno Acı Biber', price: 15, checked: false },
-      { name: 'Karamelize Soğan', price: 15, checked: false },
-      { name: 'Ekstra Çıtır Patates', price: 50, checked: false },
-    ]);
+    if (drinkOptions.length > 0) {
+      setSelectedDrink(drinkOptions[0]);
+    }
+    setExtras((prev) => prev.map((e) => ({ ...e, checked: false })));
   };
-
-  const saucesList = [
-    { key: 'ketcap', label: 'Ketçap' },
-    { key: 'mayonez', label: 'Mayonez' },
-    { key: 'sarimsakli', label: 'Sarımsaklı Mayonez' },
-    { key: 'acisos', label: 'Özel Acı Sos' },
-    { key: 'barbeku', label: 'Barbekü Sos' },
-    { key: 'hardal', label: 'Ballı Hardal' },
-  ];
-
-  const drinkOptions = [
-    'Kutu Pepsi (330ml)',
-    'Kutu Pepsi Max (Şekersiz)',
-    'Büyük Ayran (300ml)',
-    'Küçük Ayran (200ml)',
-    'Yedigün Portakal',
-    '7Up Gazoz',
-    'Şalgam Suyu',
-    'Doğal Su'
-  ];
 
   return (
     <div
@@ -154,35 +187,45 @@ export default function OptionsModal() {
               </span>
             </label>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5" id="sauces-container">
-              {saucesList.map((s) => (
-                <div
-                  key={s.key}
-                  className="flex items-center justify-between p-2.5 rounded-2xl border border-stone-200 bg-stone-50/80"
-                >
-                  <span className="text-xs font-semibold text-stone-700 truncate pr-1">
-                    {s.label}
-                  </span>
-                  <div className="flex items-center gap-1.5 shrink-0">
-                    <button
-                      type="button"
-                      onClick={() => dispatch(adjustSauceCount({ sauceKey: s.key, delta: -1 }))}
-                      className="w-6 h-6 bg-white border border-stone-200 rounded-lg flex items-center justify-center text-xs font-bold text-stone-700 hover:bg-stone-100 transition-colors cursor-pointer"
-                    >
-                      -
-                    </button>
-                    <span className="text-xs font-black text-stone-900 w-4 text-center">
-                      {sauceCounts[s.key] || 0}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => dispatch(adjustSauceCount({ sauceKey: s.key, delta: 1 }))}
-                      className="w-6 h-6 bg-white border border-stone-200 rounded-lg flex items-center justify-center text-xs font-bold text-stone-700 hover:bg-stone-100 transition-colors cursor-pointer"
-                    >
-                      +
-                    </button>
-                  </div>
+              {availableSauces.length === 0 ? (
+                <div className="col-span-full text-center py-3 text-xs text-stone-400 bg-stone-50 rounded-2xl border border-dashed border-stone-200">
+                  Şu an için seçilebilir sos bulunmuyor.
                 </div>
-              ))}
+              ) : (
+                availableSauces.map((s) => {
+                  const sKey = s.id || s.key || s.name;
+                  const label = s.name || s.label;
+                  return (
+                    <div
+                      key={sKey}
+                      className="flex items-center justify-between p-2.5 rounded-2xl border border-stone-200 bg-stone-50/80"
+                    >
+                      <span className="text-xs font-semibold text-stone-700 truncate pr-1" title={label}>
+                        {label}
+                      </span>
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => dispatch(adjustSauceCount({ sauceKey: sKey, delta: -1 }))}
+                          className="w-6 h-6 bg-white border border-stone-200 rounded-lg flex items-center justify-center text-xs font-bold text-stone-700 hover:bg-stone-100 transition-colors cursor-pointer"
+                        >
+                          -
+                        </button>
+                        <span className="text-xs font-black text-stone-900 w-4 text-center">
+                          {sauceCounts[sKey] || 0}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => dispatch(adjustSauceCount({ sauceKey: sKey, delta: 1 }))}
+                          className="w-6 h-6 bg-white border border-stone-200 rounded-lg flex items-center justify-center text-xs font-bold text-stone-700 hover:bg-stone-100 transition-colors cursor-pointer"
+                        >
+                          +
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
             </div>
           </div>
 
@@ -195,27 +238,44 @@ export default function OptionsModal() {
               </span>
             </label>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5" id="extras-container">
-              {extras.map((extra, index) => (
-                <label
-                  key={extra.name}
-                  className={`flex items-center justify-between p-3 rounded-2xl border transition-all text-xs font-medium cursor-pointer ${
-                    extra.checked
-                      ? 'border-brand-500 bg-brand-50/60 text-brand-900 font-bold'
-                      : 'border-stone-200 bg-stone-50 text-stone-700 hover:border-stone-300'
-                  }`}
-                >
-                  <div className="flex items-center gap-2 min-w-0">
-                    <input
-                      type="checkbox"
-                      checked={extra.checked}
-                      onChange={() => handleToggleExtra(index)}
-                      className="text-brand-600 rounded focus:ring-brand-500 shrink-0"
-                    />
-                    <span className="truncate">{extra.name}</span>
-                  </div>
-                  <span className="text-brand-600 font-black shrink-0 ml-1">+₺{extra.price}</span>
-                </label>
-              ))}
+              {availableExtras.length === 0 ? (
+                <div className="col-span-full text-center py-3 text-xs text-stone-400 bg-stone-50 rounded-2xl border border-dashed border-stone-200">
+                  Şu an için seçilebilir ekstra malzeme bulunmuyor.
+                </div>
+              ) : (
+                availableExtras.map((extra) => {
+                  const extraKey = extra.id || extra.name;
+                  return (
+                    <label
+                      key={extraKey}
+                      className={`flex items-center justify-between p-3 rounded-2xl border transition-all text-xs font-medium cursor-pointer ${
+                        extra.checked
+                          ? 'border-brand-500 bg-brand-50/60 text-brand-900 font-bold'
+                          : 'border-stone-200 bg-stone-50 text-stone-700 hover:border-stone-300'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 min-w-0">
+                        <input
+                          type="checkbox"
+                          checked={!!extra.checked}
+                          onChange={() => {
+                            setExtras((prev) =>
+                              prev.map((e) =>
+                                (e.id && e.id === extra.id) || e.name === extra.name
+                                  ? { ...e, checked: !e.checked }
+                                  : e
+                              )
+                            );
+                          }}
+                          className="text-brand-600 rounded focus:ring-brand-500 shrink-0"
+                        />
+                        <span className="truncate">{extra.name}</span>
+                      </div>
+                      <span className="text-brand-600 font-black shrink-0 ml-1">+₺{extra.price}</span>
+                    </label>
+                  );
+                })
+              )}
             </div>
           </div>
 

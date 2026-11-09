@@ -14,6 +14,7 @@ import BlurredAmount from '@/components/admin/BlurredAmount';
 import SettingsTab, { DEFAULT_ADMIN_SETTINGS } from '@/components/admin/SettingsTab';
 import SiteContentEditorTab from '@/components/admin/SiteContentEditorTab';
 import MembersTab from '@/components/admin/MembersTab';
+import OptionsManagementTab from '@/components/admin/OptionsManagementTab';
 import AdminPagination from '@/components/admin/AdminPagination';
 
 // Status styling and Turkish badge helpers
@@ -1444,6 +1445,13 @@ export default function AdminDashboardPage() {
                 badgeColor: 'bg-stone-100 text-stone-600',
               },
               {
+                id: 'options',
+                label: 'Soslar & Ekstralar',
+                icon: 'fa-solid fa-bottle-droplet',
+                badge: 'Özelleştirme',
+                badgeColor: 'bg-amber-50 text-amber-700 font-bold',
+              },
+              {
                 id: 'inventory',
                 label: 'Stok Yönetimi',
                 icon: 'fa-solid fa-boxes-stacked',
@@ -1749,6 +1757,7 @@ export default function AdminDashboardPage() {
               {currentTab === 'members' && 'Kayıtlı Üye & Müşteri Yönetimi'}
               {currentTab === 'inventory' && 'Stok & Satış Yönetimi'}
               {currentTab === 'products' && 'Menü & Ürün Yönetimi'}
+              {currentTab === 'options' && 'Soslar, Ekstralar & Sepet Seçenekleri'}
               {currentTab === 'users' && 'Kullanıcılar & Rol Modelleri Yönetimi'}
               {currentTab === 'reviews' && 'Müşteri Değerlendirmeleri'}
               {currentTab === 'api' && 'PostgreSQL 16 ORM, TypeScript & Siber Güvenlik Merkezi'}
@@ -2466,13 +2475,24 @@ export default function AdminDashboardPage() {
                 ))}
               </div>
 
-              <button
-                onClick={openAddProductModal}
-                className="w-full sm:w-auto justify-center bg-brand-600 hover:bg-brand-700 text-white text-xs font-semibold px-4 py-2.5 rounded-xl flex items-center gap-2 cursor-pointer shadow-xs shrink-0 active:scale-95 transition-all"
-              >
-                <i className="fa-solid fa-plus"></i>
-                <span>Yeni Ürün Ekle</span>
-              </button>
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
+                <button
+                  type="button"
+                  onClick={() => setCurrentTab('options')}
+                  className="w-full sm:w-auto justify-center bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 text-xs font-bold px-3.5 py-2.5 rounded-xl flex items-center gap-2 cursor-pointer shadow-2xs shrink-0 active:scale-95 transition-all"
+                  title="Sosları ve ekstra malzemeleri yönetin"
+                >
+                  <i className="fa-solid fa-bottle-droplet text-amber-600"></i>
+                  <span>Soslar &amp; Ekstralar</span>
+                </button>
+                <button
+                  onClick={openAddProductModal}
+                  className="w-full sm:w-auto justify-center bg-brand-600 hover:bg-brand-700 text-white text-xs font-semibold px-4 py-2.5 rounded-xl flex items-center gap-2 cursor-pointer shadow-xs shrink-0 active:scale-95 transition-all"
+                >
+                  <i className="fa-solid fa-plus"></i>
+                  <span>Yeni Ürün Ekle</span>
+                </button>
+              </div>
             </div>
 
             {/* Products List */}
@@ -2557,6 +2577,11 @@ export default function AdminDashboardPage() {
               />
             )}
           </div>
+        )}
+
+        {/* TAB: SOSLAR & EKSTRA MALZEMELER YÖNETİMİ */}
+        {currentTab === 'options' && (
+          <OptionsManagementTab />
         )}
 
         {/* TAB 3: GERİ BİLDİRİMLER & MÜŞTERİ DEĞERLENDİRMELERİ ONAY MERKEZİ */}

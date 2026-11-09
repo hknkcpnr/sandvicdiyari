@@ -7,14 +7,7 @@ const initialState = {
   isCartOpen: false,
   isOptionsModalOpen: false,
   selectedProductForOptions: null,
-  sauceCounts: {
-    ketcap: 0,
-    mayonez: 0,
-    sarimsakli: 0,
-    acisos: 0,
-    barbeku: 0,
-    hardal: 0,
-  },
+  sauceCounts: {},
   isAuthModalOpen: false,
   authModalTab: 'login',
   authModalNotice: '',
@@ -54,14 +47,7 @@ export const uiSlice = createSlice({
     },
     openOptionsModal: (state, action) => {
       state.selectedProductForOptions = action.payload;
-      state.sauceCounts = {
-        ketcap: 0,
-        mayonez: 0,
-        sarimsakli: 0,
-        acisos: 0,
-        barbeku: 0,
-        hardal: 0,
-      };
+      state.sauceCounts = {};
       state.isOptionsModalOpen = true;
     },
     closeOptionsModal: (state) => {

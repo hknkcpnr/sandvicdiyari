@@ -57,7 +57,8 @@ export const cartSlice = createSlice({
           barbeku: 'Barbekü Sos',
           hardal: 'Ballı Hardal',
           ketcap: 'Ketçap',
-          mayonez: 'Mayonez'
+          mayonez: 'Mayonez',
+          ...(action.payload.sauceLabels || {})
         };
         const formatted = sauceEntries.map(([k, count]) => `${sauceNames[k] || k} (${count} Adet)`);
         descriptionDetails.push(`Soslar: ${formatted.join(', ')}`);

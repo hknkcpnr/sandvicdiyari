@@ -280,6 +280,8 @@ export function validateAndPriceOrderPayload(
       name: dbProduct ? dbProduct.name : itemName,
       price: authoritativeUnitPrice,
       quantity: rawQty,
+      ...(itemObj.details ? { details: sanitizeText(itemObj.details as string, 400, 'Ürün Detayı', endpoint) } : {}),
+      ...(itemObj.image ? { image: sanitizeText(itemObj.image as string, 500, 'Görsel', endpoint) } : {}),
       ...(sanitizedOptions.length > 0 ? { selectedOptions: sanitizedOptions } : {})
     });
   }
