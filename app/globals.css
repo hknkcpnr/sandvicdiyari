@@ -284,6 +284,66 @@ button, a {
   100% { transform: translateY(-22px) scale(1.3); opacity: 0; }
 }
 
+/* ==========================================================================
+   SARI KURYE TESLİMAT İKONU & ANİMASYONLARI (Neden Sandviç Diyarı)
+   ========================================================================== */
+
+.courier-badge-icon {
+  display: inline-block;
+  cursor: pointer;
+  filter: drop-shadow(0 6px 14px rgba(245, 158, 11, 0.4));
+  transition: transform 0.2s ease;
+}
+.courier-badge-icon:hover {
+  transform: scale(1.14);
+}
+.scooter-ride {
+  animation: scooterBounce 0.65s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite;
+  transform-origin: center bottom;
+}
+.wheel-spin {
+  animation: spinWheel 0.5s linear infinite;
+}
+.wheel-back { transform-origin: 34px 72px; }
+.wheel-front { transform-origin: 86px 72px; }
+
+.speed-line {
+  animation: speedMotion 0.7s linear infinite;
+}
+.speed-2 { animation-delay: 0.3s; }
+
+.exhaust-puff {
+  animation: puffMotion 0.85s ease-out infinite;
+  transform-origin: 20px 68px;
+}
+.box-bounce {
+  animation: boxMotion 0.65s ease-in-out infinite;
+  transform-origin: 28px 46px;
+}
+
+@keyframes scooterBounce {
+  0%, 100% { transform: translateY(0px) rotate(0deg); }
+  25% { transform: translateY(-2px) rotate(0.8deg); }
+  50% { transform: translateY(1px) rotate(-0.5deg); }
+  75% { transform: translateY(-1.5px) rotate(0.4deg); }
+}
+@keyframes spinWheel {
+  100% { transform: rotate(360deg); }
+}
+@keyframes speedMotion {
+  0% { transform: translateX(10px); opacity: 0; }
+  50% { opacity: 0.85; }
+  100% { transform: translateX(-14px); opacity: 0; }
+}
+@keyframes puffMotion {
+  0% { transform: translate(0, 0) scale(0.5); opacity: 0.9; }
+  100% { transform: translate(-16px, -5px) scale(1.3); opacity: 0; }
+}
+@keyframes boxMotion {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-1.5px) rotate(-1deg); }
+}
+
 /* Modern Özel Select Açılır Kutu Stili */
 .app-select {
   appearance: none !important;
