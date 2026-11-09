@@ -59,42 +59,74 @@ export default function TopBar() {
           {contact.phone2 && (
             <>
               <span className="text-stone-700 hidden sm:inline">&bull;</span>
-              <a
-                href={`tel:${contact.phone2.replace(/\s+/g, '')}`}
-                className="hover:text-white transition-colors flex items-center gap-1.5"
-                title="Sabit Hat"
-              >
-                <i className="fa-solid fa-phone text-brand-500"></i>
-                <span>{contact.phone2}</span>
-              </a>
+              {status.isOpen ? (
+                <a
+                  href={`tel:${contact.phone2.replace(/\s+/g, '')}`}
+                  className="hover:text-white transition-colors flex items-center gap-1.5"
+                  title="Sabit Hat"
+                >
+                  <i className="fa-solid fa-phone text-brand-500"></i>
+                  <span>{contact.phone2}</span>
+                </a>
+              ) : (
+                <span
+                  className="text-stone-500 flex items-center gap-1.5 cursor-not-allowed opacity-60"
+                  title="Restoranımız saat 03:00 - 10:00 arası kapalıdır"
+                >
+                  <i className="fa-solid fa-phone text-stone-600"></i>
+                  <span className="line-through">{contact.phone2}</span>
+                  <span className="text-[10px] text-stone-500">(Kapalı)</span>
+                </span>
+              )}
             </>
           )}
 
           {contact.phone1 && (
             <>
               <span className="text-stone-700 hidden sm:inline">&bull;</span>
-              <a
-                href={`tel:${contact.phone1.replace(/\s+/g, '')}`}
-                className="hover:text-white transition-colors flex items-center gap-1.5"
-                title="Alo Paket Cep"
-              >
-                <i className="fa-solid fa-mobile-screen text-brand-500"></i>
-                <span className="font-semibold text-white">{contact.phone1}</span>
-              </a>
+              {status.isOpen ? (
+                <a
+                  href={`tel:${contact.phone1.replace(/\s+/g, '')}`}
+                  className="hover:text-white transition-colors flex items-center gap-1.5"
+                  title="Alo Paket Cep"
+                >
+                  <i className="fa-solid fa-mobile-screen text-brand-500"></i>
+                  <span className="font-semibold text-white">{contact.phone1}</span>
+                </a>
+              ) : (
+                <span
+                  className="text-stone-500 flex items-center gap-1.5 cursor-not-allowed opacity-60"
+                  title="Restoranımız saat 03:00 - 10:00 arası kapalıdır"
+                >
+                  <i className="fa-solid fa-mobile-screen text-stone-600"></i>
+                  <span className="font-semibold text-stone-500 line-through">{contact.phone1}</span>
+                  <span className="text-[10px] text-stone-500">(Kapalı)</span>
+                </span>
+              )}
             </>
           )}
 
           <span className="text-stone-700 hidden sm:inline">&bull;</span>
-          <a
-            href={`https://wa.me/90${(contact.phone1 || '05521045535').replace(/[^0-9]/g, '').replace(/^0/, '')}?text=Merhaba,%20Sandviç%20Diyarı'ndan%20sipariş%20vermek%20istiyorum`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-emerald-400 hover:text-emerald-300 transition-colors flex items-center gap-1.5 font-semibold"
-            title="WhatsApp Sipariş Hattı"
-          >
-            <i className="fa-brands fa-whatsapp text-sm"></i>
-            <span>WhatsApp Sipariş</span>
-          </a>
+          {status.isOpen ? (
+            <a
+              href={`https://wa.me/90${(contact.phone1 || '05521045535').replace(/[^0-9]/g, '').replace(/^0/, '')}?text=Merhaba,%20Sandviç%20Diyarı'ndan%20sipariş%20vermek%20istiyorum`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-emerald-400 hover:text-emerald-300 transition-colors flex items-center gap-1.5 font-semibold"
+              title="WhatsApp Sipariş Hattı"
+            >
+              <i className="fa-brands fa-whatsapp text-sm"></i>
+              <span>WhatsApp Sipariş</span>
+            </a>
+          ) : (
+            <span
+              className="text-stone-500 flex items-center gap-1.5 cursor-not-allowed opacity-60"
+              title="Saat 03:00 - 10:00 arasında WhatsApp sipariş hattı kapalıdır"
+            >
+              <i className="fa-brands fa-whatsapp text-sm text-stone-600"></i>
+              <span>WhatsApp (03:00 - 10:00 Kapalı)</span>
+            </span>
+          )}
         </div>
         <div className="flex items-center gap-3">
           <span className="text-brand-400 font-semibold flex items-center gap-1.5">

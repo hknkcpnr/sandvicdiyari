@@ -184,7 +184,8 @@ export default function CheckoutModal() {
         })
       );
 
-      if (sendViaWhatsApp) {
+      // Saat 03:00 - 10:00 arasında WhatsApp bildirim mesajı ASLA tetiklenmez
+      if (sendViaWhatsApp && restaurantStatus.isOpen) {
         const itemsText = items
           .map(
             (i) =>
@@ -194,7 +195,6 @@ export default function CheckoutModal() {
           .join('\n');
         const waMsg = encodeURIComponent(
           `🥪 *SANDVİÇ DİYARI SİPARİŞİ* (No: #${createdOrder.orderNumber || createdOrder.id})\n\n` +
-          (!restaurantStatus.isOpen ? `⏰ *SİPARİŞ TİPİ:* 10:00 Sabah Açılış Siparişi\n` : '') +
           `👤 *Üye Müşteri:* ${name.trim()} (${currentUser.email})\n` +
           `📞 *Telefon:* ${formattedPhone}\n` +
           `📍 *Mahalle / Bölge:* ${neighborhood}\n` +
@@ -423,7 +423,7 @@ export default function CheckoutModal() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2 border-t border-stone-100">
+          <div className={`grid grid-cols-1 ${restaurantStatus.isOpen ? 'sm:grid-cols-3' : 'sm:grid-cols-2'} gap-3 pt-2 border-t border-stone-100`}>
             <button
               type="button"
               onClick={() => dispatch(closeCheckoutModal())}
@@ -444,19 +444,21 @@ export default function CheckoutModal() {
               ) : (
                 <>
                   <i className="fa-solid fa-check"></i>
-                  <span>Siparişi Onayla</span>
+                  <span>{restaurantStatus.isOpen ? 'Siparişi Onayla' : 'Sabah 10:00 İçin Siparişi Onayla'}</span>
                 </>
               )}
             </button>
-            <button
-              type="button"
-              disabled={isSubmitting}
-              onClick={(e) => handleSubmitOrder(e, true)}
-              className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3.5 rounded-2xl shadow-md shadow-emerald-600/20 text-xs sm:text-sm transition-all cursor-pointer flex items-center justify-center gap-2 active:scale-98"
-            >
-              <i className="fa-brands fa-whatsapp text-base"></i>
-              <span>WhatsApp ile Ver</span>
-            </button>
+            {restaurantStatus.isOpen && (
+              <button
+                type="button"
+                disabled={isSubmitting}
+                onClick={(e) => handleSubmitOrder(e, true)}
+                className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3.5 rounded-2xl shadow-md shadow-emerald-600/20 text-xs sm:text-sm transition-all cursor-pointer flex items-center justify-center gap-2 active:scale-98"
+              >
+                <i className="fa-brands fa-whatsapp text-base"></i>
+                <span>WhatsApp ile Ver</span>
+              </button>
+            )}
           </div>
         </form>
       </div>

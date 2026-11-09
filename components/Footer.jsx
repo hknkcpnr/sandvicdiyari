@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { showMessageModal, addReview } from '@/store/slices/uiSlice';
+import { getRestaurantStatus, CLOSED_MESSAGE } from '@/lib/openingHours';
 
 export default function Footer() {
   const dispatch = useDispatch();
@@ -185,12 +186,33 @@ export default function Footer() {
                 <span>Sipariş & Alo Paket</span>
               </div>
               <p className="text-stone-300 text-xs leading-relaxed space-y-1">
-                <a href="tel:02328568121" className="block hover:text-white transition-colors">
-                  <strong className="text-white">Sabit Hat:</strong> 0 232 856 81 21
-                </a>
-                <a href="tel:05521045535" className="block text-brand-400 hover:text-brand-300 font-bold">
-                  <i className="fa-solid fa-mobile-screen mr-1"></i> ALO PAKET: 0 552 104 55 35
-                </a>
+                {getRestaurantStatus().isOpen ? (
+                  <>
+                    <a href="tel:02328568121" className="block hover:text-white transition-colors">
+                      <strong className="text-white">Sabit Hat:</strong> 0 232 856 81 21
+                    </a>
+                    <a href="tel:05521045535" className="block text-brand-400 hover:text-brand-300 font-bold">
+                      <i className="fa-solid fa-mobile-screen mr-1"></i> ALO PAKET: 0 552 104 55 35
+                    </a>
+                  </>
+                ) : (
+                  <>
+                    <span
+                      onClick={() => alert(CLOSED_MESSAGE)}
+                      className="block text-stone-500 line-through cursor-not-allowed opacity-60"
+                      title="Saat 03:00 - 10:00 arası kapalıdır"
+                    >
+                      <strong>Sabit Hat:</strong> 0 232 856 81 21 (Kapalı)
+                    </span>
+                    <span
+                      onClick={() => alert(CLOSED_MESSAGE)}
+                      className="block text-stone-500 font-medium cursor-not-allowed opacity-60"
+                      title="Saat 03:00 - 10:00 arası kapalıdır"
+                    >
+                      <i className="fa-solid fa-phone-slash mr-1"></i> ALO PAKET: 0 552 104 55 35 (Kapalı)
+                    </span>
+                  </>
+                )}
               </p>
             </div>
 

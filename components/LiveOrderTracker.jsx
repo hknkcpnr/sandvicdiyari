@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { getRestaurantStatus, CLOSED_MESSAGE } from '@/lib/openingHours';
 
 const STATUS_STEPS = [
   { key: 'Yeni', label: 'Alındı', icon: 'fa-solid fa-receipt' },
@@ -222,13 +223,25 @@ export default function LiveOrderTracker() {
 
             {/* Action buttons */}
             <div className="flex gap-2.5 pt-2">
-              <a
-                href="tel:05521045535"
-                className="flex-1 bg-amber-500 hover:bg-amber-400 text-stone-950 font-bold py-3 rounded-xl text-xs text-center transition-all flex items-center justify-center gap-2"
-              >
-                <i className="fa-solid fa-phone"></i>
-                <span>Restoranı Ara</span>
-              </a>
+              {getRestaurantStatus().isOpen ? (
+                <a
+                  href="tel:05521045535"
+                  className="flex-1 bg-amber-500 hover:bg-amber-400 text-stone-950 font-bold py-3 rounded-xl text-xs text-center transition-all flex items-center justify-center gap-2"
+                >
+                  <i className="fa-solid fa-phone"></i>
+                  <span>Restoranı Ara</span>
+                </a>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => alert(CLOSED_MESSAGE)}
+                  className="flex-1 bg-stone-100 text-stone-400 font-bold py-3 rounded-xl text-xs text-center border border-stone-200 cursor-not-allowed opacity-70 flex items-center justify-center gap-2"
+                  title="Saat 03:00 - 10:00 arası telefon kapalıdır"
+                >
+                  <i className="fa-solid fa-phone-slash"></i>
+                  <span>Restoran Kapalı (10:00)</span>
+                </button>
+              )}
               <button
                 onClick={() => {
                   try {

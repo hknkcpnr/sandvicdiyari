@@ -161,9 +161,13 @@ export default function DraggableContactButton() {
             <div className="relative flex items-center justify-center">
               {/* WhatsApp İkonu */}
               <i className="fa-brands fa-whatsapp text-[28px] drop-shadow-sm"></i>
-              {/* Telefon İkon Rozeti (Büyütüldü & Yana Doğru Kaydırıldı) */}
-              <span className="absolute -bottom-1 -right-2.5 w-6 h-6 bg-amber-500 rounded-full border-2 border-white flex items-center justify-center text-[11px] text-stone-950 font-black shadow-md">
-                <i className="fa-solid fa-phone"></i>
+              {/* Telefon / Durum İkon Rozeti */}
+              <span
+                className={`absolute -bottom-1 -right-2.5 w-6 h-6 ${
+                  status.isOpen ? 'bg-amber-500 text-stone-950' : 'bg-rose-600 text-white'
+                } rounded-full border-2 border-white flex items-center justify-center text-[10px] font-black shadow-md`}
+              >
+                <i className={status.isOpen ? 'fa-solid fa-phone' : 'fa-solid fa-moon'}></i>
               </span>
             </div>
           )}
@@ -193,65 +197,130 @@ export default function DraggableContactButton() {
               }`}
             >
               <span className="w-1.5 h-1.5 rounded-full bg-current"></span>
-              {status.isOpen ? 'Açık' : 'Kapalı'}
+              {status.isOpen ? 'Açık' : 'Şu an Kapalı'}
             </span>
           </div>
 
-          {/* İletişim Butonları */}
+          {/* Saat 03:00 Sonrası Bilgilendirme Kutusu */}
+          {!status.isOpen && (
+            <div className="mb-3 p-2.5 bg-rose-50 border border-rose-200 rounded-2xl text-[11px] text-rose-900 leading-snug flex items-start gap-2">
+              <i className="fa-solid fa-moon text-rose-500 text-xs mt-0.5 shrink-0"></i>
+              <div>
+                <strong className="block font-bold">Saat 03:00 - 10:00 Arası Kapalıyız</strong>
+                <span>Bu saatlerde WhatsApp mesajı ve telefon araması kabul edilmemektedir. Sabah 10:00&apos;da açılıyoruz.</span>
+              </div>
+            </div>
+          )}
+
+          {/* İletişim Butonları (Saat 03:00 Sonrası Korumalı) */}
           <div className="space-y-2">
             {/* 1. WhatsApp Butonu */}
-            <a
-              href={waUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={() => setIsOpen(false)}
-              className="w-full flex items-center gap-3 p-2.5 rounded-2xl bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-xs shadow-md shadow-emerald-500/25 transition-all active:scale-98"
-            >
-              <div className="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center text-lg shrink-0">
-                <i className="fa-brands fa-whatsapp"></i>
-              </div>
-              <div className="min-w-0 flex-1 leading-tight">
-                <span className="block text-white font-extrabold text-xs">WhatsApp Sipariş Hattı</span>
-                <span className="text-[11px] text-emerald-100 font-medium block truncate">
-                  {contact.phone1 || '0552 104 55 35'}
-                </span>
-              </div>
-              <i className="fa-solid fa-arrow-up-right-from-square text-xs text-white/80 pr-1"></i>
-            </a>
+            {status.isOpen ? (
+              <a
+                href={waUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => setIsOpen(false)}
+                className="w-full flex items-center gap-3 p-2.5 rounded-2xl bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-xs shadow-md shadow-emerald-500/25 transition-all active:scale-98"
+              >
+                <div className="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center text-lg shrink-0">
+                  <i className="fa-brands fa-whatsapp"></i>
+                </div>
+                <div className="min-w-0 flex-1 leading-tight">
+                  <span className="block text-white font-extrabold text-xs">WhatsApp Sipariş Hattı</span>
+                  <span className="text-[11px] text-emerald-100 font-medium block truncate">
+                    {contact.phone1 || '0552 104 55 35'}
+                  </span>
+                </div>
+                <i className="fa-solid fa-arrow-up-right-from-square text-xs text-white/80 pr-1"></i>
+              </a>
+            ) : (
+              <button
+                type="button"
+                disabled
+                className="w-full flex items-center gap-3 p-2.5 rounded-2xl bg-stone-100 text-stone-400 font-bold text-xs border border-stone-200 opacity-60 cursor-not-allowed"
+              >
+                <div className="w-9 h-9 rounded-xl bg-stone-200 text-stone-400 flex items-center justify-center text-lg shrink-0">
+                  <i className="fa-brands fa-whatsapp"></i>
+                </div>
+                <div className="min-w-0 flex-1 leading-tight text-left">
+                  <span className="block font-extrabold text-xs">WhatsApp Hattı (Kapalı)</span>
+                  <span className="text-[10px] text-stone-400 font-medium block truncate">
+                    10:00 - 03:00 saatleri arası aktiftir
+                  </span>
+                </div>
+                <i className="fa-solid fa-lock text-xs text-stone-400 pr-1"></i>
+              </button>
+            )}
 
             {/* 2. Alo Paket Cep Arama */}
-            <a
-              href={`tel:${phone1Raw}`}
-              onClick={() => setIsOpen(false)}
-              className="w-full flex items-center gap-3 p-2.5 rounded-2xl bg-amber-500 hover:bg-amber-600 text-stone-950 font-bold text-xs shadow-md shadow-amber-500/20 transition-all active:scale-98"
-            >
-              <div className="w-9 h-9 rounded-xl bg-black/10 flex items-center justify-center text-base shrink-0">
-                <i className="fa-solid fa-phone-volume"></i>
-              </div>
-              <div className="min-w-0 flex-1 leading-tight">
-                <span className="block text-stone-950 font-extrabold text-xs">Alo Paket Cep (Hemen Ara)</span>
-                <span className="text-[11px] text-stone-800 font-medium block truncate">
-                  {contact.phone1 || '0552 104 55 35'}
-                </span>
-              </div>
-              <i className="fa-solid fa-phone text-xs text-stone-900/60 pr-1"></i>
-            </a>
+            {status.isOpen ? (
+              <a
+                href={`tel:${phone1Raw}`}
+                onClick={() => setIsOpen(false)}
+                className="w-full flex items-center gap-3 p-2.5 rounded-2xl bg-amber-500 hover:bg-amber-600 text-stone-950 font-bold text-xs shadow-md shadow-amber-500/20 transition-all active:scale-98"
+              >
+                <div className="w-9 h-9 rounded-xl bg-black/10 flex items-center justify-center text-base shrink-0">
+                  <i className="fa-solid fa-phone-volume"></i>
+                </div>
+                <div className="min-w-0 flex-1 leading-tight">
+                  <span className="block text-stone-950 font-extrabold text-xs">Alo Paket Cep (Hemen Ara)</span>
+                  <span className="text-[11px] text-stone-800 font-medium block truncate">
+                    {contact.phone1 || '0552 104 55 35'}
+                  </span>
+                </div>
+                <i className="fa-solid fa-phone text-xs text-stone-900/60 pr-1"></i>
+              </a>
+            ) : (
+              <button
+                type="button"
+                disabled
+                className="w-full flex items-center gap-3 p-2.5 rounded-2xl bg-stone-100 text-stone-400 font-bold text-xs border border-stone-200 opacity-60 cursor-not-allowed"
+              >
+                <div className="w-9 h-9 rounded-xl bg-stone-200 text-stone-400 flex items-center justify-center text-base shrink-0">
+                  <i className="fa-solid fa-phone-slash"></i>
+                </div>
+                <div className="min-w-0 flex-1 leading-tight text-left">
+                  <span className="block font-extrabold text-xs">Telefonla Sipariş (Kapalı)</span>
+                  <span className="text-[10px] text-stone-400 font-medium block truncate">
+                    Saat 10:00&apos;da açılacaktır
+                  </span>
+                </div>
+                <i className="fa-solid fa-lock text-xs text-stone-400 pr-1"></i>
+              </button>
+            )}
 
             {/* 3. Sabit Hat */}
             {contact.phone2 && (
-              <a
-                href={`tel:${phone2Raw}`}
-                onClick={() => setIsOpen(false)}
-                className="w-full flex items-center gap-3 p-2 rounded-xl bg-stone-50 hover:bg-stone-100 text-stone-700 font-semibold text-xs border border-stone-200 transition-colors"
-              >
-                <div className="w-7 h-7 rounded-lg bg-stone-200 text-stone-600 flex items-center justify-center text-xs shrink-0">
-                  <i className="fa-solid fa-phone"></i>
-                </div>
-                <div className="min-w-0 flex-1 leading-tight">
-                  <span className="text-[10px] text-stone-400 block font-normal">Restoran Sabit Hat</span>
-                  <span className="text-xs font-bold text-stone-800">{contact.phone2}</span>
-                </div>
-              </a>
+              status.isOpen ? (
+                <a
+                  href={`tel:${phone2Raw}`}
+                  onClick={() => setIsOpen(false)}
+                  className="w-full flex items-center gap-3 p-2 rounded-xl bg-stone-50 hover:bg-stone-100 text-stone-700 font-semibold text-xs border border-stone-200 transition-colors"
+                >
+                  <div className="w-7 h-7 rounded-lg bg-stone-200 text-stone-600 flex items-center justify-center text-xs shrink-0">
+                    <i className="fa-solid fa-phone"></i>
+                  </div>
+                  <div className="min-w-0 flex-1 leading-tight">
+                    <span className="text-[10px] text-stone-400 block font-normal">Restoran Sabit Hat</span>
+                    <span className="text-xs font-bold text-stone-800">{contact.phone2}</span>
+                  </div>
+                </a>
+              ) : (
+                <button
+                  type="button"
+                  disabled
+                  className="w-full flex items-center gap-3 p-2 rounded-xl bg-stone-100 text-stone-400 font-semibold text-xs border border-stone-200 opacity-60 cursor-not-allowed"
+                >
+                  <div className="w-7 h-7 rounded-lg bg-stone-200 text-stone-400 flex items-center justify-center text-xs shrink-0">
+                    <i className="fa-solid fa-phone-slash"></i>
+                  </div>
+                  <div className="min-w-0 flex-1 leading-tight text-left">
+                    <span className="text-[10px] text-stone-400 block font-normal">Sabit Hat (Kapalı)</span>
+                    <span className="text-xs font-bold text-stone-400">{contact.phone2}</span>
+                  </div>
+                </button>
+              )
             )}
           </div>
 

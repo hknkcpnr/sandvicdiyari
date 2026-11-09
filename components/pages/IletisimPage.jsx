@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useDispatch } from 'react-redux';
 import { showMessageModal } from '@/store/slices/uiSlice';
+import { getRestaurantStatus, CLOSED_MESSAGE } from '@/lib/openingHours';
 
 export default function IletisimPage() {
   const dispatch = useDispatch();
@@ -231,23 +232,46 @@ export default function IletisimPage() {
                     <span className="text-stone-400 font-medium text-xs">Alo Paket:</span>
                     <span className="whitespace-nowrap">0 552 104 55 35</span>
                   </a>
-                  <a
-                    href="tel:02328568121"
-                    className="flex items-center justify-between text-xs sm:text-sm text-white hover:text-brand-400 font-bold pt-2 border-t border-stone-800/80 transition-colors"
-                  >
-                    <span className="text-stone-400 font-medium text-xs">Sabit Hat:</span>
-                    <span className="whitespace-nowrap">0 232 856 81 21</span>
-                  </a>
+                  {getRestaurantStatus().isOpen ? (
+                    <a
+                      href="tel:02328568121"
+                      className="flex items-center justify-between text-xs sm:text-sm text-white hover:text-brand-400 font-bold pt-2 border-t border-stone-800/80 transition-colors"
+                    >
+                      <span className="text-stone-400 font-medium text-xs">Sabit Hat:</span>
+                      <span className="whitespace-nowrap">0 232 856 81 21</span>
+                    </a>
+                  ) : (
+                    <div
+                      onClick={() => alert(CLOSED_MESSAGE)}
+                      className="flex items-center justify-between text-xs sm:text-sm text-stone-500 font-bold pt-2 border-t border-stone-800/80 cursor-not-allowed opacity-60"
+                      title="Saat 03:00 - 10:00 arası kapalıdır"
+                    >
+                      <span className="text-stone-500 font-medium text-xs">Sabit Hat:</span>
+                      <span className="whitespace-nowrap line-through">0 232 856 81 21 (Kapalı)</span>
+                    </div>
+                  )}
                 </div>
               </div>
 
-              <a
-                href="tel:05521045535"
-                className="w-full bg-stone-800 hover:bg-stone-700 text-brand-400 border border-stone-700 font-extrabold py-3 px-4 rounded-xl text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all"
-              >
-                <i className="fa-solid fa-phone text-xs"></i>
-                <span>Hemen Ara & Sipariş Ver</span>
-              </a>
+              {getRestaurantStatus().isOpen ? (
+                <a
+                  href="tel:05521045535"
+                  className="w-full bg-stone-800 hover:bg-stone-700 text-brand-400 border border-stone-700 font-extrabold py-3 px-4 rounded-xl text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all"
+                >
+                  <i className="fa-solid fa-phone text-xs"></i>
+                  <span>Hemen Ara & Sipariş Ver</span>
+                </a>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => alert(CLOSED_MESSAGE)}
+                  className="w-full bg-stone-900 text-stone-500 border border-stone-800 font-bold py-3 px-4 rounded-xl text-xs uppercase tracking-wider flex items-center justify-center gap-2 cursor-not-allowed opacity-60"
+                  title="Saat 03:00 - 10:00 arası telefon siparişi kapalıdır"
+                >
+                  <i className="fa-solid fa-phone-slash text-xs"></i>
+                  <span>03:00 - 10:00 Arası Telefon Kapalı</span>
+                </button>
+              )}
             </div>
 
             {/* 3. Çalışma & Paket Saatleri Kartı */}

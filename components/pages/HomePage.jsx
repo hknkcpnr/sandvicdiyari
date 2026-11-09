@@ -11,6 +11,7 @@ import {
 import ProductCard from '@/components/ProductCard';
 import { campaignProducts } from '@/data/initialData';
 import { DEFAULT_SITE_CONTENT } from '@/lib/siteContentDefaults';
+import { getRestaurantStatus, CLOSED_MESSAGE } from '@/lib/openingHours';
 
 export default function HomePage() {
   const dispatch = useDispatch();
@@ -185,13 +186,25 @@ export default function HomePage() {
                   )}
 
                   {hero.btnPhoneVisible !== false && (
-                    <a
-                      href={`tel:${hero.btnPhoneTel || '05521045535'}`}
-                      className="bg-amber-500 hover:bg-amber-400 text-stone-950 font-black px-6 py-4 rounded-2xl shadow-lg shadow-amber-500/20 transition-all flex items-center gap-2.5 cursor-pointer"
-                    >
-                      <i className="fa-solid fa-phone-volume text-lg animate-icon-phone"></i>
-                      <span>{hero.btnPhoneText || '0552 104 55 35'}</span>
-                    </a>
+                    getRestaurantStatus().isOpen ? (
+                      <a
+                        href={`tel:${hero.btnPhoneTel || '05521045535'}`}
+                        className="bg-amber-500 hover:bg-amber-400 text-stone-950 font-black px-6 py-4 rounded-2xl shadow-lg shadow-amber-500/20 transition-all flex items-center gap-2.5 cursor-pointer"
+                      >
+                        <i className="fa-solid fa-phone-volume text-lg animate-icon-phone"></i>
+                        <span>{hero.btnPhoneText || '0552 104 55 35'}</span>
+                      </a>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => alert(CLOSED_MESSAGE)}
+                        className="bg-stone-800 text-stone-400 font-bold px-6 py-4 rounded-2xl border border-stone-700 transition-all flex items-center gap-2.5 cursor-pointer opacity-70"
+                        title="Saat 03:00 - 10:00 arası telefon siparişi kapalıdır"
+                      >
+                        <i className="fa-solid fa-phone-slash text-lg text-stone-500"></i>
+                        <span>{hero.btnPhoneText || '0552 104 55 35'} (Kapalı)</span>
+                      </button>
+                    )
                   )}
                 </div>
               </div>
