@@ -161,10 +161,10 @@ export default function DraggableContactButton() {
             <div className="relative flex items-center justify-center">
               {/* WhatsApp İkonu */}
               <i className="fa-brands fa-whatsapp text-[28px] drop-shadow-sm"></i>
-              {/* Telefon / Durum İkon Rozeti */}
+              {/* Telefon / Durum İkon Rozeti (Kapalıyken Siyah Tema) */}
               <span
                 className={`absolute -bottom-1 -right-2.5 w-6 h-6 ${
-                  status.isOpen ? 'bg-amber-500 text-stone-950' : 'bg-rose-600 text-white'
+                  status.isOpen ? 'bg-amber-500 text-stone-950' : 'bg-stone-900 text-white'
                 } rounded-full border-2 border-white flex items-center justify-center text-[10px] font-black shadow-md`}
               >
                 <i className={status.isOpen ? 'fa-solid fa-phone' : 'fa-solid fa-moon'}></i>
@@ -192,22 +192,22 @@ export default function DraggableContactButton() {
               <h4 className="text-sm font-extrabold text-stone-900">Sandviç Diyarı Torbalı</h4>
             </div>
             <span
-              className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black ${
-                status.isOpen ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'
+              className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-black ${
+                status.isOpen ? 'bg-emerald-100 text-emerald-800' : 'bg-stone-900 text-stone-100'
               }`}
             >
-              <span className="w-1.5 h-1.5 rounded-full bg-current"></span>
+              <span className={`w-1.5 h-1.5 rounded-full ${status.isOpen ? 'bg-emerald-500' : 'bg-amber-400'}`}></span>
               {status.isOpen ? 'Açık' : 'Şu an Kapalı'}
             </span>
           </div>
 
-          {/* Saat 03:00 Sonrası Bilgilendirme Kutusu */}
+          {/* Saat 03:00 Sonrası Bilgilendirme Kutusu (Siyah / Koyu Şık Tema) */}
           {!status.isOpen && (
-            <div className="mb-3 p-2.5 bg-rose-50 border border-rose-200 rounded-2xl text-[11px] text-rose-900 leading-snug flex items-start gap-2">
-              <i className="fa-solid fa-moon text-rose-500 text-xs mt-0.5 shrink-0"></i>
+            <div className="mb-3 p-2.5 bg-stone-900 border border-stone-800 rounded-2xl text-[11px] text-stone-200 leading-snug flex items-start gap-2 shadow-xs">
+              <i className="fa-solid fa-moon text-amber-400 text-xs mt-0.5 shrink-0"></i>
               <div>
-                <strong className="block font-bold">Saat 03:00 - 10:00 Arası Kapalıyız</strong>
-                <span>Bu saatlerde WhatsApp mesajı ve telefon araması kabul edilmemektedir. Sabah 10:00&apos;da açılıyoruz.</span>
+                <strong className="block font-bold text-white">Saat 03:00 - 10:00 Arası Kapalıyız</strong>
+                <span className="text-stone-300">Bu saatlerde WhatsApp mesajı ve telefon araması kabul edilmemektedir. Sabah 10:00&apos;da açılıyoruz.</span>
               </div>
             </div>
           )}
