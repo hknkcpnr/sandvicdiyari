@@ -78,11 +78,11 @@ export async function POST(request) {
       attempts: 0
     });
 
-    const whatsappMessage = `🥪 *Sandwich Diyarı - Üyelik Onay Kodu*\n\n` +
+    const whatsappMessage = `🥪 *Sandviç Diyarı - Üyelik Onay Kodu*\n\n` +
       `📞 *Gönderen Hat:* ${SYSTEM_SENDER_PHONE}\n` +
       `📱 *Kayıt Olan:* ${body.phone}\n\n` +
       `Merhaba *${name}*,\n` +
-      `Sandwich Diyarı üyeliğinizi tamamlamak için onay kodunuz:\n\n` +
+      `Sandviç Diyarı üyeliğinizi tamamlamak için onay kodunuz:\n\n` +
       `🔑 *${generatedCode}*\n\n` +
       `⏱️ _Bu kod 3 dakika (180 saniye) boyunca geçerlidir._\n` +
       `⚠️ _Güvenliğiniz için lütfen onay kodunu kimseyle paylaşmayınız._`;
@@ -116,7 +116,7 @@ export async function POST(request) {
     const whatsappUrl = `https://wa.me/${normalizedPhone}?text=${encodeURIComponent(whatsappMessage)}`;
     // Gönderici onay hattına (0553 855 76 12) doğrudan mesaj/yardım linki
     const directSenderUrl = `https://wa.me/${SYSTEM_SENDER_E164}?text=${encodeURIComponent(
-      `Merhaba Sandwich Diyarı, ${body.phone} numaram ile üye olmak için ${generatedCode} kodumu aldım.`
+      `Merhaba Sandviç Diyarı, ${body.phone} numaram ile üye olmak için ${generatedCode} kodumu aldım.`
     )}`;
 
     return jsonSuccess({

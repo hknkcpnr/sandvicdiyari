@@ -149,7 +149,7 @@ export default function MembersTab({ onCustomerUpdated }) {
       // WhatsApp seçildiyse ve tek üyeyse doğrudan WhatsApp uygulamasını/webini aç
       if (notifyChannel === 'whatsapp' && selectedMemberForNotify?.phone) {
         const waPhone = toWhatsAppPhone(selectedMemberForNotify.phone);
-        const waText = encodeURIComponent(`🥪 *Sandwich Diyarı*\n\n*${notifyTitle}*\n${notifyMessage}`);
+        const waText = encodeURIComponent(`🥪 *Sandviç Diyarı*\n\n*${notifyTitle}*\n${notifyMessage}`);
         window.open(`https://wa.me/${waPhone}?text=${waText}`, '_blank');
       }
 

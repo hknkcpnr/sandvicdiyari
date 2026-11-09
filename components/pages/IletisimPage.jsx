@@ -72,7 +72,7 @@ export default function IletisimPage() {
             <div className="lg:col-span-5 relative h-72 lg:h-auto min-h-[320px] rounded-3xl overflow-hidden shadow-2xl border border-stone-800">
               <img
                 src="/images/kasap_kofte_ekmek.jpg"
-                alt="Sandwich Diyarı Lezzetleri"
+                alt="Sandviç Diyarı Lezzetleri"
                 className="w-full h-full object-cover"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-stone-950/90 via-stone-950/35 to-transparent flex items-end p-8">
@@ -335,7 +335,7 @@ export default function IletisimPage() {
 
             <div className="relative w-full h-64 sm:h-80 rounded-2xl overflow-hidden border border-stone-800 bg-stone-950">
               <iframe
-                title="Sandwich Diyarı Konum Haritası"
+                title="Sandviç Diyarı Konum Haritası"
                 src="https://maps.google.com/maps?q=Torbal%C4%B1%20Mahallesi%20H%C3%BCseyin%20Kurtuldu%20Sokak%20No:32%20Torbal%C4%B1%20%C4%B0zmir&t=&z=16&ie=UTF8&iwloc=&output=embed"
                 className="w-full h-full border-0"
                 loading="lazy"

@@ -302,7 +302,7 @@ export default function AuthModal() {
           <img
             key={authModalTab + (isWaitingApproval ? '_wait' : '')}
             src={isRegister ? '/images/sandwich_register_model.jpg' : '/images/sandwich_model.jpg'}
-            alt="Sandwich Diyarı Gurme Lezzetler"
+            alt="Sandviç Diyarı Gurme Lezzetler"
             onError={(e) => {
               e.currentTarget.onerror = null;
               e.currentTarget.src = '/images/hero_sandwich_banner.jpg';
@@ -316,8 +316,8 @@ export default function AuthModal() {
               {isWaitingApproval
                 ? 'WhatsApp Güvenlik Onayı'
                 : isRegister
-                ? 'Aramıza Katıl • Sandwich Diyarı'
-                : 'Torbalı • Sandwich Diyarı'}
+                ? 'Aramıza Katıl • Sandviç Diyarı'
+                : 'Torbalı • Sandviç Diyarı'}
             </span>
           </div>
 
@@ -700,11 +700,11 @@ export default function AuthModal() {
 
             <div className="text-xs text-stone-600 space-y-3 overflow-y-auto pr-2 leading-relaxed font-sans">
               <p>
-                <strong>Sandwich Diyarı</strong> olarak kişisel verilerinizin güvenliğine ve gizliliğine azami önem vermekteyiz.
+                <strong>Sandviç Diyarı</strong> olarak kişisel verilerinizin güvenliğine ve gizliliğine azami önem vermekteyiz.
                 6698 sayılı Kişisel Verilerin Korunması Kanunu (&quot;KVKK&quot;) uyarınca:
               </p>
               <p>
-                <strong>1. Veri Sorumlusu:</strong> Sandwich Diyarı Restoran İşletmesi.
+                <strong>1. Veri Sorumlusu:</strong> Sandviç Diyarı Restoran İşletmesi.
               </p>
               <p>
                 <strong>2. İşleme Amacı:</strong> Web sitemiz üzerinden verilen siparişlerin hazırlanması, paket teslimatının yapılması, sahte siparişlerin önlenmesi ve WhatsApp üzerinden restoran onay sürecinin yürütülmesi amacıyla ad, soyad, telefon, e-posta ve adres verileriniz işlenmektedir.

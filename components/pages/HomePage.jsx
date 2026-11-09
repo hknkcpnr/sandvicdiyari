@@ -332,7 +332,7 @@ export default function HomePage() {
           </div>
         )}
 
-        {/* 4. Neden Sandwich Diyarı? (Admin panelinden arka plan ve metinler düzenlenebilir) */}
+        {/* 4. Neden Sandviç Diyarı? (Admin panelinden arka plan ve metinler düzenlenebilir) */}
         {featuresSection.visible !== false && (
           <div className="relative bg-stone-950 text-white border border-stone-800 rounded-3xl p-6 sm:p-10 lg:p-12 shadow-2xl overflow-hidden">
             {/* Arka Plan Görseli & Karartma Katmanı */}
@@ -346,7 +346,7 @@ export default function HomePage() {
                   e.currentTarget.onerror = null;
                   e.currentTarget.src = '/images/kasap_kofte_ekmek.jpg';
                 }}
-                alt="Sandwich Diyarı Izgara Lezzetleri"
+                alt="Sandviç Diyarı Izgara Lezzetleri"
                 className="w-full h-full object-cover object-center opacity-45 scale-105"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-stone-950/95 via-stone-950/75 to-stone-950/85"></div>
@@ -361,7 +361,7 @@ export default function HomePage() {
                 {featuresSection.badgeText || 'Kalite Garantisi'}
               </span>
               <h3 className="text-2xl sm:text-4xl font-extrabold text-white tracking-tight drop-shadow-sm">
-                {featuresSection.title || 'Neden Sandwich Diyarı?'}
+                {(featuresSection.title || 'Neden Sandviç Diyarı?').replace(/Sandwich/gi, 'Sandviç')}
               </h3>
             </div>
 

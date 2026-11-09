@@ -56,7 +56,7 @@ const SECTION_METAS = {
   },
   features: {
     id: 'features',
-    title: 'Neden Sandwich Diyarı?',
+    title: 'Neden Sandviç Diyarı?',
     icon: 'fa-solid fa-shield-heart',
     desc: 'Hijyen, hızlı kurye ve taze malzeme gibi kalite özellikleriniz.',
     getVisibility: (c) => c.featuresSection?.visible !== false,
@@ -215,7 +215,7 @@ export default function SiteContentEditorTab({ initialSubTab = 'hero', onSubTabC
     }
   };
 
-  // Neden Sandwich Diyarı Özellik Kartı Güncelleme
+  // Neden Sandviç Diyarı Özellik Kartı Güncelleme
   const updateFeatureItem = (index, key, val) => {
     updateField((prev) => {
       const items = [...(prev.featuresSection?.items || [])];
@@ -273,7 +273,7 @@ export default function SiteContentEditorTab({ initialSubTab = 'hero', onSubTabC
               <option value="hero">🌟 Manşet &amp; Hero (Ana Karşılama)</option>
               <option value="campaigns">🔥 Günün Kampanyaları Vitrini</option>
               <option value="newMenus">🍔 En Yeni Menüler Vitrini</option>
-              <option value="features">🛡️ Neden Sandwich Diyarı?</option>
+              <option value="features">🛡️ Neden Sandviç Diyarı?</option>
               <option value="reviews">⭐ Müşteri Yorumları Vitrini</option>
               <option value="contact">📞 İletişim, Şube Adresi &amp; Saatler</option>
             </select>
@@ -846,7 +846,7 @@ export default function SiteContentEditorTab({ initialSubTab = 'hero', onSubTabC
                       featuresSection: { ...prev.featuresSection, title: e.target.value },
                     }))
                   }
-                  placeholder="Neden Sandwich Diyarı?"
+                  placeholder="Neden Sandviç Diyarı?"
                   className="w-full text-xs bg-stone-50 border border-stone-300 rounded-xl px-3.5 py-2.5 font-bold"
                 />
               </div>

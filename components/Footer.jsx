@@ -90,7 +90,7 @@ export default function Footer() {
                 <span className="text-xs font-bold text-brand-400 uppercase tracking-widest">
                   <i className="fa-solid fa-star text-brand-500 mr-1"></i> Geri Bildiriminiz Değerli
                 </span>
-                <h3 className="text-3xl font-extrabold">Sandwich Diyarı'nı Değerlendirin</h3>
+                <h3 className="text-3xl font-extrabold">Sandviç Diyarı'nı Değerlendirin</h3>
                 <p className="text-stone-400 text-sm">
                   Lezzetlerimiz ve hizmetimiz hakkında düşüncelerinizi bizimle paylaşın.
                 </p>

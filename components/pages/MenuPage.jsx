@@ -90,7 +90,7 @@ export default function MenuPage() {
         {/* Minimalist Sayfa Başlığı */}
         <div className="text-center max-w-xl mx-auto space-y-1">
           <span className="text-[11px] font-bold text-brand-600 uppercase tracking-widest">
-            Sandwich Diyarı Menüsü
+            Sandviç Diyarı Menüsü
           </span>
           <h3 className="text-2xl sm:text-3xl font-extrabold text-stone-900 tracking-tight">
             Damak Tadına Uygun Lezzeti Seç
