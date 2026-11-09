@@ -170,14 +170,14 @@ export default function DraggableContactButton() {
         </button>
       </div>
 
-      {/* AÇILIR HIZLI ARAMA & WHATSAPP KARTI */}
+      {/* AÇILIR HIZLI ARAMA & WHATSAPP KARTI (Animasyonlu Açılış) */}
       {isOpen && (
         <div
           className={`absolute ${
-            isBottomHalf ? 'bottom-16' : 'top-16'
+            isBottomHalf ? 'bottom-16 origin-bottom' : 'top-16 origin-top'
           } ${
-            isRightHalf ? 'right-0' : 'left-0'
-          } w-72 bg-white rounded-3xl p-4 shadow-2xl border border-stone-200 animate-in fade-in zoom-in-95 duration-150 z-50`}
+            isRightHalf ? 'right-0 origin-right' : 'left-0 origin-left'
+          } w-72 bg-white rounded-3xl p-4 shadow-2xl border border-stone-200 animate-menu-pop z-50`}
         >
           {/* Kart Başlığı */}
           <div className="flex items-center justify-between pb-2.5 mb-2.5 border-b border-stone-100">

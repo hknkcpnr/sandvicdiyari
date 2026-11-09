@@ -321,14 +321,14 @@ export default function Navbar() {
               )}
             </div>
 
-            {/* Mobil Menü Butonu (Kompakt & Minimal) */}
+            {/* Mobil Menü Butonu (Kompakt & Minimal & Animasyonlu) */}
             <button
               onClick={() => dispatch(toggleMobileMenu())}
               aria-label="Açılır Menü"
-              className={`md:hidden p-2 rounded-xl text-sm transition-all cursor-pointer border flex items-center justify-center shrink-0 ${
+              className={`md:hidden p-2 rounded-xl text-sm transition-all duration-300 cursor-pointer border flex items-center justify-center shrink-0 ${
                 isMobileMenuOpen
-                  ? 'bg-brand-500 text-white border-brand-600 shadow-md'
-                  : 'bg-stone-50 hover:bg-stone-100 text-stone-700 border-stone-200'
+                  ? 'bg-brand-500 text-white border-brand-600 shadow-md rotate-90 scale-105'
+                  : 'bg-stone-50 hover:bg-stone-100 text-stone-700 border-stone-200 rotate-0'
               }`}
             >
               <i className={isMobileMenuOpen ? 'fa-solid fa-xmark text-sm' : 'fa-solid fa-bars-staggered text-sm'}></i>
@@ -337,13 +337,13 @@ export default function Navbar() {
         </div>
       </div>
 
-      {/* Modern Mobil Açılır Menü (Slide Down Drawer) */}
+      {/* Modern Mobil Açılır Menü (Slide Down Drawer & Akıcı Animasyon) */}
       {isMobileMenuOpen && (
         <>
           {/* Boşluğa / dışarı tıklandığında menüyü anında kapatan arka plan katmanı */}
           <div
             onClick={() => dispatch(toggleMobileMenu())}
-            className="fixed inset-0 top-14 sm:top-20 bg-stone-900/30 backdrop-blur-2xs z-40 md:hidden animate-in fade-in duration-150"
+            className="fixed inset-0 top-14 sm:top-20 bg-stone-900/35 backdrop-blur-2xs z-40 md:hidden animate-in fade-in duration-200"
             aria-hidden="true"
           />
 
@@ -351,7 +351,7 @@ export default function Navbar() {
             id="mobile-menu"
             ref={mobileMenuRef}
             style={{ backgroundColor: '#ffffff' }}
-            className="md:hidden border-t border-stone-200 bg-white px-4 py-3 shadow-2xl animate-dropdown-up space-y-2 relative z-50"
+            className="md:hidden border-t border-stone-200 bg-white px-4 py-3.5 shadow-2xl animate-mobile-menu space-y-2 relative z-50 origin-top"
           >
           {/* Sayfa Navigasyon Linkleri */}
           <div className="space-y-1">
@@ -367,7 +367,7 @@ export default function Navbar() {
                     dispatch(setActivePage(item.id));
                     dispatch(toggleMobileMenu());
                   }}
-                  className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl font-bold text-xs transition-all cursor-pointer ${
+                  className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl font-bold text-xs transition-all cursor-pointer active:scale-98 ${
                     isActive
                       ? 'bg-gradient-to-r from-brand-600 to-amber-500 text-white shadow-xs'
                       : 'text-stone-700 hover:bg-stone-100 hover:text-stone-900'

@@ -181,7 +181,7 @@ button, a {
 @keyframes dropdownSlideDown {
   0% {
     opacity: 0;
-    transform: translateY(-8px) scale(0.97);
+    transform: translateY(-12px) scale(0.95);
   }
   100% {
     opacity: 1;
@@ -189,24 +189,53 @@ button, a {
   }
 }
 
-@keyframes dropdownFadeUp {
+@keyframes mobileMenuSlideDown {
   0% {
     opacity: 0;
-    transform: translateY(6px);
+    transform: translateY(-24px) scaleY(0.92);
+    transform-origin: top;
+  }
+  60% {
+    opacity: 0.95;
+    transform: translateY(1px) scaleY(1.01);
   }
   100% {
     opacity: 1;
-    transform: translateY(0);
+    transform: translateY(0) scaleY(1);
+    transform-origin: top;
+  }
+}
+
+@keyframes menuPopIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.9) translateY(8px);
+  }
+  65% {
+    opacity: 1;
+    transform: scale(1.02) translateY(-1px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
   }
 }
 
 .animate-dropdown {
-  animation: dropdownSlideDown 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: dropdownSlideDown 0.24s cubic-bezier(0.16, 1, 0.3, 1) forwards;
   transform-origin: top right;
 }
 
 .animate-dropdown-up {
-  animation: dropdownFadeUp 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: mobileMenuSlideDown 0.26s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-mobile-menu {
+  animation: mobileMenuSlideDown 0.26s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-menu-pop {
+  animation: menuPopIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 /* Modern Özel Select Açılır Kutu Stili */
