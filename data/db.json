@@ -857,20 +857,20 @@
       "items": [
         {
           "id": "f1",
-          "icon": "fa-solid fa-bell-concierge",
-          "title": "Sipariş",
-          "desc": "Web sitemizden veya WhatsApp üzerinden dilediğiniz lezzetleri tek tıkla kolayca sipariş verin."
+          "icon": "fa-solid fa-bread-slice",
+          "title": "%100 Günlük Malzeme",
+          "desc": "Sebzelerimiz ve çıtır ekmeklerimiz her sabah yerel taze üreticilerden günlük olarak temin edilir."
         },
         {
           "id": "f2",
           "icon": "fa-solid fa-fire-burner",
-          "title": "Hazırlama",
+          "title": "Sıcak Hazırlama",
           "desc": "Siparişiniz usta eller tarafından taptaze malzemelerle ızgara ve tavada anında sıcacık pişirilir."
         },
         {
           "id": "f3",
           "icon": "fa-solid fa-motorcycle",
-          "title": "Kurye",
+          "title": "Hızlı Kurye",
           "desc": "Özel ısı yalıtımlı çantalarımız ve hızlı kuryelerimizle siparişiniz hiç beklemeden kapınıza ulaşır."
         }
       ]

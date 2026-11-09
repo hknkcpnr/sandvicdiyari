@@ -367,13 +367,92 @@ export default function HomePage() {
 
             <div className="relative z-10 grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-6 md:divide-x md:divide-white/10">
               {(featuresSection.items || []).map((feat, idx) => {
-                const isOrder = idx === 0 || feat.title?.toLowerCase().includes('sipariş') || feat.icon?.includes('bell');
-                const isPan = idx === 1 || feat.title?.toLowerCase().includes('hazır') || feat.icon?.includes('fire') || feat.icon?.includes('pan');
-                const isCourier = idx === 2 || feat.title?.toLowerCase().includes('kurye') || feat.icon?.includes('motorcycle');
+                const isBread =
+                  feat.icon?.includes('bread') ||
+                  feat.icon?.includes('seedling') ||
+                  feat.title?.toLowerCase().includes('malzeme') ||
+                  feat.title?.toLowerCase().includes('ekmek') ||
+                  (idx === 0 && !feat.title?.toLowerCase().includes('sipariş'));
+                const isOrder =
+                  !isBread &&
+                  (feat.title?.toLowerCase().includes('sipariş') || feat.icon?.includes('bell'));
+                const isPan =
+                  !isBread &&
+                  !isOrder &&
+                  (feat.title?.toLowerCase().includes('hazır') ||
+                    feat.icon?.includes('fire') ||
+                    feat.icon?.includes('pan') ||
+                    idx === 1);
+                const isCourier =
+                  !isBread &&
+                  !isOrder &&
+                  !isPan &&
+                  (feat.title?.toLowerCase().includes('kurye') ||
+                    feat.icon?.includes('motorcycle') ||
+                    idx === 2);
 
                 return (
                   <div key={feat.id || idx} className="group px-4 sm:px-6 py-2 flex flex-col items-center text-center space-y-3.5">
-                    {isOrder ? (
+                    {isBread ? (
+                      /* 1. SARI DİLİMLENEN EKMEK İKONU (GÜNLÜK MALZEME) */
+                      <div className="sliced-bread-badge w-[74px] h-[74px] sm:w-[82px] sm:h-[82px] shrink-0">
+                        <svg viewBox="0 0 100 100" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
+                          <defs>
+                            {/* Görselindeki Sıcak Altın/Sarı Tonlar */}
+                            <linearGradient id={`crustGold-${idx}`} x1="0%" y1="0%" x2="100%" y2="100%">
+                              <stop offset="0%" stopColor="#FEF08A" />
+                              <stop offset="35%" stopColor="#FBBF24" />
+                              <stop offset="75%" stopColor="#F59E0B" />
+                              <stop offset="100%" stopColor="#B45309" />
+                            </linearGradient>
+                            <linearGradient id={`crumbWhite-${idx}`} x1="0%" y1="0%" x2="100%" y2="100%">
+                              <stop offset="0%" stopColor="#FFFFFF" />
+                              <stop offset="50%" stopColor="#FEF9C3" />
+                              <stop offset="100%" stopColor="#FDE68A" />
+                            </linearGradient>
+                            <linearGradient id={`knifeSteel-${idx}`} x1="0%" y1="0%" x2="0%" y2="100%">
+                              <stop offset="0%" stopColor="#FFFFFF" />
+                              <stop offset="60%" stopColor="#E2E8F0" />
+                              <stop offset="100%" stopColor="#94A3B8" />
+                            </linearGradient>
+                          </defs>
+
+                          {/* Buhar */}
+                          <circle className="bread-steam steam-1" cx="44" cy="24" r="3.5" fill="#FEF08A" />
+                          <circle className="bread-steam steam-2" cx="58" cy="20" r="3" fill="#FFFFFF" />
+
+                          {/* Kesme Tahtası */}
+                          <rect x="8" y="75" width="84" height="6" rx="3" fill="#78350F" stroke="#B45309" strokeWidth="1.2" />
+
+                          {/* Kırıntılar */}
+                          <circle className="bread-crumb crumb-1" cx="58" cy="66" r="2" fill="#FBBF24" />
+                          <circle className="bread-crumb crumb-2" cx="64" cy="70" r="1.6" fill="#FEF08A" />
+
+                          {/* Ana Ekmek Somunu */}
+                          <g>
+                            <path d="M 18 75 C 15 54 24 38 42 38 C 52 38 58 46 60 75 Z" fill={`url(#crustGold-${idx})`} stroke="#78350F" strokeWidth="2" />
+                            <path d="M 27 46 Q 34 52 36 68" stroke="#78350F" strokeWidth="2" strokeLinecap="round" fill="none" opacity="0.8" />
+                            <path d="M 37 42 Q 44 48 47 66" stroke="#78350F" strokeWidth="2" strokeLinecap="round" fill="none" opacity="0.8" />
+                          </g>
+
+                          {/* Dilimlenen ve Yana Yatan Ekmek Dilimi */}
+                          <g className="bread-slice">
+                            <path d="M 60 75 C 60 48 54 38 68 38 C 81 38 83 54 80 75 Z" fill={`url(#crustGold-${idx})`} stroke="#78350F" strokeWidth="2" />
+                            <path d="M 62 73 C 62 50 57 42 68 42 C 77 42 79 55 77 73 Z" fill={`url(#crumbWhite-${idx})`} />
+                            <circle cx="68" cy="52" r="1.8" fill="#F59E0B" opacity="0.55" />
+                            <circle cx="72" cy="60" r="2.2" fill="#F59E0B" opacity="0.55" />
+                          </g>
+
+                          {/* Dilimleyen Bıçak */}
+                          <g className="bread-knife">
+                            <path d="M 36 46 L 76 33 L 78 40 L 38 53 Z" fill={`url(#knifeSteel-${idx})`} stroke="#64748B" strokeWidth="1.2" />
+                            <line x1="36" y1="46" x2="76" y2="33" stroke="#FFFFFF" strokeWidth="1.6" strokeLinecap="round" />
+                            <path d="M 76 33 L 94 27 C 96 26 98 28 97 30 L 95 36 C 94 38 92 39 90 40 L 78 40 Z" fill={`url(#crustGold-${idx})`} stroke="#78350F" strokeWidth="1.2" />
+                            <circle cx="84" cy="33" r="1.2" fill="#18181B" />
+                          </g>
+                        </svg>
+                      </div>
+                    ) : isOrder ? (
                       /* 1. SARI SİPARİŞ İKONU */
                       <div className="order-badge-icon w-[74px] h-[74px] sm:w-[82px] sm:h-[82px] shrink-0">
                         <svg viewBox="0 0 120 100" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">

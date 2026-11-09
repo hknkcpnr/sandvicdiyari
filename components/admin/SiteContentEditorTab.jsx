@@ -16,6 +16,9 @@ const HERO_IMAGE_PRESETS = [
 ];
 
 const FEATURE_ICON_OPTIONS = [
+  { value: 'fa-solid fa-bread-slice', label: '🍞 Taze Ekmek / Günlük Malzeme' },
+  { value: 'fa-solid fa-fire-burner', label: '🍳 Sıcak Hazırlama / Tava' },
+  { value: 'fa-solid fa-bell-concierge', label: '🛎️ Kolay Sipariş / Servis' },
   { value: 'fa-solid fa-seedling', label: '🌱 Taze / Günlük Malzeme' },
   { value: 'fa-solid fa-motorcycle', label: '🏍️ Hızlı & Sıcak Kurye' },
   { value: 'fa-solid fa-shield-heart', label: '🛡️ Hijyen & Gıda Güvenliği' },
