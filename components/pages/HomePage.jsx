@@ -370,26 +370,29 @@ export default function HomePage() {
                 const isBread =
                   feat.icon?.includes('bread') ||
                   feat.icon?.includes('seedling') ||
+                  feat.title?.toLowerCase().includes('taze') ||
                   feat.title?.toLowerCase().includes('malzeme') ||
                   feat.title?.toLowerCase().includes('ekmek') ||
-                  (idx === 0 && !feat.title?.toLowerCase().includes('sipariş'));
-                const isOrder =
-                  !isBread &&
-                  (feat.title?.toLowerCase().includes('sipariş') || feat.icon?.includes('bell'));
+                  idx === 0;
                 const isPan =
                   !isBread &&
-                  !isOrder &&
-                  (feat.title?.toLowerCase().includes('hazır') ||
+                  (feat.icon?.includes('pan') ||
                     feat.icon?.includes('fire') ||
-                    feat.icon?.includes('pan') ||
+                    feat.title?.toLowerCase().includes('hazır') ||
+                    feat.title?.toLowerCase().includes('lezzet') ||
                     idx === 1);
                 const isCourier =
                   !isBread &&
-                  !isOrder &&
                   !isPan &&
-                  (feat.title?.toLowerCase().includes('kurye') ||
-                    feat.icon?.includes('motorcycle') ||
+                  (feat.icon?.includes('motorcycle') ||
+                    feat.title?.toLowerCase().includes('kurye') ||
+                    feat.title?.toLowerCase().includes('hızlı') ||
                     idx === 2);
+                const isOrder =
+                  !isBread &&
+                  !isPan &&
+                  !isCourier &&
+                  (feat.title?.toLowerCase().includes('sipariş') || feat.icon?.includes('bell'));
 
                 return (
                   <div key={feat.id || idx} className="group px-4 sm:px-6 py-2 flex flex-col items-center text-center space-y-3.5">
@@ -661,49 +664,9 @@ export default function HomePage() {
                   <span className="text-stone-600 font-semibold">Doğrulanmış Siparişler</span>
                 </div>
 
-                <div className="flex items-center justify-center gap-3 sm:gap-4 flex-wrap sm:flex-nowrap">
-                  {/* SARI PİŞİRME TAVASI İKONU (Başlığın Sol Tarafında) */}
-                  <div className="pan-badge-icon w-10 h-10 sm:w-14 sm:h-14 shrink-0">
-                    <svg viewBox="0 0 120 100" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
-                      <defs>
-                        <linearGradient id="panGoldGrad-reviews" x1="0%" y1="0%" x2="100%" y2="100%">
-                          <stop offset="0%" stopColor="#FEF08A" />
-                          <stop offset="35%" stopColor="#FBBF24" />
-                          <stop offset="75%" stopColor="#F59E0B" />
-                          <stop offset="100%" stopColor="#B45309" />
-                        </linearGradient>
-                      </defs>
-
-                      {/* Buharlar */}
-                      <circle className="steam-dot steam-1" cx="68" cy="34" r="3" fill="#FEF08A" />
-                      <circle className="steam-dot steam-2" cx="84" cy="30" r="2.5" fill="#ffffff" />
-
-                      {/* Havaya Zıplayan Lezzet */}
-                      <g className="pan-food-flip">
-                        <ellipse cx="77" cy="50" rx="14" ry="7.5" fill="#18181B" />
-                        <ellipse cx="77" cy="50" rx="11" ry="5.5" fill="#F59E0B" />
-                        <circle cx="77" cy="49" r="3.2" fill="#FEF08A" />
-                      </g>
-
-                      {/* Sote Yapan Tava */}
-                      <g className="pan-cook-shake">
-                        <path d="M 43 56 C 40 54 36 55 35 57 C 36 61 40 63 43 62 Z" fill="#78350F" />
-                        <path d="M 37 57 C 26 59 16 63 8 66 C 4 67.5 3 71.5 6 73.5 C 8.5 75 13 74 17 72 C 26 68 34 65 41 63 Z" fill="url(#panGoldGrad-reviews)" />
-                        <ellipse cx="9" cy="70" rx="2.5" ry="1.8" fill="#0b0d11" />
-
-                        <path d="M 44 54 C 44 69 59 81 77 81 C 95 81 110 69 110 54 L 110 60 C 110 75 95 87 77 87 C 59 87 44 75 44 60 Z" fill="#92400E" />
-
-                        <ellipse cx="77" cy="54" rx="33" ry="15" fill="url(#panGoldGrad-reviews)" />
-                        <ellipse cx="77" cy="53" rx="28" ry="11.5" fill="#18181B" />
-                        <ellipse cx="77" cy="54" rx="23" ry="8" fill="#27272A" />
-                      </g>
-                    </svg>
-                  </div>
-
-                  <h3 className="text-2xl sm:text-4xl font-black text-stone-900 tracking-tight text-center sm:text-left">
-                    {reviewsSection.title || 'Lezzet Severler Ne Diyor?'}
-                  </h3>
-                </div>
+                <h3 className="text-2xl sm:text-4xl font-black text-stone-900 tracking-tight text-center">
+                  {reviewsSection.title || 'Lezzet Severler Ne Diyor?'}
+                </h3>
                 <p className="text-stone-500 text-xs sm:text-sm leading-relaxed max-w-lg mx-auto font-medium">
                   {reviewsSection.subtitle ||
                     "Torbalı'da her gün yüzlerce sıcak siparişi lezzet tutkunlarıyla buluşturuyoruz."}
