@@ -1342,8 +1342,8 @@ export default function AdminDashboardPage() {
       {/* COLLAPSIBLE SIDEBAR & MOBILE SLIDE-OVER DRAWER */}
       <aside
         className={`fixed inset-y-0 left-0 z-50 bg-white border-r border-stone-200 flex flex-col justify-between transition-all duration-300 ease-in-out
-          ${mobileSidebarOpen ? 'translate-x-0 w-72 max-w-[85vw] shadow-2xl' : '-translate-x-full md:translate-x-0'}
-          ${sidebarCollapsed ? 'md:w-20' : 'md:w-60'}
+          ${mobileSidebarOpen ? 'translate-x-0 w-80 max-w-[90vw] shadow-2xl' : '-translate-x-full md:translate-x-0'}
+          ${sidebarCollapsed ? 'md:w-20' : 'md:w-72'}
         `}
       >
         <div>
@@ -1451,7 +1451,7 @@ export default function AdminDashboardPage() {
                   { id: 'sound', label: 'Ses & Bildirimler', icon: 'fa-solid fa-volume-high' },
                   { id: 'receipt', label: 'Fiş & Adisyon Baskısı', icon: 'fa-solid fa-receipt' },
                   { id: 'system', label: 'Yedekleme & Sistem', icon: 'fa-solid fa-box-archive' },
-                  { id: 'api', label: 'PostgreSQL ORM & Güvenlik', icon: 'fa-solid fa-database' },
+                  { id: 'api', label: 'PostgreSQL & Güvenlik', icon: 'fa-solid fa-database' },
                 ],
               },
             ]
@@ -1483,37 +1483,39 @@ export default function AdminDashboardPage() {
                       title={item.label}
                       className={`w-full flex items-center ${
                         sidebarCollapsed
-                          ? 'md:justify-center md:h-11 md:px-0 justify-between px-3.5 py-2.5'
+                          ? 'md:justify-center md:h-11 md:px-0 justify-between px-3 py-2.5'
                           : 'justify-between px-3.5 py-2.5'
-                      } rounded-2xl font-semibold text-xs sm:text-sm transition-all duration-200 cursor-pointer relative group ${
+                      } rounded-xl font-semibold text-xs sm:text-sm transition-all duration-200 cursor-pointer relative group ${
                         active
-                          ? 'bg-gradient-to-r from-stone-900 to-stone-800 text-white shadow-sm ring-1 ring-black/5'
-                          : 'text-stone-600 hover:text-stone-950 hover:bg-stone-100/90'
+                          ? 'bg-stone-900 text-white shadow-sm'
+                          : 'text-stone-600 hover:text-stone-950 hover:bg-stone-100'
                       }`}
                     >
-                      <div className={`flex items-center ${sidebarCollapsed ? 'md:justify-center gap-3' : 'gap-3 min-w-0'}`}>
-                        <div className={`w-7 h-7 rounded-xl flex items-center justify-center transition-colors shrink-0 ${
+                      <div className={`flex items-center ${sidebarCollapsed ? 'md:justify-center gap-2.5' : 'gap-3 min-w-0'}`}>
+                        <div className={`w-7 h-7 rounded-lg flex items-center justify-center transition-colors shrink-0 ${
                           active
-                            ? 'bg-white/10 text-white'
-                            : 'bg-stone-100 text-stone-500 group-hover:bg-brand-50 group-hover:text-brand-600'
+                            ? 'bg-white/15 text-white'
+                            : 'bg-stone-100 text-stone-500 group-hover:bg-amber-100 group-hover:text-amber-800'
                         }`}>
                           <i className={`${item.icon} text-xs`}></i>
                         </div>
-                        <span className={`truncate tracking-tight ${sidebarCollapsed ? 'md:hidden inline' : ''}`}>
+                        <span className={`font-semibold tracking-tight whitespace-nowrap ${sidebarCollapsed ? 'md:hidden inline' : ''}`}>
                           {item.label}
                         </span>
                       </div>
 
-                      <div className={`flex items-center gap-1.5 ${sidebarCollapsed ? 'md:hidden' : ''}`}>
+                      <div className={`flex items-center gap-2 shrink-0 ${sidebarCollapsed ? 'md:hidden' : ''}`}>
                         {item.badge && (
-                          <span className={`text-[10px] px-2 py-0.5 rounded-full font-black uppercase tracking-wider shrink-0 shadow-2xs ${item.badgeColor}`}>
+                          <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider shrink-0 ${
+                            active
+                              ? 'bg-amber-400 text-stone-950'
+                              : 'bg-stone-100 text-stone-600'
+                          }`}>
                             {item.badge}
                           </span>
                         )}
-                        <div className={`w-6 h-6 rounded-lg flex items-center justify-center transition-all duration-300 ease-out ${
-                          isExpanded
-                            ? 'rotate-180 bg-white/20 text-white'
-                            : 'text-stone-400 group-hover:text-stone-700'
+                        <div className={`w-5 h-5 rounded-md flex items-center justify-center transition-transform duration-200 ${
+                          isExpanded ? 'rotate-180 text-white' : 'text-stone-400 group-hover:text-stone-700'
                         }`}>
                           <i className="fa-solid fa-chevron-down text-[10px]"></i>
                         </div>
@@ -1529,14 +1531,14 @@ export default function AdminDashboardPage() {
 
                     {/* AÇILIR ALT MENÜ (MODERN KART AKORDEON DROPDOWN) */}
                     <div
-                      className={`grid transition-all duration-300 ease-out ${
+                      className={`grid transition-all duration-200 ease-in-out ${
                         isExpanded && !sidebarCollapsed
-                          ? 'grid-rows-[1fr] opacity-100 mt-1.5'
+                          ? 'grid-rows-[1fr] opacity-100 mt-1'
                           : 'grid-rows-[0fr] opacity-0 pointer-events-none'
                       }`}
                     >
                       <div className="overflow-hidden">
-                        <div className="ml-3 pl-3 py-1 space-y-1 border-l-2 border-stone-200/80 bg-stone-50/70 rounded-r-2xl pr-1.5">
+                        <div className="py-1 px-1 space-y-0.5 bg-stone-50/90 border border-stone-200/70 rounded-xl">
                           {item.subItems.map((sub) => {
                             const isSubActive =
                               (item.id === 'site_content' && currentTab === 'site_content' && selectedSiteContentSubTab === sub.id) ||
@@ -1552,20 +1554,20 @@ export default function AdminDashboardPage() {
                                   if (item.id === 'settings') setSelectedSettingsSubTab(sub.id);
                                   setMobileSidebarOpen(false);
                                 }}
-                                className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-bold transition-all duration-200 cursor-pointer ${
+                                className={`w-full flex items-center justify-between px-2.5 py-2 rounded-lg text-xs font-semibold transition-all duration-150 cursor-pointer ${
                                   isSubActive
-                                    ? 'bg-gradient-to-r from-brand-500 to-amber-500 text-white shadow-xs translate-x-0.5'
-                                    : 'text-stone-600 hover:text-stone-950 hover:bg-white/80 hover:translate-x-1'
+                                    ? 'bg-amber-500 text-stone-950 font-bold shadow-xs'
+                                    : 'text-stone-600 hover:text-stone-950 hover:bg-white'
                                 }`}
                               >
-                                <span className="flex items-center gap-2.5 truncate">
-                                  <i className={`${sub.icon} text-xs w-4 text-center ${
-                                    isSubActive ? 'text-white' : 'text-stone-400 group-hover:text-stone-600'
+                                <span className="flex items-center gap-2.5 min-w-0">
+                                  <i className={`${sub.icon} text-xs w-4 text-center shrink-0 ${
+                                    isSubActive ? 'text-stone-950' : 'text-stone-400'
                                   }`}></i>
-                                  <span className="truncate">{sub.label}</span>
+                                  <span className="truncate whitespace-nowrap">{sub.label}</span>
                                 </span>
                                 {isSubActive && (
-                                  <span className="w-1.5 h-1.5 rounded-full bg-white shadow-xs shrink-0 animate-pulse"></span>
+                                  <span className="w-1.5 h-1.5 rounded-full bg-stone-950 shrink-0 ml-1"></span>
                                 )}
                               </button>
                             );
@@ -1669,7 +1671,7 @@ export default function AdminDashboardPage() {
 
       {/* MAIN CONTAINER (Full width on mobile, offset on desktop) */}
       <div className={`flex-1 min-w-0 w-full flex flex-col min-h-screen transition-all duration-300 ease-in-out pb-24 md:pb-6 ${
-        sidebarCollapsed ? 'md:ml-20' : 'md:ml-60'
+        sidebarCollapsed ? 'md:ml-20' : 'md:ml-72'
       }`}>
         {/* KITCHEN LOUD CONTINUOUS POS BELL & EMERGENCY VISUAL ALERT */}
         <KitchenPosBell
