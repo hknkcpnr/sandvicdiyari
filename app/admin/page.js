@@ -368,6 +368,11 @@ export default function AdminDashboardPage() {
       if (json.success && json.data) {
         if (previousOrderCount > 0 && json.data.length > previousOrderCount) {
           playSoundAlert();
+          const newest = json.data[0];
+          showToast(
+            `🔔 Yeni Sipariş Geldi! #${newest?.orderNumber || newest?.id} (${newest?.customerName || 'Müşteri'})`,
+            'success'
+          );
         }
         setPreviousOrderCount(json.data.length);
         setOrders(json.data);
@@ -529,17 +534,41 @@ export default function AdminDashboardPage() {
       fetchProducts();
       fetchReviews();
       fetchFeedbacks();
-      const intervalSec = typeof adminSettings?.autoRefreshInterval === 'number' ? adminSettings.autoRefreshInterval : 30;
-      if (intervalSec > 0) {
-        const timer = setInterval(() => {
+
+      // Canlı sipariş dinleyici: Müşteri sipariş verdiğinde anında algıla
+      const handleStorageChange = (e) => {
+        if (
+          e.key === 'sd_new_order_alert' ||
+          e.key === 'sd_last_order' ||
+          e.key === 'sandwich_orders_updated'
+        ) {
           fetchOrders();
-          fetchReviews();
-          fetchFeedbacks();
-        }, intervalSec * 1000);
-        return () => clearInterval(timer);
-      }
+        }
+      };
+
+      const handleFocus = () => fetchOrders();
+      window.addEventListener('storage', handleStorageChange);
+      window.addEventListener('focus', handleFocus);
+
+      // Müşteri siparişlerini restoran hızında (5 saniyede bir) kontrol et
+      const ordersPollTimer = setInterval(() => {
+        fetchOrders();
+      }, 5000);
+
+      // İnceleme ve geri bildirimleri kontrol et
+      const otherPollTimer = setInterval(() => {
+        fetchReviews();
+        fetchFeedbacks();
+      }, 20000);
+
+      return () => {
+        window.removeEventListener('storage', handleStorageChange);
+        window.removeEventListener('focus', handleFocus);
+        clearInterval(ordersPollTimer);
+        clearInterval(otherPollTimer);
+      };
     }
-  }, [adminUser, adminSettings?.autoRefreshInterval, previousOrderCount]);
+  }, [adminUser, previousOrderCount]);
 
   // Login handler
   const handleLogin = async (e) => {

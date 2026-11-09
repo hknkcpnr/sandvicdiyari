@@ -163,6 +163,7 @@ export default function CheckoutModal() {
       const createdOrder = json.data;
 
       try {
+        localStorage.setItem('sd_new_order_alert', String(Date.now()));
         localStorage.setItem('sd_last_order', JSON.stringify(createdOrder));
         localStorage.setItem('sandwich_inventory_updated', Date.now().toString());
         window.dispatchEvent(new Event('sd_order_created'));

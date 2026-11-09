@@ -101,8 +101,6 @@ export default function CustomerNotificationBell() {
   const dropdownRef = useRef(null);
   const knownIdsRef = useRef(new Set());
   const initialLoadedRef = useRef(false);
-  const sessionStartTimeRef = useRef(Date.now() - 5000);
-  const lastLoadedUserKeyRef = useRef(null);
 
   // Yerel okundu listesini yükle
   useEffect(() => {
@@ -159,12 +157,8 @@ export default function CustomerNotificationBell() {
         );
       }
 
-      const currentUserKey = currentUser?.email || currentUser?.id || 'guest';
-      const isFirstLoadForThisUser = lastLoadedUserKeyRef.current !== currentUserKey;
-
-      if (!initialLoadedRef.current || isFirstLoadForThisUser) {
-        // İlk açılışta veya oturum açıldığında mevcut geçmiş bildirimleri bilinenlere ekle (Asla eski bildirimler için ses ve toast çalınmaz)
-        lastLoadedUserKeyRef.current = currentUserKey;
+      // İlk yüklemeden sonra yeni düşen bildirim varsa anlık Toast & Ses tetikle
+      if (!initialLoadedRef.current) {
         if (Array.isArray(nextList)) {
           nextList.forEach((n) => {
             if (n && n.id) knownIdsRef.current.add(n.id);
@@ -172,16 +166,9 @@ export default function CustomerNotificationBell() {
         }
         initialLoadedRef.current = true;
       } else {
-        // Sadece kullanıcı sitede GEZİNİRKEN yeni düşen taze bildirim varsa toast & ses tetikle
         const brandNew = Array.isArray(nextList)
-          ? nextList.find((n) => {
-              if (!n || !n.id || knownIdsRef.current.has(n.id)) return false;
-              // Geçmişte oluşturulmuş bildirimler için popup çıkartma (Sadece son oturum süresinde oluşturulanlar)
-              const notifTime = n.createdAt ? new Date(n.createdAt).getTime() : 0;
-              return notifTime > sessionStartTimeRef.current;
-            })
+          ? nextList.find((n) => n && n.id && !knownIdsRef.current.has(n.id))
           : null;
-
         if (Array.isArray(nextList)) {
           nextList.forEach((n) => {
             if (n && n.id) knownIdsRef.current.add(n.id);
@@ -189,26 +176,9 @@ export default function CustomerNotificationBell() {
         }
 
         if (brandNew && nextSettings.enabled !== false && nextSettings.toastEnabled !== false) {
-          // Bu oturumda daha önce gösterilip gösterilmediğini sessionStorage üzerinden kontrol et
-          let alreadyAlerted = false;
-          try {
-            const alertedRaw = sessionStorage.getItem('sd_alerted_notif_ids');
-            const alertedList = alertedRaw ? JSON.parse(alertedRaw) : [];
-            if (alertedList.includes(brandNew.id)) {
-              alreadyAlerted = true;
-            } else {
-              sessionStorage.setItem(
-                'sd_alerted_notif_ids',
-                JSON.stringify([...alertedList, brandNew.id].slice(-60))
-              );
-            }
-          } catch (e) {}
-
-          if (!alreadyAlerted) {
-            setActiveToast(brandNew);
-            if (nextSettings.soundEnabled !== false) {
-              playGentleCustomerChime();
-            }
+          setActiveToast(brandNew);
+          if (nextSettings.soundEnabled !== false) {
+            playGentleCustomerChime();
           }
         }
       }
@@ -228,8 +198,7 @@ export default function CustomerNotificationBell() {
     window.addEventListener('storage', handleStorage);
     window.addEventListener('focus', handleFocus);
 
-    // Gereksiz sık aralıklarla polling yapmak yerine 25 saniyeye çıkarıldı
-    const timer = setInterval(fetchNotifications, 25000);
+    const timer = setInterval(fetchNotifications, 6000);
     return () => {
       window.removeEventListener('storage', handleStorage);
       window.removeEventListener('focus', handleFocus);
