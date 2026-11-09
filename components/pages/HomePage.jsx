@@ -367,32 +367,48 @@ export default function HomePage() {
 
             <div className="relative z-10 grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-6 md:divide-x md:divide-white/10">
               {(featuresSection.items || []).map((feat, idx) => {
-                const isBread =
-                  feat.icon?.includes('bread') ||
-                  feat.icon?.includes('seedling') ||
-                  feat.title?.toLowerCase().includes('taze') ||
-                  feat.title?.toLowerCase().includes('malzeme') ||
-                  feat.title?.toLowerCase().includes('ekmek') ||
-                  idx === 0;
-                const isPan =
-                  !isBread &&
-                  (feat.icon?.includes('pan') ||
-                    feat.icon?.includes('fire') ||
-                    feat.title?.toLowerCase().includes('hazır') ||
-                    feat.title?.toLowerCase().includes('lezzet') ||
-                    idx === 1);
-                const isCourier =
-                  !isBread &&
-                  !isPan &&
-                  (feat.icon?.includes('motorcycle') ||
-                    feat.title?.toLowerCase().includes('kurye') ||
-                    feat.title?.toLowerCase().includes('hızlı') ||
-                    idx === 2);
-                const isOrder =
-                  !isBread &&
-                  !isPan &&
-                  !isCourier &&
-                  (feat.title?.toLowerCase().includes('sipariş') || feat.icon?.includes('bell'));
+                // Güvenli başlık ve açıklama eşleşmesi (Eski veritabanı / tarayıcı önbelleğini anında günceller)
+                let displayTitle = feat.title;
+                let displayDesc = feat.desc;
+
+                if (idx === 0) {
+                  if (
+                    !displayTitle ||
+                    displayTitle === '%100 Günlük Malzeme' ||
+                    displayTitle === 'Sipariş'
+                  ) {
+                    displayTitle = 'Tazelik & Doğallık';
+                    displayDesc =
+                      'Çıtır ekmeklerimiz ve yeşilliklerimiz her sabah yerel taze üreticilerden günlük temin edilir, tazeliği ilk lokmada hissettirir.';
+                  }
+                } else if (idx === 1) {
+                  if (
+                    !displayTitle ||
+                    displayTitle === 'Hızlı & Sıcak Kurye Servisi' ||
+                    displayTitle === 'Hazırlama' ||
+                    displayTitle === 'Sıcak Hazırlama'
+                  ) {
+                    displayTitle = 'Ürünün Hazırlanışı & Lezzeti';
+                    displayDesc =
+                      'Siparişiniz usta eller tarafından taptaze malzemelerle tavada ve ızgarada anında sıcacık pişirilir, enfes bir lezzete kavuşur.';
+                  }
+                } else if (idx === 2) {
+                  if (
+                    !displayTitle ||
+                    displayTitle === 'Hijyen & Güven' ||
+                    displayTitle === 'Kurye' ||
+                    displayTitle === 'Hızlı Kurye'
+                  ) {
+                    displayTitle = 'Hızlı & Sıcak Kurye';
+                    displayDesc =
+                      'Özel ısı yalıtımlı çantalarımız ve seri kuryelerimizle siparişiniz hiç soğumadan en kısa sürede kapınıza teslim edilir.';
+                  }
+                }
+
+                const isBread = idx === 0 || feat.icon?.includes('bread') || feat.icon?.includes('seedling');
+                const isPan = !isBread && (idx === 1 || feat.icon?.includes('pan') || feat.icon?.includes('fire'));
+                const isCourier = !isBread && !isPan && (idx === 2 || feat.icon?.includes('motorcycle'));
+                const isOrder = !isBread && !isPan && !isCourier && (feat.icon?.includes('bell') || feat.title?.toLowerCase().includes('sipariş'));
 
                 return (
                   <div key={feat.id || idx} className="group px-4 sm:px-6 py-2 flex flex-col items-center text-center space-y-3.5">
@@ -596,10 +612,10 @@ export default function HomePage() {
                       <i className={`${feat.icon || 'fa-solid fa-seedling'} text-4xl text-brand-400 drop-shadow`}></i>
                     )}
                     <h4 className="font-extrabold text-lg sm:text-xl text-white tracking-tight">
-                      {feat.title}
+                      {displayTitle}
                     </h4>
                     <p className="text-stone-300 text-xs sm:text-sm leading-relaxed max-w-xs">
-                      {feat.desc}
+                      {displayDesc}
                     </p>
                   </div>
                 );
