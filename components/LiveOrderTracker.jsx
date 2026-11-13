@@ -31,6 +31,33 @@ export default function LiveOrderTracker() {
   const [isExpanded, setIsExpanded] = useState(false);
   const guestClearedRef = useRef(false);
 
+  const clearGuestSessionIfDelivered = (orderObj) => {
+    if (!orderObj || orderObj.status !== 'Teslim Edildi' || guestClearedRef.current) return;
+    try {
+      const rawUser = localStorage.getItem('sd_current_user');
+      const parsedUser = rawUser ? JSON.parse(rawUser) : currentUser;
+      const isGuest = Boolean(
+        parsedUser && (
+          parsedUser.isGuest ||
+          String(parsedUser.id || '').startsWith('guest_') ||
+          String(parsedUser.email || '').startsWith('misafir_')
+        )
+      );
+      if (isGuest) {
+        guestClearedRef.current = true;
+        localStorage.removeItem('sd_last_order');
+        dispatch(logout());
+        dispatch(
+          showMessageModal({
+            title: 'Siparişiniz Teslim Edildi 🎉',
+            text: 'Afiyet olsun! Siparişiniz teslim edildiği için misafir oturumunuz güvenlik amacıyla otomatik olarak sonlandırıldı.',
+            type: 'success'
+          })
+        );
+      }
+    } catch (err) {}
+  };
+
   // Load last order from storage
   const loadLastOrder = () => {
     try {
@@ -38,10 +65,13 @@ export default function LiveOrderTracker() {
       if (saved) {
         const parsed = JSON.parse(saved);
         if (parsed && parsed.id) {
-          // If status is not cancelled and was created recently (within 4 hours)
+          // If status is not cancelled and was created recently (within 6 hours)
           const orderAgeHours = (Date.now() - new Date(parsed.createdAt || Date.now()).getTime()) / (1000 * 60 * 60);
           if (parsed.status !== 'İptal Edildi' && orderAgeHours < 6) {
             setActiveOrder(parsed);
+            if (parsed.status === 'Teslim Edildi') {
+              clearGuestSessionIfDelivered(parsed);
+            }
             return parsed;
           }
         }
@@ -51,60 +81,49 @@ export default function LiveOrderTracker() {
     return null;
   };
 
+  const checkOrderStatus = async () => {
+    const current = loadLastOrder();
+    if (current && current.id && current.status !== 'Teslim Edildi' && current.status !== 'İptal Edildi') {
+      try {
+        const res = await fetch(`/api/orders/${current.id}`);
+        const json = await res.json();
+        if (json.success && json.data) {
+          setActiveOrder(json.data);
+          localStorage.setItem('sd_last_order', JSON.stringify(json.data));
+          clearGuestSessionIfDelivered(json.data);
+        }
+      } catch (e) {}
+    }
+  };
+
   useEffect(() => {
-    loadLastOrder();
+    checkOrderStatus();
 
     const handleCreated = () => {
+      guestClearedRef.current = false;
       loadLastOrder();
       setIsExpanded(true);
     };
 
+    const handleVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        checkOrderStatus();
+      }
+    };
+
     window.addEventListener('sd_order_created', handleCreated);
     window.addEventListener('storage', loadLastOrder);
+    window.addEventListener('focus', checkOrderStatus);
+    document.addEventListener('visibilitychange', handleVisibility);
 
     // Poll current active order status
-    const pollTimer = setInterval(async () => {
-      const current = loadLastOrder();
-      if (current && current.id && current.status !== 'Teslim Edildi' && current.status !== 'İptal Edildi') {
-        try {
-          const res = await fetch(`/api/orders/${current.id}`);
-          const json = await res.json();
-          if (json.success && json.data) {
-            setActiveOrder(json.data);
-            localStorage.setItem('sd_last_order', JSON.stringify(json.data));
-
-            if (json.data.status === 'Teslim Edildi' && !guestClearedRef.current) {
-              try {
-                const rawUser = localStorage.getItem('sd_current_user');
-                const parsedUser = rawUser ? JSON.parse(rawUser) : currentUser;
-                const isGuest = Boolean(
-                  parsedUser && (
-                    parsedUser.isGuest ||
-                    String(parsedUser.id || '').startsWith('guest_') ||
-                    String(parsedUser.email || '').startsWith('misafir_')
-                  )
-                );
-                if (isGuest) {
-                  guestClearedRef.current = true;
-                  dispatch(logout());
-                  dispatch(
-                    showMessageModal({
-                      title: 'Siparişiniz Teslim Edildi 🎉',
-                      text: 'Afiyet olsun! Siparişiniz teslim edildiği için misafir oturumunuz güvenlik amacıyla otomatik olarak sonlandırıldı.',
-                      type: 'success'
-                    })
-                  );
-                }
-              } catch (err) {}
-            }
-          }
-        } catch (e) {}
-      }
-    }, 4000);
+    const pollTimer = setInterval(checkOrderStatus, 4000);
 
     return () => {
       window.removeEventListener('sd_order_created', handleCreated);
       window.removeEventListener('storage', loadLastOrder);
+      window.removeEventListener('focus', checkOrderStatus);
+      document.removeEventListener('visibilitychange', handleVisibility);
       clearInterval(pollTimer);
     };
   }, []);
