@@ -102,33 +102,59 @@ export async function POST(request) {
     const targetEmail = foundUser.email || (cleanLower.includes('@') ? cleanLower : '');
 
     const otpCode = String(crypto.randomInt(100000, 999999));
-    const expiresAt = Date.now() + 10 * 60 * 1000; // 10 dakika geçerli
+    const expiresAt = Date.now() + 30 * 60 * 1000; // 30 dakika boyunca geçerli
 
-    // Kodu hem telefon hem de e-posta anahtarıyla kaydet (Her iki girişle de doğrulansın)
+    // Kodu hem telefon hem de e-posta anahtarlarıyla kaydet (Her iki girişle de doğrulansın)
+    const candidateKeys = Array.from(
+      new Set(
+        [
+          normalizedPhone,
+          cleanDigits.length >= 10 ? cleanDigits : '',
+          targetEmail ? targetEmail.toLowerCase() : '',
+          cleanLower,
+          foundUser.email ? foundUser.email.toLowerCase() : '',
+          foundUser.phone ? foundUser.phone.replace(/\D/g, '') : ''
+        ].filter(Boolean)
+      )
+    );
+
+    // A) PostgreSQL (Prisma) Kalıcı Saklama - Vercel Serverless ortamında kaybolmaz!
+    for (const key of candidateKeys) {
+      const currentHash = hashOtp(key, otpCode);
+
+      // Local RAM/JSON DB
+      try {
+        db.savePhoneOtp({
+          phone: key,
+          otpHash: currentHash,
+          expiresAt
+        });
+      } catch (e) {}
+
+      // PostgreSQL Supabase DB
+      try {
+        if (rawPrisma && rawPrisma.phoneOtp) {
+          await rawPrisma.phoneOtp.create({
+            data: {
+              phone: key,
+              otpHash: currentHash,
+              expiresAt: new Date(expiresAt)
+            }
+          });
+        }
+      } catch (pgErr) {
+        console.warn('[PostgreSQL PhoneOtp Save Warning]', pgErr.message);
+      }
+    }
+
+    // WhatsApp Cloud API / UltraMsg üzerinden göndermeyi dene (varsa)
     if (normalizedPhone) {
-      const phoneHash = hashOtp(normalizedPhone, otpCode);
-      db.savePhoneOtp({
-        phone: normalizedPhone,
-        otpHash: phoneHash,
-        expiresAt
-      });
-
-      // WhatsApp Cloud API / UltraMsg üzerinden göndermeyi dene (varsa)
       try {
         await sendWhatsAppCloudApiMessage({
           toPhone: normalizedPhone,
           otpCode
         });
       } catch (err) {}
-    }
-
-    if (targetEmail) {
-      const emailHash = hashOtp(targetEmail, otpCode);
-      db.savePhoneOtp({
-        phone: targetEmail,
-        otpHash: emailHash,
-        expiresAt
-      });
     }
 
     // 5. Gerçek E-Posta Gönderimini Dene

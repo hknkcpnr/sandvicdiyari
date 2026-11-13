@@ -71,7 +71,7 @@ model User {
 
 model PhoneOtp {
   id        String    @id @default(cuid()) @db.VarChar(64)
-  phone     String    @db.VarChar(32)
+  phone     String    @db.VarChar(191)
   otpHash   String    @map("otp_hash") @db.VarChar(255)
   expiresAt DateTime  @map("expires_at") @db.Timestamptz(6)
   attempts  Int       @default(0)
