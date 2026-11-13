@@ -23,7 +23,8 @@
     "prisma": "6.4.1",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "react-redux": "^9.2.0"
+    "react-redux": "^9.2.0",
+    "resend": "^6.38.0"
   },
   "devDependencies": {
     "@types/node": "20.17.6",
