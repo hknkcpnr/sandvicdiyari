@@ -157,13 +157,7 @@ export default function Navbar() {
 
             {/* Sepet Butonu (Mobilde Minimalist, Masaüstünde Fiyat Detaylı) */}
             <button
-              onClick={() => {
-                if (!currentUser || !currentUser.email) {
-                  dispatch(openAuthModal('login'));
-                  return;
-                }
-                dispatch(toggleCart());
-              }}
+              onClick={() => dispatch(toggleCart())}
               className="relative bg-brand-50 hover:bg-brand-100 text-brand-900 p-2 sm:p-3 rounded-xl sm:rounded-2xl transition-all border border-brand-200 flex items-center gap-1.5 sm:gap-2 cursor-pointer shrink-0"
             >
               <i className="fa-solid fa-bag-shopping text-sm sm:text-lg"></i>

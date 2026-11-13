@@ -31,31 +31,64 @@ export default function LiveOrderTracker() {
   const [isExpanded, setIsExpanded] = useState(false);
   const guestClearedRef = useRef(false);
 
-  const clearGuestSessionIfDelivered = (orderObj) => {
-    if (!orderObj || orderObj.status !== 'Teslim Edildi' || guestClearedRef.current) return;
+  const isGuestUserSession = () => {
     try {
       const rawUser = localStorage.getItem('sd_current_user');
       const parsedUser = rawUser ? JSON.parse(rawUser) : currentUser;
-      const isGuest = Boolean(
+      return Boolean(
         parsedUser && (
           parsedUser.isGuest ||
           String(parsedUser.id || '').startsWith('guest_') ||
           String(parsedUser.email || '').startsWith('misafir_')
         )
       );
-      if (isGuest) {
-        guestClearedRef.current = true;
+    } catch {
+      return false;
+    }
+  };
+
+  const endOrderAndGuestSession = (orderObj, reason) => {
+    const isGuest = isGuestUserSession();
+    const isCancelled = reason === 'cancelled' || reason === 'deleted';
+    const orderNo = orderObj?.orderNumber || orderObj?.id || '';
+
+    if (isCancelled || isGuest) {
+      try {
         localStorage.removeItem('sd_last_order');
-        dispatch(logout());
-        dispatch(
-          showMessageModal({
-            title: 'Siparişiniz Teslim Edildi 🎉',
-            text: 'Afiyet olsun! Siparişiniz teslim edildiği için misafir oturumunuz güvenlik amacıyla otomatik olarak sonlandırıldı.',
-            type: 'success'
-          })
-        );
-      }
-    } catch (err) {}
+      } catch {}
+    }
+
+    if (isCancelled) {
+      setActiveOrder(null);
+      setIsExpanded(false);
+    }
+
+    if (isGuest && !guestClearedRef.current) {
+      guestClearedRef.current = true;
+      dispatch(logout());
+    }
+
+    window.dispatchEvent(new Event('sd_order_updated'));
+
+    if (isCancelled) {
+      dispatch(
+        showMessageModal({
+          title: 'Siparişiniz İptal Edilmiştir',
+          text: isGuest
+            ? `#${orderNo} numaralı siparişiniz iptal edildiği için misafir oturumunuz sonlandırıldı.`
+            : `#${orderNo} numaralı siparişiniz iptal edilmiştir.`,
+          type: 'warning'
+        })
+      );
+    } else if (isGuest && reason === 'delivered') {
+      dispatch(
+        showMessageModal({
+          title: 'Siparişiniz Teslim Edildi 🎉',
+          text: 'Afiyet olsun! Siparişiniz teslim edildiği için misafir oturumunuz güvenlik amacıyla otomatik olarak sonlandırıldı.',
+          type: 'success'
+        })
+      );
+    }
   };
 
   // Load last order from storage
@@ -65,12 +98,15 @@ export default function LiveOrderTracker() {
       if (saved) {
         const parsed = JSON.parse(saved);
         if (parsed && parsed.id) {
-          // If status is not cancelled and was created recently (within 6 hours)
+          if (parsed.status === 'İptal Edildi') {
+            endOrderAndGuestSession(parsed, 'cancelled');
+            return null;
+          }
           const orderAgeHours = (Date.now() - new Date(parsed.createdAt || Date.now()).getTime()) / (1000 * 60 * 60);
-          if (parsed.status !== 'İptal Edildi' && (Number.isNaN(orderAgeHours) || orderAgeHours < 6)) {
+          if (Number.isNaN(orderAgeHours) || orderAgeHours < 6) {
             setActiveOrder(parsed);
             if (parsed.status === 'Teslim Edildi') {
-              clearGuestSessionIfDelivered(parsed);
+              endOrderAndGuestSession(parsed, 'delivered');
             }
             return parsed;
           }
@@ -87,39 +123,24 @@ export default function LiveOrderTracker() {
       try {
         const res = await fetch(`/api/orders/${current.id}`, { cache: 'no-store' });
         if (res.status === 404) {
-          localStorage.removeItem('sd_last_order');
-          setActiveOrder(null);
-          setIsExpanded(false);
-          window.dispatchEvent(new Event('sd_order_updated'));
-          dispatch(
-            showMessageModal({
-              title: 'Siparişiniz İptal Edilmiştir',
-              text: `#${current.orderNumber || current.id} numaralı siparişiniz iptal edilmiştir.`,
-              type: 'warning'
-            })
-          );
+          endOrderAndGuestSession(current, 'deleted');
           return;
         }
         const json = await res.json();
         if (json?.success === false) {
-          localStorage.removeItem('sd_last_order');
-          setActiveOrder(null);
-          setIsExpanded(false);
-          window.dispatchEvent(new Event('sd_order_updated'));
-          dispatch(
-            showMessageModal({
-              title: 'Siparişiniz İptal Edilmiştir',
-              text: `#${current.orderNumber || current.id} numaralı siparişiniz iptal edilmiştir.`,
-              type: 'warning'
-            })
-          );
+          endOrderAndGuestSession(current, 'deleted');
           return;
         }
         if (json.success && json.data) {
           setActiveOrder(json.data);
           localStorage.setItem('sd_last_order', JSON.stringify(json.data));
-          clearGuestSessionIfDelivered(json.data);
-          window.dispatchEvent(new Event('sd_order_updated'));
+          if (json.data.status === 'Teslim Edildi') {
+            endOrderAndGuestSession(json.data, 'delivered');
+          } else if (json.data.status === 'İptal Edildi') {
+            endOrderAndGuestSession(json.data, 'cancelled');
+          } else {
+            window.dispatchEvent(new Event('sd_order_updated'));
+          }
         }
       } catch (e) {}
     }

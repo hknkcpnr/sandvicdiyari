@@ -51,15 +51,18 @@ async function handleCheckSession(request) {
             select: { id: true, status: true, createdAt: true }
           });
 
-          if (latestOrder && latestOrder.status === 'Teslim Edildi') {
+          if (latestOrder && (latestOrder.status === 'Teslim Edildi' || latestOrder.status === 'İptal Edildi')) {
             const orderCreatedMs = new Date(latestOrder.createdAt).getTime();
             // Sipariş bu misafir oturumu açıldıktan sonra (veya 1 dk toleransla) verilmişse oturumu sonlandır
             if (!guestStartMs || isNaN(orderCreatedMs) || orderCreatedMs >= guestStartMs - 60000) {
+              const isCancelled = latestOrder.status === 'İptal Edildi';
               return jsonSuccess({
                 valid: false,
                 isGuest: true,
-                reason: 'guest_order_delivered',
-                message: 'Siparişiniz teslim edildiği için misafir oturumunuz sonlandırıldı.'
+                reason: isCancelled ? 'guest_order_cancelled' : 'guest_order_delivered',
+                message: isCancelled
+                  ? 'Siparişiniz iptal edildiği için misafir oturumunuz sonlandırıldı.'
+                  : 'Siparişiniz teslim edildiği için misafir oturumunuz sonlandırıldı.'
               });
             }
           }

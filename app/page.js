@@ -87,7 +87,7 @@ export default function Home() {
           try {
             localStorage.removeItem('sd_current_user');
             localStorage.removeItem('sd_auth_token');
-            if (result.reason === 'guest_order_delivered') {
+            if (result.reason === 'guest_order_delivered' || result.reason === 'guest_order_cancelled') {
               localStorage.removeItem('sd_last_order');
             }
           } catch (e) {}
@@ -95,12 +95,16 @@ export default function Home() {
           const title =
             result.reason === 'guest_order_delivered'
               ? 'Siparişiniz Teslim Edildi 🎉'
+              : result.reason === 'guest_order_cancelled'
+              ? 'Siparişiniz İptal Edilmiştir'
               : result.reason === 'blocked'
               ? 'Hesabınız Engellendi ⛔'
               : 'Oturum Kapatıldı ℹ️';
           const text =
             result.reason === 'guest_order_delivered'
               ? 'Afiyet olsun! Siparişiniz teslim edildiği için misafir oturumunuz güvenlik amacıyla otomatik olarak sonlandırıldı.'
+              : result.reason === 'guest_order_cancelled'
+              ? 'Siparişiniz iptal edildiği için misafir oturumunuz otomatik olarak sonlandırıldı.'
               : result.reason === 'blocked'
               ? `Hesabınız yönetici tarafından engellenmiştir. (${result.blockReason || 'Kısıtlama'})`
               : 'Hesabınız sistemden silindiği için oturumunuz otomatik olarak sonlandırıldı.';

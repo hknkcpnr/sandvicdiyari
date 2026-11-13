@@ -156,16 +156,27 @@ export default function CustomerNotificationBell() {
       if (currentUser?.id) q.set('id', currentUser.id);
 
       // Misafir olarak sipariş verildiyse (currentUser boş olsa bile) son siparişten takip et
+      let hasLastOrder = false;
       try {
         const lastRaw = localStorage.getItem('sd_last_order');
         if (lastRaw) {
           const lastOrder = JSON.parse(lastRaw);
-          if (lastOrder?.id) q.set('orderId', String(lastOrder.id));
-          if (!currentUser?.email && lastOrder?.userEmail) {
-            q.set('email', String(lastOrder.userEmail));
+          if (lastOrder?.id && lastOrder.status !== 'Teslim Edildi' && lastOrder.status !== 'İptal Edildi') {
+            hasLastOrder = true;
+            q.set('orderId', String(lastOrder.id));
+            if (!currentUser?.email && lastOrder?.userEmail) {
+              q.set('email', String(lastOrder.userEmail));
+            }
           }
         }
       } catch (e) {}
+
+      // Aktif oturum veya takip edilen sipariş yoksa gereksiz bildirim çekme/gösterme
+      if (!currentUser && !hasLastOrder) {
+        setNotifications([]);
+        setActiveToast(null);
+        return;
+      }
 
       const res = await fetch(`/api/notifications?${q.toString()}`, { cache: 'no-store' });
       const json = await res.json();

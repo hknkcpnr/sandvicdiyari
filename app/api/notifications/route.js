@@ -87,11 +87,24 @@ export async function GET(request) {
     const cleanEmail = String(searchParams.get('email') || '').trim().toLowerCase();
     const cleanId = String(searchParams.get('id') || '').trim();
     const cleanOrderId = String(searchParams.get('orderId') || '').trim();
+    const isGuestSession = cleanId.startsWith('guest_') || cleanEmail.startsWith('misafir_');
+    const guestTsRaw = cleanId.startsWith('guest_') ? Number(cleanId.replace('guest_', '')) : 0;
+    const guestStartMs = Number.isFinite(guestTsRaw) && guestTsRaw > 0 ? guestTsRaw : 0;
 
     const settings = await getNotificationSettings();
 
     let personalNotifications = [];
     let orderNotifications = [];
+
+    if (!cleanEmail && !cleanId && !cleanOrderId) {
+      return NextResponse.json({
+        success: true,
+        data: {
+          settings,
+          notifications: []
+        }
+      });
+    }
 
     if (cleanEmail || cleanId || cleanOrderId) {
       // 1. Kullanıcının kişisel bildirimleri (Admin -> Üyeler veya Toplu Bildirim)
@@ -166,7 +179,19 @@ export async function GET(request) {
               }
             });
 
-            orderNotifications = recentOrders.flatMap((o) => {
+            orderNotifications = recentOrders
+              .filter((o) => {
+                // Misafir oturumunda yalnızca bu oturuma ait sipariş bildirimlerini göster
+                if (isGuestSession || (!cleanEmail && cleanOrderId)) {
+                  if (cleanOrderId && o.id === cleanOrderId) return true;
+                  if (guestStartMs) {
+                    const orderMs = new Date(o.createdAt || 0).getTime();
+                    return !Number.isNaN(orderMs) && orderMs >= guestStartMs - 60000;
+                  }
+                }
+                return true;
+              })
+              .flatMap((o) => {
               const items = [
                 {
                   id: `ord_${o.id}_${o.status}`,
@@ -207,11 +232,14 @@ export async function GET(request) {
       }
     }
 
-    const broadcastNotifications = (settings.broadcasts || []).map((b) => ({
-      ...b,
-      scope: 'broadcast',
-      type: b.type || 'campaign'
-    }));
+    // Misafir oturumlarında gereksiz genel kampanya bildirimleri yerine sadece sipariş bildirimleri gösterilir
+    const broadcastNotifications = isGuestSession || (!cleanEmail && cleanOrderId)
+      ? []
+      : (settings.broadcasts || []).map((b) => ({
+          ...b,
+          scope: 'broadcast',
+          type: b.type || 'campaign'
+        }));
 
     const combined = [
       ...personalNotifications,
