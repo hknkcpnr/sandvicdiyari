@@ -150,20 +150,56 @@ export async function GET(request) {
                 status: true,
                 cancellationReason: true,
                 updatedAt: true,
-                createdAt: true
+                createdAt: true,
+                statusHistory: {
+                  orderBy: { timestamp: 'desc' },
+                  take: 10,
+                  select: {
+                    id: true,
+                    note: true,
+                    timestamp: true,
+                    user: true
+                  }
+                }
               }
             });
 
-            orderNotifications = recentOrders.map((o) => ({
-              id: `ord_${o.id}_${o.status}`,
-              orderId: o.id,
-              title: `🛵 Sipariş Durumu: ${o.status}`,
-              message: buildOrderStatusText(o),
-              type: o.status === 'İptal Edildi' ? 'warning' : 'order',
-              scope: 'order',
-              targetPage: 'profile_orders',
-              createdAt: o.updatedAt || o.createdAt
-            }));
+            orderNotifications = recentOrders.flatMap((o) => {
+              const items = [
+                {
+                  id: `ord_${o.id}_${o.status}`,
+                  orderId: o.id,
+                  title: `🛵 Sipariş Durumu: ${o.status}`,
+                  message: buildOrderStatusText(o),
+                  type: o.status === 'İptal Edildi' ? 'warning' : 'order',
+                  scope: 'order',
+                  targetPage: 'profile_orders',
+                  createdAt: o.updatedAt || o.createdAt
+                }
+              ];
+
+              const latestEtaEntry = Array.isArray(o.statusHistory)
+                ? o.statusHistory.find((h) => h.note && h.note.includes('Tahmini Varış Süresi:'))
+                : null;
+
+              if (latestEtaEntry && o.status !== 'Teslim Edildi' && o.status !== 'İptal Edildi') {
+                const match = latestEtaEntry.note.match(/Tahmini Varış Süresi:\s*(.+?)\s*olarak güncellendi/i);
+                const etaText = match ? match[1].trim() : latestEtaEntry.note;
+                const no = o.orderNumber || o.id;
+                items.push({
+                  id: `eta_${o.id}_${latestEtaEntry.id}`,
+                  orderId: o.id,
+                  title: `⏱️ Tahmini Varış: ${etaText}`,
+                  message: `#${no} numaralı siparişiniz için kuryemiz tahmini varış süresini ${etaText} olarak bildirdi.`,
+                  type: 'order',
+                  scope: 'order',
+                  targetPage: 'profile_orders',
+                  createdAt: latestEtaEntry.timestamp || o.updatedAt || o.createdAt
+                });
+              }
+
+              return items;
+            });
           }
         } catch (e) {}
       }
