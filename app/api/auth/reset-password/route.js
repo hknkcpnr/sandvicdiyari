@@ -39,18 +39,16 @@ export async function POST(request) {
     const cleanDigits = identifier.replace(/\D/g, '');
     const normalizedPhone = cleanDigits.length >= 10 ? toWhatsAppPhone(identifier) : '';
 
-    // 2. Doğrulama Kodunu Kontrol Et
+    // 2. Doğrulama Kodunu Kontrol Et (Hem telefon hem e-posta destekli)
     let otpValid = false;
-    if (normalizedPhone) {
-      const record = db.getLatestPhoneOtp(normalizedPhone);
-      if (record && !record.usedAt) {
-        const expiresAtMs = new Date(record.expiresAt).getTime();
-        if (Date.now() <= expiresAtMs) {
-          if (verifyOtpHash(normalizedPhone, code, record.otpHash)) {
-            otpValid = true;
-            record.usedAt = new Date().toISOString();
-            db.writeDb?.();
-          }
+    const targetKey = normalizedPhone || identifier.toLowerCase();
+    const record = db.getLatestPhoneOtp(targetKey);
+    if (record && !record.usedAt) {
+      const expiresAtMs = new Date(record.expiresAt).getTime();
+      if (Date.now() <= expiresAtMs) {
+        if (verifyOtpHash(targetKey, code, record.otpHash)) {
+          otpValid = true;
+          record.usedAt = new Date().toISOString();
         }
       }
     }

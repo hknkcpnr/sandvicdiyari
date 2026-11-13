@@ -10,6 +10,7 @@ import {
 import { checkRateLimit } from '@/lib/security/auth';
 import { isValidTurkishPhone, toWhatsAppPhone, formatTurkishPhoneInput } from '@/lib/phoneUtils';
 import { hashOtp, sendWhatsAppCloudApiMessage } from '@/lib/security/whatsapp';
+import { sendPasswordResetEmail } from '@/lib/email';
 
 function maskPhone(phone) {
   const digits = String(phone || '').replace(/\D/g, '');
@@ -98,16 +99,17 @@ export async function POST(request) {
     // 4. Kullanıcı bulundu: 6 Haneli Doğrulama Kodu Üret (OTP)
     const userPhone = foundUser.phone || (cleanDigits.length >= 10 ? rawInput : '');
     const normalizedPhone = userPhone ? toWhatsAppPhone(userPhone) : '';
+    const targetEmail = foundUser.email || (cleanLower.includes('@') ? cleanLower : '');
 
-    let codeGenerated = false;
+    const otpCode = String(crypto.randomInt(100000, 999999));
+    const expiresAt = Date.now() + 10 * 60 * 1000; // 10 dakika geçerli
+
+    // Kodu hem telefon hem de e-posta anahtarıyla kaydet (Her iki girişle de doğrulansın)
     if (normalizedPhone) {
-      const otpCode = String(crypto.randomInt(100000, 999999));
-      const otpHash = hashOtp(normalizedPhone, otpCode);
-      const expiresAt = Date.now() + 10 * 60 * 1000; // 10 dakika geçerli
-
+      const phoneHash = hashOtp(normalizedPhone, otpCode);
       db.savePhoneOtp({
         phone: normalizedPhone,
-        otpHash,
+        otpHash: phoneHash,
         expiresAt
       });
 
@@ -117,21 +119,51 @@ export async function POST(request) {
           toPhone: normalizedPhone,
           otpCode
         });
-      } catch (err) {
-        // Hata fırlatma, kullanıcı WhatsApp destek veya ekrandan da devam edebilsin
+      } catch (err) {}
+    }
+
+    if (targetEmail) {
+      const emailHash = hashOtp(targetEmail, otpCode);
+      db.savePhoneOtp({
+        phone: targetEmail,
+        otpHash: emailHash,
+        expiresAt
+      });
+    }
+
+    // 5. Gerçek E-Posta Gönderimini Dene
+    let emailSent = false;
+    let smtpConfigured = false;
+
+    if (targetEmail && targetEmail.includes('@') && !targetEmail.endsWith('@sandwichdiyari.com')) {
+      const emailRes = await sendPasswordResetEmail({
+        toEmail: targetEmail,
+        userName: foundUser.name,
+        resetCode: otpCode
+      });
+
+      if (emailRes.success) {
+        emailSent = true;
+        smtpConfigured = true;
+      } else if (emailRes.reason === 'SMTP_NOT_CONFIGURED') {
+        smtpConfigured = false;
       }
-      codeGenerated = true;
     }
 
     return jsonSuccess({
-      message: 'Şifre sıfırlama yönergesi oluşturuldu.',
+      message: emailSent
+        ? 'Şifre sıfırlama kodunuz e-posta adresinize gönderildi! Lütfen gelen kutunuzu kontrol ediniz.'
+        : 'Şifre sıfırlama kodunuz hazırlandı.',
       data: {
         userFound: true,
         name: foundUser.name,
         maskedPhone: maskPhone(foundUser.phone || userPhone),
-        maskedEmail: maskEmail(foundUser.email),
+        maskedEmail: maskEmail(targetEmail),
         phone: normalizedPhone,
-        codeSent: codeGenerated,
+        email: targetEmail,
+        emailSent,
+        smtpConfigured,
+        codeSent: true,
         waSupportUrl,
         supportPhone: '0553 855 76 12'
       }
@@ -140,4 +172,3 @@ export async function POST(request) {
     return handleApiError(error, '/api/auth/forgot-password', request);
   }
 }
-

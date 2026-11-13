@@ -261,9 +261,18 @@ export default function AuthModal() {
       }
 
       setForgotResult(json.data || null);
-      if (json.data?.codeSent) {
+      if (json.data?.emailSent) {
         setForgotStep(2);
-        setForgotSuccess('Doğrulama kodunuz hazırlandı! Lütfen 6 haneli kodu ve yeni şifrenizi giriniz.');
+        setForgotSuccess(
+          `Doğrulama kodunuz ${json.data.maskedEmail || 'e-posta adresinize'} başarıyla gönderildi! Lütfen gelen kutunuzu (ve spam klasörünü) kontrol ediniz.`
+        );
+      } else if (json.data?.codeSent) {
+        setForgotStep(2);
+        setForgotSuccess(
+          json.data.smtpConfigured === false
+            ? 'Hesap doğrulandı! Sunucuda henüz Gmail/SMTP e-posta bilgisi girilmediğinden, şifrenizi WhatsApp destek butonuna basarak anında yenileyebilirsiniz.'
+            : 'Doğrulama kodunuz hazırlandı! Lütfen 6 haneli kodu ve yeni şifrenizi giriniz.'
+        );
       } else {
         setForgotSuccess('Talebiniz hazırlandı. Dilerseniz aşağıdaki WhatsApp butonuna tıklayarak yeni şifrenizi anında alabilirsiniz.');
       }
