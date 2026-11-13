@@ -9,10 +9,6 @@ export default function KampanyalarPage() {
   const { currentUser } = useSelector((state) => state.auth);
 
   const handleCampaignOrderClick = (menu) => {
-    if (!currentUser || !currentUser.email) {
-      dispatch(openAuthModal('login'));
-      return;
-    }
     dispatch(openOptionsModal(menu));
   };
 

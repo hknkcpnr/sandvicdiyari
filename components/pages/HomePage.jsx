@@ -70,10 +70,6 @@ export default function HomePage() {
   }, []);
 
   const handleCampaignOrderClick = (menu) => {
-    if (!currentUser || !currentUser.email) {
-      dispatch(openAuthModal('login'));
-      return;
-    }
     dispatch(openOptionsModal(menu));
   };
 
@@ -322,7 +318,7 @@ export default function HomePage() {
                         onClick={() => handleCampaignOrderClick(menu)}
                         className="bg-brand-500 hover:bg-brand-600 text-white px-4 py-2.5 rounded-xl shadow-md shadow-brand-500/20 transition-all flex items-center gap-1.5 text-xs font-bold cursor-pointer active:scale-95"
                       >
-                        <i className={`fa-solid ${currentUser ? 'fa-plus' : 'fa-user-lock'}`}></i> Sepete Ekle
+                        <i className="fa-solid fa-plus"></i> Sepete Ekle
                       </button>
                     </div>
                   </div>

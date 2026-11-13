@@ -112,11 +112,6 @@ export default function OptionsModal() {
   };
 
   const handleConfirm = () => {
-    if (!currentUser || !currentUser.email) {
-      dispatch(closeOptionsModal());
-      dispatch(openAuthModal('login'));
-      return;
-    }
     const selectedExtras = extras.filter((e) => e.checked && e.isAvailable !== false);
 
     // Build sauceLabels map for dynamic cart and adisyon display

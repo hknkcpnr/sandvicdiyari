@@ -78,11 +78,6 @@ export default function CartDrawer() {
   };
 
   const handleQuickAdd = (item) => {
-    if (!currentUser || !currentUser.email) {
-      dispatch(toggleCart());
-      dispatch(openAuthModal('login'));
-      return;
-    }
     dispatch(
       addToCart({
         product: item,
@@ -344,14 +339,14 @@ export default function CartDrawer() {
               </div>
             </div>
 
-            {/* Üyelik Zorunluluğu Bilgilendirmesi */}
+            {/* Hızlı Sipariş / Misafir Seçeneği Bilgilendirmesi */}
             {items.length > 0 && !currentUser && (
-              <div className="bg-amber-50 border border-amber-200/90 rounded-2xl p-3 text-xs flex items-start gap-2.5">
-                <i className="fa-solid fa-user-lock text-amber-600 text-sm mt-0.5 shrink-0"></i>
-                <div className="leading-snug text-amber-950">
-                  <span className="font-bold block">Üyelik Zorunludur</span>
-                  <span className="text-[11px] text-amber-800">
-                    Güvenliğiniz ve sipariş takibi için üye olmadan sipariş verilememektedir. Tek tıkla giriş yapabilir veya WhatsApp ile hemen üye olabilirsiniz.
+              <div className="bg-emerald-50 border border-emerald-200/90 rounded-2xl p-3 text-xs flex items-start gap-2.5">
+                <i className="fa-solid fa-bolt text-emerald-600 text-sm mt-0.5 shrink-0"></i>
+                <div className="leading-snug text-emerald-950">
+                  <span className="font-bold block">Hızlı Sipariş İmkanı</span>
+                  <span className="text-[11px] text-emerald-800">
+                    Devam ettiğinizde ister <strong>Misafir Olarak Devam Et</strong> butonuna basıp hızlıca sipariş verebilir, ister <strong>Giriş Yap</strong>abilirsiniz.
                   </span>
                 </div>
               </div>
@@ -359,11 +354,6 @@ export default function CartDrawer() {
 
             <button
               onClick={() => {
-                if (!currentUser) {
-                  dispatch(toggleCart());
-                  dispatch(openAuthModal('login'));
-                  return;
-                }
                 dispatch(openCheckoutModal());
               }}
               id="checkout-btn"
@@ -379,13 +369,11 @@ export default function CartDrawer() {
                   ? 'Sepetiniz Boş'
                   : grandTotal < MIN_ORDER_AMOUNT
                   ? `Min. Sipariş ₺${MIN_ORDER_AMOUNT} (₺${(MIN_ORDER_AMOUNT - grandTotal).toFixed(2)} Eksik)`
-                  : !currentUser
-                  ? 'Üye Girişi Yap & Siparişi Tamamla'
                   : !restaurantStatus.isOpen
                   ? '10:00 İçin Siparişi Tamamla'
                   : 'Siparişi Tamamla'}
               </span>
-              <i className={`fa-solid ${!currentUser && items.length > 0 && grandTotal >= MIN_ORDER_AMOUNT ? 'fa-right-to-bracket' : 'fa-arrow-right'}`}></i>
+              <i className="fa-solid fa-arrow-right"></i>
             </button>
           </div>
         </div>

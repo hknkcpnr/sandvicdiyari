@@ -34,10 +34,6 @@ export default function ProductCard({ product }) {
   const isAvailable = product.isAvailable !== false;
 
   const handleOrderClick = () => {
-    if (!isMember) {
-      dispatch(openAuthModal('login'));
-      return;
-    }
     dispatch(openOptionsModal(product));
   };
 
@@ -157,8 +153,8 @@ export default function ProductCard({ product }) {
             onClick={handleOrderClick}
             className="h-9 sm:h-10 px-3 sm:px-4 rounded-xl bg-brand-500 hover:bg-brand-600 active:scale-95 text-white font-bold text-xs sm:text-sm flex items-center gap-1.5 transition-all shadow-xs cursor-pointer shrink-0"
           >
-            <i className={`fa-solid ${currentUser ? 'fa-plus text-xs' : 'fa-user-lock text-[11px]'}`}></i>
-            <span>{currentUser ? 'Ekle' : 'Giriş Yap'}</span>
+            <i className="fa-solid fa-plus text-xs"></i>
+            <span>Ekle</span>
           </button>
         ) : (
           <button
