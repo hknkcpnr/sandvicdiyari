@@ -69,3 +69,57 @@ export function toWhatsAppPhone(input: string = ''): string {
   return rawDigits;
 }
 
+/**
+ * Admin Panelinden müşteriye 1-tıkla WhatsApp Sipariş Onay Mesajı Linki Üretir
+ */
+export function buildWhatsAppOrderConfirmUrl(order: any): string {
+  if (!order || !order.phone) return '';
+  const waPhone = toWhatsAppPhone(order.phone);
+  if (!waPhone) return '';
+
+  const orderNum = order.orderNumber || order.id || '';
+  const customerName = order.customerName || 'Değerli Müşterimiz';
+
+  // Ürün listesini biçimlendir
+  let itemsText = '';
+  if (Array.isArray(order.items)) {
+    itemsText = order.items
+      .map((i: any) => {
+        if (typeof i === 'string') return `• ${i}`;
+        const name = i.name || 'Ürün';
+        const qty = i.quantity || 1;
+        const details = i.details ? ` (${i.details})` : '';
+        const price = i.price ? ` - ₺${(Number(i.price) * qty).toFixed(2)}` : '';
+        return `• ${qty}x ${name}${price}${details}`;
+      })
+      .join('\n');
+  } else if (order.items) {
+    itemsText = `• ${String(order.items)}`;
+  }
+
+  const total = Number(order.total || order.subtotal || 0).toFixed(2);
+  const paymentMethod = order.paymentMethod || 'Kapıda Nakit';
+  const address = order.address || '';
+  const notes = order.notes ? `\n📝 *Not:* ${order.notes}` : '';
+
+  const message = `🥪 *SANDVİÇ DİYARI - SİPARİŞ ONAYI*
+
+Merhaba Sayın *${customerName}*,
+
+*#${orderNum}* numaralı siparişiniz sistemimize ulaştı:
+
+📋 *Sipariş Detayı:*
+${itemsText}
+
+💰 *Toplam Tutar:* ₺${total}
+💳 *Ödeme Yöntemi:* ${paymentMethod}
+📍 *Teslimat Adresi:* ${address}${notes}
+
+---------------------------------------
+✅ *Siparişinizi onaylıyor musunuz?*
+Siparişinizin mutfağa iletilip hemen hazırlanması için lütfen bu mesaja *"EVET"* veya *"ONAYLIYORUM"* şeklinde yanıt veriniz.`;
+
+  return `https://wa.me/${waPhone}?text=${encodeURIComponent(message)}`;
+}
+
+

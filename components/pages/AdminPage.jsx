@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { addProduct, deleteProduct } from '@/store/slices/productSlice';
 import { showMessageModal, setActiveAdminTab } from '@/store/slices/uiSlice';
+import { buildWhatsAppOrderConfirmUrl } from '@/lib/phoneUtils';
 
 export default function AdminPage() {
   const dispatch = useDispatch();
@@ -304,13 +305,26 @@ export default function AdminPage() {
                             <strong>Müşteri:</strong> {order.customerName}
                           </p>
                           {order.phone && (
-                            <a
-                              href={`tel:${order.phone}`}
-                              className="text-brand-600 hover:text-brand-700 font-bold flex items-center gap-1 bg-white px-2 py-0.5 rounded-md border border-brand-100"
-                            >
-                              <i className="fa-solid fa-phone text-[10px]"></i>
-                              {order.phone}
-                            </a>
+                            <div className="flex items-center gap-1.5">
+                              <a
+                                href={`tel:${order.phone}`}
+                                className="text-brand-600 hover:text-brand-700 font-bold flex items-center gap-1 bg-white px-2 py-0.5 rounded-md border border-brand-100"
+                                title="Müşteriyi Ara"
+                              >
+                                <i className="fa-solid fa-phone text-[10px]"></i>
+                                {order.phone}
+                              </a>
+                              <a
+                                href={buildWhatsAppOrderConfirmUrl(order)}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-emerald-700 hover:text-emerald-800 font-bold flex items-center gap-1 bg-emerald-50 hover:bg-emerald-100 px-2.5 py-0.5 rounded-md border border-emerald-300 shadow-2xs"
+                                title="WhatsApp ile Sipariş Onay Mesajı Gönder"
+                              >
+                                <i className="fa-brands fa-whatsapp text-emerald-600 text-xs"></i>
+                                WhatsApp Onay
+                              </a>
+                            </div>
                           )}
                         </div>
                         <p className="line-clamp-2">

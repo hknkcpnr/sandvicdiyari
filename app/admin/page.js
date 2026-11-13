@@ -16,6 +16,7 @@ import SiteContentEditorTab from '@/components/admin/SiteContentEditorTab';
 import MembersTab from '@/components/admin/MembersTab';
 import OptionsManagementTab from '@/components/admin/OptionsManagementTab';
 import AdminPagination from '@/components/admin/AdminPagination';
+import { buildWhatsAppOrderConfirmUrl } from '@/lib/phoneUtils';
 
 // Status styling and Turkish badge helpers
 const STATUS_CONFIG = {
@@ -2298,14 +2299,28 @@ export default function AdminDashboardPage() {
                               <span className="font-extrabold text-stone-900 text-sm block truncate">
                                 {order.customerName}
                               </span>
-                              <a
-                                href={`tel:${order.phone}`}
-                                className="inline-flex items-center gap-1.5 text-brand-700 bg-brand-50 hover:bg-brand-100 border border-brand-200/80 px-2 py-0.5 rounded-md font-bold text-[11px] transition-colors"
-                                title="Müşteriyi Ara"
-                              >
-                                <i className="fa-solid fa-phone text-[10px]"></i>
-                                <span>{order.phone}</span>
-                              </a>
+                              <div className="flex flex-wrap items-center gap-1.5">
+                                <a
+                                  href={`tel:${order.phone}`}
+                                  className="inline-flex items-center gap-1.5 text-brand-700 bg-brand-50 hover:bg-brand-100 border border-brand-200/80 px-2 py-0.5 rounded-md font-bold text-[11px] transition-colors"
+                                  title="Müşteriyi Ara"
+                                >
+                                  <i className="fa-solid fa-phone text-[10px]"></i>
+                                  <span>{order.phone}</span>
+                                </a>
+                                {order.phone && (
+                                  <a
+                                    href={buildWhatsAppOrderConfirmUrl(order)}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="inline-flex items-center gap-1.5 text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 px-2 py-0.5 rounded-md font-bold text-[11px] transition-colors shadow-2xs cursor-pointer"
+                                    title="WhatsApp ile Sipariş Onay Mesajı Gönder"
+                                  >
+                                    <i className="fa-brands fa-whatsapp text-emerald-600 text-xs"></i>
+                                    <span>WhatsApp Onay</span>
+                                  </a>
+                                )}
+                              </div>
                             </div>
                           </div>
 
@@ -3870,12 +3885,26 @@ export default function AdminDashboardPage() {
                 <p>
                   <strong>Müşteri:</strong> {detailOrder.customerName}
                 </p>
-                <p>
-                  <strong>Telefon:</strong>{' '}
-                  <a href={`tel:${detailOrder.phone}`} className="text-brand-600 underline font-semibold">
-                    {detailOrder.phone}
-                  </a>
-                </p>
+                <div className="flex flex-wrap items-center justify-between gap-1">
+                  <p>
+                    <strong>Telefon:</strong>{' '}
+                    <a href={`tel:${detailOrder.phone}`} className="text-brand-600 underline font-semibold">
+                      {detailOrder.phone}
+                    </a>
+                  </p>
+                  {detailOrder.phone && (
+                    <a
+                      href={buildWhatsAppOrderConfirmUrl(detailOrder)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 px-2.5 py-1 rounded-lg font-bold text-xs transition-colors cursor-pointer shadow-2xs"
+                      title="Müşteriye WhatsApp Onay Mesajı Gönder"
+                    >
+                      <i className="fa-brands fa-whatsapp text-emerald-600 text-sm"></i>
+                      <span>WhatsApp'tan Onay İste</span>
+                    </a>
+                  )}
+                </div>
                 <p>
                   <strong>Teslimat Adresi:</strong> {detailOrder.address}
                 </p>

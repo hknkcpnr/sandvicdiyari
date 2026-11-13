@@ -9,7 +9,7 @@ const initialState = {
   selectedProductForOptions: null,
   sauceCounts: {},
   isAuthModalOpen: false,
-  authModalTab: 'login',
+  authModalTab: 'guest',
   authModalNotice: '',
   isProfileModalOpen: false,
   isCheckoutModalOpen: false,
@@ -61,10 +61,10 @@ export const uiSlice = createSlice({
     },
     openAuthModal: (state, action) => {
       if (typeof action.payload === 'object' && action.payload !== null) {
-        state.authModalTab = action.payload.tab || 'login';
+        state.authModalTab = action.payload.tab || 'guest';
         state.authModalNotice = action.payload.notice || '';
       } else {
-        state.authModalTab = action.payload || 'login';
+        state.authModalTab = action.payload || 'guest';
         state.authModalNotice = '';
       }
       state.isAuthModalOpen = true;

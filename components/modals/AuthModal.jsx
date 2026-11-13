@@ -36,6 +36,11 @@ export default function AuthModal() {
   // --------------------------------------------------------------------------
   // YEREL FORM DURUMLARI (LOCAL STATE)
   // --------------------------------------------------------------------------
+  // Misafir Girişi Formu (Şifresiz Hızlı Sipariş)
+  const [guestName, setGuestName] = useState('');
+  const [guestPhone, setGuestPhone] = useState('');
+  const [guestAddress, setGuestAddress] = useState('');
+
   // Giriş Yap Formu
   const [loginEmail, setLoginEmail] = useState('');
   const [loginPass, setLoginPass] = useState('');
@@ -79,6 +84,9 @@ export default function AuthModal() {
       setForgotSuccess('');
       setForgotCode('');
       setForgotNewPass('');
+      setGuestName('');
+      setGuestPhone('');
+      setGuestAddress('');
     }
   }, [isAuthModalOpen]);
 
@@ -334,6 +342,60 @@ export default function AuthModal() {
   };
 
   // --------------------------------------------------------------------------
+  // 1. MİSAFİR GİRİŞİ (HIZLI & ŞİFRESİZ SİPARİŞ)
+  // --------------------------------------------------------------------------
+  const handleGuestSubmit = (e) => {
+    e.preventDefault();
+    setFormError('');
+
+    if (!guestName.trim() || guestName.trim().length < 2) {
+      setFormError('Lütfen adınızı ve soyadınızı eksiksiz giriniz.');
+      return;
+    }
+
+    if (!isValidTurkishPhone(guestPhone)) {
+      setFormError('Lütfen geçerli bir cep telefonu numarası giriniz (Örn: 0532 123 45 67).');
+      return;
+    }
+
+    if (!guestAddress.trim() || guestAddress.trim().length < 5) {
+      setFormError('Lütfen teslimat adresinizi eksiksiz giriniz.');
+      return;
+    }
+
+    const cleanDigits = guestPhone.replace(/\D/g, '');
+    const formattedPhone = formatTurkishPhoneInput(guestPhone);
+    const guestUser = {
+      id: `guest_${Date.now()}`,
+      name: guestName.trim(),
+      phone: formattedPhone,
+      address: guestAddress.trim(),
+      email: `misafir_${cleanDigits.slice(-10)}@sandwichdiyari.com`,
+      isGuest: true,
+      phoneVerified: true,
+      createdAt: new Date().toISOString()
+    };
+
+    dispatch(login({ user: guestUser }));
+    setGuestName('');
+    setGuestPhone('');
+    setGuestAddress('');
+    dispatch(closeAuthModal());
+
+    if (cartItems.length > 0 && grandTotal >= MIN_ORDER_AMOUNT) {
+      dispatch(openCheckoutModal());
+    } else {
+      dispatch(
+        showMessageModal({
+          title: 'Misafir Girişi Başarılı! 🥪',
+          text: `Hoş geldiniz Sayın ${guestUser.name}! Vermiş olduğunuz siparişleriniz WhatsApp üzerinden onaylanacaktır. Menümüzden dilediğiniz sandviçleri sepete ekleyip hemen sipariş verebilirsiniz.`,
+          type: 'success'
+        })
+      );
+    }
+  };
+
+  // --------------------------------------------------------------------------
   // KAYIT TAMAMLAMA VE WHATSAPP ONAYINA GEÇİŞ
   // --------------------------------------------------------------------------
   const handleRegisterSubmit = async (e) => {
@@ -388,6 +450,14 @@ export default function AuthModal() {
         ...(json.data?.user || {})
       });
       setIsWaitingApproval(true);
+
+      // Başarılı kayıt sonrası formdaki bilgileri temizle
+      setRegName('');
+      setRegEmail('');
+      setRegPhone('');
+      setRegAddress('');
+      setRegPass('');
+      setKvkkConsent(false);
     } catch (err) {
       setFormError('Sunucuya bağlanırken bir hata oluştu. Lütfen tekrar deneyin.');
     } finally {
@@ -431,6 +501,8 @@ export default function AuthModal() {
             <span className="text-[11px] font-extrabold uppercase px-3.5 py-1.5 rounded-full bg-black/40 backdrop-blur-md text-amber-300 border border-white/20 tracking-wider shadow-sm">
               {isWaitingApproval
                 ? 'WhatsApp Güvenlik Onayı'
+                : authModalTab === 'guest'
+                ? 'Hızlı Misafir Siparişi'
                 : isRegister
                 ? 'Aramıza Katıl • Sandviç Diyarı'
                 : 'Torbalı • Sandviç Diyarı'}
@@ -445,6 +517,8 @@ export default function AuthModal() {
             <h4 className="text-2xl font-black text-white leading-tight drop-shadow-md">
               {isWaitingApproval
                 ? 'Onayınız WhatsApp ile Tamamlansın'
+                : authModalTab === 'guest'
+                ? 'Üye Olmadan Hızlı Sipariş Ver'
                 : isRegister
                 ? "Torbalı'nın En Lezzetli Ailesine Katıl!"
                 : 'Her Isırıkta Taze & Çıtır Lezzet'}
@@ -452,6 +526,8 @@ export default function AuthModal() {
             <p className="text-xs text-stone-200/90 leading-relaxed drop-shadow-xs">
               {isWaitingApproval
                 ? 'Hesabınız onaylandıktan sonra gece 03:00\'e kadar sıcacık gurme sandviçleri kapınıza getirelim.'
+                : authModalTab === 'guest'
+                ? 'Şifre belirlemeden sadece iletişim ve teslimat bilgilerinizi girerek siparişinizi oluşturun. Siparişleriniz WhatsApp üzerinden onaylanacaktır.'
                 : isRegister
                 ? "Saniyeler içinde formunuzu doldurun, WhatsApp onayınızın ardından kesintisiz lezzetin tadını çıkarın."
                 : 'Özel fırınlanmış sıcacık ekmekler, bol taze malzeme ve gece 03:00\'e kadar kesintisiz gurme keyfi.'}
@@ -467,14 +543,29 @@ export default function AuthModal() {
             {/* Üst Kısım: Sekmeler ve Kapat Butonu */}
             <div className="flex justify-between items-center border-b border-stone-200/80 pb-3 mb-4">
               {!isWaitingApproval ? (
-                <div className="flex gap-6">
+                <div className="flex gap-4 sm:gap-6 overflow-x-auto no-scrollbar">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      dispatch(setAuthModalTab('guest'));
+                      setFormError('');
+                    }}
+                    className={`pb-1 text-sm sm:text-base font-bold transition-colors cursor-pointer border-b-2 -mb-3.5 whitespace-nowrap ${
+                      authModalTab === 'guest'
+                        ? 'border-emerald-500 text-emerald-600'
+                        : 'border-transparent text-stone-400 hover:text-stone-700'
+                    }`}
+                  >
+                    <i className="fa-solid fa-user-clock mr-1.5 text-xs"></i>
+                    Misafir Girişi
+                  </button>
                   <button
                     type="button"
                     onClick={() => {
                       dispatch(setAuthModalTab('login'));
                       setFormError('');
                     }}
-                    className={`pb-1 text-base font-bold transition-colors cursor-pointer border-b-2 -mb-3.5 ${
+                    className={`pb-1 text-sm sm:text-base font-bold transition-colors cursor-pointer border-b-2 -mb-3.5 whitespace-nowrap ${
                       authModalTab === 'login'
                         ? 'border-brand-500 text-brand-600'
                         : 'border-transparent text-stone-400 hover:text-stone-700'
@@ -488,7 +579,7 @@ export default function AuthModal() {
                       dispatch(setAuthModalTab('register'));
                       setFormError('');
                     }}
-                    className={`pb-1 text-base font-bold transition-colors cursor-pointer border-b-2 -mb-3.5 ${
+                    className={`pb-1 text-sm sm:text-base font-bold transition-colors cursor-pointer border-b-2 -mb-3.5 whitespace-nowrap ${
                       authModalTab === 'register'
                         ? 'border-brand-500 text-brand-600'
                         : 'border-transparent text-stone-400 hover:text-stone-700'
@@ -603,11 +694,114 @@ export default function AuthModal() {
                 <div className="bg-stone-50 border border-stone-200/80 rounded-2xl p-3 text-xs text-stone-600 flex items-center gap-2.5 mb-4">
                   <i className="fa-solid fa-shield-halved text-emerald-600 text-sm shrink-0"></i>
                   <span>
-                    {isRegister
+                    {authModalTab === 'guest'
+                      ? 'Üye olmadan hızlıca sipariş verebilirsiniz. Siparişiniz WhatsApp üzerinden teyit edilecektir.'
+                      : isRegister
                       ? 'Kayıt talebinizin ardından WhatsApp onayınızla hesabınız restoran yöneticisi tarafından aktif edilir.'
-                      : 'Sipariş verebilmek için üye girişi yapmanız veya ücretsiz kayıt olmanız gerekmektedir.'}
+                      : 'Kayıtlı hesabınızla giriş yapabilir veya Misafir Girişi ile anında sipariş oluşturabilirsiniz.'}
                   </span>
                 </div>
+
+                {/* ----------------------------------------------------------- */}
+                {/* 1. MİSAFİR GİRİŞİ FORMU (ŞİFRESİZ HIZLI SİPARİŞ)           */}
+                {/* ----------------------------------------------------------- */}
+                {authModalTab === 'guest' && (
+                  <form onSubmit={handleGuestSubmit} className="space-y-3.5 animate-in fade-in duration-200">
+                    {/* Önemli WhatsApp Onay Uyarısı */}
+                    <div className="bg-emerald-50 border border-emerald-300 rounded-2xl p-3.5 text-xs text-emerald-950 flex items-start gap-2.5 shadow-2xs">
+                      <div className="w-8 h-8 rounded-xl bg-emerald-600 text-white flex items-center justify-center text-lg shrink-0 mt-0.5 shadow-xs">
+                        <i className="fa-brands fa-whatsapp"></i>
+                      </div>
+                      <div className="space-y-1">
+                        <strong className="block font-black text-emerald-900 text-xs sm:text-sm">
+                          WhatsApp ile Sipariş Onayı
+                        </strong>
+                        <p className="text-[11px] text-emerald-800 leading-relaxed font-medium">
+                          ⚠️ <strong>Önemli Uyarı:</strong> Vermiş olduğunuz siparişleriniz <strong>WhatsApp üzerinden onaylanacaktır</strong>. Restoran yetkilimiz siparişinizi hazırlamadan önce WhatsApp üzerinden onayınızı alacaktır.
+                        </p>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-stone-700 mb-1.5">
+                        Adınız Soyadınız *
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={guestName}
+                        onChange={(e) => setGuestName(e.target.value)}
+                        className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:border-brand-500 text-stone-800 focus:bg-white"
+                        placeholder="Örn: Ahmet Yılmaz"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-stone-700 mb-1.5 flex items-center justify-between">
+                        <span className="flex items-center gap-1.5">
+                          <i className="fa-brands fa-whatsapp text-emerald-600 text-sm"></i>
+                          <span>WhatsApp Cep Telefonu Numaranız *</span>
+                        </span>
+                        <span className="text-[10px] text-stone-400 font-normal">
+                          Onay bu numaraya iletilir
+                        </span>
+                      </label>
+                      <input
+                        type="tel"
+                        inputMode="numeric"
+                        maxLength={14}
+                        required
+                        value={guestPhone}
+                        onChange={(e) => setGuestPhone(formatTurkishPhoneInput(e.target.value))}
+                        className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:border-emerald-500 text-stone-800 focus:bg-white font-mono"
+                        placeholder="05XX XXX XX XX"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-stone-700 mb-1.5">
+                        Teslimat Adresi *
+                      </label>
+                      <textarea
+                        required
+                        rows={2}
+                        value={guestAddress}
+                        onChange={(e) => setGuestAddress(e.target.value)}
+                        className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:border-brand-500 text-stone-800 focus:bg-white resize-none"
+                        placeholder="Torbalı içi açık teslimat adresiniz (Mahalle, Sokak, No, Daire)..."
+                      />
+                    </div>
+
+                    {formError && (
+                      <div className="bg-rose-50 border border-rose-200 text-rose-700 text-xs px-3.5 py-2.5 rounded-xl flex items-center gap-2">
+                        <i className="fa-solid fa-circle-exclamation text-rose-500 shrink-0"></i>
+                        <span>{formError}</span>
+                      </div>
+                    )}
+
+                    <button
+                      type="submit"
+                      className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black py-3 rounded-xl text-xs sm:text-sm transition-all cursor-pointer flex items-center justify-center gap-2 shadow-md shadow-emerald-600/20 active:scale-98"
+                    >
+                      <i className="fa-solid fa-cart-shopping text-sm"></i>
+                      <span>Misafir Olarak Siparişe Devam Et</span>
+                    </button>
+
+                    <div className="text-center pt-1 text-[11px] text-stone-400">
+                      Kayıtlı hesabınız var mı?{' '}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          dispatch(setAuthModalTab('login'));
+                          setFormError('');
+                        }}
+                        className="text-brand-600 hover:text-brand-700 font-bold underline cursor-pointer"
+                      >
+                        Giriş Yapın
+                      </button>
+                    </div>
+                  </form>
+                )}
 
                 {/* ----------------------------------------------------------- */}
                 {/* 2. GİRİŞ FORMU & ŞİFREMİ UNUTTUM                           */}

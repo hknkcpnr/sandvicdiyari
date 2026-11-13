@@ -39,7 +39,7 @@ export default function CheckoutModal() {
 
   if (!isCheckoutModalOpen) return null;
 
-  // ÜYELİK ZORUNLULUĞU KİLİDİ: Üye girişi yapılmadan kesinlikle sipariş verilemez
+  // GİRİŞ / MİSAFİR KONTROLÜ: Kullanıcı veya misafir bilgisi olmadan sipariş verilemez
   if (!currentUser || !currentUser.email) {
     return (
       <div
@@ -52,37 +52,51 @@ export default function CheckoutModal() {
           </div>
           <div className="space-y-2">
             <h3 className="text-xl sm:text-2xl font-black text-stone-900">
-              Sipariş İçin Üyelik Zorunludur
+              Siparişe Devam Edin
             </h3>
             <p className="text-stone-500 text-xs sm:text-sm leading-relaxed">
-              Güvenliğiniz, siparişlerinizin canlı takibi ve doğru teslimat için üye girişi yapmadan sipariş
-              oluşturulamamaktadır.
+              Siparişinizi tamamlayabilmek için <strong>Misafir Girişi</strong> yapabilir veya mevcut hesabınızla oturum açabilirsiniz.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+          <div className="space-y-2.5 pt-2">
+            {/* 1. Seçenek: Misafir Girişi (Hızlı) */}
             <button
               type="button"
               onClick={() => {
                 dispatch(closeCheckoutModal());
-                dispatch(openAuthModal('login'));
+                dispatch(openAuthModal('guest'));
               }}
-              className="bg-brand-500 hover:bg-brand-600 text-white font-bold py-3.5 px-4 rounded-2xl shadow-lg shadow-brand-500/20 text-xs sm:text-sm transition-all cursor-pointer flex items-center justify-center gap-2"
+              className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black py-3.5 px-4 rounded-2xl shadow-lg shadow-emerald-600/25 text-xs sm:text-sm transition-all cursor-pointer flex items-center justify-center gap-2 active:scale-98"
             >
-              <i className="fa-solid fa-right-to-bracket"></i>
-              <span>Giriş Yap</span>
+              <i className="fa-solid fa-bolt text-amber-300 text-base"></i>
+              <span>Misafir Girişi ile Hızlı Sipariş Ver</span>
             </button>
-            <button
-              type="button"
-              onClick={() => {
-                dispatch(closeCheckoutModal());
-                dispatch(openAuthModal('register'));
-              }}
-              className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3.5 px-4 rounded-2xl shadow-lg shadow-emerald-600/20 text-xs sm:text-sm transition-all cursor-pointer flex items-center justify-center gap-2"
-            >
-              <i className="fa-brands fa-whatsapp text-base"></i>
-              <span>Hemen Üye Ol</span>
-            </button>
+
+            <div className="grid grid-cols-2 gap-2.5 pt-1">
+              <button
+                type="button"
+                onClick={() => {
+                  dispatch(closeCheckoutModal());
+                  dispatch(openAuthModal('login'));
+                }}
+                className="bg-stone-900 hover:bg-black text-white font-bold py-3 px-3 rounded-2xl text-xs sm:text-sm transition-colors cursor-pointer flex items-center justify-center gap-1.5"
+              >
+                <i className="fa-solid fa-right-to-bracket"></i>
+                <span>Giriş Yap</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  dispatch(closeCheckoutModal());
+                  dispatch(openAuthModal('register'));
+                }}
+                className="bg-brand-500 hover:bg-brand-600 text-white font-bold py-3 px-3 rounded-2xl text-xs sm:text-sm transition-colors cursor-pointer flex items-center justify-center gap-1.5"
+              >
+                <i className="fa-solid fa-user-plus"></i>
+                <span>Kayıt Ol</span>
+              </button>
+            </div>
           </div>
 
           <button
@@ -248,8 +262,12 @@ export default function CheckoutModal() {
                 <h3 className="text-xl sm:text-2xl font-black text-stone-900">
                   Sipariş &amp; Teslimat Bilgileri
                 </h3>
-                <span className="bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-bold px-2 py-0.5 rounded-full">
-                  Üye: {currentUser.name}
+                <span className={`border text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                  currentUser.isGuest
+                    ? 'bg-amber-50 text-amber-800 border-amber-300'
+                    : 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                }`}>
+                  {currentUser.isGuest ? `Misafir: ${currentUser.name}` : `Üye: ${currentUser.name}`}
                 </span>
               </div>
               <p className="text-stone-500 text-xs sm:text-sm">
@@ -272,6 +290,21 @@ export default function CheckoutModal() {
             </div>
           )}
         </div>
+
+        {/* Misafir Kullanıcı WhatsApp Bilgilendirmesi */}
+        {currentUser?.isGuest && (
+          <div className="bg-emerald-50 border border-emerald-300 rounded-2xl p-3.5 text-xs text-emerald-950 flex items-start gap-2.5 shadow-2xs">
+            <i className="fa-brands fa-whatsapp text-emerald-600 text-lg mt-0.5 shrink-0"></i>
+            <div>
+              <strong className="block font-black text-emerald-900">
+                WhatsApp ile Sipariş Onayı
+              </strong>
+              <p className="text-[11px] text-emerald-800 mt-0.5 leading-relaxed font-medium">
+                ⚠️ <strong>Önemli Uyarı:</strong> Vermiş olduğunuz siparişleriniz <strong>WhatsApp üzerinden onaylanacaktır</strong>. Restoran yetkilimiz siparişinizi hazırlamadan önce WhatsApp üzerinden onayınızı alacaktır.
+              </p>
+            </div>
+          </div>
+        )}
 
         {errorMsg && (
           <div className="bg-rose-50 border border-rose-200 text-rose-700 text-xs sm:text-sm p-3.5 rounded-2xl flex items-center gap-2">
