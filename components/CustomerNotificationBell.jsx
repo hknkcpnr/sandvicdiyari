@@ -154,6 +154,7 @@ export default function CustomerNotificationBell() {
       const q = new URLSearchParams();
       if (currentUser?.email) q.set('email', currentUser.email);
       if (currentUser?.id) q.set('id', currentUser.id);
+      if (currentUser?.lastOrderId) q.set('orderId', String(currentUser.lastOrderId));
 
       // Misafir olarak sipariş verildiyse (currentUser boş olsa bile) son siparişten takip et
       let hasLastOrder = false;

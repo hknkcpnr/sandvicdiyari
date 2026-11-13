@@ -8,6 +8,7 @@ async function handleCheckSession(request) {
     const { searchParams } = new URL(request.url);
     let email = searchParams.get('email') || request.headers.get('x-user-email') || '';
     let id = searchParams.get('id') || '';
+    const cleanOrderId = String(searchParams.get('orderId') || '').trim();
 
     // Authorization Bearer token desteği
     const authHeader = request.headers.get('authorization') || '';
@@ -38,24 +39,29 @@ async function handleCheckSession(request) {
       });
     }
 
-    // Misafir oturumu: bu oturuma ait son sipariş "Teslim Edildi" olduysa oturumu sonlandır
+    // Misafir oturumu: bu oturuma ait sipariş silindiyse, iptal edildiyse veya teslim edildiyse oturumu sonlandır
     if (cleanId.startsWith('guest_') || cleanEmail.startsWith('misafir_')) {
       try {
-        if (rawPrisma && rawPrisma.order && cleanEmail) {
-          const guestTsRaw = cleanId.startsWith('guest_') ? Number(cleanId.replace('guest_', '')) : 0;
-          const guestStartMs = Number.isFinite(guestTsRaw) && guestTsRaw > 0 ? guestTsRaw : 0;
+        if (rawPrisma && rawPrisma.order) {
+          if (cleanOrderId) {
+            const trackedOrder = await rawPrisma.order.findFirst({
+              where: {
+                OR: [{ id: cleanOrderId }, { orderNumber: cleanOrderId }]
+              },
+              select: { id: true, status: true }
+            });
 
-          const latestOrder = await rawPrisma.order.findFirst({
-            where: { userEmail: { equals: cleanEmail, mode: 'insensitive' } },
-            orderBy: { createdAt: 'desc' },
-            select: { id: true, status: true, createdAt: true }
-          });
+            if (!trackedOrder) {
+              return jsonSuccess({
+                valid: false,
+                isGuest: true,
+                reason: 'guest_order_deleted',
+                message: 'Siparişiniz silindiği için misafir oturumunuz sonlandırıldı.'
+              });
+            }
 
-          if (latestOrder && (latestOrder.status === 'Teslim Edildi' || latestOrder.status === 'İptal Edildi')) {
-            const orderCreatedMs = new Date(latestOrder.createdAt).getTime();
-            // Sipariş bu misafir oturumu açıldıktan sonra (veya 1 dk toleransla) verilmişse oturumu sonlandır
-            if (!guestStartMs || isNaN(orderCreatedMs) || orderCreatedMs >= guestStartMs - 60000) {
-              const isCancelled = latestOrder.status === 'İptal Edildi';
+            if (trackedOrder.status === 'Teslim Edildi' || trackedOrder.status === 'İptal Edildi') {
+              const isCancelled = trackedOrder.status === 'İptal Edildi';
               return jsonSuccess({
                 valid: false,
                 isGuest: true,
@@ -64,6 +70,33 @@ async function handleCheckSession(request) {
                   ? 'Siparişiniz iptal edildiği için misafir oturumunuz sonlandırıldı.'
                   : 'Siparişiniz teslim edildiği için misafir oturumunuz sonlandırıldı.'
               });
+            }
+          }
+
+          if (cleanEmail) {
+            const guestTsRaw = cleanId.startsWith('guest_') ? Number(cleanId.replace('guest_', '')) : 0;
+            const guestStartMs = Number.isFinite(guestTsRaw) && guestTsRaw > 0 ? guestTsRaw : 0;
+
+            const latestOrder = await rawPrisma.order.findFirst({
+              where: { userEmail: { equals: cleanEmail, mode: 'insensitive' } },
+              orderBy: { createdAt: 'desc' },
+              select: { id: true, status: true, createdAt: true }
+            });
+
+            if (latestOrder && (latestOrder.status === 'Teslim Edildi' || latestOrder.status === 'İptal Edildi')) {
+              const orderCreatedMs = new Date(latestOrder.createdAt).getTime();
+              // Sipariş bu misafir oturumu açıldıktan sonra (veya 1 dk toleransla) verilmişse oturumu sonlandır
+              if (!guestStartMs || isNaN(orderCreatedMs) || orderCreatedMs >= guestStartMs - 60000) {
+                const isCancelled = latestOrder.status === 'İptal Edildi';
+                return jsonSuccess({
+                  valid: false,
+                  isGuest: true,
+                  reason: isCancelled ? 'guest_order_cancelled' : 'guest_order_delivered',
+                  message: isCancelled
+                    ? 'Siparişiniz iptal edildiği için misafir oturumunuz sonlandırıldı.'
+                    : 'Siparişiniz teslim edildiği için misafir oturumunuz sonlandırıldı.'
+                });
+              }
             }
           }
         }

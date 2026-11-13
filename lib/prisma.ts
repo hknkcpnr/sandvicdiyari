@@ -83,7 +83,7 @@ export function formatPrismaOrder(o: Record<string, unknown> | null) {
       new Date(String(a.timestamp || 0)).getTime() - new Date(String(b.timestamp || 0)).getTime()
   );
 
-  const lastEtaEntry = [...rawHistory].reverse().find(
+  const lastEtaEntry = [...statusHistory].reverse().find(
     (h: Record<string, unknown>) => typeof h.note === 'string' && h.note.includes('Tahmini Varış Süresi')
   );
   let parsedEta = o.courierEta || o.estimatedDeliveryTime || null;

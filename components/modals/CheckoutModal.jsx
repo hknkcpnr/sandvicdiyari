@@ -184,10 +184,10 @@ export default function CheckoutModal() {
 
       const createdOrder = json.data;
 
-      if (!currentUser && isGuestCheckout) {
-        dispatch(
-          login({
-            user: {
+      if (isGuestMode) {
+        const nextGuestUser = currentUser && currentUser.isGuest
+          ? { ...currentUser, lastOrderId: createdOrder.id }
+          : {
               id: `guest_${Date.now()}`,
               name: name.trim(),
               phone: formattedPhone,
@@ -195,10 +195,10 @@ export default function CheckoutModal() {
               email: effectiveEmail,
               isGuest: true,
               phoneVerified: true,
+              lastOrderId: createdOrder.id,
               createdAt: new Date().toISOString(),
-            },
-          })
-        );
+            };
+        dispatch(login({ user: nextGuestUser }));
       }
 
       try {

@@ -326,7 +326,8 @@ export default function AdminDashboardPage() {
       window.removeEventListener('focus', handleUsersUpdated);
     };
   }, [loadCouriers]);
-  const [previousOrderCount, setPreviousOrderCount] = useState(0);
+  const knownOrderIdsRef = useRef(new Set());
+  const ordersInitializedRef = useRef(false);
 
   // Filters & Search
   const [orderStageFilter, setOrderStageFilter] = useState('all'); // 'all' | 'kitchen' | 'courier' | 'completed' | 'cancelled'
@@ -442,24 +443,32 @@ export default function AdminDashboardPage() {
   const fetchOrders = async () => {
     setLoadingOrders(true);
     try {
-      const res = await fetch('/api/orders');
+      const res = await fetch('/api/orders', { cache: 'no-store' });
       const json = await res.json();
-      if (json.success && json.data) {
-        if (previousOrderCount > 0 && json.data.length > previousOrderCount) {
-          playSoundAlert();
-          const newest = json.data[0];
-          showToast(
-            `🔔 Yeni Sipariş Geldi! #${newest?.orderNumber || newest?.id} (${newest?.customerName || 'Müşteri'})`,
-            'success'
+      if (json.success && Array.isArray(json.data)) {
+        const nextIds = new Set(json.data.map((o) => o.id));
+        if (ordersInitializedRef.current) {
+          const brandNewOrder = json.data.find(
+            (o) => o.status === 'Yeni' && !knownOrderIdsRef.current.has(o.id)
           );
+          if (brandNewOrder) {
+            playSoundAlert();
+            showToast(
+              `🔔 Yeni Sipariş Geldi! #${brandNewOrder.orderNumber || brandNewOrder.id} (${brandNewOrder.customerName || 'Müşteri'})`,
+              'success'
+            );
+          }
+        } else {
+          ordersInitializedRef.current = true;
         }
-        setPreviousOrderCount(json.data.length);
+        knownOrderIdsRef.current = nextIds;
         setOrders(json.data);
 
         // Keep modal updated if open
         if (detailOrder) {
           const fresh = json.data.find((o) => o.id === detailOrder.id);
           if (fresh) setDetailOrder(fresh);
+          else setDetailOrder(null);
         }
       }
     } catch (err) {
@@ -647,7 +656,7 @@ export default function AdminDashboardPage() {
         clearInterval(otherPollTimer);
       };
     }
-  }, [adminUser, previousOrderCount]);
+  }, [adminUser]);
 
   // Login handler
   const handleLogin = async (e) => {

@@ -73,13 +73,24 @@ export default function Home() {
 
         if (!u || (!u.email && !u.id)) return;
 
+        let lastOrderId = u.lastOrderId || '';
+        if (!lastOrderId) {
+          try {
+            const rawLast = localStorage.getItem('sd_last_order');
+            if (rawLast) {
+              const parsedLast = JSON.parse(rawLast);
+              if (parsedLast?.id) lastOrderId = String(parsedLast.id);
+            }
+          } catch (e) {}
+        }
+
         const res = await fetch(
-          `/api/auth/me?email=${encodeURIComponent(u.email || '')}&id=${encodeURIComponent(u.id || '')}`,
+          `/api/auth/me?email=${encodeURIComponent(u.email || '')}&id=${encodeURIComponent(u.id || '')}&orderId=${encodeURIComponent(lastOrderId)}`,
           { cache: 'no-store' }
         );
         const result = await res.json();
 
-        // ÜYE SİLİNMİŞ / ENGELLENMİŞ VEYA MİSAFİR SİPARİŞİ TESLİM EDİLMİŞSE OTURUMU DERHAL KAPAT
+        // ÜYE SİLİNMİŞ / ENGELLENMİŞ VEYA MİSAFİR SİPARİŞİ TESLİM EDİLMİŞ / İPTAL / SİLİNMİŞSE OTURUMU DERHAL KAPAT
         if (result && result.valid === false) {
           dispatch(logout());
           dispatch(closeProfileModal());
@@ -87,7 +98,11 @@ export default function Home() {
           try {
             localStorage.removeItem('sd_current_user');
             localStorage.removeItem('sd_auth_token');
-            if (result.reason === 'guest_order_delivered' || result.reason === 'guest_order_cancelled') {
+            if (
+              result.reason === 'guest_order_delivered' ||
+              result.reason === 'guest_order_cancelled' ||
+              result.reason === 'guest_order_deleted'
+            ) {
               localStorage.removeItem('sd_last_order');
             }
           } catch (e) {}
@@ -95,7 +110,7 @@ export default function Home() {
           const title =
             result.reason === 'guest_order_delivered'
               ? 'Siparişiniz Teslim Edildi 🎉'
-              : result.reason === 'guest_order_cancelled'
+              : result.reason === 'guest_order_cancelled' || result.reason === 'guest_order_deleted'
               ? 'Siparişiniz İptal Edilmiştir'
               : result.reason === 'blocked'
               ? 'Hesabınız Engellendi ⛔'
@@ -103,7 +118,7 @@ export default function Home() {
           const text =
             result.reason === 'guest_order_delivered'
               ? 'Afiyet olsun! Siparişiniz teslim edildiği için misafir oturumunuz güvenlik amacıyla otomatik olarak sonlandırıldı.'
-              : result.reason === 'guest_order_cancelled'
+              : result.reason === 'guest_order_cancelled' || result.reason === 'guest_order_deleted'
               ? 'Siparişiniz iptal edildiği için misafir oturumunuz otomatik olarak sonlandırıldı.'
               : result.reason === 'blocked'
               ? `Hesabınız yönetici tarafından engellenmiştir. (${result.blockReason || 'Kısıtlama'})`

@@ -223,7 +223,7 @@ export async function PATCH(request, { params }) {
     }
 
     // 3. Courier Assignment
-    if (action === 'assign_courier' || (typeof courierName !== 'undefined' && !status)) {
+    if (action === 'assign_courier' || (!action && typeof courierName !== 'undefined' && !status)) {
       if (pgOrder) {
         const updatedPg = await rawPrisma.order.update({
           where: { id: pgOrder.id },
