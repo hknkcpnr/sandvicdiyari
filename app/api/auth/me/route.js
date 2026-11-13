@@ -38,8 +38,36 @@ async function handleCheckSession(request) {
       });
     }
 
-    // Misafir oturumu veritabanında kayıtlı olmadığı için doğrudan geçerli say
+    // Misafir oturumu: bu oturuma ait son sipariş "Teslim Edildi" olduysa oturumu sonlandır
     if (cleanId.startsWith('guest_') || cleanEmail.startsWith('misafir_')) {
+      try {
+        if (rawPrisma && rawPrisma.order && cleanEmail) {
+          const guestTsRaw = cleanId.startsWith('guest_') ? Number(cleanId.replace('guest_', '')) : 0;
+          const guestStartMs = Number.isFinite(guestTsRaw) && guestTsRaw > 0 ? guestTsRaw : 0;
+
+          const latestOrder = await rawPrisma.order.findFirst({
+            where: { userEmail: { equals: cleanEmail, mode: 'insensitive' } },
+            orderBy: { createdAt: 'desc' },
+            select: { id: true, status: true, createdAt: true }
+          });
+
+          if (latestOrder && latestOrder.status === 'Teslim Edildi') {
+            const orderCreatedMs = new Date(latestOrder.createdAt).getTime();
+            // Sipariş bu misafir oturumu açıldıktan sonra (veya 1 dk toleransla) verilmişse oturumu sonlandır
+            if (!guestStartMs || isNaN(orderCreatedMs) || orderCreatedMs >= guestStartMs - 60000) {
+              return jsonSuccess({
+                valid: false,
+                isGuest: true,
+                reason: 'guest_order_delivered',
+                message: 'Siparişiniz teslim edildiği için misafir oturumunuz sonlandırıldı.'
+              });
+            }
+          }
+        }
+      } catch (e) {
+        console.warn('Guest order delivery check warning:', e.message);
+      }
+
       return jsonSuccess({
         valid: true,
         isGuest: true

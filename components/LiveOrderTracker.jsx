@@ -67,7 +67,7 @@ export default function LiveOrderTracker() {
         if (parsed && parsed.id) {
           // If status is not cancelled and was created recently (within 6 hours)
           const orderAgeHours = (Date.now() - new Date(parsed.createdAt || Date.now()).getTime()) / (1000 * 60 * 60);
-          if (parsed.status !== 'İptal Edildi' && orderAgeHours < 6) {
+          if (parsed.status !== 'İptal Edildi' && (Number.isNaN(orderAgeHours) || orderAgeHours < 6)) {
             setActiveOrder(parsed);
             if (parsed.status === 'Teslim Edildi') {
               clearGuestSessionIfDelivered(parsed);
@@ -85,7 +85,7 @@ export default function LiveOrderTracker() {
     const current = loadLastOrder();
     if (current && current.id && current.status !== 'Teslim Edildi' && current.status !== 'İptal Edildi') {
       try {
-        const res = await fetch(`/api/orders/${current.id}`);
+        const res = await fetch(`/api/orders/${current.id}`, { cache: 'no-store' });
         const json = await res.json();
         if (json.success && json.data) {
           setActiveOrder(json.data);

@@ -72,14 +72,14 @@ export default function Home() {
         })();
 
         if (!u || (!u.email && !u.id)) return;
-        if (u.isGuest || String(u.id || '').startsWith('guest_') || String(u.email || '').startsWith('misafir_')) return;
 
         const res = await fetch(
-          `/api/auth/me?email=${encodeURIComponent(u.email || '')}&id=${encodeURIComponent(u.id || '')}`
+          `/api/auth/me?email=${encodeURIComponent(u.email || '')}&id=${encodeURIComponent(u.id || '')}`,
+          { cache: 'no-store' }
         );
         const result = await res.json();
 
-        // ÜYE SİLİNMİŞ VEYA ENGELLENMİŞSE OTURUMU DERHAL KAPAT
+        // ÜYE SİLİNMİŞ / ENGELLENMİŞ VEYA MİSAFİR SİPARİŞİ TESLİM EDİLMİŞSE OTURUMU DERHAL KAPAT
         if (result && result.valid === false) {
           dispatch(logout());
           dispatch(closeProfileModal());
@@ -87,11 +87,21 @@ export default function Home() {
           try {
             localStorage.removeItem('sd_current_user');
             localStorage.removeItem('sd_auth_token');
+            if (result.reason === 'guest_order_delivered') {
+              localStorage.removeItem('sd_last_order');
+            }
           } catch (e) {}
 
-          const title = result.reason === 'blocked' ? 'Hesabınız Engellendi ⛔' : 'Oturum Kapatıldı ℹ️';
+          const title =
+            result.reason === 'guest_order_delivered'
+              ? 'Siparişiniz Teslim Edildi 🎉'
+              : result.reason === 'blocked'
+              ? 'Hesabınız Engellendi ⛔'
+              : 'Oturum Kapatıldı ℹ️';
           const text =
-            result.reason === 'blocked'
+            result.reason === 'guest_order_delivered'
+              ? 'Afiyet olsun! Siparişiniz teslim edildiği için misafir oturumunuz güvenlik amacıyla otomatik olarak sonlandırıldı.'
+              : result.reason === 'blocked'
               ? `Hesabınız yönetici tarafından engellenmiştir. (${result.blockReason || 'Kısıtlama'})`
               : 'Hesabınız sistemden silindiği için oturumunuz otomatik olarak sonlandırıldı.';
 
@@ -99,7 +109,7 @@ export default function Home() {
             showMessageModal({
               title,
               text,
-              type: 'warning'
+              type: result.reason === 'guest_order_delivered' ? 'success' : 'warning'
             })
           );
         }
