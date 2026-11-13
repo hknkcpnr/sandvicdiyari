@@ -147,7 +147,7 @@ export const uiSlice = createSlice({
       }
       try {
         localStorage.setItem(`sd_favorites_${email}`, JSON.stringify(state.favorites));
-      } catch (e) {}
+      } catch (e) { }
     }
   }
 });

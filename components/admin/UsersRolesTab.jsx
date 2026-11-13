@@ -79,6 +79,13 @@ export default function UsersRolesTab({ currentAdmin, onRolesOrUsersUpdated }) {
   const [custFormError, setCustFormError] = useState('');
   const [approvingCustId, setApprovingCustId] = useState(null);
 
+  const notifyUsersChanged = (data) => {
+    try {
+      localStorage.setItem('sandwich_users_updated', String(Date.now()));
+      window.dispatchEvent(new CustomEvent('sandwich_users_updated', { detail: data }));
+    } catch (e) {}
+  };
+
   // API'den verileri getir
   const fetchData = async () => {
     setLoading(true);
@@ -92,6 +99,7 @@ export default function UsersRolesTab({ currentAdmin, onRolesOrUsersUpdated }) {
         if (!userRoleId && json.data.roles?.length > 0) {
           setUserRoleId(json.data.roles[0].id);
         }
+        notifyUsersChanged(json.data);
       }
     } catch (err) {
       console.error('Kullanıcı ve rol verileri alınamadı:', err);
@@ -176,6 +184,7 @@ export default function UsersRolesTab({ currentAdmin, onRolesOrUsersUpdated }) {
       setRoles(json.data.roles || []);
       setIsUserModalOpen(false);
       if (onRolesOrUsersUpdated) onRolesOrUsersUpdated(json.data);
+      notifyUsersChanged(json.data);
 
       dispatch(
         showMessageModal({
@@ -213,6 +222,7 @@ export default function UsersRolesTab({ currentAdmin, onRolesOrUsersUpdated }) {
       if (json.success && json.data) {
         setAdminUsers(json.data.adminUsers || []);
         if (onRolesOrUsersUpdated) onRolesOrUsersUpdated(json.data);
+        notifyUsersChanged(json.data);
       }
     } catch (err) {
       console.error(err);
@@ -235,6 +245,7 @@ export default function UsersRolesTab({ currentAdmin, onRolesOrUsersUpdated }) {
       if (json.success) {
         setAdminUsers(json.data.adminUsers || []);
         if (onRolesOrUsersUpdated) onRolesOrUsersUpdated(json.data);
+        notifyUsersChanged(json.data);
         dispatch(
           showMessageModal({
             title: 'Kullanıcı Silindi',

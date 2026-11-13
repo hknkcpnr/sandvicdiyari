@@ -249,7 +249,7 @@ export default function AdminDashboardPage() {
   const [loadingOrders, setLoadingOrders] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(true);
 
-  // Dinamik Kurye Listesi (Admin kullanıcıları & rolleri ile senkronize)
+  // Dinamik Kurye Listesi (Admin kullanıcıları & rolleri ile canlı senkronize)
   const [courierOptions, setCourierOptions] = useState([
     'Kurye 1 (Ali)',
     'Kurye 2 (Mehmet)',
@@ -257,35 +257,74 @@ export default function AdminDashboardPage() {
     'Dış Kurye'
   ]);
 
-  useEffect(() => {
-    const loadCouriers = async () => {
-      try {
-        const res = await fetch('/api/admin/users');
-        if (!res.ok) return;
-        const data = await res.json();
-        const users = data?.users || [];
-        const couriers = users.filter((u) => {
-          const roleStr = String(u.role || '').toLowerCase();
-          const nameStr = String(u.name || '').toLowerCase();
-          const perms = Array.isArray(u.permissions) ? u.permissions : [];
-          return (
-            roleStr.includes('kurye') ||
-            roleStr.includes('courier') ||
-            perms.includes('courier_delivery') ||
-            nameStr.includes('kurye')
-          );
-        });
+  const loadCouriers = useCallback(async () => {
+    try {
+      const res = await fetch('/api/admin/users');
+      if (!res.ok) return;
+      const json = await res.json();
+      const payload = json?.data || json || {};
+      const adminUsers = Array.isArray(payload.adminUsers) ? payload.adminUsers : [];
+      const roles = Array.isArray(payload.roles) ? payload.roles : [];
 
-        if (couriers.length > 0) {
-          const newNames = couriers.map((c) => c.name || `Kurye (${c.phone || c.email})`);
-          setCourierOptions((prev) => {
-            return Array.from(new Set([...prev, ...newNames]));
-          });
-        }
-      } catch (e) {}
-    };
-    loadCouriers();
+      const couriers = adminUsers.filter((u) => {
+        if (u.isActive === false) return false;
+        const matchedRole = roles.find((r) => r.id === u.roleId || r.code === u.roleId) || {};
+        const roleName = String(u.roleName || u.role || matchedRole.name || matchedRole.code || '').toLowerCase();
+        const roleId = String(u.roleId || '').toLowerCase();
+        const userName = String(u.name || '').toLowerCase();
+        const perms = Array.isArray(u.permissions)
+          ? u.permissions
+          : Array.isArray(matchedRole.permissions)
+          ? matchedRole.permissions
+          : [];
+
+        return (
+          roleId.includes('courier') ||
+          roleId.includes('kurye') ||
+          roleName.includes('kurye') ||
+          roleName.includes('courier') ||
+          userName.includes('kurye') ||
+          perms.includes('courier_delivery')
+        );
+      });
+
+      const realNames = couriers.map((c) => c.name?.trim()).filter(Boolean);
+
+      if (realNames.length > 0) {
+        // Gerçek kullanıcı kuryeleri mevcutsa, statik hazır kuryeler yerine doğrudan gerçek personelleri göster
+        setCourierOptions(Array.from(new Set([...realNames, 'Dış Kurye'])));
+      } else {
+        // Sistemde henüz kayıtlı kurye yoksa varsayılan hazır seçenekleri göster
+        setCourierOptions(['Kurye 1 (Ali)', 'Kurye 2 (Mehmet)', 'Kurye 3 (Hasan)', 'Dış Kurye']);
+      }
+    } catch (e) {
+      console.warn('Dinamik kurye listesi alınamadı:', e);
+    }
   }, []);
+
+  useEffect(() => {
+    loadCouriers();
+
+    const handleUsersUpdated = () => {
+      loadCouriers();
+    };
+
+    const handleStorage = (e) => {
+      if (e.key === 'sandwich_users_updated') {
+        loadCouriers();
+      }
+    };
+
+    window.addEventListener('sandwich_users_updated', handleUsersUpdated);
+    window.addEventListener('storage', handleStorage);
+    window.addEventListener('focus', handleUsersUpdated);
+
+    return () => {
+      window.removeEventListener('sandwich_users_updated', handleUsersUpdated);
+      window.removeEventListener('storage', handleStorage);
+      window.removeEventListener('focus', handleUsersUpdated);
+    };
+  }, [loadCouriers]);
   const [previousOrderCount, setPreviousOrderCount] = useState(0);
 
   // Filters & Search
@@ -1034,7 +1073,10 @@ export default function AdminDashboardPage() {
       const res = await fetch(`/api/orders/${orderId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ courierName })
+        body: JSON.stringify({
+          courierName,
+          user: adminUser ? adminUser.name : 'Yönetici'
+        })
       });
       const json = await res.json();
       if (json.success) {
@@ -1042,9 +1084,18 @@ export default function AdminDashboardPage() {
         if (detailOrder && detailOrder.id === orderId) {
           setDetailOrder(prev => ({ ...prev, courierName }));
         }
+        showToast(
+          courierName
+            ? `Sipariş kuryeye (${courierName}) başarıyla atandı! 🛵`
+            : `Siparişin kurye ataması kaldırıldı.`,
+          'success'
+        );
+      } else {
+        showToast(json.error || 'Kurye ataması yapılamadı.', 'error');
       }
     } catch (e) {
       console.error('Kurye atama hatası:', e);
+      showToast('Kurye atanırken bağlantı hatası oluştu.', 'error');
     }
   };
 
@@ -3857,6 +3908,52 @@ export default function AdminDashboardPage() {
                     className="text-brand-600 font-black"
                   />
                 </div>
+              </div>
+            </div>
+
+            {/* Courier Assignment & Quick Routing Bar in Detail Modal */}
+            <div className="bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent border border-amber-300/80 p-3.5 sm:p-4 rounded-2xl flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 shadow-2xs">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-amber-500 text-stone-950 flex items-center justify-center font-bold shrink-0 shadow-xs">
+                  <i className="fa-solid fa-motorcycle text-base"></i>
+                </div>
+                <div>
+                  <span className="text-[10px] font-black uppercase tracking-wider text-amber-900 block">
+                    Atanan Paket Kuryesi
+                  </span>
+                  <span className="text-xs sm:text-sm font-extrabold text-stone-900">
+                    {detailOrder.courierName ? (
+                      <span className="text-emerald-700 flex items-center gap-1.5">
+                        <i className="fa-solid fa-circle-check text-xs"></i>
+                        {detailOrder.courierName}
+                      </span>
+                    ) : (
+                      <span className="text-stone-500">Henüz Kurye Atanmadı</span>
+                    )}
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 sm:w-72">
+                <select
+                  value={detailOrder.courierName || ''}
+                  onChange={(e) => handleAssignCourier(detailOrder.id, e.target.value)}
+                  className={`app-select border rounded-xl px-3.5 py-2.5 text-xs font-black focus:outline-none focus:ring-2 focus:ring-amber-500/25 cursor-pointer w-full transition-all shadow-xs ${
+                    detailOrder.courierName
+                      ? 'bg-emerald-600 text-white border-emerald-700'
+                      : 'bg-white border-amber-300 text-stone-800'
+                  }`}
+                >
+                  <option value="">🛵 Kurye Seçiniz...</option>
+                  {courierOptions.map((cName) => (
+                    <option key={cName} value={cName}>
+                      🛵 {cName}
+                    </option>
+                  ))}
+                  {detailOrder.courierName && !courierOptions.includes(detailOrder.courierName) && (
+                    <option value={detailOrder.courierName}>🛵 {detailOrder.courierName}</option>
+                  )}
+                </select>
               </div>
             </div>
 

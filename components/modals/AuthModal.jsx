@@ -40,6 +40,17 @@ export default function AuthModal() {
   const [loginEmail, setLoginEmail] = useState('');
   const [loginPass, setLoginPass] = useState('');
 
+  // Şifremi Unuttum Durumları
+  const [isForgotPassword, setIsForgotPassword] = useState(false);
+  const [forgotInput, setForgotInput] = useState('');
+  const [forgotStep, setForgotStep] = useState(1); // 1: identify, 2: code & new password
+  const [forgotCode, setForgotCode] = useState('');
+  const [forgotNewPass, setForgotNewPass] = useState('');
+  const [forgotLoading, setForgotLoading] = useState(false);
+  const [forgotError, setForgotError] = useState('');
+  const [forgotSuccess, setForgotSuccess] = useState('');
+  const [forgotResult, setForgotResult] = useState(null);
+
   // Kayıt Ol Formu
   const [regName, setRegName] = useState('');
   const [regEmail, setRegEmail] = useState('');
@@ -62,6 +73,12 @@ export default function AuthModal() {
   useEffect(() => {
     if (!isAuthModalOpen) {
       setFormError('');
+      setIsForgotPassword(false);
+      setForgotStep(1);
+      setForgotError('');
+      setForgotSuccess('');
+      setForgotCode('');
+      setForgotNewPass('');
     }
   }, [isAuthModalOpen]);
 
@@ -215,6 +232,99 @@ export default function AuthModal() {
     }
 
     setFormError('E-posta veya şifreniz hatalı. Lütfen kontrol ediniz.');
+  };
+
+  // --------------------------------------------------------------------------
+  // ŞİFREMİ UNUTTUM & SIFIRLAMA TALEBİ
+  // --------------------------------------------------------------------------
+  const handleRequestPasswordReset = async (e) => {
+    e.preventDefault();
+    setForgotError('');
+    setForgotSuccess('');
+    if (!forgotInput.trim()) {
+      setForgotError('Lütfen kayıtlı telefon numaranızı veya e-posta adresinizi giriniz.');
+      return;
+    }
+
+    setForgotLoading(true);
+    try {
+      const res = await fetch('/api/auth/forgot-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ identifier: forgotInput.trim() })
+      });
+      const json = await res.json();
+      if (!json.success) {
+        setForgotError(json.error || 'İşlem gerçekleştirilemedi.');
+        setForgotLoading(false);
+        return;
+      }
+
+      setForgotResult(json.data || null);
+      if (json.data?.codeSent) {
+        setForgotStep(2);
+        setForgotSuccess('Doğrulama kodunuz hazırlandı! Lütfen 6 haneli kodu ve yeni şifrenizi giriniz.');
+      } else {
+        setForgotSuccess('Talebiniz hazırlandı. Dilerseniz aşağıdaki WhatsApp butonuna tıklayarak yeni şifrenizi anında alabilirsiniz.');
+      }
+    } catch (err) {
+      setForgotError('Sunucu bağlantı hatası oluştu. Lütfen tekrar deneyiniz.');
+    } finally {
+      setForgotLoading(false);
+    }
+  };
+
+  const handleConfirmPasswordReset = async (e) => {
+    e.preventDefault();
+    setForgotError('');
+    setForgotSuccess('');
+
+    if (!forgotCode.trim() || forgotCode.trim().length !== 6) {
+      setForgotError('Lütfen 6 haneli doğrulama kodunu eksiksiz giriniz.');
+      return;
+    }
+
+    if (!forgotNewPass.trim() || forgotNewPass.trim().length < 4) {
+      setForgotError('Yeni şifreniz en az 4 karakter olmalıdır.');
+      return;
+    }
+
+    setForgotLoading(true);
+    try {
+      const res = await fetch('/api/auth/reset-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          identifier: forgotInput.trim(),
+          code: forgotCode.trim(),
+          newPassword: forgotNewPass.trim()
+        })
+      });
+      const json = await res.json();
+      if (!json.success) {
+        setForgotError(json.error || 'Şifre sıfırlanamadı.');
+        setForgotLoading(false);
+        return;
+      }
+
+      setLoginPass(forgotNewPass.trim());
+      setLoginEmail(forgotInput.trim());
+      setIsForgotPassword(false);
+      setForgotStep(1);
+      setForgotCode('');
+      setForgotNewPass('');
+      dispatch(
+        showMessageModal({
+          title: 'Şifreniz Yenilendi! 🎉',
+          text: 'Şifreniz başarıyla güncellendi. Yeni şifrenizle hemen giriş yapabilirsiniz.',
+          type: 'success'
+        })
+      );
+    } catch (err) {
+      setForgotError('Sunucu bağlantı hatası oluştu. Lütfen tekrar deneyiniz.');
+    } finally {
+      setForgotLoading(false);
+    }
   };
 
   // --------------------------------------------------------------------------
@@ -494,52 +604,241 @@ export default function AuthModal() {
                 </div>
 
                 {/* ----------------------------------------------------------- */}
-                {/* 2. GİRİŞ FORMU                                              */}
+                {/* 2. GİRİŞ FORMU & ŞİFREMİ UNUTTUM                           */}
                 {/* ----------------------------------------------------------- */}
                 {authModalTab === 'login' && (
-                  <form onSubmit={handleLoginSubmit} className="space-y-4">
-                    <div>
-                      <label className="block text-xs font-semibold text-stone-700 mb-1.5">
-                        E-Posta Adresi
-                      </label>
-                      <input
-                        type="email"
-                        required
-                        value={loginEmail}
-                        onChange={(e) => setLoginEmail(e.target.value)}
-                        className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:border-brand-500 text-stone-800 focus:bg-white"
-                        placeholder="ornek@mail.com"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-xs font-semibold text-stone-700 mb-1.5">
-                        Şifre
-                      </label>
-                      <input
-                        type="password"
-                        required
-                        value={loginPass}
-                        onChange={(e) => setLoginPass(e.target.value)}
-                        className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:border-brand-500 text-stone-800 focus:bg-white"
-                        placeholder="••••••••"
-                      />
-                    </div>
-
-                    {formError && (
-                      <div className="bg-rose-50 border border-rose-200 text-rose-700 text-xs px-3.5 py-2 rounded-xl flex items-center gap-2">
-                        <i className="fa-solid fa-circle-exclamation text-rose-500 shrink-0"></i>
-                        <span>{formError}</span>
+                  isForgotPassword ? (
+                    <div className="space-y-4 animate-in fade-in duration-200">
+                      <div className="flex items-center gap-2.5 pb-2 border-b border-stone-200/80">
+                        <span className="w-8 h-8 rounded-xl bg-amber-500 text-stone-950 flex items-center justify-center font-bold text-sm shadow-xs">
+                          <i className="fa-solid fa-key"></i>
+                        </span>
+                        <div>
+                          <h3 className="font-extrabold text-base text-stone-900 leading-tight">
+                            Şifremi Unuttum
+                          </h3>
+                          <p className="text-[11px] text-stone-500">
+                            {forgotStep === 1
+                              ? 'Hesap bilgilerinizi girerek ücretsiz şifre sıfırlama talebinde bulunun.'
+                              : 'Doğrulama kodunu ve yeni şifrenizi belirleyin.'}
+                          </p>
+                        </div>
                       </div>
-                    )}
 
-                    <button
-                      type="submit"
-                      className="w-full bg-stone-900 hover:bg-black text-white font-bold py-3 rounded-xl text-sm transition-colors cursor-pointer"
-                    >
-                      Giriş Yap
-                    </button>
-                  </form>
+                      {forgotStep === 1 ? (
+                        <form onSubmit={handleRequestPasswordReset} className="space-y-3.5">
+                          <div>
+                            <label className="block text-xs font-semibold text-stone-700 mb-1.5">
+                              Kayıtlı Telefon Numarası veya E-Posta
+                            </label>
+                            <input
+                              type="text"
+                              required
+                              value={forgotInput}
+                              onChange={(e) => setForgotInput(e.target.value)}
+                              className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:border-brand-500 text-stone-800 focus:bg-white"
+                              placeholder="Örn: 0555 123 45 67 veya ornek@mail.com"
+                            />
+                          </div>
+
+                          {forgotError && (
+                            <div className="bg-rose-50 border border-rose-200 text-rose-700 text-xs px-3.5 py-2 rounded-xl flex items-center gap-2">
+                              <i className="fa-solid fa-circle-exclamation text-rose-500 shrink-0"></i>
+                              <span>{forgotError}</span>
+                            </div>
+                          )}
+
+                          {forgotSuccess && (
+                            <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs px-3.5 py-2.5 rounded-xl flex items-center gap-2">
+                              <i className="fa-solid fa-circle-check text-emerald-600 shrink-0"></i>
+                              <span>{forgotSuccess}</span>
+                            </div>
+                          )}
+
+                          <div className="space-y-2 pt-1">
+                            {/* 1. Seçenek: WhatsApp ile 1 Tıkla Anında Sıfırlama (Ücretsiz) */}
+                            <a
+                              href={
+                                forgotResult?.waSupportUrl ||
+                                `https://wa.me/905538557612?text=${encodeURIComponent(
+                                  `Merhaba Sandviç Diyarı, ${forgotInput.trim() ? `[${forgotInput.trim()}] kayıtlı ` : ''}hesabımın şifresini unuttum. Yeni şifre talep ediyorum.`
+                                )}`
+                              }
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="w-full bg-emerald-600 hover:bg-emerald-700 active:scale-98 text-white font-extrabold py-3 px-4 rounded-xl text-xs sm:text-sm transition-all shadow-md shadow-emerald-600/20 flex items-center justify-center gap-2.5 cursor-pointer text-center"
+                            >
+                              <i className="fa-brands fa-whatsapp text-xl"></i>
+                              <span>WhatsApp ile Anında Şifre Al (Ücretsiz)</span>
+                            </a>
+                            <p className="text-[10px] text-stone-400 text-center">
+                              Restoran destek hattımıza tek tıkla bağlanarak şifrenizi saniyeler içinde alabilirsiniz.
+                            </p>
+
+                            <div className="relative flex py-1 items-center">
+                              <div className="flex-grow border-t border-stone-200"></div>
+                              <span className="flex-shrink mx-3 text-stone-400 text-[10px] uppercase font-bold tracking-wider">veya</span>
+                              <div className="flex-grow border-t border-stone-200"></div>
+                            </div>
+
+                            {/* 2. Seçenek: Doğrulama Kodu İste */}
+                            <button
+                              type="submit"
+                              disabled={forgotLoading}
+                              className="w-full bg-stone-900 hover:bg-black text-white font-bold py-2.5 px-4 rounded-xl text-xs sm:text-sm transition-colors cursor-pointer flex items-center justify-center gap-2"
+                            >
+                              <i className={`fa-solid ${forgotLoading ? 'fa-spinner fa-spin' : 'fa-paper-plane'}`}></i>
+                              <span>{forgotLoading ? 'Kontrol Ediliyor...' : 'Doğrulama Kodu ile Sıfırla'}</span>
+                            </button>
+                          </div>
+
+                          <div className="text-center pt-2">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setIsForgotPassword(false);
+                                setForgotError('');
+                                setForgotSuccess('');
+                              }}
+                              className="text-xs text-stone-500 hover:text-stone-800 font-semibold cursor-pointer underline"
+                            >
+                              ← Giriş Ekranına Dön
+                            </button>
+                          </div>
+                        </form>
+                      ) : (
+                        /* Step 2: Code verification & new password */
+                        <form onSubmit={handleConfirmPasswordReset} className="space-y-3.5">
+                          <div className="bg-amber-50 border border-amber-200 p-3 rounded-xl text-xs text-amber-900">
+                            <p className="font-bold">
+                              {forgotResult?.name ? `Sn. ${forgotResult.name},` : 'Değerli Müşterimiz,'}
+                            </p>
+                            <p className="text-[11px] text-amber-800 mt-0.5">
+                              Lütfen {forgotResult?.maskedPhone || 'telefonunuza'} iletilen 6 haneli kodu ve kullanmak istediğiniz yeni şifrenizi giriniz.
+                            </p>
+                          </div>
+
+                          <div>
+                            <label className="block text-xs font-semibold text-stone-700 mb-1">
+                              6 Haneli Doğrulama Kodu *
+                            </label>
+                            <input
+                              type="text"
+                              required
+                              maxLength={6}
+                              value={forgotCode}
+                              onChange={(e) => setForgotCode(e.target.value.replace(/\D/g, ''))}
+                              className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3.5 py-2.5 text-center tracking-widest text-base font-black focus:outline-none focus:border-brand-500 text-stone-900 font-mono"
+                              placeholder="123456"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="block text-xs font-semibold text-stone-700 mb-1">
+                              Yeni Şifreniz *
+                            </label>
+                            <input
+                              type="password"
+                              required
+                              minLength={4}
+                              value={forgotNewPass}
+                              onChange={(e) => setForgotNewPass(e.target.value)}
+                              className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:border-brand-500 text-stone-900"
+                              placeholder="En az 4 karakter"
+                            />
+                          </div>
+
+                          {forgotError && (
+                            <div className="bg-rose-50 border border-rose-200 text-rose-700 text-xs px-3.5 py-2 rounded-xl flex items-center gap-2">
+                              <i className="fa-solid fa-circle-exclamation text-rose-500 shrink-0"></i>
+                              <span>{forgotError}</span>
+                            </div>
+                          )}
+
+                          <button
+                            type="submit"
+                            disabled={forgotLoading}
+                            className="w-full bg-amber-500 hover:bg-amber-600 text-stone-950 font-black py-3 rounded-xl text-xs sm:text-sm transition-all shadow-md cursor-pointer flex items-center justify-center gap-2"
+                          >
+                            <i className={`fa-solid ${forgotLoading ? 'fa-spinner fa-spin' : 'fa-check'}`}></i>
+                            <span>{forgotLoading ? 'Güncelleniyor...' : 'Yeni Şifreyi Kaydet ve Giriş Yap'}</span>
+                          </button>
+
+                          <div className="text-center pt-1">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setForgotStep(1);
+                                setForgotError('');
+                              }}
+                              className="text-xs text-stone-500 hover:text-stone-800 font-semibold cursor-pointer underline"
+                            >
+                              ← Geri Dön (Farklı Numara Gir)
+                            </button>
+                          </div>
+                        </form>
+                      )}
+                    </div>
+                  ) : (
+                    <form onSubmit={handleLoginSubmit} className="space-y-4">
+                      <div>
+                        <label className="block text-xs font-semibold text-stone-700 mb-1.5">
+                          E-Posta Adresi veya Telefon
+                        </label>
+                        <input
+                          type="text"
+                          required
+                          value={loginEmail}
+                          onChange={(e) => setLoginEmail(e.target.value)}
+                          className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:border-brand-500 text-stone-800 focus:bg-white"
+                          placeholder="ornek@mail.com veya 0532..."
+                        />
+                      </div>
+
+                      <div>
+                        <div className="flex justify-between items-center mb-1.5">
+                          <label className="block text-xs font-semibold text-stone-700">
+                            Şifre
+                          </label>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setIsForgotPassword(true);
+                              setForgotInput(loginEmail || '');
+                              setForgotError('');
+                              setForgotSuccess('');
+                              setForgotStep(1);
+                            }}
+                            className="text-xs text-brand-600 hover:text-brand-700 font-bold transition-colors cursor-pointer"
+                          >
+                            Şifremi Unuttum?
+                          </button>
+                        </div>
+                        <input
+                          type="password"
+                          required
+                          value={loginPass}
+                          onChange={(e) => setLoginPass(e.target.value)}
+                          className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:border-brand-500 text-stone-800 focus:bg-white"
+                          placeholder="••••••••"
+                        />
+                      </div>
+
+                      {formError && (
+                        <div className="bg-rose-50 border border-rose-200 text-rose-700 text-xs px-3.5 py-2 rounded-xl flex items-center gap-2">
+                          <i className="fa-solid fa-circle-exclamation text-rose-500 shrink-0"></i>
+                          <span>{formError}</span>
+                        </div>
+                      )}
+
+                      <button
+                        type="submit"
+                        className="w-full bg-stone-900 hover:bg-black text-white font-bold py-3 rounded-xl text-sm transition-colors cursor-pointer"
+                      >
+                        Giriş Yap
+                      </button>
+                    </form>
+                  )
                 )}
 
                 {/* ----------------------------------------------------------- */}

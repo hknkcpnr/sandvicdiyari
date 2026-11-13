@@ -799,7 +799,8 @@
       "description": "Paket siparişleri teslim alma ve müşteri teslimatı onaylama.",
       "isSystem": false,
       "permissions": [
-        "orders"
+        "orders",
+        "courier_delivery"
       ]
     },
     {
