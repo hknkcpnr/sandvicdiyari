@@ -84,6 +84,14 @@ export default function Navbar() {
     )
   );
 
+  const isGuestUser = Boolean(
+    currentUser && (
+      currentUser.isGuest ||
+      String(currentUser.id || '').startsWith('guest_') ||
+      String(currentUser.email || '').startsWith('misafir_')
+    )
+  );
+
   const handleLogout = () => {
     setIsUserDropdownOpen(false);
     dispatch(logout());
@@ -198,8 +206,8 @@ export default function Navbar() {
                       <div className="text-xs font-bold truncate max-w-[120px]">
                         {currentUser.name}
                       </div>
-                      <div className={`text-[10px] font-semibold ${isUserDropdownOpen ? 'text-brand-100' : 'text-stone-400'}`}>
-                        {isAdminUser ? 'Yönetici' : 'Üye Müşteri'}
+                      <div className={`text-[10px] font-semibold ${isUserDropdownOpen ? 'text-brand-100' : isGuestUser ? 'text-amber-600' : 'text-stone-400'}`}>
+                        {isAdminUser ? 'Yönetici' : isGuestUser ? 'Misafir Kişisi' : 'Üye Müşteri'}
                       </div>
                     </div>
 
@@ -225,75 +233,93 @@ export default function Navbar() {
                               {currentUser.name}
                             </p>
                             <p className="text-[11px] font-medium text-stone-500 truncate">
-                              {currentUser.phone || currentUser.email}
+                              {currentUser.phone || (isGuestUser ? 'Misafir Oturumu' : currentUser.email)}
                             </p>
-                            <span className="inline-flex items-center gap-1 mt-1 text-[9px] font-black uppercase px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 tracking-wider">
-                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                              {isAdminUser ? 'Süper Yönetici' : 'Aktif Oturum'}
+                            <span className={`inline-flex items-center gap-1 mt-1 text-[9px] font-black uppercase px-2 py-0.5 rounded-full tracking-wider ${
+                              isGuestUser ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-800'
+                            }`}>
+                              <span className={`w-1.5 h-1.5 rounded-full ${isGuestUser ? 'bg-amber-500' : 'bg-emerald-500'}`}></span>
+                              {isAdminUser ? 'Süper Yönetici' : isGuestUser ? 'Misafir Kişisi' : 'Aktif Oturum'}
                             </span>
                           </div>
                         </div>
                       </div>
 
-                      {/* Menü Linkleri */}
-                      <div className="px-2 space-y-0.5 bg-white">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setIsUserDropdownOpen(false);
-                            dispatch(openProfileModal());
-                          }}
-                          className="w-full flex items-center gap-3 px-3 py-2.5 text-xs font-semibold text-stone-700 hover:text-brand-700 hover:bg-amber-50 rounded-xl transition-all cursor-pointer group"
-                        >
-                          <div className="w-7 h-7 rounded-lg bg-stone-100 group-hover:bg-brand-100 text-stone-600 group-hover:text-brand-700 flex items-center justify-center transition-colors shrink-0">
-                            <i className="fa-solid fa-clock-rotate-left text-xs"></i>
-                          </div>
-                          <span>Sipariş Geçmişim &amp; Takip</span>
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setIsUserDropdownOpen(false);
-                            dispatch(openProfileModal());
-                          }}
-                          className="w-full flex items-center gap-3 px-3 py-2.5 text-xs font-semibold text-stone-700 hover:text-brand-700 hover:bg-amber-50 rounded-xl transition-all cursor-pointer group"
-                        >
-                          <div className="w-7 h-7 rounded-lg bg-stone-100 group-hover:bg-brand-100 text-stone-600 group-hover:text-brand-700 flex items-center justify-center transition-colors shrink-0">
-                            <i className="fa-solid fa-user-gear text-xs"></i>
-                          </div>
-                          <span>Profil &amp; Adres Bilgilerim</span>
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setIsUserDropdownOpen(false);
-                            dispatch(setOnlyFavoritesFilter(true));
-                            dispatch(setActivePage('menu'));
-                          }}
-                          className="w-full flex items-center gap-3 px-3 py-2.5 text-xs font-semibold text-stone-700 hover:text-brand-700 hover:bg-amber-50 rounded-xl transition-all cursor-pointer group"
-                        >
-                          <div className="w-7 h-7 rounded-lg bg-stone-100 group-hover:bg-brand-100 text-stone-600 group-hover:text-brand-700 flex items-center justify-center transition-colors shrink-0">
-                            <i className="fa-solid fa-heart text-xs"></i>
-                          </div>
-                          <span>Favori Sandviçlerim</span>
-                        </button>
-
-                        {/* Admin Portalı Linki (Yetkili İse) */}
-                        {isAdminUser && (
-                          <a
-                            href="/admin"
-                            className="w-full flex items-center gap-3 px-3 py-2.5 text-xs font-bold text-amber-900 bg-amber-50/80 hover:bg-amber-100 rounded-xl transition-all cursor-pointer group border border-amber-200 my-1.5"
-                          >
-                            <div className="w-7 h-7 rounded-lg bg-amber-500 text-white flex items-center justify-center shadow-sm shrink-0">
-                              <i className="fa-solid fa-shield-halved text-xs"></i>
+                      {/* Menü Linkleri (Misafir kullanıcılar normal üye menülerini görmez) */}
+                      {isGuestUser ? (
+                        <div className="px-3 py-2 bg-white">
+                          <div className="rounded-xl border border-amber-200 bg-amber-50/90 p-3 text-[11px] text-amber-900 flex items-start gap-2.5 leading-relaxed">
+                            <i className="fa-solid fa-triangle-exclamation text-amber-600 mt-0.5 shrink-0"></i>
+                            <div>
+                              <strong className="block font-extrabold text-amber-950 mb-0.5">
+                                Geçici Misafir Oturumu
+                              </strong>
+                              <span>
+                                Siparişiniz teslim edildikten sonra oturumunuz güvenlik amacıyla otomatik olarak silinecektir.
+                              </span>
                             </div>
-                            <span className="flex-1 truncate">Yönetici Paneline Git</span>
-                            <i className="fa-solid fa-arrow-up-right-from-square text-[10px] text-amber-600"></i>
-                          </a>
-                        )}
-                      </div>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="px-2 space-y-0.5 bg-white">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setIsUserDropdownOpen(false);
+                              dispatch(openProfileModal());
+                            }}
+                            className="w-full flex items-center gap-3 px-3 py-2.5 text-xs font-semibold text-stone-700 hover:text-brand-700 hover:bg-amber-50 rounded-xl transition-all cursor-pointer group"
+                          >
+                            <div className="w-7 h-7 rounded-lg bg-stone-100 group-hover:bg-brand-100 text-stone-600 group-hover:text-brand-700 flex items-center justify-center transition-colors shrink-0">
+                              <i className="fa-solid fa-clock-rotate-left text-xs"></i>
+                            </div>
+                            <span>Sipariş Geçmişim &amp; Takip</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setIsUserDropdownOpen(false);
+                              dispatch(openProfileModal());
+                            }}
+                            className="w-full flex items-center gap-3 px-3 py-2.5 text-xs font-semibold text-stone-700 hover:text-brand-700 hover:bg-amber-50 rounded-xl transition-all cursor-pointer group"
+                          >
+                            <div className="w-7 h-7 rounded-lg bg-stone-100 group-hover:bg-brand-100 text-stone-600 group-hover:text-brand-700 flex items-center justify-center transition-colors shrink-0">
+                              <i className="fa-solid fa-user-gear text-xs"></i>
+                            </div>
+                            <span>Profil &amp; Adres Bilgilerim</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setIsUserDropdownOpen(false);
+                              dispatch(setOnlyFavoritesFilter(true));
+                              dispatch(setActivePage('menu'));
+                            }}
+                            className="w-full flex items-center gap-3 px-3 py-2.5 text-xs font-semibold text-stone-700 hover:text-brand-700 hover:bg-amber-50 rounded-xl transition-all cursor-pointer group"
+                          >
+                            <div className="w-7 h-7 rounded-lg bg-stone-100 group-hover:bg-brand-100 text-stone-600 group-hover:text-brand-700 flex items-center justify-center transition-colors shrink-0">
+                              <i className="fa-solid fa-heart text-xs"></i>
+                            </div>
+                            <span>Favori Sandviçlerim</span>
+                          </button>
+
+                          {/* Admin Portalı Linki (Yetkili İse) */}
+                          {isAdminUser && (
+                            <a
+                              href="/admin"
+                              className="w-full flex items-center gap-3 px-3 py-2.5 text-xs font-bold text-amber-900 bg-amber-50/80 hover:bg-amber-100 rounded-xl transition-all cursor-pointer group border border-amber-200 my-1.5"
+                            >
+                              <div className="w-7 h-7 rounded-lg bg-amber-500 text-white flex items-center justify-center shadow-sm shrink-0">
+                                <i className="fa-solid fa-shield-halved text-xs"></i>
+                              </div>
+                              <span className="flex-1 truncate">Yönetici Paneline Git</span>
+                              <i className="fa-solid fa-arrow-up-right-from-square text-[10px] text-amber-600"></i>
+                            </a>
+                          )}
+                        </div>
+                      )}
 
                       <div className="border-t border-stone-100 mt-1.5 pt-1.5 px-2 bg-white">
                         <button
@@ -386,6 +412,40 @@ export default function Navbar() {
           {/* Mobil Kullanıcı Alanı */}
           <div id="mobile-auth-area" className="pt-2 border-t border-stone-100 space-y-1.5">
             {currentUser ? (
+              isGuestUser ? (
+                <>
+                  <div className="w-full bg-amber-50/90 border border-amber-200 rounded-xl p-3 space-y-2">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-lg bg-amber-500 text-white flex items-center justify-center text-xs font-bold shrink-0">
+                        {initials}
+                      </div>
+                      <div className="min-w-0 leading-tight">
+                        <div className="text-xs font-extrabold text-stone-900 truncate">
+                          {currentUser.name}
+                        </div>
+                        <div className="text-[10px] font-bold text-amber-700">
+                          Misafir Kişisi
+                        </div>
+                      </div>
+                    </div>
+                    <p className="text-[11px] font-medium text-amber-900 leading-relaxed flex items-start gap-1.5">
+                      <i className="fa-solid fa-triangle-exclamation text-amber-600 mt-0.5 shrink-0"></i>
+                      <span>Siparişiniz teslim edildikten sonra misafir oturumunuz otomatik olarak silinecektir.</span>
+                    </p>
+                  </div>
+
+                  <button
+                    onClick={() => {
+                      handleLogout();
+                      dispatch(toggleMobileMenu());
+                    }}
+                    className="w-full text-rose-600 hover:bg-rose-50 font-bold py-2 rounded-xl text-xs flex items-center justify-center gap-2 transition-colors cursor-pointer"
+                  >
+                    <i className="fa-solid fa-arrow-right-from-bracket text-xs"></i>
+                    <span>Oturumu Kapat</span>
+                  </button>
+                </>
+              ) : (
               <>
                 <button
                   onClick={() => {
@@ -442,6 +502,7 @@ export default function Navbar() {
                   <span>Oturumu Kapat</span>
                 </button>
               </>
+              )
             ) : (
               <button
                 onClick={() => {

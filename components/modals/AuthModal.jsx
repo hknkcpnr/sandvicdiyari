@@ -388,7 +388,7 @@ export default function AuthModal() {
       dispatch(
         showMessageModal({
           title: 'Misafir Girişi Başarılı! 🥪',
-          text: `Hoş geldiniz Sayın ${guestUser.name}! Vermiş olduğunuz siparişleriniz WhatsApp üzerinden onaylanacaktır. Menümüzden dilediğiniz sandviçleri sepete ekleyip hemen sipariş verebilirsiniz.`,
+          text: `Hoş geldiniz Sayın ${guestUser.name}! Vermiş olduğunuz siparişleriniz WhatsApp üzerinden onaylanacaktır. Not: Siparişiniz teslim edildikten sonra misafir oturumunuz otomatik olarak silinecektir.`,
           type: 'success'
         })
       );
@@ -717,7 +717,7 @@ export default function AuthModal() {
                           WhatsApp ile Sipariş Onayı
                         </strong>
                         <p className="text-[11px] text-emerald-800 leading-relaxed font-medium">
-                          ⚠️ <strong>Önemli Uyarı:</strong> Vermiş olduğunuz siparişleriniz <strong>WhatsApp üzerinden onaylanacaktır</strong>. Restoran yetkilimiz siparişinizi hazırlamadan önce WhatsApp üzerinden onayınızı alacaktır.
+                          ⚠️ <strong>Önemli Uyarı:</strong> Vermiş olduğunuz siparişleriniz <strong>WhatsApp üzerinden onaylanacaktır</strong>. Restoran yetkilimiz siparişinizi hazırlamadan önce WhatsApp üzerinden onayınızı alacaktır. Siparişiniz teslim edildikten sonra misafir oturumunuz otomatik olarak silinecektir.
                         </p>
                       </div>
                     </div>

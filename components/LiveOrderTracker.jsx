@@ -1,6 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import { logout } from '@/store/slices/authSlice';
+import { showMessageModal } from '@/store/slices/uiSlice';
 import { getRestaurantStatus, CLOSED_MESSAGE } from '@/lib/openingHours';
 
 const STATUS_STEPS = [
@@ -22,8 +25,11 @@ function getStatusIndex(status) {
 }
 
 export default function LiveOrderTracker() {
+  const dispatch = useDispatch();
+  const { currentUser } = useSelector((state) => state.auth);
   const [activeOrder, setActiveOrder] = useState(null);
   const [isExpanded, setIsExpanded] = useState(false);
+  const guestClearedRef = useRef(false);
 
   // Load last order from storage
   const loadLastOrder = () => {
@@ -66,6 +72,31 @@ export default function LiveOrderTracker() {
           if (json.success && json.data) {
             setActiveOrder(json.data);
             localStorage.setItem('sd_last_order', JSON.stringify(json.data));
+
+            if (json.data.status === 'Teslim Edildi' && !guestClearedRef.current) {
+              try {
+                const rawUser = localStorage.getItem('sd_current_user');
+                const parsedUser = rawUser ? JSON.parse(rawUser) : currentUser;
+                const isGuest = Boolean(
+                  parsedUser && (
+                    parsedUser.isGuest ||
+                    String(parsedUser.id || '').startsWith('guest_') ||
+                    String(parsedUser.email || '').startsWith('misafir_')
+                  )
+                );
+                if (isGuest) {
+                  guestClearedRef.current = true;
+                  dispatch(logout());
+                  dispatch(
+                    showMessageModal({
+                      title: 'Siparişiniz Teslim Edildi 🎉',
+                      text: 'Afiyet olsun! Siparişiniz teslim edildiği için misafir oturumunuz güvenlik amacıyla otomatik olarak sonlandırıldı.',
+                      type: 'success'
+                    })
+                  );
+                }
+              } catch (err) {}
+            }
           }
         } catch (e) {}
       }
