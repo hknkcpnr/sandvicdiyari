@@ -81,20 +81,30 @@ export function buildWhatsAppOrderConfirmUrl(order: any): string {
   const customerName = order.customerName || 'Değerli Müşterimiz';
 
   // Ürün listesini biçimlendir
+  let parsedItems: any = order.items;
+  if (typeof parsedItems === 'string') {
+    const trimmed = parsedItems.trim();
+    if (trimmed.startsWith('[')) {
+      try {
+        parsedItems = JSON.parse(trimmed);
+      } catch (e) {}
+    }
+  }
+
   let itemsText = '';
-  if (Array.isArray(order.items)) {
-    itemsText = order.items
+  if (Array.isArray(parsedItems)) {
+    itemsText = parsedItems
       .map((i: any) => {
         if (typeof i === 'string') return `• ${i}`;
-        const name = i.name || 'Ürün';
-        const qty = i.quantity || 1;
+        const name = i.name || i.title || 'Ürün';
+        const qty = i.quantity || i.qty || 1;
         const details = i.details ? ` (${i.details})` : '';
         const price = i.price ? ` - ₺${(Number(i.price) * qty).toFixed(2)}` : '';
         return `• ${qty}x ${name}${price}${details}`;
       })
       .join('\n');
-  } else if (order.items) {
-    itemsText = `• ${String(order.items)}`;
+  } else if (parsedItems) {
+    itemsText = `• ${String(parsedItems)}`;
   }
 
   const total = Number(order.total || order.subtotal || 0).toFixed(2);

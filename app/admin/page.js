@@ -2386,9 +2386,23 @@ export default function AdminDashboardPage() {
                           </div>
 
                           {order.notes && (
-                            <div className="md:col-span-12 pt-2 border-t border-amber-200/60 bg-amber-50/70 -mx-3.5 -mb-3.5 px-3.5 py-2 rounded-b-xl text-amber-900 text-[11px] font-bold flex items-center gap-2">
-                              <i className="fa-solid fa-comment-dots text-amber-600"></i>
-                              <span>Müşteri Notu: &ldquo;{order.notes}&rdquo;</span>
+                            <div className="md:col-span-12 pt-2 border-t border-amber-200/60 bg-amber-50/70 -mx-3.5 -mb-3.5 px-3.5 py-2 rounded-b-xl text-amber-900 text-[11px] font-bold flex flex-wrap items-center justify-between gap-2">
+                              <div className="flex items-center gap-2 min-w-0">
+                                <i className="fa-solid fa-comment-dots text-amber-600 shrink-0"></i>
+                                <span>Müşteri Notu: &ldquo;{order.notes}&rdquo;</span>
+                              </div>
+                              {order.phone && (
+                                <a
+                                  href={buildWhatsAppOrderConfirmUrl(order)}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="inline-flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1 rounded-lg font-extrabold text-[11px] transition-colors shadow-xs shrink-0 cursor-pointer"
+                                  title="Müşteriye sipariş özeti ve onay mesajını WhatsApp'tan gönder"
+                                >
+                                  <i className="fa-brands fa-whatsapp text-sm"></i>
+                                  <span>WhatsApp'tan Onay Gönder</span>
+                                </a>
+                              )}
                             </div>
                           )}
                         </div>

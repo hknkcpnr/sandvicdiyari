@@ -541,16 +541,16 @@ export default function AuthModal() {
         <div className="md:col-span-7 p-6 sm:p-8 flex flex-col justify-between space-y-4">
           <div>
             {/* Üst Kısım: Sekmeler ve Kapat Butonu */}
-            <div className="flex justify-between items-center border-b border-stone-200/80 pb-3 mb-4">
+            <div className="flex justify-between items-center border-b border-stone-200/80 mb-4 gap-2">
               {!isWaitingApproval ? (
-                <div className="flex gap-4 sm:gap-6 overflow-x-auto no-scrollbar">
+                <div className="flex flex-wrap items-center gap-4 sm:gap-6">
                   <button
                     type="button"
                     onClick={() => {
                       dispatch(setAuthModalTab('guest'));
                       setFormError('');
                     }}
-                    className={`pb-1 text-sm sm:text-base font-bold transition-colors cursor-pointer border-b-2 -mb-3.5 whitespace-nowrap ${
+                    className={`pb-3 pt-1 text-sm sm:text-base font-bold transition-colors cursor-pointer border-b-2 whitespace-nowrap ${
                       authModalTab === 'guest'
                         ? 'border-emerald-500 text-emerald-600'
                         : 'border-transparent text-stone-400 hover:text-stone-700'
@@ -565,7 +565,7 @@ export default function AuthModal() {
                       dispatch(setAuthModalTab('login'));
                       setFormError('');
                     }}
-                    className={`pb-1 text-sm sm:text-base font-bold transition-colors cursor-pointer border-b-2 -mb-3.5 whitespace-nowrap ${
+                    className={`pb-3 pt-1 text-sm sm:text-base font-bold transition-colors cursor-pointer border-b-2 whitespace-nowrap ${
                       authModalTab === 'login'
                         ? 'border-brand-500 text-brand-600'
                         : 'border-transparent text-stone-400 hover:text-stone-700'
@@ -579,7 +579,7 @@ export default function AuthModal() {
                       dispatch(setAuthModalTab('register'));
                       setFormError('');
                     }}
-                    className={`pb-1 text-sm sm:text-base font-bold transition-colors cursor-pointer border-b-2 -mb-3.5 whitespace-nowrap ${
+                    className={`pb-3 pt-1 text-sm sm:text-base font-bold transition-colors cursor-pointer border-b-2 whitespace-nowrap ${
                       authModalTab === 'register'
                         ? 'border-brand-500 text-brand-600'
                         : 'border-transparent text-stone-400 hover:text-stone-700'
@@ -589,7 +589,7 @@ export default function AuthModal() {
                   </button>
                 </div>
               ) : (
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 pb-3">
                   <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping"></span>
                   <span className="text-base font-black text-stone-900">Restoran Onay Süreci</span>
                 </div>
@@ -602,7 +602,7 @@ export default function AuthModal() {
                   setIsWaitingApproval(false);
                   dispatch(closeAuthModal());
                 }}
-                className="w-8 h-8 rounded-full text-stone-400 hover:text-stone-700 hover:bg-stone-100 flex items-center justify-center transition-colors cursor-pointer"
+                className="w-8 h-8 mb-2 rounded-full text-stone-400 hover:text-stone-700 hover:bg-stone-100 flex items-center justify-center transition-colors cursor-pointer shrink-0"
                 aria-label="Kapat"
               >
                 <i className="fa-solid fa-xmark text-lg"></i>
