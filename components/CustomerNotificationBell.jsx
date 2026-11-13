@@ -101,6 +101,24 @@ export default function CustomerNotificationBell() {
   const dropdownRef = useRef(null);
   const knownIdsRef = useRef(new Set());
   const initialLoadedRef = useRef(false);
+  const prevUserRef = useRef(null);
+
+  // Oturum kapandığında (özellikle misafir oturumu sonlandığında) bildirimleri ve toast'u anında temizle
+  useEffect(() => {
+    const prevUser = prevUserRef.current;
+    prevUserRef.current = currentUser;
+
+    if (prevUser && !currentUser) {
+      setNotifications([]);
+      setActiveToast(null);
+      setIsOpen(false);
+      knownIdsRef.current.clear();
+      initialLoadedRef.current = false;
+      try {
+        localStorage.removeItem('sd_seen_notifications');
+      } catch (e) {}
+    }
+  }, [currentUser]);
 
   // Yerel okundu listesini yükle
   useEffect(() => {
