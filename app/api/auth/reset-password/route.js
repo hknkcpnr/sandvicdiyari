@@ -7,7 +7,6 @@ import {
   parseJsonBody
 } from '@/lib/security/errors';
 import { checkRateLimit, hashPassword } from '@/lib/security/auth';
-import { toWhatsAppPhone } from '@/lib/phoneUtils';
 import { verifyOtpHash } from '@/lib/security/whatsapp';
 
 export async function POST(request) {
@@ -20,12 +19,12 @@ export async function POST(request) {
     });
 
     const body = await parseJsonBody(request);
-    const identifier = String(body.identifier || body.phone || body.email || '').trim();
+    const email = String(body.email || body.identifier || '').trim().toLowerCase();
     const code = String(body.code || '').trim();
     const newPassword = String(body.newPassword || body.password || '').trim();
 
-    if (!identifier) {
-      throw new ValidationError('Telefon veya e-posta adresi zorunludur.');
+    if (!email || !email.includes('@')) {
+      throw new ValidationError('Lütfen geçerli bir e-posta adresi giriniz.');
     }
 
     if (!code || code.length !== 6) {
@@ -36,43 +35,6 @@ export async function POST(request) {
       throw new ValidationError('Yeni şifreniz en az 4 karakterden oluşmalıdır.');
     }
 
-    const cleanDigits = identifier.replace(/\D/g, '');
-    const cleanLower = identifier.toLowerCase();
-    const normalizedPhone = cleanDigits.length >= 10 ? toWhatsAppPhone(identifier) : '';
-
-    // Kullanıcı kaydını bularak diğer anahtarları (e-posta veya telefon) da arama listesine ekleyelim
-    let matchedUser = null;
-    try {
-      if (rawPrisma && rawPrisma.user) {
-        matchedUser = await rawPrisma.user.findFirst({
-          where: {
-            OR: [
-              { email: { equals: cleanLower, mode: 'insensitive' } },
-              { email: { equals: `${cleanLower}@sandwichdiyari.com`, mode: 'insensitive' } },
-              ...(cleanDigits.length >= 10 ? [{ phone: { contains: cleanDigits.slice(-10) } }] : [])
-            ]
-          }
-        });
-      }
-    } catch (e) {}
-
-    if (!matchedUser) {
-      matchedUser = db.findUserByEmail(identifier);
-    }
-
-    const candidateKeys = Array.from(
-      new Set(
-        [
-          cleanLower,
-          normalizedPhone,
-          cleanDigits.length >= 10 ? cleanDigits : '',
-          matchedUser?.email ? matchedUser.email.toLowerCase() : '',
-          matchedUser?.phone ? matchedUser.phone.replace(/\D/g, '') : '',
-          matchedUser?.phone ? toWhatsAppPhone(matchedUser.phone) : ''
-        ].filter(Boolean)
-      )
-    );
-
     // 2. Doğrulama Kodunu Kontrol Et (Önce PostgreSQL, sonra Yerel DB)
     let otpValid = false;
 
@@ -81,18 +43,18 @@ export async function POST(request) {
       if (rawPrisma && rawPrisma.phoneOtp) {
         const pgRecords = await rawPrisma.phoneOtp.findMany({
           where: {
-            phone: { in: candidateKeys },
+            phone: email,
             usedAt: null
           },
           orderBy: { createdAt: 'desc' },
-          take: 10
+          take: 5
         });
 
         for (const rec of pgRecords) {
           const expiresAtMs = new Date(rec.expiresAt).getTime();
           // 60 saniyelik tolerans payı ile süre kontrolü
           if (Date.now() <= expiresAtMs + 60 * 1000) {
-            if (verifyOtpHash(rec.phone, code, rec.otpHash)) {
+            if (verifyOtpHash(email, code, rec.otpHash)) {
               otpValid = true;
               await rawPrisma.phoneOtp.update({
                 where: { id: rec.id },
@@ -107,18 +69,15 @@ export async function POST(request) {
       console.warn('[PostgreSQL PhoneOtp Verify Warning]', pgOtpErr.message);
     }
 
-    // B) Yerel DB Yedek Kontrolü
+    // B) Yerel DB Kontrolü
     if (!otpValid) {
-      for (const key of candidateKeys) {
-        const record = db.getLatestPhoneOtp(key);
-        if (record && !record.usedAt) {
-          const expiresAtMs = new Date(record.expiresAt).getTime();
-          if (Date.now() <= expiresAtMs + 60 * 1000) {
-            if (verifyOtpHash(key, code, record.otpHash)) {
-              otpValid = true;
-              record.usedAt = new Date().toISOString();
-              break;
-            }
+      const record = db.getLatestPhoneOtp(email);
+      if (record && !record.usedAt) {
+        const expiresAtMs = new Date(record.expiresAt).getTime();
+        if (Date.now() <= expiresAtMs + 60 * 1000) {
+          if (verifyOtpHash(email, code, record.otpHash)) {
+            otpValid = true;
+            record.usedAt = new Date().toISOString();
           }
         }
       }
@@ -135,13 +94,11 @@ export async function POST(request) {
     // A) PostgreSQL / Prisma Güncelleme
     try {
       if (rawPrisma && rawPrisma.user) {
-        const cleanLower = identifier.toLowerCase();
         const res = await rawPrisma.user.updateMany({
           where: {
             OR: [
-              { email: { equals: cleanLower, mode: 'insensitive' } },
-              { email: { equals: `${cleanLower}@sandwichdiyari.com`, mode: 'insensitive' } },
-              ...(cleanDigits.length >= 10 ? [{ phone: { contains: cleanDigits.slice(-10) } }] : [])
+              { email: { equals: email, mode: 'insensitive' } },
+              { email: { equals: `${email}@sandwichdiyari.com`, mode: 'insensitive' } }
             ]
           },
           data: {
@@ -156,7 +113,7 @@ export async function POST(request) {
     }
 
     // B) Yerel DB Güncelleme (Her iki ortamla tam senkronize)
-    const localUpdated = db.updateUserPassword(identifier, newPassword);
+    const localUpdated = db.updateUserPassword(email, newPassword);
     if (localUpdated) updated = true;
 
     if (!updated) {

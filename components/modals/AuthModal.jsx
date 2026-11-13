@@ -241,8 +241,15 @@ export default function AuthModal() {
     e.preventDefault();
     setForgotError('');
     setForgotSuccess('');
-    if (!forgotInput.trim()) {
-      setForgotError('Lütfen kayıtlı telefon numaranızı veya e-posta adresinizi giriniz.');
+    const emailToReset = forgotInput.trim().toLowerCase();
+
+    if (!emailToReset) {
+      setForgotError('Lütfen kayıtlı e-posta adresinizi giriniz.');
+      return;
+    }
+
+    if (!emailToReset.includes('@') || !emailToReset.includes('.')) {
+      setForgotError('Lütfen geçerli bir e-posta adresi giriniz (Örn: ornek@mail.com).');
       return;
     }
 
@@ -251,7 +258,7 @@ export default function AuthModal() {
       const res = await fetch('/api/auth/forgot-password', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ identifier: forgotInput.trim() })
+        body: JSON.stringify({ email: emailToReset })
       });
       const json = await res.json();
       if (!json.success) {
@@ -261,21 +268,10 @@ export default function AuthModal() {
       }
 
       setForgotResult(json.data || null);
-      if (json.data?.emailSent) {
-        setForgotStep(2);
-        setForgotSuccess(
-          `Doğrulama kodunuz ${json.data.maskedEmail || 'e-posta adresinize'} başarıyla gönderildi! Lütfen gelen kutunuzu (ve spam klasörünü) kontrol ediniz.`
-        );
-      } else if (json.data?.codeSent) {
-        setForgotStep(2);
-        setForgotSuccess(
-          json.data.smtpConfigured === false
-            ? 'Hesap doğrulandı! Sunucuda henüz Gmail/SMTP e-posta bilgisi girilmediğinden, şifrenizi WhatsApp destek butonuna basarak anında yenileyebilirsiniz.'
-            : 'Doğrulama kodunuz hazırlandı! Lütfen 6 haneli kodu ve yeni şifrenizi giriniz.'
-        );
-      } else {
-        setForgotSuccess('Talebiniz hazırlandı. Dilerseniz aşağıdaki WhatsApp butonuna tıklayarak yeni şifrenizi anında alabilirsiniz.');
-      }
+      setForgotStep(2);
+      setForgotSuccess(
+        `6 haneli doğrulama kodunuz ${emailToReset} adresine gönderildi! Lütfen gelen kutunuzu (ve spam/gereksiz kutusunu) kontrol ediniz.`
+      );
     } catch (err) {
       setForgotError('Sunucu bağlantı hatası oluştu. Lütfen tekrar deneyiniz.');
     } finally {
@@ -300,11 +296,12 @@ export default function AuthModal() {
 
     setForgotLoading(true);
     try {
+      const emailToReset = forgotInput.trim().toLowerCase();
       const res = await fetch('/api/auth/reset-password', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          identifier: forgotInput.trim(),
+          email: emailToReset,
           code: forgotCode.trim(),
           newPassword: forgotNewPass.trim()
         })
@@ -317,7 +314,7 @@ export default function AuthModal() {
       }
 
       setLoginPass(forgotNewPass.trim());
-      setLoginEmail(forgotInput.trim());
+      setLoginEmail(emailToReset);
       setIsForgotPassword(false);
       setForgotStep(1);
       setForgotCode('');
@@ -628,25 +625,35 @@ export default function AuthModal() {
                           </h3>
                           <p className="text-[11px] text-stone-500">
                             {forgotStep === 1
-                              ? 'Hesap bilgilerinizi girerek ücretsiz şifre sıfırlama talebinde bulunun.'
-                              : 'Doğrulama kodunu ve yeni şifrenizi belirleyin.'}
+                              ? 'Kayıtlı e-posta adresinizi girerek doğrulama kodu talep edin.'
+                              : 'E-postanıza iletilen doğrulama kodu ile yeni şifrenizi belirleyin.'}
                           </p>
                         </div>
                       </div>
 
                       {forgotStep === 1 ? (
-                        <form onSubmit={handleRequestPasswordReset} className="space-y-3.5">
+                        <form onSubmit={handleRequestPasswordReset} className="space-y-4">
+                          <div className="bg-amber-50/80 border border-amber-200/90 p-3.5 rounded-2xl text-xs text-amber-950 flex items-start gap-2.5">
+                            <i className="fa-solid fa-envelope-open-text text-amber-600 text-base mt-0.5 shrink-0"></i>
+                            <div>
+                              <strong className="block font-bold">E-Posta ile Güvenli Şifre Yenileme</strong>
+                              <p className="text-[11px] text-amber-900 mt-0.5 leading-relaxed">
+                                Hesabınıza kayıtlı e-posta adresinizi giriniz. 6 haneli doğrulama kodunuz anında e-postanıza iletilecektir.
+                              </p>
+                            </div>
+                          </div>
+
                           <div>
                             <label className="block text-xs font-semibold text-stone-700 mb-1.5">
-                              Kayıtlı Telefon Numarası veya E-Posta
+                              Kayıtlı E-Posta Adresiniz *
                             </label>
                             <input
-                              type="text"
+                              type="email"
                               required
                               value={forgotInput}
                               onChange={(e) => setForgotInput(e.target.value)}
                               className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:border-brand-500 text-stone-800 focus:bg-white"
-                              placeholder="Örn: 0555 123 45 67 veya ornek@mail.com"
+                              placeholder="ornek@mail.com"
                             />
                           </div>
 
@@ -664,44 +671,16 @@ export default function AuthModal() {
                             </div>
                           )}
 
-                          <div className="space-y-2 pt-1">
-                            {/* 1. Seçenek: WhatsApp ile 1 Tıkla Anında Sıfırlama (Ücretsiz) */}
-                            <a
-                              href={
-                                forgotResult?.waSupportUrl ||
-                                `https://wa.me/905538557612?text=${encodeURIComponent(
-                                  `Merhaba Sandviç Diyarı, ${forgotInput.trim() ? `[${forgotInput.trim()}] kayıtlı ` : ''}hesabımın şifresini unuttum. Yeni şifre talep ediyorum.`
-                                )}`
-                              }
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="w-full bg-emerald-600 hover:bg-emerald-700 active:scale-98 text-white font-extrabold py-3 px-4 rounded-xl text-xs sm:text-sm transition-all shadow-md shadow-emerald-600/20 flex items-center justify-center gap-2.5 cursor-pointer text-center"
-                            >
-                              <i className="fa-brands fa-whatsapp text-xl"></i>
-                              <span>WhatsApp ile Anında Şifre Al (Ücretsiz)</span>
-                            </a>
-                            <p className="text-[10px] text-stone-400 text-center">
-                              Restoran destek hattımıza tek tıkla bağlanarak şifrenizi saniyeler içinde alabilirsiniz.
-                            </p>
+                          <button
+                            type="submit"
+                            disabled={forgotLoading}
+                            className="w-full bg-stone-900 hover:bg-black disabled:bg-stone-400 text-white font-bold py-3 px-4 rounded-xl text-xs sm:text-sm transition-colors cursor-pointer flex items-center justify-center gap-2 shadow-sm"
+                          >
+                            <i className={`fa-solid ${forgotLoading ? 'fa-spinner fa-spin' : 'fa-paper-plane'}`}></i>
+                            <span>{forgotLoading ? 'Kod Gönderiliyor...' : 'Doğrulama Kodu Gönder'}</span>
+                          </button>
 
-                            <div className="relative flex py-1 items-center">
-                              <div className="flex-grow border-t border-stone-200"></div>
-                              <span className="flex-shrink mx-3 text-stone-400 text-[10px] uppercase font-bold tracking-wider">veya</span>
-                              <div className="flex-grow border-t border-stone-200"></div>
-                            </div>
-
-                            {/* 2. Seçenek: Doğrulama Kodu İste */}
-                            <button
-                              type="submit"
-                              disabled={forgotLoading}
-                              className="w-full bg-stone-900 hover:bg-black text-white font-bold py-2.5 px-4 rounded-xl text-xs sm:text-sm transition-colors cursor-pointer flex items-center justify-center gap-2"
-                            >
-                              <i className={`fa-solid ${forgotLoading ? 'fa-spinner fa-spin' : 'fa-paper-plane'}`}></i>
-                              <span>{forgotLoading ? 'Kontrol Ediliyor...' : 'Doğrulama Kodu ile Sıfırla'}</span>
-                            </button>
-                          </div>
-
-                          <div className="text-center pt-2">
+                          <div className="text-center pt-1">
                             <button
                               type="button"
                               onClick={() => {
@@ -723,7 +702,7 @@ export default function AuthModal() {
                               {forgotResult?.name ? `Sn. ${forgotResult.name},` : 'Değerli Müşterimiz,'}
                             </p>
                             <p className="text-[11px] text-amber-800 mt-0.5">
-                              Lütfen {forgotResult?.maskedPhone || 'telefonunuza'} iletilen 6 haneli kodu ve kullanmak istediğiniz yeni şifrenizi giriniz.
+                              Lütfen <strong>{forgotInput}</strong> adresinize gönderilen 6 haneli kodu ve kullanmak istediğiniz yeni şifrenizi giriniz.
                             </p>
                           </div>
 
@@ -782,7 +761,7 @@ export default function AuthModal() {
                               }}
                               className="text-xs text-stone-500 hover:text-stone-800 font-semibold cursor-pointer underline"
                             >
-                              ← Geri Dön (Farklı Numara Gir)
+                              ← Geri Dön (Farklı E-Posta Gir)
                             </button>
                           </div>
                         </form>
@@ -813,7 +792,7 @@ export default function AuthModal() {
                             type="button"
                             onClick={() => {
                               setIsForgotPassword(true);
-                              setForgotInput(loginEmail || '');
+                              setForgotInput(loginEmail && loginEmail.includes('@') ? loginEmail.trim() : '');
                               setForgotError('');
                               setForgotSuccess('');
                               setForgotStep(1);

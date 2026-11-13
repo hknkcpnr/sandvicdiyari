@@ -8,17 +8,8 @@ import {
   parseJsonBody
 } from '@/lib/security/errors';
 import { checkRateLimit } from '@/lib/security/auth';
-import { isValidTurkishPhone, toWhatsAppPhone, formatTurkishPhoneInput } from '@/lib/phoneUtils';
-import { hashOtp, sendWhatsAppCloudApiMessage } from '@/lib/security/whatsapp';
+import { hashOtp } from '@/lib/security/whatsapp';
 import { sendPasswordResetEmail } from '@/lib/email';
-
-function maskPhone(phone) {
-  const digits = String(phone || '').replace(/\D/g, '');
-  if (digits.length < 10) return phone || '';
-  const last4 = digits.slice(-4);
-  const first3 = digits.length === 12 ? digits.slice(2, 5) : digits.slice(0, 3);
-  return `0${first3} *** ** ${last4.slice(0, 2)} ${last4.slice(2)}`;
-}
 
 function maskEmail(email) {
   if (!email || !email.includes('@')) return email || '';
@@ -37,16 +28,13 @@ export async function POST(request) {
     });
 
     const body = await parseJsonBody(request);
-    const rawInput = String(body.identifier || body.phone || body.email || '').trim();
+    const rawEmail = String(body.email || body.identifier || '').trim().toLowerCase();
 
-    if (!rawInput) {
-      throw new ValidationError('Lütfen kayıtlı telefon numaranızı veya e-posta adresinizi giriniz.');
+    if (!rawEmail || !rawEmail.includes('@') || !rawEmail.includes('.')) {
+      throw new ValidationError('Lütfen geçerli bir e-posta adresi giriniz (Örn: ornek@mail.com).');
     }
 
-    const cleanDigits = rawInput.replace(/\D/g, '');
-    const cleanLower = rawInput.toLowerCase();
-
-    // 2. Kullanıcıyı PostgreSQL (Prisma) veya yerel DB'den sorgula
+    // 2. Kullanıcıyı PostgreSQL (Prisma) veya yerel DB'den sorgula (Sadece e-posta ile)
     let foundUser = null;
 
     try {
@@ -54,9 +42,8 @@ export async function POST(request) {
         const pgUser = await rawPrisma.user.findFirst({
           where: {
             OR: [
-              { email: { equals: cleanLower, mode: 'insensitive' } },
-              { email: { equals: `${cleanLower}@sandwichdiyari.com`, mode: 'insensitive' } },
-              ...(cleanDigits.length >= 10 ? [{ phone: { contains: cleanDigits.slice(-10) } }] : [])
+              { email: { equals: rawEmail, mode: 'insensitive' } },
+              { email: { equals: `${rawEmail}@sandwichdiyari.com`, mode: 'insensitive' } }
             ]
           }
         });
@@ -74,124 +61,80 @@ export async function POST(request) {
     }
 
     if (!foundUser) {
-      foundUser = db.findUserByEmail(rawInput);
+      foundUser = db.findUserByEmail(rawEmail);
     }
-
-    // 3. Destek WhatsApp Linki Hazırla (Restoran yetkilisine 1-tıkla bağlanır)
-    const displayInfo = cleanDigits.length >= 10 ? formatTurkishPhoneInput(rawInput) : rawInput;
-    const waText = encodeURIComponent(
-      `Merhaba Sandviç Diyarı, ${displayInfo} kayıtlı hesabımın şifresini unuttum. Hesabım için yeni şifre tanımlanmasını rica ediyorum.`
-    );
-    const waSupportUrl = `https://wa.me/905538557612?text=${waText}`;
 
     if (!foundUser) {
-      // Güvenlik ve kullanıcı kolaylığı: Hesap bulunamadıysa bile WhatsApp destek linkini sun
-      return jsonSuccess({
-        message: 'Girdiğiniz bilgilere ait bir kullanıcı kaydı arandı.',
-        data: {
-          userFound: false,
-          waSupportUrl,
-          supportPhone: '0553 855 76 12'
-        }
-      });
+      throw new ValidationError('Girdiğiniz e-posta adresine ait kayıtlı bir kullanıcı bulunamadı.');
     }
 
-    // 4. Kullanıcı bulundu: 6 Haneli Doğrulama Kodu Üret (OTP)
-    const userPhone = foundUser.phone || (cleanDigits.length >= 10 ? rawInput : '');
-    const normalizedPhone = userPhone ? toWhatsAppPhone(userPhone) : '';
-    const targetEmail = foundUser.email || (cleanLower.includes('@') ? cleanLower : '');
-
+    // 3. 6 Haneli Doğrulama Kodu Üret (OTP)
+    const targetEmail = (foundUser.email || rawEmail).toLowerCase();
     const otpCode = String(crypto.randomInt(100000, 999999));
-    const expiresAt = Date.now() + 30 * 60 * 1000; // 30 dakika boyunca geçerli
+    const expiresAt = Date.now() + 30 * 60 * 1000; // 30 dakika geçerli
 
-    // Kodu hem telefon hem de e-posta anahtarlarıyla kaydet (Her iki girişle de doğrulansın)
-    const candidateKeys = Array.from(
-      new Set(
-        [
-          normalizedPhone,
-          cleanDigits.length >= 10 ? cleanDigits : '',
-          targetEmail ? targetEmail.toLowerCase() : '',
-          cleanLower,
-          foundUser.email ? foundUser.email.toLowerCase() : '',
-          foundUser.phone ? foundUser.phone.replace(/\D/g, '') : ''
-        ].filter(Boolean)
-      )
-    );
+    // Hash oluştur
+    const emailHash = hashOtp(targetEmail, otpCode);
 
-    // A) PostgreSQL (Prisma) Kalıcı Saklama - Vercel Serverless ortamında kaybolmaz!
-    for (const key of candidateKeys) {
-      const currentHash = hashOtp(key, otpCode);
-
-      // Local RAM/JSON DB
-      try {
+    // Local RAM / JSON DB
+    try {
+      db.savePhoneOtp({
+        phone: targetEmail,
+        otpHash: emailHash,
+        expiresAt
+      });
+      if (rawEmail !== targetEmail) {
         db.savePhoneOtp({
-          phone: key,
-          otpHash: currentHash,
+          phone: rawEmail,
+          otpHash: hashOtp(rawEmail, otpCode),
           expiresAt
         });
-      } catch (e) {}
+      }
+    } catch (e) {}
 
-      // PostgreSQL Supabase DB
-      try {
-        if (rawPrisma && rawPrisma.phoneOtp) {
+    // PostgreSQL Supabase DB (Kalıcı Vercel Serverless)
+    try {
+      if (rawPrisma && rawPrisma.phoneOtp) {
+        await rawPrisma.phoneOtp.create({
+          data: {
+            phone: targetEmail,
+            otpHash: emailHash,
+            expiresAt: new Date(expiresAt)
+          }
+        });
+        if (rawEmail !== targetEmail) {
           await rawPrisma.phoneOtp.create({
             data: {
-              phone: key,
-              otpHash: currentHash,
+              phone: rawEmail,
+              otpHash: hashOtp(rawEmail, otpCode),
               expiresAt: new Date(expiresAt)
             }
           });
         }
-      } catch (pgErr) {
-        console.warn('[PostgreSQL PhoneOtp Save Warning]', pgErr.message);
       }
+    } catch (pgErr) {
+      console.warn('[PostgreSQL PhoneOtp Save Warning]', pgErr.message);
     }
 
-    // WhatsApp Cloud API / UltraMsg üzerinden göndermeyi dene (varsa)
-    if (normalizedPhone) {
-      try {
-        await sendWhatsAppCloudApiMessage({
-          toPhone: normalizedPhone,
-          otpCode
-        });
-      } catch (err) {}
-    }
+    // 4. E-Posta Gönderimi (Resend / SMTP)
+    const emailRes = await sendPasswordResetEmail({
+      toEmail: targetEmail,
+      userName: foundUser.name,
+      resetCode: otpCode
+    });
 
-    // 5. Gerçek E-Posta Gönderimini Dene
-    let emailSent = false;
-    let smtpConfigured = false;
-
-    if (targetEmail && targetEmail.includes('@') && !targetEmail.endsWith('@sandwichdiyari.com')) {
-      const emailRes = await sendPasswordResetEmail({
-        toEmail: targetEmail,
-        userName: foundUser.name,
-        resetCode: otpCode
-      });
-
-      if (emailRes.success) {
-        emailSent = true;
-        smtpConfigured = true;
-      } else if (emailRes.reason === 'SMTP_NOT_CONFIGURED') {
-        smtpConfigured = false;
-      }
+    if (!emailRes.success) {
+      throw new ValidationError('E-posta gönderilirken bir hata oluştu. Lütfen e-posta adresinizi kontrol edip tekrar deneyiniz.');
     }
 
     return jsonSuccess({
-      message: emailSent
-        ? 'Şifre sıfırlama kodunuz e-posta adresinize gönderildi! Lütfen gelen kutunuzu kontrol ediniz.'
-        : 'Şifre sıfırlama kodunuz hazırlandı.',
+      message: 'Şifre sıfırlama kodunuz e-posta adresinize gönderildi! Lütfen gelen kutunuzu kontrol ediniz.',
       data: {
         userFound: true,
         name: foundUser.name,
-        maskedPhone: maskPhone(foundUser.phone || userPhone),
-        maskedEmail: maskEmail(targetEmail),
-        phone: normalizedPhone,
         email: targetEmail,
-        emailSent,
-        smtpConfigured,
-        codeSent: true,
-        waSupportUrl,
-        supportPhone: '0553 855 76 12'
+        maskedEmail: maskEmail(targetEmail),
+        emailSent: true
       }
     });
   } catch (error) {
