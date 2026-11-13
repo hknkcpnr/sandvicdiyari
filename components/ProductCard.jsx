@@ -154,7 +154,7 @@ export default function ProductCard({ product }) {
             className="h-9 sm:h-10 px-3 sm:px-4 rounded-xl bg-brand-500 hover:bg-brand-600 active:scale-95 text-white font-bold text-xs sm:text-sm flex items-center gap-1.5 transition-all shadow-xs cursor-pointer shrink-0"
           >
             <i className="fa-solid fa-plus text-xs"></i>
-            <span>Ekle</span>
+            <span>Sepete Ekle</span>
           </button>
         ) : (
           <button
