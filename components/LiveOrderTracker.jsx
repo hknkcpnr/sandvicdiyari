@@ -133,6 +133,23 @@ export default function LiveOrderTracker() {
   const currentIndex = getStatusIndex(activeOrder.status);
   const isCompleted = activeOrder.status === 'Teslim Edildi';
 
+  // Kuryenin bildirdiği tahmini varış süresini (ETA) doğrudan veya statusHistory içinden al
+  const resolvedEta = (() => {
+    if (activeOrder.courierEta) return activeOrder.courierEta;
+    if (activeOrder.estimatedDeliveryTime) return activeOrder.estimatedDeliveryTime;
+    if (Array.isArray(activeOrder.statusHistory)) {
+      const etaEntries = activeOrder.statusHistory.filter(
+        (h) => h?.note && h.note.includes('Tahmini Varış Süresi:')
+      );
+      if (etaEntries.length > 0) {
+        const latest = etaEntries[etaEntries.length - 1];
+        const match = latest.note.match(/Tahmini Varış Süresi:\s*(.+?)\s*olarak güncellendi/i);
+        return match ? match[1].trim() : latest.note;
+      }
+    }
+    return '';
+  })();
+
   return (
     <>
       {/* Floating Pill on bottom-right of page */}
@@ -158,6 +175,11 @@ export default function LiveOrderTracker() {
             </div>
             <div className="text-sm font-bold text-white flex items-center gap-2">
               <span>{activeOrder.status || 'Hazırlanıyor'}</span>
+              {resolvedEta && !isCompleted && (
+                <span className="text-[11px] font-extrabold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-2 py-0.5 rounded-md">
+                  ⏱️ {resolvedEta}
+                </span>
+              )}
               <span className="text-stone-400 text-xs font-normal">| Detay</span>
             </div>
           </div>
@@ -186,6 +208,23 @@ export default function LiveOrderTracker() {
                 <i className="fa-solid fa-xmark"></i>
               </button>
             </div>
+
+            {resolvedEta && !isCompleted && (
+              <div className="bg-emerald-50 border border-emerald-200 rounded-2xl px-4 py-3 flex items-center justify-between gap-3">
+                <div className="flex items-center gap-2.5 text-emerald-900">
+                  <i className="fa-solid fa-stopwatch text-emerald-600 text-lg"></i>
+                  <div className="leading-tight">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-700 block">
+                      Kurye Tahmini Varış Süresi
+                    </span>
+                    <span className="text-sm font-black text-emerald-950">{resolvedEta}</span>
+                  </div>
+                </div>
+                <span className="text-[11px] font-bold bg-emerald-600 text-white px-2.5 py-1 rounded-lg">
+                  Yolda
+                </span>
+              </div>
+            )}
 
             {/* Stepper */}
             <div className="bg-stone-50 border border-stone-200/80 rounded-2xl p-4">

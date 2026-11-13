@@ -86,13 +86,14 @@ export async function GET(request) {
     const { searchParams } = new URL(request.url);
     const cleanEmail = String(searchParams.get('email') || '').trim().toLowerCase();
     const cleanId = String(searchParams.get('id') || '').trim();
+    const cleanOrderId = String(searchParams.get('orderId') || '').trim();
 
     const settings = await getNotificationSettings();
 
     let personalNotifications = [];
     let orderNotifications = [];
 
-    if (cleanEmail || cleanId) {
+    if (cleanEmail || cleanId || cleanOrderId) {
       // 1. Kullanıcının kişisel bildirimleri (Admin -> Üyeler veya Toplu Bildirim)
       try {
         if (rawPrisma && rawPrisma.user) {
@@ -139,7 +140,8 @@ export async function GET(request) {
               where: {
                 OR: [
                   ...(cleanEmail ? [{ userEmail: { equals: cleanEmail, mode: 'insensitive' } }] : []),
-                  ...(cleanId ? [{ userId: cleanId }] : [])
+                  ...(cleanId ? [{ userId: cleanId }] : []),
+                  ...(cleanOrderId ? [{ id: cleanOrderId }] : [])
                 ]
               },
               orderBy: { updatedAt: 'desc' },

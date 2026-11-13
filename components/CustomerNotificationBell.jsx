@@ -155,6 +155,18 @@ export default function CustomerNotificationBell() {
       if (currentUser?.email) q.set('email', currentUser.email);
       if (currentUser?.id) q.set('id', currentUser.id);
 
+      // Misafir olarak sipariş verildiyse (currentUser boş olsa bile) son siparişten takip et
+      try {
+        const lastRaw = localStorage.getItem('sd_last_order');
+        if (lastRaw) {
+          const lastOrder = JSON.parse(lastRaw);
+          if (lastOrder?.id) q.set('orderId', String(lastOrder.id));
+          if (!currentUser?.email && lastOrder?.userEmail) {
+            q.set('email', String(lastOrder.userEmail));
+          }
+        }
+      } catch (e) {}
+
       const res = await fetch(`/api/notifications?${q.toString()}`, { cache: 'no-store' });
       const json = await res.json();
       if (!json?.success || !json?.data) return;
@@ -215,11 +227,13 @@ export default function CustomerNotificationBell() {
 
     window.addEventListener('storage', handleStorage);
     window.addEventListener('focus', handleFocus);
+    window.addEventListener('sd_order_created', handleFocus);
 
     const timer = setInterval(fetchNotifications, 6000);
     return () => {
       window.removeEventListener('storage', handleStorage);
       window.removeEventListener('focus', handleFocus);
+      window.removeEventListener('sd_order_created', handleFocus);
       clearInterval(timer);
     };
   }, [fetchNotifications]);
