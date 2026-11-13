@@ -327,6 +327,18 @@ export default function AdminPage() {
                             </div>
                           )}
                         </div>
+                        {(order.notes || order.orderNote || '').includes('TELEFON İLE ARANMAK İSTİYOR') && (
+                          <div className="inline-flex items-center gap-1.5 bg-blue-100 text-blue-900 border border-blue-300 px-2.5 py-1 rounded-lg font-extrabold text-[11px]">
+                            <i className="fa-solid fa-phone-volume text-blue-600"></i>
+                            <span>Müşteri Tercihi: Telefon ile Aranmak İstiyor</span>
+                          </div>
+                        )}
+                        {(order.notes || order.orderNote || '').includes('WHATSAPP İLE ONAY') && (
+                          <div className="inline-flex items-center gap-1.5 bg-emerald-100 text-emerald-900 border border-emerald-300 px-2.5 py-1 rounded-lg font-extrabold text-[11px]">
+                            <i className="fa-brands fa-whatsapp text-emerald-600 text-xs"></i>
+                            <span>Müşteri Tercihi: WhatsApp'tan Onay</span>
+                          </div>
+                        )}
                         <p className="line-clamp-2">
                           <strong>Teslimat Adresi:</strong> {order.address}
                         </p>

@@ -20,6 +20,8 @@ export default function CheckoutModal() {
   const [address, setAddress] = useState('');
   const [notes, setNotes] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('Kapıda Nakit');
+  const [isGuestCheckout, setIsGuestCheckout] = useState(false);
+  const [confirmationMethod, setConfirmationMethod] = useState('whatsapp');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const restaurantStatus = getRestaurantStatus();
@@ -35,12 +37,14 @@ export default function CheckoutModal() {
       setPhone('');
       setAddress('');
     }
+    setIsGuestCheckout(false);
+    setConfirmationMethod('whatsapp');
   }, [currentUser, isCheckoutModalOpen]);
 
   if (!isCheckoutModalOpen) return null;
 
-  // GİRİŞ / MİSAFİR KONTROLÜ: Kullanıcı veya misafir bilgisi olmadan sipariş verilemez
-  if (!currentUser || !currentUser.email) {
+  // GİRİŞ / MİSAFİR KONTROLÜ: Kullanıcı oturum açmamışsa ve misafir moduna geçmediyse seçim sun
+  if ((!currentUser || !currentUser.email) && !isGuestCheckout) {
     return (
       <div
         id="checkout-modal"
@@ -48,29 +52,26 @@ export default function CheckoutModal() {
       >
         <div className="bg-white rounded-3xl max-w-lg w-full p-7 sm:p-9 shadow-2xl relative text-center space-y-5 animate-in fade-in zoom-in-95 duration-200">
           <div className="w-16 h-16 bg-amber-100 text-amber-600 rounded-2xl flex items-center justify-center text-3xl mx-auto border border-amber-200 shadow-inner">
-            <i className="fa-solid fa-user-lock"></i>
+            <i className="fa-solid fa-bag-shopping"></i>
           </div>
           <div className="space-y-2">
             <h3 className="text-xl sm:text-2xl font-black text-stone-900">
               Siparişe Devam Edin
             </h3>
             <p className="text-stone-500 text-xs sm:text-sm leading-relaxed">
-              Siparişinizi tamamlayabilmek için <strong>Misafir Girişi</strong> yapabilir veya mevcut hesabınızla oturum açabilirsiniz.
+              Üye olmadan <strong>Misafir Olarak Devam Et</strong> butonuna tıklayarak bilgilerinizi girebilir veya hesabınıza giriş yapabilirsiniz.
             </p>
           </div>
 
           <div className="space-y-2.5 pt-2">
-            {/* 1. Seçenek: Misafir Girişi (Hızlı) */}
+            {/* 1. Seçenek: Misafir Olarak Devam Et */}
             <button
               type="button"
-              onClick={() => {
-                dispatch(closeCheckoutModal());
-                dispatch(openAuthModal('guest'));
-              }}
+              onClick={() => setIsGuestCheckout(true)}
               className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black py-3.5 px-4 rounded-2xl shadow-lg shadow-emerald-600/25 text-xs sm:text-sm transition-all cursor-pointer flex items-center justify-center gap-2 active:scale-98"
             >
               <i className="fa-solid fa-bolt text-amber-300 text-base"></i>
-              <span>Misafir Girişi ile Hızlı Sipariş Ver</span>
+              <span>Misafir Olarak Devam Et</span>
             </button>
 
             <div className="grid grid-cols-2 gap-2.5 pt-1">
@@ -148,6 +149,11 @@ export default function CheckoutModal() {
 
     try {
       const fullAddress = `[${neighborhood}] ${address.trim()}`;
+      const isGuestMode = isGuestCheckout || Boolean(currentUser?.isGuest);
+      const cleanDigits = phone.replace(/\D/g, '');
+      const guestEmail = `misafir_${cleanDigits.slice(-10) || Date.now()}@sandwichdiyari.com`;
+      const effectiveEmail = currentUser?.email || guestEmail;
+
       const res = await fetch('/api/orders', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -162,7 +168,9 @@ export default function CheckoutModal() {
           items,
           orderNote: notes.trim(),
           notes: notes.trim(),
-          userEmail: currentUser.email,
+          userEmail: effectiveEmail,
+          isGuest: isGuestMode,
+          confirmationMethod: isGuestMode ? confirmationMethod : undefined,
           isScheduled: !restaurantStatus.isOpen,
           scheduledFor: !restaurantStatus.isOpen ? '10:00 Sabah Açılış Siparişi' : null,
         }),
@@ -210,7 +218,7 @@ export default function CheckoutModal() {
           .join('\n');
         const waMsg = encodeURIComponent(
           `🥪 *SANDVİÇ DİYARI SİPARİŞİ* (No: #${createdOrder.orderNumber || createdOrder.id})\n\n` +
-          `👤 *Üye Müşteri:* ${name.trim()} (${currentUser.email})\n` +
+          `👤 *Müşteri:* ${name.trim()} (${effectiveEmail})\n` +
           `📞 *Telefon:* ${formattedPhone}\n` +
           `📍 *Mahalle / Bölge:* ${neighborhood}\n` +
           `🏠 *Adres:* ${address.trim()}\n` +
@@ -263,11 +271,13 @@ export default function CheckoutModal() {
                   Sipariş &amp; Teslimat Bilgileri
                 </h3>
                 <span className={`border text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                  currentUser.isGuest
+                  isGuestCheckout || currentUser?.isGuest
                     ? 'bg-amber-50 text-amber-800 border-amber-300'
                     : 'bg-emerald-50 text-emerald-700 border-emerald-200'
                 }`}>
-                  {currentUser.isGuest ? `Misafir: ${currentUser.name}` : `Üye: ${currentUser.name}`}
+                  {isGuestCheckout || currentUser?.isGuest
+                    ? `Misafir Siparişi${name ? `: ${name}` : ''}`
+                    : `Üye: ${currentUser?.name}`}
                 </span>
               </div>
               <p className="text-stone-500 text-xs sm:text-sm">
@@ -291,17 +301,69 @@ export default function CheckoutModal() {
           )}
         </div>
 
-        {/* Misafir Kullanıcı WhatsApp Bilgilendirmesi */}
-        {currentUser?.isGuest && (
-          <div className="bg-emerald-50 border border-emerald-300 rounded-2xl p-3.5 text-xs text-emerald-950 flex items-start gap-2.5 shadow-2xs">
-            <i className="fa-brands fa-whatsapp text-emerald-600 text-lg mt-0.5 shrink-0"></i>
-            <div>
-              <strong className="block font-black text-emerald-900">
-                WhatsApp ile Sipariş Onayı
-              </strong>
-              <p className="text-[11px] text-emerald-800 mt-0.5 leading-relaxed font-medium">
-                ⚠️ <strong>Önemli Uyarı:</strong> Vermiş olduğunuz siparişleriniz <strong>WhatsApp üzerinden onaylanacaktır</strong>. Restoran yetkilimiz siparişinizi hazırlamadan önce WhatsApp üzerinden onayınızı alacaktır.
-              </p>
+        {/* Misafir Siparişi Onay Tercihi (Aranmak İstiyorum / WhatsApp'tan Onay) */}
+        {(isGuestCheckout || currentUser?.isGuest) && (
+          <div className="space-y-2 bg-stone-50 border border-stone-200/80 p-4 rounded-2xl">
+            <div className="flex items-center justify-between">
+              <label className="block text-xs font-extrabold text-stone-800 uppercase tracking-wide">
+                Sipariş Onay Tercihiniz <span className="text-rose-500">*</span>
+              </label>
+              <span className="text-[10px] text-stone-500 font-semibold">
+                Yönetim paneline doğrudan iletilir
+              </span>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+              <button
+                type="button"
+                onClick={() => setConfirmationMethod('phone')}
+                className={`p-3 rounded-xl border-2 text-left transition-all cursor-pointer flex items-start gap-2.5 ${
+                  confirmationMethod === 'phone'
+                    ? 'border-brand-500 bg-brand-50/90 shadow-xs'
+                    : 'border-stone-200 bg-white hover:border-stone-300'
+                }`}
+              >
+                <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 text-sm ${
+                  confirmationMethod === 'phone'
+                    ? 'bg-brand-500 text-white'
+                    : 'bg-stone-100 text-stone-500'
+                }`}>
+                  <i className="fa-solid fa-phone-volume"></i>
+                </div>
+                <div>
+                  <span className="font-extrabold text-xs text-stone-900 block">
+                    Aranmak İstiyorum
+                  </span>
+                  <span className="text-[10px] text-stone-500 leading-tight block mt-0.5">
+                    Telefon ile aranarak sipariş onayı vermek istiyorum.
+                  </span>
+                </div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setConfirmationMethod('whatsapp')}
+                className={`p-3 rounded-xl border-2 text-left transition-all cursor-pointer flex items-start gap-2.5 ${
+                  confirmationMethod === 'whatsapp'
+                    ? 'border-emerald-500 bg-emerald-50/90 shadow-xs'
+                    : 'border-stone-200 bg-white hover:border-stone-300'
+                }`}
+              >
+                <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 text-base ${
+                  confirmationMethod === 'whatsapp'
+                    ? 'bg-emerald-600 text-white'
+                    : 'bg-stone-100 text-emerald-600'
+                }`}>
+                  <i className="fa-brands fa-whatsapp"></i>
+                </div>
+                <div>
+                  <span className="font-extrabold text-xs text-stone-900 block">
+                    WhatsApp'tan Onay
+                  </span>
+                  <span className="text-[10px] text-stone-500 leading-tight block mt-0.5">
+                    WhatsApp mesajı ile siparişimi onaylamak istiyorum.
+                  </span>
+                </div>
+              </button>
             </div>
           </div>
         )}

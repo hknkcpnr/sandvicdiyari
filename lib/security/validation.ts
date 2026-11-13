@@ -166,14 +166,20 @@ export function validateAndPriceOrderPayload(
   catalogProducts: Product[],
   endpoint = '/api/orders'
 ): ValidatedOrderInput {
-  const userEmail = body.userEmail
+  const isGuest = Boolean(body.isGuest);
+  let userEmail = body.userEmail
     ? sanitizeText(body.userEmail, 191, 'E-posta', endpoint).toLowerCase()
     : null;
 
-  // STRICT MEMBERSHIP REQUIREMENT: Guests cannot place orders without logging in
+  if (!userEmail && isGuest) {
+    const rawDigits = String(body.customerPhone || body.phone || '').replace(/\D/g, '');
+    userEmail = `misafir_${rawDigits.slice(-10) || Date.now()}@sandwichdiyari.com`;
+  }
+
+  // STRICT MEMBERSHIP OR GUEST CHECKOUT REQUIREMENT
   if (!userEmail) {
     throw new AuthenticationError(
-      'Üyelik olmadan sipariş verilemez! Lütfen önce üye girişi yapın veya ücretsiz kayıt olun.'
+      'Lütfen önce üye girişi yapın veya misafir olarak devam edin.'
     );
   }
 
@@ -185,12 +191,24 @@ export function validateAndPriceOrderPayload(
     'Teslimat Adresi',
     endpoint
   );
-  const orderNote = sanitizeText(
+  const rawNote = sanitizeText(
     body.orderNote || body.notes || '',
     350,
     'Sipariş Notu',
     endpoint
   );
+  const confMethod = String(body.confirmationMethod || '').trim().toLowerCase();
+  const confTag =
+    confMethod === 'phone'
+      ? '[ONAY TERCİHİ: 📞 TELEFON İLE ARANMAK İSTİYOR]'
+      : confMethod === 'whatsapp'
+      ? '[ONAY TERCİHİ: 💬 WHATSAPP İLE ONAY]'
+      : '';
+  const orderNote = confTag
+    ? rawNote
+      ? `${confTag} ${rawNote}`.slice(0, 350)
+      : confTag
+    : rawNote;
   const paymentMethod = sanitizeText(
     body.paymentMethod || 'Kapıda Nakit',
     64,

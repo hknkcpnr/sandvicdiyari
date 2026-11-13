@@ -2321,6 +2321,18 @@ export default function AdminDashboardPage() {
                                   </a>
                                 )}
                               </div>
+                              {(order.notes || order.orderNote || '').includes('TELEFON İLE ARANMAK İSTİYOR') && (
+                                <span className="inline-flex items-center gap-1 bg-blue-100 text-blue-900 border border-blue-300 px-2 py-0.5 rounded-md font-extrabold text-[10px] mt-1 shadow-2xs">
+                                  <i className="fa-solid fa-phone-volume text-blue-600"></i>
+                                  <span>Tercih: Aranmak İstiyor</span>
+                                </span>
+                              )}
+                              {(order.notes || order.orderNote || '').includes('WHATSAPP İLE ONAY') && (
+                                <span className="inline-flex items-center gap-1 bg-emerald-100 text-emerald-900 border border-emerald-300 px-2 py-0.5 rounded-md font-extrabold text-[10px] mt-1 shadow-2xs">
+                                  <i className="fa-brands fa-whatsapp text-emerald-600"></i>
+                                  <span>Tercih: WhatsApp'tan Onay</span>
+                                </span>
+                              )}
                             </div>
                           </div>
 

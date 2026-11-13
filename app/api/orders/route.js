@@ -66,21 +66,27 @@ export async function POST(request) {
     // Server-side validation, XSS/SQLi sanitization, and authoritative price calculation
     const validatedOrder = validateAndPriceOrderPayload(body, catalogProducts, '/api/orders');
 
-    // STRICT DATABASE MEMBER CHECK: Verify that the userEmail belongs to a registered member via Prisma ORM
-    const registeredMember = await prisma.user.findUnique({
-      where: { email: validatedOrder.userEmail }
-    });
+    // ÜYE VEYA MİSAFİR KONTROLÜ
+    const isGuestOrder =
+      Boolean(body.isGuest) ||
+      (validatedOrder.userEmail && validatedOrder.userEmail.startsWith('misafir_'));
 
-    if (!registeredMember) {
-      throw new AuthenticationError(
-        'Üyelik olmadan kesinlikle sipariş verilemez! Lütfen önce üye girişi yapın veya kayıt olun.'
-      );
-    }
+    if (!isGuestOrder) {
+      const registeredMember = await prisma.user.findUnique({
+        where: { email: validatedOrder.userEmail }
+      });
 
-    const localMember = db.findUserByEmail(validatedOrder.userEmail);
-    if (registeredMember.isBlocked || localMember?.isBlocked) {
-      const reason = registeredMember.blockReason || localMember?.blockReason || 'Yönetici kısıtlaması';
-      throw new AuthenticationError(`Hesabınız engellendiği için sipariş veremezsiniz! Sebep: ${reason}`);
+      if (!registeredMember) {
+        throw new AuthenticationError(
+          'Üyelik olmadan kesinlikle sipariş verilemez! Lütfen önce üye girişi yapın veya misafir olarak devam edin.'
+        );
+      }
+
+      const localMember = db.findUserByEmail(validatedOrder.userEmail);
+      if (registeredMember.isBlocked || localMember?.isBlocked) {
+        const reason = registeredMember.blockReason || localMember?.blockReason || 'Yönetici kısıtlaması';
+        throw new AuthenticationError(`Hesabınız engellendiği için sipariş veremezsiniz! Sebep: ${reason}`);
+      }
     }
 
     const newOrder = await prisma.order.create({
