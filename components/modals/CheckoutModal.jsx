@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { closeCheckoutModal, openAuthModal, showMessageModal } from '@/store/slices/uiSlice';
 import { clearCart } from '@/store/slices/cartSlice';
-import { addOrderToUser } from '@/store/slices/authSlice';
+import { addOrderToUser, login } from '@/store/slices/authSlice';
 import { getRestaurantStatus, TORBALI_NEIGHBORHOODS, MIN_ORDER_AMOUNT } from '@/lib/openingHours';
 import { formatTurkishPhoneInput, isValidTurkishPhone } from '@/lib/phoneUtils';
 
@@ -116,8 +116,8 @@ export default function CheckoutModal() {
     if (e && e.preventDefault) e.preventDefault();
     if (items.length === 0) return;
 
-    if (!currentUser || !currentUser.email) {
-      setErrorMsg('Sipariş verebilmek için üye girişi yapmanız zorunludur.');
+    if ((!currentUser || !currentUser.email) && !isGuestCheckout) {
+      setErrorMsg('Sipariş verebilmek için üye girişi yapmanız veya misafir olarak devam etmeniz zorunludur.');
       return;
     }
 
@@ -183,6 +183,23 @@ export default function CheckoutModal() {
       }
 
       const createdOrder = json.data;
+
+      if (!currentUser && isGuestCheckout) {
+        dispatch(
+          login({
+            user: {
+              id: `guest_${Date.now()}`,
+              name: name.trim(),
+              phone: formattedPhone,
+              address: fullAddress,
+              email: effectiveEmail,
+              isGuest: true,
+              phoneVerified: true,
+              createdAt: new Date().toISOString(),
+            },
+          })
+        );
+      }
 
       try {
         localStorage.setItem('sd_new_order_alert', String(Date.now()));
