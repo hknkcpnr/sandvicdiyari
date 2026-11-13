@@ -91,6 +91,13 @@ export default function LiveOrderTracker() {
           setActiveOrder(null);
           setIsExpanded(false);
           window.dispatchEvent(new Event('sd_order_updated'));
+          dispatch(
+            showMessageModal({
+              title: 'Siparişiniz İptal Edilmiştir',
+              text: `#${current.orderNumber || current.id} numaralı siparişiniz iptal edilmiştir.`,
+              type: 'warning'
+            })
+          );
           return;
         }
         const json = await res.json();
@@ -99,6 +106,13 @@ export default function LiveOrderTracker() {
           setActiveOrder(null);
           setIsExpanded(false);
           window.dispatchEvent(new Event('sd_order_updated'));
+          dispatch(
+            showMessageModal({
+              title: 'Siparişiniz İptal Edilmiştir',
+              text: `#${current.orderNumber || current.id} numaralı siparişiniz iptal edilmiştir.`,
+              type: 'warning'
+            })
+          );
           return;
         }
         if (json.success && json.data) {

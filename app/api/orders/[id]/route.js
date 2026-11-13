@@ -478,6 +478,49 @@ export async function PATCH(request, { params }) {
   }
 }
 
+async function notifyUserOrderDeleted(orderObj) {
+  if (!orderObj) return;
+  const userEmail = String(orderObj.userEmail || '').trim().toLowerCase();
+  const userId = String(orderObj.userId || '').trim();
+  if (!userEmail && !userId) return;
+
+  const orderNo = orderObj.orderNumber || orderObj.id;
+  const notifItem = {
+    id: `ord_del_${orderObj.id}_${Date.now()}`,
+    orderId: orderObj.id,
+    title: '❌ Siparişiniz İptal Edilmiştir',
+    message: `#${orderNo} numaralı siparişiniz iptal edilmiştir.`,
+    type: 'warning',
+    scope: 'personal',
+    targetPage: 'profile_orders',
+    createdAt: new Date().toISOString()
+  };
+
+  try {
+    if (rawPrisma && rawPrisma.user) {
+      const pgUser = await rawPrisma.user.findFirst({
+        where: {
+          OR: [
+            ...(userEmail ? [{ email: { equals: userEmail, mode: 'insensitive' } }] : []),
+            ...(userId ? [{ id: userId }] : [])
+          ]
+        },
+        select: { id: true, notifications: true }
+      });
+
+      if (pgUser) {
+        const prev = Array.isArray(pgUser.notifications) ? pgUser.notifications : [];
+        await rawPrisma.user.update({
+          where: { id: pgUser.id },
+          data: { notifications: [notifItem, ...prev].slice(0, 50) }
+        });
+      }
+    }
+  } catch (err) {
+    console.warn('Order delete notification error:', err.message);
+  }
+}
+
 export async function DELETE(request, { params }) {
   try {
     const resolvedParams = await params;
@@ -555,6 +598,7 @@ export async function DELETE(request, { params }) {
         }
       }
 
+      await notifyUserOrderDeleted(pgOrder);
       await rawPrisma.order.delete({ where: { id: pgOrder.id } });
 
       try {
@@ -586,6 +630,8 @@ export async function DELETE(request, { params }) {
     if (!deletedOrder) {
       throw new NotFoundError('Silinecek sipariş bulunamadı.');
     }
+
+    await notifyUserOrderDeleted(deletedOrder);
 
     return jsonSuccess({
       message: `Sipariş #${deletedOrder.orderNumber || id} kalıcı olarak silindi.`,
