@@ -38,6 +38,14 @@ async function handleCheckSession(request) {
       });
     }
 
+    // Misafir oturumu veritabanında kayıtlı olmadığı için doğrudan geçerli say
+    if (cleanId.startsWith('guest_') || cleanEmail.startsWith('misafir_')) {
+      return jsonSuccess({
+        valid: true,
+        isGuest: true
+      });
+    }
+
     // 1. Prisma / Supabase PostgreSQL kontrolü (önce müşteri, bulunamazsa personel/yönetici)
     let dbUser = null;
     let dbAdmin = null;

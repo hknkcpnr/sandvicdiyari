@@ -72,6 +72,7 @@ export default function Home() {
         })();
 
         if (!u || (!u.email && !u.id)) return;
+        if (u.isGuest || String(u.id || '').startsWith('guest_') || String(u.email || '').startsWith('misafir_')) return;
 
         const res = await fetch(
           `/api/auth/me?email=${encodeURIComponent(u.email || '')}&id=${encodeURIComponent(u.id || '')}`
