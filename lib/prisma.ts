@@ -503,10 +503,7 @@ export const prisma = {
           orderBy: { createdAt: 'desc' }
         });
         orm.executePrepared('Order', 'SELECT', 'prisma.order.findMany({ include: { items: true, statusHistory: true } })', [], () => pgOrders.length);
-        if (pgOrders.length > 0) {
-          return pgOrders.map((o) => formatPrismaOrder(o as unknown as Record<string, unknown>));
-        }
-        return localOrders;
+        return pgOrders.map((o) => formatPrismaOrder(o as unknown as Record<string, unknown>));
       } catch {
         return localOrders;
       }
