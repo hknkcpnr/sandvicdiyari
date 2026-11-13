@@ -279,6 +279,7 @@ export async function PATCH(request, { params }) {
         const updatedPg = await rawPrisma.order.update({
           where: { id: pgOrder.id },
           data: {
+            updatedAt: new Date(),
             statusHistory: {
               create: {
                 status: pgOrder.status,

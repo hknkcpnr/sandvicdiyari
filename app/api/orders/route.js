@@ -13,18 +13,27 @@ import {
   validateAndPriceOrderPayload
 } from '@/lib/security/validation';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(request) {
   try {
     const { searchParams } = new URL(request.url);
     const status = searchParams.get('status');
     const phone = searchParams.get('phone');
     const orderNo = searchParams.get('orderNo');
+    const userEmail = searchParams.get('userEmail');
 
     if (status) assertNoSqlInjection(status, 'status', '/api/orders');
     if (phone) assertNoSqlInjection(phone, 'phone', '/api/orders');
     if (orderNo) assertNoSqlInjection(orderNo, 'orderNo', '/api/orders');
+    if (userEmail) assertNoSqlInjection(userEmail, 'userEmail', '/api/orders');
 
     let orders = await prisma.order.findMany();
+
+    if (userEmail) {
+      const cleanUserEmail = userEmail.trim().toLowerCase();
+      orders = orders.filter(o => String(o.userEmail || '').trim().toLowerCase() === cleanUserEmail);
+    }
 
     if (status) {
       orders = orders.filter(o => o.status.toLowerCase() === status.toLowerCase());

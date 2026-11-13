@@ -15,6 +15,8 @@ export default function ProfileModal() {
   const [activeTab, setActiveTab] = useState('orders'); // 'orders' | 'notifications'
   const [notifications, setNotifications] = useState([]);
   const [loadingNotifs, setLoadingNotifs] = useState(false);
+  const [liveOrders, setLiveOrders] = useState(null);
+  const [loadingOrders, setLoadingOrders] = useState(false);
 
   useEffect(() => {
     if (!isProfileModalOpen || !currentUser) return;
@@ -36,7 +38,33 @@ export default function ProfileModal() {
       }
     };
 
+    const loadUserOrders = async (isInitial = false) => {
+      if (!currentUser.email) return;
+      if (isInitial) setLoadingOrders(true);
+      try {
+        const res = await fetch(
+          `/api/orders?userEmail=${encodeURIComponent(currentUser.email)}`,
+          { cache: 'no-store' }
+        );
+        const json = await res.json();
+        if (json?.success && Array.isArray(json.data)) {
+          setLiveOrders(json.data);
+        }
+      } catch (e) {
+      } finally {
+        if (isInitial) setLoadingOrders(false);
+      }
+    };
+
     loadUserNotifs();
+    loadUserOrders(true);
+
+    const timer = setInterval(() => {
+      loadUserNotifs();
+      loadUserOrders(false);
+    }, 5000);
+
+    return () => clearInterval(timer);
   }, [isProfileModalOpen, currentUser]);
 
   if (!isProfileModalOpen || !currentUser) return null;
@@ -217,49 +245,83 @@ export default function ProfileModal() {
                 Geçmiş Siparişlerim
               </h4>
               <div id="profile-orders-list" className="space-y-3">
-                {currentUser.orders && currentUser.orders.length > 0 ? (
-                  currentUser.orders.map((order, idx) => (
-                    <div
-                      key={order.id || idx}
-                      className="bg-stone-50 border border-stone-200 rounded-2xl p-4 flex justify-between items-center text-xs"
-                    >
-                      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 w-full">
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center gap-2">
-                            <span className="font-bold text-stone-900 block">
-                              Sipariş No: {order.orderNumber || order.id}
-                            </span>
-                            <span className="bg-green-100 text-green-700 font-semibold px-2 py-0.5 rounded-full text-[10px]">
-                              {order.status || 'Teslim Edildi'}
-                            </span>
-                          </div>
-                          {typeof order.items === 'string' && (
-                            <span className="text-stone-500 block mt-0.5 line-clamp-2">{order.items}</span>
-                          )}
-                          <span className="text-stone-400 block mt-1">{order.date || ''}</span>
-                        </div>
+                {loadingOrders && liveOrders === null ? (
+                  <div className="py-6 text-center text-stone-400 text-xs">
+                    <i className="fa-solid fa-spinner fa-spin mr-1.5"></i> Siparişleriniz güncelleniyor...
+                  </div>
+                ) : (() => {
+                  const ordersToDisplay = Array.isArray(liveOrders)
+                    ? liveOrders
+                    : Array.isArray(currentUser.orders)
+                    ? currentUser.orders
+                    : [];
 
-                        <div className="flex sm:flex-col items-center sm:items-end justify-between w-full sm:w-auto gap-2 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-stone-200">
-                          <span className="font-extrabold text-brand-600 text-sm block">
-                            ₺{order.total ? Number(order.total).toFixed(2) : '0.00'}
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() => handleReorder(order)}
-                            className="bg-brand-50 hover:bg-brand-100 text-brand-700 border border-brand-200 text-[11px] font-bold px-3 py-1.5 rounded-xl transition-all flex items-center gap-1.5 cursor-pointer active:scale-95 shadow-xs"
-                          >
-                            <i className="fa-solid fa-rotate-right text-[10px]"></i>
-                            <span>Tekrar Sipariş Ver</span>
-                          </button>
+                  if (ordersToDisplay.length === 0) {
+                    return (
+                      <p className="text-stone-400 text-xs italic py-2">
+                        Henüz geçmiş siparişiniz bulunmuyor.
+                      </p>
+                    );
+                  }
+
+                  return ordersToDisplay.map((order, idx) => {
+                    const itemsSummary = Array.isArray(order.items)
+                      ? order.items.map((i) => `${i.quantity || 1}x ${i.name}`).join(', ')
+                      : typeof order.items === 'string'
+                      ? order.items
+                      : '';
+                    const isCompleted = order.status === 'Teslim Edildi' || order.status === 'İptal Edildi';
+                    return (
+                      <div
+                        key={order.id || idx}
+                        className="bg-stone-50 border border-stone-200 rounded-2xl p-4 flex justify-between items-center text-xs"
+                      >
+                        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 w-full">
+                          <div className="min-w-0 flex-1">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span className="font-bold text-stone-900 block">
+                                Sipariş No: {order.orderNumber || order.id}
+                              </span>
+                              <span className={`font-semibold px-2 py-0.5 rounded-full text-[10px] ${
+                                order.status === 'İptal Edildi'
+                                  ? 'bg-rose-100 text-rose-700'
+                                  : order.status === 'Teslim Edildi'
+                                  ? 'bg-green-100 text-green-700'
+                                  : 'bg-amber-100 text-amber-800'
+                              }`}>
+                                {order.status || 'Yeni'}
+                              </span>
+                              {order.courierEta && !isCompleted && (
+                                <span className="inline-flex items-center gap-1 bg-emerald-100 text-emerald-800 border border-emerald-200 font-bold px-2 py-0.5 rounded-full text-[10px]">
+                                  <i className="fa-solid fa-stopwatch text-emerald-600"></i>
+                                  Tahmini Varış: {order.courierEta}
+                                </span>
+                              )}
+                            </div>
+                            {itemsSummary && (
+                              <span className="text-stone-500 block mt-0.5 line-clamp-2">{itemsSummary}</span>
+                            )}
+                            <span className="text-stone-400 block mt-1">{order.date || ''}</span>
+                          </div>
+
+                          <div className="flex sm:flex-col items-center sm:items-end justify-between w-full sm:w-auto gap-2 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-stone-200">
+                            <span className="font-extrabold text-brand-600 text-sm block">
+                              ₺{order.total ? Number(order.total).toFixed(2) : '0.00'}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => handleReorder(order)}
+                              className="bg-brand-50 hover:bg-brand-100 text-brand-700 border border-brand-200 text-[11px] font-bold px-3 py-1.5 rounded-xl transition-all flex items-center gap-1.5 cursor-pointer active:scale-95 shadow-xs"
+                            >
+                              <i className="fa-solid fa-rotate-right text-[10px]"></i>
+                              <span>Tekrar Sipariş Ver</span>
+                            </button>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))
-                ) : (
-                  <p className="text-stone-400 text-xs italic py-2">
-                    Henüz geçmiş siparişiniz bulunmuyor.
-                  </p>
-                )}
+                    );
+                  });
+                })()}
               </div>
             </div>
           </>

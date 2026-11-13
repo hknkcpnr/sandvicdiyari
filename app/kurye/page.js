@@ -130,7 +130,7 @@ export default function CourierPortalPage() {
   const fetchOrders = useCallback(async (isInitial = false) => {
     if (isInitial) setLoading(true);
     try {
-      const res = await fetch('/api/orders');
+      const res = await fetch('/api/orders', { cache: 'no-store' });
       const json = await res.json();
       if (json.success && Array.isArray(json.data)) {
         setOrders(json.data);
@@ -147,14 +147,19 @@ export default function CourierPortalPage() {
     }
   }, [playAlertSound]);
 
-  // Auto-refresh orders every 10 seconds while logged in
+  // Auto-refresh orders every 5 seconds & on window focus while logged in
   useEffect(() => {
     if (!courierUser) return;
     fetchOrders(true);
+    const handleFocus = () => fetchOrders(false);
+    window.addEventListener('focus', handleFocus);
     const interval = setInterval(() => {
       fetchOrders(false);
-    }, 10000);
-    return () => clearInterval(interval);
+    }, 5000);
+    return () => {
+      window.removeEventListener('focus', handleFocus);
+      clearInterval(interval);
+    };
   }, [courierUser, fetchOrders]);
 
   // Handle Courier Login

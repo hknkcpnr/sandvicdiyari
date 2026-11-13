@@ -228,12 +228,14 @@ export default function CustomerNotificationBell() {
     window.addEventListener('storage', handleStorage);
     window.addEventListener('focus', handleFocus);
     window.addEventListener('sd_order_created', handleFocus);
+    window.addEventListener('sd_order_updated', handleFocus);
 
-    const timer = setInterval(fetchNotifications, 6000);
+    const timer = setInterval(fetchNotifications, 5000);
     return () => {
       window.removeEventListener('storage', handleStorage);
       window.removeEventListener('focus', handleFocus);
       window.removeEventListener('sd_order_created', handleFocus);
+      window.removeEventListener('sd_order_updated', handleFocus);
       clearInterval(timer);
     };
   }, [fetchNotifications]);

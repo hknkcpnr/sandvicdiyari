@@ -86,11 +86,26 @@ export default function LiveOrderTracker() {
     if (current && current.id && current.status !== 'Teslim Edildi' && current.status !== 'İptal Edildi') {
       try {
         const res = await fetch(`/api/orders/${current.id}`, { cache: 'no-store' });
+        if (res.status === 404) {
+          localStorage.removeItem('sd_last_order');
+          setActiveOrder(null);
+          setIsExpanded(false);
+          window.dispatchEvent(new Event('sd_order_updated'));
+          return;
+        }
         const json = await res.json();
+        if (json?.success === false) {
+          localStorage.removeItem('sd_last_order');
+          setActiveOrder(null);
+          setIsExpanded(false);
+          window.dispatchEvent(new Event('sd_order_updated'));
+          return;
+        }
         if (json.success && json.data) {
           setActiveOrder(json.data);
           localStorage.setItem('sd_last_order', JSON.stringify(json.data));
           clearGuestSessionIfDelivered(json.data);
+          window.dispatchEvent(new Event('sd_order_updated'));
         }
       } catch (e) {}
     }
