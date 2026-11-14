@@ -453,10 +453,6 @@ export default function AdminDashboardPage() {
           );
           if (brandNewOrder) {
             playSoundAlert();
-            showToast(
-              `🔔 Yeni Sipariş Geldi! #${brandNewOrder.orderNumber || brandNewOrder.id} (${brandNewOrder.customerName || 'Müşteri'})`,
-              'success'
-            );
           }
         } else {
           ordersInitializedRef.current = true;
