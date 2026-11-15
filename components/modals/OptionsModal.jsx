@@ -214,11 +214,11 @@ export default function OptionsModal() {
       onClick={(e) => {
         if (e.target === e.currentTarget) dispatch(closeOptionsModal());
       }}
-      className="fixed inset-0 z-50 flex items-center justify-center p-2.5 sm:p-5 bg-stone-900/65 backdrop-blur-xs animate-in fade-in duration-200"
+      className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-stone-900/65 backdrop-blur-xs animate-in fade-in duration-200"
     >
-      <div className="bg-white rounded-3xl max-w-2xl w-full shadow-2xl overflow-hidden flex flex-col max-h-[92vh]">
+      <div className="bg-white rounded-3xl max-w-[680px] w-full shadow-2xl overflow-hidden flex flex-col">
         {/* Üst Büyük Ürün Görseli ve Başlık Alanı */}
-        <div className="relative h-48 sm:h-60 w-full bg-stone-900 shrink-0 overflow-hidden">
+        <div className="relative h-36 sm:h-44 w-full bg-stone-900 shrink-0 overflow-hidden">
           <img
             id="opt-modal-img"
             src={selectedProductForOptions.image}
@@ -235,39 +235,39 @@ export default function OptionsModal() {
           <button
             type="button"
             onClick={() => dispatch(closeOptionsModal())}
-            className="absolute top-3.5 right-3.5 w-9 h-9 rounded-full bg-white/90 hover:bg-white text-stone-800 flex items-center justify-center shadow-md cursor-pointer transition-transform active:scale-95"
+            className="absolute top-3 right-3 w-8 h-8 rounded-full bg-white/90 hover:bg-white text-stone-800 flex items-center justify-center shadow-md cursor-pointer transition-transform active:scale-95"
             title="Kapat"
           >
-            <i className="fa-solid fa-xmark text-base"></i>
+            <i className="fa-solid fa-xmark text-sm"></i>
           </button>
 
           {selectedProductForOptions.badge && (
-            <span className="absolute top-3.5 left-3.5 bg-brand-500 text-white text-[10px] font-extrabold uppercase tracking-wider px-3 py-1 rounded-full shadow-sm">
+            <span className="absolute top-3 left-3 bg-brand-500 text-white text-[10px] font-extrabold uppercase tracking-wider px-2.5 py-0.5 rounded-full shadow-sm">
               {selectedProductForOptions.badge}
             </span>
           )}
 
           {/* Görsel Üzeri Alt Bilgi: Ürün Adı & Fiyat */}
-          <div className="absolute bottom-0 inset-x-0 p-4 sm:p-5 flex items-end justify-between gap-3 text-left">
+          <div className="absolute bottom-0 inset-x-0 p-3.5 sm:px-5 flex items-end justify-between gap-3 text-left">
             <div className="min-w-0">
               <h4
                 id="opt-modal-title"
-                className="font-extrabold text-lg sm:text-2xl text-white leading-tight drop-shadow-xs truncate"
+                className="font-extrabold text-base sm:text-xl text-white leading-tight drop-shadow-xs truncate"
               >
                 {selectedProductForOptions.name}
               </h4>
               {(selectedProductForOptions.description || selectedProductForOptions.desc) && (
-                <p className="text-stone-300 text-xs mt-1 line-clamp-1">
+                <p className="text-stone-300 text-[11px] mt-0.5 line-clamp-1">
                   {selectedProductForOptions.description || selectedProductForOptions.desc}
                 </p>
               )}
             </div>
-            <div className="text-right shrink-0 bg-white/95 backdrop-blur-xs px-3.5 py-1.5 rounded-2xl shadow-sm">
-              <span id="opt-modal-price" className="text-base sm:text-lg font-black text-brand-600 block leading-none">
+            <div className="text-right shrink-0 bg-white/95 backdrop-blur-xs px-3 py-1 rounded-xl shadow-sm">
+              <span id="opt-modal-price" className="text-sm sm:text-base font-black text-brand-600 block leading-none">
                 ₺{currentTotalPrice.toFixed(2)}
               </span>
               {(extrasCost > 0 || extraSauceCost > 0) && (
-                <span className="text-[10px] font-semibold text-stone-400 block mt-0.5">
+                <span className="text-[9px] font-semibold text-stone-400 block mt-0.5">
                   Baz: ₺{Number(selectedProductForOptions.price).toFixed(2)}
                 </span>
               )}
@@ -275,21 +275,21 @@ export default function OptionsModal() {
           </div>
         </div>
 
-        {/* Kaydırılabilir Düzenli Seçenekler Alanı */}
-        <div className="p-4 sm:p-6 space-y-4 overflow-y-auto text-left flex-1">
+        {/* Tek Ekrana Sığan Düzenli Seçenekler Alanı (Scrollsuz) */}
+        <div className="p-3.5 sm:p-4 space-y-2.5 text-left">
           {/* 1. Ürün İçeriği (Çıkarılabilir Etiketler) */}
           {productIngredients.length > 0 && (
-            <div className="bg-stone-50/80 border border-stone-200/80 rounded-2xl p-3.5 space-y-2.5">
-              <div className="flex flex-wrap items-center justify-between gap-1.5">
-                <span className="text-xs font-extrabold text-stone-800 uppercase flex items-center gap-1.5">
+            <div className="bg-stone-50/80 border border-stone-200/80 rounded-2xl p-2.5 sm:px-3.5 space-y-1.5">
+              <div className="flex flex-wrap items-center justify-between gap-1">
+                <span className="text-[11px] font-extrabold text-stone-800 uppercase flex items-center gap-1.5">
                   <i className="fa-solid fa-layer-group text-brand-500"></i>
                   Ürün İçeriği
                 </span>
-                <span className="text-[11px] font-medium text-stone-500">
-                  İstemediğiniz malzemeye dokunup çıkarabilirsiniz
+                <span className="text-[10px] font-medium text-stone-400">
+                  Çıkarmak istediğiniz malzemeye dokunun
                 </span>
               </div>
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap gap-1.5">
                 {productIngredients.map((ing) => {
                   const isRemoved = removedIngredients.includes(ing);
                   return (
@@ -297,23 +297,23 @@ export default function OptionsModal() {
                       key={ing}
                       type="button"
                       onClick={() => handleToggleIngredient(ing)}
-                      className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all cursor-pointer ${
+                      className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-semibold border transition-all cursor-pointer ${
                         isRemoved
                           ? 'bg-rose-50 border-rose-200 text-rose-600 line-through opacity-80 hover:opacity-100'
-                          : 'bg-white border-stone-200 text-stone-800 hover:border-rose-300 hover:bg-rose-50/40 shadow-2xs'
+                          : 'bg-white border-stone-200 text-stone-800 hover:border-rose-300 hover:bg-rose-50/40'
                       }`}
                       title={isRemoved ? 'Tekrar eklemek için tıklayın' : 'Çıkarmak için tıklayın'}
                     >
                       <i
                         className={`fa-solid ${
                           isRemoved
-                            ? 'fa-rotate-left text-[10px] text-rose-500'
-                            : 'fa-check text-[10px] text-emerald-600'
+                            ? 'fa-rotate-left text-[9px] text-rose-500'
+                            : 'fa-check text-[9px] text-emerald-600'
                         }`}
                       ></i>
                       <span>{ing}</span>
                       {!isRemoved && (
-                        <i className="fa-solid fa-xmark text-[10px] text-stone-400 ml-0.5"></i>
+                        <i className="fa-solid fa-xmark text-[9px] text-stone-400 ml-0.5"></i>
                       )}
                     </button>
                   );
@@ -323,9 +323,9 @@ export default function OptionsModal() {
           )}
 
           {/* 2. Sos Seçimleri & Adetleri */}
-          <div className="bg-stone-50/80 border border-stone-200/80 rounded-2xl p-3.5 space-y-2.5">
-            <div className="flex flex-wrap items-center justify-between gap-1.5">
-              <span className="text-xs font-extrabold text-stone-800 uppercase flex items-center gap-1.5">
+          <div className="bg-stone-50/80 border border-stone-200/80 rounded-2xl p-2.5 sm:px-3.5 space-y-1.5">
+            <div className="flex flex-wrap items-center justify-between gap-1">
+              <span className="text-[11px] font-extrabold text-stone-800 uppercase flex items-center gap-1.5">
                 <i className="fa-solid fa-bottle-droplet text-amber-500"></i>
                 Sos Seçimleri
               </span>
@@ -341,13 +341,13 @@ export default function OptionsModal() {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2" id="sauces-container">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5" id="sauces-container">
               {!optionsLoaded ? (
-                <div className="col-span-full text-center py-3 text-xs text-stone-400 bg-white rounded-xl border border-dashed border-stone-200">
+                <div className="col-span-full text-center py-2 text-xs text-stone-400 bg-white rounded-xl border border-dashed border-stone-200">
                   Soslar yükleniyor...
                 </div>
               ) : availableSauces.length === 0 ? (
-                <div className="col-span-full text-center py-3 text-xs text-stone-400 bg-white rounded-xl border border-dashed border-stone-200">
+                <div className="col-span-full text-center py-2 text-xs text-stone-400 bg-white rounded-xl border border-dashed border-stone-200">
                   Şu an için seçilebilir sos bulunmuyor.
                 </div>
               ) : (
@@ -358,20 +358,20 @@ export default function OptionsModal() {
                   return (
                     <div
                       key={sKey}
-                      className={`flex items-center justify-between px-3 py-2 rounded-xl border transition-all ${
+                      className={`flex items-center justify-between px-2.5 py-1.5 rounded-xl border transition-all ${
                         count > 0
                           ? 'bg-amber-50/60 border-amber-300'
                           : 'bg-white border-stone-200'
                       }`}
                     >
-                      <span className="text-xs font-semibold text-stone-800 truncate pr-1.5" title={label}>
+                      <span className="text-xs font-semibold text-stone-800 truncate pr-1" title={label}>
                         {label}
                       </span>
-                      <div className="flex items-center gap-1.5 shrink-0">
+                      <div className="flex items-center gap-1 shrink-0">
                         <button
                           type="button"
                           onClick={() => dispatch(adjustSauceCount({ sauceKey: sKey, delta: -1 }))}
-                          className="w-6 h-6 bg-stone-100 hover:bg-stone-200 rounded-lg flex items-center justify-center text-xs font-bold text-stone-700 transition-colors cursor-pointer"
+                          className="w-5 h-5 bg-stone-100 hover:bg-stone-200 rounded-md flex items-center justify-center text-xs font-bold text-stone-700 transition-colors cursor-pointer"
                         >
                           -
                         </button>
@@ -381,7 +381,7 @@ export default function OptionsModal() {
                         <button
                           type="button"
                           onClick={() => dispatch(adjustSauceCount({ sauceKey: sKey, delta: 1 }))}
-                          className="w-6 h-6 bg-stone-100 hover:bg-stone-200 rounded-lg flex items-center justify-center text-xs font-bold text-stone-700 transition-colors cursor-pointer"
+                          className="w-5 h-5 bg-stone-100 hover:bg-stone-200 rounded-md flex items-center justify-center text-xs font-bold text-stone-700 transition-colors cursor-pointer"
                         >
                           +
                         </button>
@@ -394,9 +394,9 @@ export default function OptionsModal() {
           </div>
 
           {/* 3. Ekstra Malzemeler (Ücretli) */}
-          <div className="bg-stone-50/80 border border-stone-200/80 rounded-2xl p-3.5 space-y-2.5">
+          <div className="bg-stone-50/80 border border-stone-200/80 rounded-2xl p-2.5 sm:px-3.5 space-y-1.5">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-extrabold text-stone-800 uppercase flex items-center gap-1.5">
+              <span className="text-[11px] font-extrabold text-stone-800 uppercase flex items-center gap-1.5">
                 <i className="fa-solid fa-cheese text-orange-500"></i>
                 Ekstra Lezzetler
               </span>
@@ -405,13 +405,13 @@ export default function OptionsModal() {
               </span>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2" id="extras-container">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5" id="extras-container">
               {!optionsLoaded ? (
-                <div className="col-span-full text-center py-3 text-xs text-stone-400 bg-white rounded-xl border border-dashed border-stone-200">
+                <div className="col-span-full text-center py-2 text-xs text-stone-400 bg-white rounded-xl border border-dashed border-stone-200">
                   Ekstralar yükleniyor...
                 </div>
               ) : availableExtras.length === 0 ? (
-                <div className="col-span-full text-center py-3 text-xs text-stone-400 bg-white rounded-xl border border-dashed border-stone-200">
+                <div className="col-span-full text-center py-2 text-xs text-stone-400 bg-white rounded-xl border border-dashed border-stone-200">
                   Şu an için seçilebilir ekstra malzeme bulunmuyor.
                 </div>
               ) : (
@@ -420,13 +420,13 @@ export default function OptionsModal() {
                   return (
                     <label
                       key={extraKey}
-                      className={`flex items-center justify-between px-3 py-2.5 rounded-xl border transition-all text-xs font-medium cursor-pointer ${
+                      className={`flex items-center justify-between px-2.5 py-1.5 rounded-xl border transition-all text-xs font-medium cursor-pointer ${
                         extra.checked
                           ? 'border-brand-500 bg-brand-50/60 text-brand-900 font-bold'
                           : 'border-stone-200 bg-white text-stone-700 hover:border-stone-300'
                       }`}
                     >
-                      <div className="flex items-center gap-2 min-w-0">
+                      <div className="flex items-center gap-1.5 min-w-0">
                         <input
                           type="checkbox"
                           checked={!!extra.checked}
@@ -452,17 +452,17 @@ export default function OptionsModal() {
           </div>
 
           {/* 4. Menü İçecek Seçimi & Sipariş Notu */}
-          <div className={`grid grid-cols-1 ${isMenu ? 'sm:grid-cols-2' : ''} gap-3`}>
+          <div className={`grid grid-cols-1 ${isMenu ? 'sm:grid-cols-2' : ''} gap-2`}>
             {isMenu && (
-              <div className="bg-stone-50/80 border border-stone-200/80 rounded-2xl p-3.5">
-                <label className="block text-xs font-extrabold text-stone-800 uppercase mb-1.5 flex items-center gap-1.5">
+              <div className="bg-stone-50/80 border border-stone-200/80 rounded-2xl p-2.5 sm:px-3.5">
+                <label className="block text-[11px] font-extrabold text-stone-800 uppercase mb-1 flex items-center gap-1.5">
                   <i className="fa-solid fa-cup-straw text-brand-500"></i>
                   Menü İçeceği (Dahil)
                 </label>
                 <select
                   value={selectedDrink}
                   onChange={(e) => setSelectedDrink(e.target.value)}
-                  className="app-select w-full bg-white border border-stone-200 hover:border-brand-400 rounded-xl px-3.5 py-2.5 text-xs text-stone-900 focus:outline-none focus:border-brand-500 font-bold cursor-pointer transition-all"
+                  className="app-select w-full bg-white border border-stone-200 hover:border-brand-400 rounded-xl px-3 py-1.5 text-xs text-stone-900 focus:outline-none focus:border-brand-500 font-bold cursor-pointer transition-all"
                 >
                   {drinkOptions.map((dr) => (
                     <option key={dr} value={dr}>
@@ -473,8 +473,8 @@ export default function OptionsModal() {
               </div>
             )}
 
-            <div className="bg-stone-50/80 border border-stone-200/80 rounded-2xl p-3.5">
-              <label className="block text-xs font-extrabold text-stone-800 uppercase mb-1.5 flex items-center gap-1.5">
+            <div className="bg-stone-50/80 border border-stone-200/80 rounded-2xl p-2.5 sm:px-3.5">
+              <label className="block text-[11px] font-extrabold text-stone-800 uppercase mb-1 flex items-center gap-1.5">
                 <i className="fa-solid fa-pen text-stone-400"></i>
                 Sipariş Notu / Özel İstek
               </label>
@@ -483,33 +483,33 @@ export default function OptionsModal() {
                 id="opt-note"
                 value={note}
                 onChange={(e) => setNote(e.target.value)}
-                className="w-full bg-white border border-stone-200 rounded-xl px-3.5 py-2.5 text-xs focus:outline-none focus:border-brand-500 font-medium text-stone-800"
+                className="w-full bg-white border border-stone-200 rounded-xl px-3 py-1.5 text-xs focus:outline-none focus:border-brand-500 font-medium text-stone-800"
                 placeholder="Örn: Ekmeği bol kızarmış olsun..."
               />
             </div>
           </div>
-        </div>
 
-        {/* Alt Sabit Sepete Ekle Butonu */}
-        <div className="p-4 sm:px-6 bg-white border-t border-stone-100 shrink-0">
-          {selectedProductForOptions.isAvailable !== false ? (
-            <button
-              type="button"
-              onClick={handleConfirm}
-              className="w-full bg-brand-500 hover:bg-brand-600 text-white font-black py-3.5 rounded-2xl shadow-lg shadow-brand-500/25 text-sm transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-95"
-            >
-              <i className="fa-solid fa-bag-shopping"></i>
-              <span>Sepete Ekle &bull; ₺{currentTotalPrice.toFixed(2)}</span>
-            </button>
-          ) : (
-            <button
-              type="button"
-              disabled
-              className="w-full bg-stone-300 text-stone-600 font-bold py-3.5 rounded-2xl text-sm flex items-center justify-center gap-2 cursor-not-allowed opacity-80"
-            >
-              <i className="fa-solid fa-ban text-rose-500"></i> Bu Ürün Tükendi
-            </button>
-          )}
+          {/* Alt Sepete Ekle Butonu */}
+          <div className="pt-1">
+            {selectedProductForOptions.isAvailable !== false ? (
+              <button
+                type="button"
+                onClick={handleConfirm}
+                className="w-full bg-brand-500 hover:bg-brand-600 text-white font-black py-3 rounded-2xl shadow-lg shadow-brand-500/25 text-sm transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-95"
+              >
+                <i className="fa-solid fa-bag-shopping"></i>
+                <span>Sepete Ekle &bull; ₺{currentTotalPrice.toFixed(2)}</span>
+              </button>
+            ) : (
+              <button
+                type="button"
+                disabled
+                className="w-full bg-stone-300 text-stone-600 font-bold py-3 rounded-2xl text-sm flex items-center justify-center gap-2 cursor-not-allowed opacity-80"
+              >
+                <i className="fa-solid fa-ban text-rose-500"></i> Bu Ürün Tükendi
+              </button>
+            )}
+          </div>
         </div>
       </div>
     </div>
