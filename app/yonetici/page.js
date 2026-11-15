@@ -31,19 +31,23 @@ export default function YoneticiPage() {
   const [loginError, setLoginError] = useState('');
   const [loginLoading, setLoginLoading] = useState(false);
 
-  const [activeTab, setActiveTab] = useState('finance'); // 'finance' | 'users' | 'site_content' | 'settings'
+  const [activeTab, setActiveTab] = useState('overview'); // 'overview' | 'finance' | 'users' | 'site_content' | 'settings'
   const [selectedSettingsSubTab, setSelectedSettingsSubTab] = useState('appearance');
   const [settingsExpanded, setSettingsExpanded] = useState(true);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [toast, setToast] = useState(null);
 
-  // Finance states
+  // Finance & Overview states
   const [orders, setOrders] = useState([]);
   const [transactions, setTransactions] = useState([]);
+  const [staffUsers, setStaffUsers] = useState([]);
   const [loadingFinance, setLoadingFinance] = useState(false);
   const [dateFilter, setDateFilter] = useState('today'); // 'today' | 'week' | 'month' | 'all'
   const [typeFilter, setTypeFilter] = useState('all'); // 'all' | 'in' | 'out'
+  const [chartPeriod, setChartPeriod] = useState('daily'); // 'daily' | 'weekly' | 'monthly'
+  const [chartMetric, setChartMetric] = useState('count'); // 'count' | 'revenue'
+  const [hoveredBar, setHoveredBar] = useState(null);
 
   // New transaction form
   const [txType, setTxType] = useState('out');
@@ -86,17 +90,22 @@ export default function YoneticiPage() {
   const fetchFinanceData = async () => {
     setLoadingFinance(true);
     try {
-      const [ordersRes, finRes] = await Promise.all([
+      const [ordersRes, finRes, usersRes] = await Promise.all([
         fetch('/api/orders', { cache: 'no-store' }),
-        fetch('/api/finance', { cache: 'no-store' })
+        fetch('/api/finance', { cache: 'no-store' }),
+        fetch('/api/admin/users', { cache: 'no-store' })
       ]);
       const ordersJson = await ordersRes.json();
       const finJson = await finRes.json();
+      const usersJson = await usersRes.json();
       if (ordersJson.success && Array.isArray(ordersJson.data)) {
         setOrders(ordersJson.data);
       }
       if (finJson.success && Array.isArray(finJson.data)) {
         setTransactions(finJson.data);
+      }
+      if (usersJson.success && Array.isArray(usersJson.data?.adminUsers)) {
+        setStaffUsers(usersJson.data.adminUsers);
       }
     } catch (e) {
       console.error('Finans verileri alınamadı:', e);
@@ -106,9 +115,10 @@ export default function YoneticiPage() {
   };
 
   useEffect(() => {
-    if (adminUser) {
-      fetchFinanceData();
-    }
+    if (!adminUser) return;
+    fetchFinanceData();
+    const timer = setInterval(fetchFinanceData, 15000);
+    return () => clearInterval(timer);
   }, [adminUser]);
 
   const handleLogin = async (e) => {
@@ -265,6 +275,177 @@ export default function YoneticiPage() {
     };
   }, [orders, transactions, dateFilter, typeFilter]);
 
+  const overviewData = useMemo(() => {
+    const now = new Date();
+    const toLocalDateStr = (d) => {
+      const yr = d.getFullYear();
+      const mo = String(d.getMonth() + 1).padStart(2, '0');
+      const da = String(d.getDate()).padStart(2, '0');
+      return `${yr}-${mo}-${da}`;
+    };
+    const todayStr = toLocalDateStr(now);
+
+    const validOrders = orders.filter((o) => o.status !== 'İptal');
+    const isSameDay = (iso, targetStr) => {
+      if (!iso) return false;
+      const d = new Date(iso);
+      if (Number.isNaN(d.getTime())) return String(iso).slice(0, 10) === targetStr;
+      return toLocalDateStr(d) === targetStr;
+    };
+
+    const todayOrders = validOrders.filter((o) => isSameDay(o.createdAt, todayStr));
+    const deliveredTodayOrders = validOrders.filter(
+      (o) => o.status === 'Teslim Edildi' && isSameDay(o.deliveredAt || o.createdAt, todayStr)
+    );
+    const onRoadOrders = validOrders.filter((o) => o.status === 'Yolda');
+    const kitchenOrders = validOrders.filter(
+      (o) => o.status === 'Yeni' || o.status === 'Hazırlanıyor'
+    );
+    const dispatchedTodayCount = onRoadOrders.length + deliveredTodayOrders.length;
+    const todayRevenue = deliveredTodayOrders.reduce((s, o) => s + (Number(o.total) || 0), 0);
+
+    // Kuryeler & anlık sipariş ilişkileri
+    const courierMap = new Map();
+    staffUsers.forEach((u) => {
+      const perms = Array.isArray(u.permissions) ? u.permissions : [];
+      const isCourier =
+        u.roleId === 'role_courier' ||
+        perms.includes('courier_delivery') ||
+        (u.role || '').toLowerCase().includes('kurye');
+      if (isCourier && u.name) {
+        courierMap.set(u.name, {
+          name: u.name,
+          activeOrders: [],
+          deliveredToday: [],
+          deliveredTodayRevenue: 0
+        });
+      }
+    });
+
+    onRoadOrders.forEach((o) => {
+      const cName = (o.courierName || '').trim();
+      if (!cName) return;
+      if (!courierMap.has(cName)) {
+        courierMap.set(cName, {
+          name: cName,
+          activeOrders: [],
+          deliveredToday: [],
+          deliveredTodayRevenue: 0
+        });
+      }
+      courierMap.get(cName).activeOrders.push(o);
+    });
+
+    deliveredTodayOrders.forEach((o) => {
+      const cName = (o.deliveredBy || o.courierName || '').trim();
+      if (!cName) return;
+      if (!courierMap.has(cName)) {
+        courierMap.set(cName, {
+          name: cName,
+          activeOrders: [],
+          deliveredToday: [],
+          deliveredTodayRevenue: 0
+        });
+      }
+      const entry = courierMap.get(cName);
+      entry.deliveredToday.push(o);
+      entry.deliveredTodayRevenue += Number(o.total) || 0;
+    });
+
+    const couriers = Array.from(courierMap.values()).sort(
+      (a, b) => b.activeOrders.length - a.activeOrders.length || b.deliveredToday.length - a.deliveredToday.length
+    );
+    const activeCouriersCount = couriers.filter((c) => c.activeOrders.length > 0).length;
+    const unassignedOrders = validOrders.filter(
+      (o) => (o.status === 'Yeni' || o.status === 'Hazırlanıyor' || o.status === 'Yolda') && !(o.courierName || '').trim()
+    );
+
+    // Grafiksel veriler: Günlük (Saatlik), Haftalık (7 gün), Aylık (30 gün)
+    let chartBars = [];
+    if (chartPeriod === 'daily') {
+      const hours = Array.from({ length: 24 }, (_, h) => ({
+        label: `${String(h).padStart(2, '0')}:00`,
+        shortLabel: `${String(h).padStart(2, '0')}`,
+        count: 0,
+        delivered: 0,
+        revenue: 0
+      }));
+      todayOrders.forEach((o) => {
+        const d = new Date(o.createdAt);
+        if (!Number.isNaN(d.getTime())) {
+          const h = d.getHours();
+          hours[h].count += 1;
+          if (o.status === 'Teslim Edildi') {
+            hours[h].delivered += 1;
+            hours[h].revenue += Number(o.total) || 0;
+          }
+        }
+      });
+      // Aktif çalışma saatlerini (09:00-23:00) veya sipariş olan saatleri göster
+      chartBars = hours.filter((h, idx) => (idx >= 9 && idx <= 23) || h.count > 0);
+    } else {
+      const daysCount = chartPeriod === 'weekly' ? 7 : 30;
+      const dayNames = ['Paz', 'Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt'];
+      const buckets = [];
+      const bucketByKey = new Map();
+      for (let i = daysCount - 1; i >= 0; i -= 1) {
+        const d = new Date(now);
+        d.setDate(now.getDate() - i);
+        const key = toLocalDateStr(d);
+        const dd = String(d.getDate()).padStart(2, '0');
+        const mm = String(d.getMonth() + 1).padStart(2, '0');
+        const bar = {
+          key,
+          label: chartPeriod === 'weekly' ? `${dayNames[d.getDay()]} (${dd}.${mm})` : `${dd}.${mm}`,
+          shortLabel: chartPeriod === 'weekly' ? dayNames[d.getDay()] : dd,
+          count: 0,
+          delivered: 0,
+          revenue: 0
+        };
+        buckets.push(bar);
+        bucketByKey.set(key, bar);
+      }
+      validOrders.forEach((o) => {
+        const d = new Date(o.createdAt);
+        const key = Number.isNaN(d.getTime()) ? String(o.createdAt || '').slice(0, 10) : toLocalDateStr(d);
+        const bucket = bucketByKey.get(key);
+        if (bucket) {
+          bucket.count += 1;
+          if (o.status === 'Teslim Edildi') {
+            bucket.delivered += 1;
+            bucket.revenue += Number(o.total) || 0;
+          }
+        }
+      });
+      chartBars = buckets;
+    }
+
+    const maxBarValue = Math.max(
+      ...chartBars.map((b) => (chartMetric === 'revenue' ? b.revenue : b.count)),
+      chartMetric === 'revenue' ? 100 : 4
+    );
+    const periodTotalOrders = chartBars.reduce((s, b) => s + b.count, 0);
+    const periodDeliveredOrders = chartBars.reduce((s, b) => s + b.delivered, 0);
+    const periodRevenue = chartBars.reduce((s, b) => s + b.revenue, 0);
+
+    return {
+      todayOrdersCount: todayOrders.length,
+      dispatchedTodayCount,
+      deliveredTodayCount: deliveredTodayOrders.length,
+      onRoadOrdersCount: onRoadOrders.length,
+      kitchenOrdersCount: kitchenOrders.length,
+      todayRevenue,
+      couriers,
+      activeCouriersCount,
+      unassignedOrders,
+      chartBars,
+      maxBarValue,
+      periodTotalOrders,
+      periodDeliveredOrders,
+      periodRevenue
+    };
+  }, [orders, staffUsers, chartPeriod, chartMetric]);
+
   // ----------------------------------------------------
   // LOGIN SCREEN (/panel ile birebir aynı tasarım)
   // ----------------------------------------------------
@@ -410,6 +591,31 @@ export default function YoneticiPage() {
 
           {/* Navigation Items */}
           <nav className={`p-3 space-y-1 ${sidebarCollapsed ? 'md:px-2' : ''}`}>
+            <button
+              type="button"
+              onClick={() => {
+                setActiveTab('overview');
+                setMobileSidebarOpen(false);
+              }}
+              className={`w-full flex items-center ${
+                sidebarCollapsed ? 'md:justify-center md:h-11 md:px-0 justify-between px-3 py-2.5' : 'justify-between px-3 py-2.5'
+              } rounded-xl font-medium transition-colors cursor-pointer ${
+                activeTab === 'overview'
+                  ? 'bg-stone-900 text-white font-semibold shadow-xs'
+                  : 'text-stone-600 hover:text-stone-900 hover:bg-stone-100'
+              }`}
+            >
+              <div className={`flex items-center ${sidebarCollapsed ? 'md:justify-center gap-2.5' : 'gap-2.5 min-w-0'}`}>
+                <i className="fa-solid fa-chart-pie text-sm w-4 text-center"></i>
+                <span className={`truncate text-xs ${sidebarCollapsed ? 'md:hidden inline' : ''}`}>Genel Bakış</span>
+              </div>
+              {overviewData.onRoadOrdersCount > 0 && (
+                <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold shrink-0 bg-amber-100 text-amber-800 ${sidebarCollapsed ? 'md:hidden inline' : ''}`}>
+                  {overviewData.onRoadOrdersCount} Yolda
+                </span>
+              )}
+            </button>
+
             <button
               type="button"
               onClick={() => {
@@ -615,6 +821,7 @@ export default function YoneticiPage() {
               <span>Menü</span>
             </button>
             <h2 className="font-bold text-stone-800 text-sm sm:text-base truncate">
+              {activeTab === 'overview' && 'Yönetim Genel Bakış'}
               {activeTab === 'finance' && 'Kasa & Giren-Çıkan Paralar'}
               {activeTab === 'users' && 'Kullanıcılar & Rol Modelleri Yönetimi'}
               {activeTab === 'site_content' && 'Sayfa Düzenleri & Vitrin Stüdyosu'}
@@ -633,6 +840,318 @@ export default function YoneticiPage() {
             </button>
           </div>
         </header>
+
+        {/* TAB 0: GENEL BAKIŞ */}
+        {activeTab === 'overview' && (
+          <div className="p-3 sm:p-6 space-y-4 w-full min-w-0">
+            {/* 1. Gün İçi Özet Şeridi */}
+            <div className="bg-white rounded-2xl border border-stone-200 grid grid-cols-2 lg:grid-cols-4 divide-y lg:divide-y-0 lg:divide-x divide-stone-100">
+              <div className="p-4">
+                <span className="text-[11px] font-semibold text-stone-500 block">
+                  Gün İçi Giden Sipariş
+                </span>
+                <p className="text-2xl font-extrabold text-stone-900 mt-0.5">
+                  {overviewData.dispatchedTodayCount}
+                </p>
+                <span className="text-[11px] text-stone-400">
+                  {overviewData.onRoadOrdersCount} yolda &bull; {overviewData.deliveredTodayCount} teslim
+                </span>
+              </div>
+
+              <div className="p-4">
+                <span className="text-[11px] font-semibold text-stone-500 block">
+                  Bugünkü Sipariş &amp; Ciro
+                </span>
+                <p className="text-2xl font-extrabold text-emerald-600 mt-0.5">
+                  ₺{overviewData.todayRevenue.toFixed(2)}
+                </p>
+                <span className="text-[11px] text-stone-400">
+                  Toplam {overviewData.todayOrdersCount} sipariş
+                </span>
+              </div>
+
+              <div className="p-4">
+                <span className="text-[11px] font-semibold text-stone-500 block">
+                  Aktif Kurye &amp; Yolda
+                </span>
+                <p className="text-2xl font-extrabold text-amber-600 mt-0.5">
+                  {overviewData.activeCouriersCount} / {overviewData.couriers.length}
+                </p>
+                <span className="text-[11px] text-stone-400">
+                  Sahada aktif kurye
+                </span>
+              </div>
+
+              <div className="p-4">
+                <span className="text-[11px] font-semibold text-stone-500 block">
+                  Mutfak / Bekleyen
+                </span>
+                <p className="text-2xl font-extrabold text-stone-900 mt-0.5">
+                  {overviewData.kitchenOrdersCount}
+                </p>
+                <span className="text-[11px] text-stone-400">
+                  {overviewData.unassignedOrders.length} kurye atanmamış
+                </span>
+              </div>
+            </div>
+
+            {/* 2. Grafiksel Günlük / Haftalık / Aylık Veriler */}
+            <div className="bg-white rounded-2xl border border-stone-200 p-4 space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                  <h3 className="font-bold text-sm text-stone-900">
+                    Sipariş &amp; Ciro Grafiği
+                  </h3>
+                  <p className="text-[11px] text-stone-400">
+                    Dönem toplamı: <strong className="text-stone-700">{overviewData.periodTotalOrders}</strong> sipariş ({overviewData.periodDeliveredOrders} teslim) &bull;{' '}
+                    <strong className="text-emerald-600">₺{overviewData.periodRevenue.toFixed(2)}</strong>
+                  </p>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2">
+                  <div className="inline-flex items-center gap-1 bg-stone-100 p-1 rounded-xl">
+                    {[
+                      { id: 'daily', label: 'Günlük' },
+                      { id: 'weekly', label: 'Haftalık' },
+                      { id: 'monthly', label: 'Aylık' }
+                    ].map((p) => (
+                      <button
+                        key={p.id}
+                        type="button"
+                        onClick={() => {
+                          setChartPeriod(p.id);
+                          setHoveredBar(null);
+                        }}
+                        className={`px-3 py-1 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
+                          chartPeriod === p.id
+                            ? 'bg-stone-900 text-white'
+                            : 'text-stone-600 hover:text-stone-900'
+                        }`}
+                      >
+                        {p.label}
+                      </button>
+                    ))}
+                  </div>
+
+                  <div className="inline-flex items-center gap-1 bg-stone-100 p-1 rounded-xl">
+                    <button
+                      type="button"
+                      onClick={() => setChartMetric('count')}
+                      className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
+                        chartMetric === 'count'
+                          ? 'bg-white text-stone-900 shadow-2xs'
+                          : 'text-stone-600 hover:text-stone-900'
+                      }`}
+                    >
+                      Adet
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setChartMetric('revenue')}
+                      className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
+                        chartMetric === 'revenue'
+                          ? 'bg-white text-stone-900 shadow-2xs'
+                          : 'text-stone-600 hover:text-stone-900'
+                      }`}
+                    >
+                      Ciro (₺)
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Bar Chart */}
+              <div className="relative pt-6 pb-2">
+                {hoveredBar !== null && overviewData.chartBars[hoveredBar] && (
+                  <div className="mb-2 inline-flex items-center gap-2 bg-stone-900 text-white text-[11px] font-semibold px-3 py-1 rounded-lg">
+                    <span>{overviewData.chartBars[hoveredBar].label}</span>
+                    <span>&bull;</span>
+                    <span>{overviewData.chartBars[hoveredBar].count} sipariş</span>
+                    <span>&bull;</span>
+                    <span className="text-emerald-400">
+                      ₺{overviewData.chartBars[hoveredBar].revenue.toFixed(2)}
+                    </span>
+                  </div>
+                )}
+
+                <div className="flex items-end gap-1 sm:gap-1.5 h-44 border-b border-stone-200 pb-1">
+                  {overviewData.chartBars.map((bar, idx) => {
+                    const val = chartMetric === 'revenue' ? bar.revenue : bar.count;
+                    const heightPct = val > 0 ? Math.max(8, Math.round((val / overviewData.maxBarValue) * 100)) : 3;
+                    return (
+                      <div
+                        key={bar.label + idx}
+                        onMouseEnter={() => setHoveredBar(idx)}
+                        onMouseLeave={() => setHoveredBar(null)}
+                        className="flex-1 h-full flex flex-col items-center justify-end group cursor-pointer min-w-0"
+                      >
+                        <div className="w-full flex items-end justify-center h-full">
+                          <div
+                            style={{ height: `${heightPct}%` }}
+                            className={`w-full max-w-[26px] rounded-t-md transition-all ${
+                              val > 0
+                                ? chartMetric === 'revenue'
+                                  ? 'bg-emerald-500 group-hover:bg-emerald-600'
+                                  : 'bg-stone-800 group-hover:bg-amber-500'
+                                : 'bg-stone-100'
+                            }`}
+                          ></div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+                <div className="flex items-center gap-1 sm:gap-1.5 pt-1.5">
+                  {overviewData.chartBars.map((bar, idx) => (
+                    <span
+                      key={bar.label + '_lbl_' + idx}
+                      className={`flex-1 text-center text-[10px] text-stone-400 truncate ${
+                        chartPeriod === 'monthly' && idx % 3 !== 0 ? 'hidden sm:block' : ''
+                      }`}
+                    >
+                      {bar.shortLabel}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* 3. Anlık Kurye ve Sipariş İlişkileri */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
+              <div className="lg:col-span-7 bg-white rounded-2xl border border-stone-200 overflow-hidden">
+                <div className="px-4 py-3 border-b border-stone-100 flex items-center justify-between">
+                  <h3 className="font-bold text-sm text-stone-900 flex items-center gap-2">
+                    <i className="fa-solid fa-motorcycle text-amber-500"></i>
+                    <span>Anlık Kurye &amp; Sipariş İlişkisi</span>
+                  </h3>
+                  <span className="text-[11px] font-semibold text-stone-400">
+                    {overviewData.couriers.length} kurye
+                  </span>
+                </div>
+
+                {overviewData.couriers.length === 0 ? (
+                  <div className="p-8 text-center text-stone-400 text-xs">
+                    Henüz kayıtlı kurye bulunmuyor.
+                  </div>
+                ) : (
+                  <div className="divide-y divide-stone-100">
+                    {overviewData.couriers.map((courier) => {
+                      const isBusy = courier.activeOrders.length > 0;
+                      return (
+                        <div key={courier.name} className="p-3.5 space-y-2">
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="flex items-center gap-2 min-w-0">
+                              <span
+                                className={`w-2 h-2 rounded-full shrink-0 ${
+                                  isBusy ? 'bg-amber-500 animate-pulse' : 'bg-emerald-500'
+                                }`}
+                              ></span>
+                              <span className="font-bold text-xs sm:text-sm text-stone-900 truncate">
+                                {courier.name}
+                              </span>
+                              <span
+                                className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                                  isBusy
+                                    ? 'bg-amber-50 text-amber-700 border border-amber-200'
+                                    : 'bg-stone-100 text-stone-500'
+                                }`}
+                              >
+                                {isBusy ? `${courier.activeOrders.length} Paket Yolda` : 'Müsait'}
+                              </span>
+                            </div>
+
+                            <span className="text-[11px] font-semibold text-stone-500 shrink-0">
+                              Bugün Teslim: <strong className="text-stone-800">{courier.deliveredToday.length}</strong> (₺{courier.deliveredTodayRevenue.toFixed(0)})
+                            </span>
+                          </div>
+
+                          {isBusy && (
+                            <div className="pl-4 space-y-1.5">
+                              {courier.activeOrders.map((ord) => (
+                                <div
+                                  key={ord.id}
+                                  className="bg-stone-50 border border-stone-200/80 rounded-xl px-3 py-2 flex items-center justify-between gap-2 text-xs"
+                                >
+                                  <div className="min-w-0">
+                                    <span className="font-bold text-stone-900">
+                                      #{ord.orderNumber || ord.id}
+                                    </span>
+                                    <span className="text-stone-500 mx-1.5">&bull;</span>
+                                    <span className="font-medium text-stone-700 truncate">
+                                      {ord.customerName || 'Müşteri'}
+                                    </span>
+                                    {ord.address && (
+                                      <p className="text-[11px] text-stone-400 truncate">
+                                        {ord.address}
+                                      </p>
+                                    )}
+                                  </div>
+                                  <div className="text-right shrink-0">
+                                    <span className="font-bold text-stone-900 block">
+                                      ₺{Number(ord.total || 0).toFixed(2)}
+                                    </span>
+                                    <span className="text-[10px] text-stone-400">
+                                      {ord.paymentMethod || 'Nakit'}
+                                    </span>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {/* Atanmamış / Bekleyen Siparişler */}
+              <div className="lg:col-span-5 bg-white rounded-2xl border border-stone-200 overflow-hidden">
+                <div className="px-4 py-3 border-b border-stone-100 flex items-center justify-between">
+                  <h3 className="font-bold text-sm text-stone-900 flex items-center gap-2">
+                    <i className="fa-solid fa-clock text-stone-400"></i>
+                    <span>Kurye Bekleyen Siparişler</span>
+                  </h3>
+                  <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-stone-100 text-stone-700">
+                    {overviewData.unassignedOrders.length}
+                  </span>
+                </div>
+
+                {overviewData.unassignedOrders.length === 0 ? (
+                  <div className="p-8 text-center text-stone-400 text-xs">
+                    Kurye bekleyen sipariş yok.
+                  </div>
+                ) : (
+                  <div className="divide-y divide-stone-100">
+                    {overviewData.unassignedOrders.slice(0, 8).map((ord) => (
+                      <div
+                        key={ord.id}
+                        className="px-4 py-2.5 flex items-center justify-between gap-2 text-xs"
+                      >
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-1.5">
+                            <span className="font-bold text-stone-900">
+                              #{ord.orderNumber || ord.id}
+                            </span>
+                            <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-50 text-amber-700">
+                              {ord.status}
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-stone-500 truncate mt-0.5">
+                            {ord.customerName || 'Müşteri'} {ord.address ? `• ${ord.address}` : ''}
+                          </p>
+                        </div>
+                        <span className="font-bold text-stone-900 shrink-0">
+                          ₺{Number(ord.total || 0).toFixed(2)}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* TAB 1: KASA & GİREN-ÇIKAN PARALAR */}
         {activeTab === 'finance' && (
