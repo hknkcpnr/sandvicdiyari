@@ -126,7 +126,7 @@ export default function YoneticiPage() {
         setLoginError(json.error || 'Giriş bilgileri hatalı.');
         return;
       }
-      const userObj = json.data?.user || json.data || json.user;
+      const userObj = json.data?.admin || json.data?.user || json.data || json.user;
       const perms = Array.isArray(userObj?.permissions) ? userObj.permissions : [];
       const isAllowed =
         userObj?.role === 'Süper Yönetici' ||
@@ -927,3 +927,4 @@ export default function YoneticiPage() {
     </div>
   );
 }
+
