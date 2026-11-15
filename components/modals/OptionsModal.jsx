@@ -16,8 +16,27 @@ function extractProductIngredients(product) {
   if (Array.isArray(product.ingredients) && product.ingredients.length > 0) {
     return product.ingredients.map((s) => String(s).trim()).filter(Boolean);
   }
+  const nameLower = String(product.name || '').toLocaleLowerCase('tr-TR');
   const rawDesc = String(product.description || product.desc || '').trim();
-  if (!rawDesc) return [];
+  const descLower = rawDesc.toLocaleLowerCase('tr-TR');
+
+  // Menü ürünlerinde açıklama sadece "Maxi Karışık Sandviç + Patates + İçecek" şeklindeyse
+  // sandviçin içindekilerini de çıkarılabilir etiket olarak sun
+  if (
+    (nameLower.includes('maxi karışık') || descLower.includes('maxi karışık')) &&
+    !descLower.includes('sosis') &&
+    !descLower.includes('sucuk')
+  ) {
+    return ['Sosis', 'Salam', 'Sucuk', 'Kaşar', 'Domates', 'Ketçap', 'Mayonez', 'Kornişon turşu'];
+  }
+
+  if (!rawDesc) {
+    if (product.category === 'sandwich' || product.category === 'menu') {
+      return ['Sosis', 'Sucuk', 'Kaşar', 'Domates', 'Turşu', 'Ketçap', 'Mayonez'];
+    }
+    return [];
+  }
+
   const cleaned = rawDesc.replace(/\.+$/, '');
   return cleaned
     .split(/[,+]+/)
