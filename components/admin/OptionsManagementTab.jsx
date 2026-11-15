@@ -318,39 +318,47 @@ export default function OptionsManagementTab() {
   const activeExtrasCount = extras.filter((e) => e.isAvailable !== false).length;
 
   return (
-    <div className="p-3 sm:p-6 lg:p-8 space-y-5 w-full min-w-0 font-poppins animate-in fade-in duration-200">
-      {/* 1. ÜST BAŞLIK VE ÖZET METRİKLER */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-gradient-to-r from-stone-900 via-stone-850 to-stone-900 p-5 sm:p-7 rounded-3xl text-white shadow-xl relative overflow-hidden">
-        <div className="absolute right-0 top-0 bottom-0 w-80 bg-gradient-to-l from-amber-500/10 to-transparent pointer-events-none"></div>
-        <div className="relative z-10 space-y-1">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/20 text-amber-300 text-xs font-bold uppercase tracking-wider border border-amber-500/30">
-            <i className="fa-solid fa-sliders"></i>
-            <span>Dinamik Sepet & Menü Özelleştirme</span>
-          </div>
-          <h2 className="text-xl sm:text-2xl font-black tracking-tight text-white flex items-center gap-2.5">
-            <span>Soslar & Ekstra Malzemeler Yönetimi</span>
+    <div className="p-3 sm:p-6 space-y-4 w-full min-w-0 font-poppins animate-in fade-in duration-200">
+      {/* 1. MİNİMAL ÜST BAŞLIK & ÖZET */}
+      <div className="bg-white p-4 rounded-2xl border border-stone-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="space-y-1">
+          <h2 className="text-base sm:text-lg font-extrabold text-stone-900">
+            Soslar &amp; Ekstralar
           </h2>
-          <p className="text-stone-300 text-xs sm:text-sm max-w-2xl font-normal">
-            Müşterilerinizin sandviç ve menü seçimlerinde göreceği sosları ve ekstra lezzetleri buradan açıp kapatabilir, fiyatlarını güncelleyebilir veya anında yeni sos ekleyebilirsiniz.
-          </p>
+          <div className="flex flex-wrap items-center gap-2 text-[11px] font-semibold text-stone-500">
+            <span className="inline-flex items-center gap-1.5 bg-stone-100 text-stone-700 px-2.5 py-0.5 rounded-full">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+              Soslar: {activeSaucesCount}/{sauces.length} açık
+            </span>
+            <span className="inline-flex items-center gap-1.5 bg-stone-100 text-stone-700 px-2.5 py-0.5 rounded-full">
+              <span className="w-1.5 h-1.5 rounded-full bg-orange-500"></span>
+              Ekstralar: {activeExtrasCount}/{extras.length} açık
+            </span>
+            <span className="inline-flex items-center gap-1.5 bg-amber-50 text-amber-800 border border-amber-200/70 px-2.5 py-0.5 rounded-full">
+              Kota:{' '}
+              {freeSauceLimit > 0
+                ? `${freeSauceLimit} bedava${extraSaucePrice > 0 ? ` (+₺${extraSaucePrice})` : ''}`
+                : `Tümü +₺${extraSaucePrice}`}
+            </span>
+          </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2.5 relative z-10">
+        <div className="flex items-center gap-2 shrink-0">
           <button
             type="button"
             onClick={fetchOptions}
             disabled={loading}
-            className="bg-white/10 hover:bg-white/20 text-white text-xs font-semibold px-3.5 py-2.5 rounded-xl flex items-center gap-2 transition-all cursor-pointer border border-white/10 active:scale-95"
+            className="bg-stone-50 hover:bg-stone-100 text-stone-700 text-xs font-semibold px-3 py-2 rounded-xl flex items-center gap-1.5 transition-colors cursor-pointer border border-stone-200"
             title="Yenile"
           >
             <i className={`fa-solid fa-arrows-rotate text-xs ${loading ? 'animate-spin' : ''}`}></i>
-            <span className="hidden sm:inline">Yenile</span>
+            <span>Yenile</span>
           </button>
           <button
             type="button"
             onClick={handleResetDefaults}
             disabled={saving}
-            className="bg-stone-800 hover:bg-stone-700 text-stone-300 hover:text-white text-xs font-semibold px-3.5 py-2.5 rounded-xl flex items-center gap-2 transition-all cursor-pointer border border-stone-700 active:scale-95"
+            className="bg-stone-50 hover:bg-stone-100 text-stone-600 hover:text-stone-900 text-xs font-semibold px-3 py-2 rounded-xl flex items-center gap-1.5 transition-colors cursor-pointer border border-stone-200"
             title="Varsayılanlara Sıfırla"
           >
             <i className="fa-solid fa-clock-rotate-left text-xs"></i>
@@ -359,83 +367,15 @@ export default function OptionsManagementTab() {
         </div>
       </div>
 
-      {/* 2. ÖZET KARTLAR */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-        <div className="bg-white p-4 sm:p-5 rounded-2xl border border-stone-200/90 shadow-2xs">
-          <div className="flex items-center justify-between text-xs text-stone-500 font-bold mb-1">
-            <span>Toplam Sos</span>
-            <div className="w-8 h-8 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center">
-              <i className="fa-solid fa-bottle-droplet text-sm"></i>
-            </div>
-          </div>
-          <div className="text-2xl font-black text-stone-900">{sauces.length}</div>
-          <div className="text-[11px] font-semibold text-emerald-600 mt-1 flex items-center gap-1">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-            <span>{activeSaucesCount} Satışa Açık</span>
-            <span className="text-stone-400 font-normal">({sauces.length - activeSaucesCount} Kapalı)</span>
-          </div>
-        </div>
-
-        <div className="bg-white p-4 sm:p-5 rounded-2xl border border-stone-200/90 shadow-2xs">
-          <div className="flex items-center justify-between text-xs text-stone-500 font-bold mb-1">
-            <span>Ekstra Lezzetler</span>
-            <div className="w-8 h-8 rounded-xl bg-orange-50 text-orange-600 flex items-center justify-center">
-              <i className="fa-solid fa-cheese text-sm"></i>
-            </div>
-          </div>
-          <div className="text-2xl font-black text-stone-900">{extras.length}</div>
-          <div className="text-[11px] font-semibold text-emerald-600 mt-1 flex items-center gap-1">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-            <span>{activeExtrasCount} Satışa Açık</span>
-            <span className="text-stone-400 font-normal">({extras.length - activeExtrasCount} Kapalı)</span>
-          </div>
-        </div>
-
-        <div className="bg-white p-4 sm:p-5 rounded-2xl border border-stone-200/90 shadow-2xs">
-          <div className="flex items-center justify-between text-xs text-stone-500 font-bold mb-1">
-            <span>Sos Kotası & Politika</span>
-            <div className="w-8 h-8 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center">
-              <i className="fa-solid fa-scale-balanced text-sm"></i>
-            </div>
-          </div>
-          <div className="text-xl sm:text-2xl font-black text-amber-600">
-            {freeSauceLimit > 0 ? `${freeSauceLimit} Adet Bedava` : 'Tümü Ücretli'}
-          </div>
-          <div className="text-[11px] font-semibold text-stone-500 mt-1">
-            {extraSaucePrice > 0 ? `Kota Aşımı: +₺${extraSaucePrice}/Adet` : 'Sınırsız Ücretsiz'}
-          </div>
-        </div>
-
-        <div className="bg-white p-4 sm:p-5 rounded-2xl border border-stone-200/90 shadow-2xs">
-          <div className="flex items-center justify-between text-xs text-stone-500 font-bold mb-1">
-            <span>Ort. Ekstra Fiyatı</span>
-            <div className="w-8 h-8 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center">
-              <i className="fa-solid fa-tags text-sm"></i>
-            </div>
-          </div>
-          <div className="text-2xl font-black text-stone-900">
-            ₺
-            {extras.length > 0
-              ? (extras.reduce((acc, e) => acc + (Number(e.price) || 0), 0) / extras.length).toFixed(1)
-              : '0'}
-          </div>
-          <div className="text-[11px] font-semibold text-indigo-600 mt-1">
-            Min ₺{Math.min(...extras.map((e) => Number(e.price) || 0), 0)} - Max ₺
-            {Math.max(...extras.map((e) => Number(e.price) || 0), 0)}
-          </div>
-        </div>
-      </div>
-
-      {/* 3. KONTROL BARI & SEKMELER */}
-      <div className="bg-white p-3.5 sm:p-4 rounded-2xl border border-stone-200 shadow-xs flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
-        {/* Sub-tab switcher */}
-        <div className="flex items-center gap-1.5 bg-stone-100 p-1 rounded-xl">
+      {/* 2. KONTROL BARI & SEKMELER */}
+      <div className="bg-white p-3 rounded-2xl border border-stone-200 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-2.5">
+        <div className="flex items-center gap-1 bg-stone-100 p-1 rounded-xl">
           <button
             type="button"
             onClick={() => setActiveSubTab('sauces')}
-            className={`px-3.5 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
+            className={`flex-1 md:flex-none px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
               activeSubTab === 'sauces'
-                ? 'bg-white text-stone-900 shadow-xs'
+                ? 'bg-white text-stone-900 shadow-2xs'
                 : 'text-stone-600 hover:text-stone-900'
             }`}
           >
@@ -445,9 +385,9 @@ export default function OptionsManagementTab() {
           <button
             type="button"
             onClick={() => setActiveSubTab('extras')}
-            className={`px-3.5 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
+            className={`flex-1 md:flex-none px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
               activeSubTab === 'extras'
-                ? 'bg-white text-stone-900 shadow-xs'
+                ? 'bg-white text-stone-900 shadow-2xs'
                 : 'text-stone-600 hover:text-stone-900'
             }`}
           >
@@ -456,9 +396,8 @@ export default function OptionsManagementTab() {
           </button>
         </div>
 
-        {/* Search & Status Filters */}
-        <div className="flex flex-wrap items-center gap-2.5">
-          <div className="relative flex-1 sm:w-60">
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="relative flex-1 sm:w-52">
             <i className="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-stone-400 text-xs"></i>
             <input
               type="text"
@@ -474,9 +413,9 @@ export default function OptionsManagementTab() {
             onChange={(e) => setStatusFilter(e.target.value)}
             className="app-select bg-stone-50 border border-stone-200 text-stone-800 text-xs font-semibold rounded-xl px-3 py-2 cursor-pointer focus:outline-none focus:border-brand-500"
           >
-            <option value="all">Tüm Durumlar</option>
-            <option value="active">Sadece Açık (Aktif)</option>
-            <option value="inactive">Sadece Kapalı (Tükendi)</option>
+            <option value="all">Tümü</option>
+            <option value="active">Açık</option>
+            <option value="inactive">Kapalı</option>
           </select>
 
           {activeSubTab === 'sauces' ? (
@@ -487,10 +426,10 @@ export default function OptionsManagementTab() {
                 setSauceForm({ name: '', isAvailable: true, price: 0 });
                 setIsAddSauceModalOpen(true);
               }}
-              className="bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold px-4 py-2 rounded-xl flex items-center gap-2 cursor-pointer shadow-xs active:scale-95 transition-all"
+              className="bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold px-3.5 py-2 rounded-xl flex items-center gap-1.5 cursor-pointer transition-colors"
             >
               <i className="fa-solid fa-plus"></i>
-              <span>Yeni Sos Ekle</span>
+              <span>Yeni Sos</span>
             </button>
           ) : (
             <button
@@ -500,147 +439,108 @@ export default function OptionsManagementTab() {
                 setExtraForm({ name: '', price: 20, isAvailable: true });
                 setIsAddExtraModalOpen(true);
               }}
-              className="bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold px-4 py-2 rounded-xl flex items-center gap-2 cursor-pointer shadow-xs active:scale-95 transition-all"
+              className="bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold px-3.5 py-2 rounded-xl flex items-center gap-1.5 cursor-pointer transition-colors"
             >
               <i className="fa-solid fa-plus"></i>
-              <span>Yeni Ekstra Ekle</span>
+              <span>Yeni Ekstra</span>
             </button>
           )}
         </div>
       </div>
 
-      {/* 4. SOS KOTASI & ÜCRETLENDİRME POLİTİKASI (YÖNETİCİ BELİRLER) */}
+      {/* 3. KOMPAKT SOS KOTASI & ÜCRETLENDİRME BARI */}
       {activeSubTab === 'sauces' && (
-        <div className="bg-gradient-to-br from-amber-500/10 via-amber-50/50 to-white p-4 sm:p-6 rounded-3xl border border-amber-200/90 shadow-xs space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-2xl bg-amber-500 text-white flex items-center justify-center shadow-md shadow-amber-500/25 shrink-0">
-                <i className="fa-solid fa-scale-balanced text-lg"></i>
-              </div>
-              <div>
-                <h3 className="font-extrabold text-stone-900 text-sm sm:text-base flex items-center gap-2">
-                  <span>Ücretsiz Sos Kotası &amp; Ekstra Sos Ücretlendirmesi</span>
-                  <span className="text-[10px] font-bold bg-amber-200 text-amber-900 px-2 py-0.5 rounded-full">
-                    Kural
-                  </span>
-                </h3>
-                <p className="text-xs text-stone-500 mt-0.5">
-                  Müşteri sandviç veya menü seçerken bu sınıra kadar ücretsiz sos seçebilir; sınır aşıldığında kalan soslar için belirlenen ilave ücret sepete yansıtılır.
-                </p>
-              </div>
-            </div>
+        <div className="bg-white px-4 py-3 rounded-2xl border border-stone-200 flex flex-col xl:flex-row xl:items-center justify-between gap-3">
+          <div className="flex flex-wrap items-center gap-3">
+            <span className="text-xs font-bold text-stone-800 flex items-center gap-1.5">
+              <i className="fa-solid fa-scale-balanced text-amber-500"></i>
+              <span>Sos Kotası</span>
+            </span>
 
+            <label className="flex items-center gap-1.5 text-xs text-stone-600 font-medium">
+              <span>Ücretsiz:</span>
+              <input
+                type="number"
+                min="0"
+                max="20"
+                value={freeSauceLimit}
+                onChange={(e) => setFreeSauceLimit(Math.max(0, parseInt(e.target.value) || 0))}
+                className="w-16 bg-stone-50 border border-stone-200 rounded-lg px-2 py-1 text-xs font-bold text-stone-900 text-center focus:outline-none focus:border-brand-500"
+              />
+              <span className="text-[11px] text-stone-400">adet</span>
+            </label>
+
+            <label className="flex items-center gap-1.5 text-xs text-stone-600 font-medium">
+              <span>Aşım:</span>
+              <span className="text-stone-400 font-bold">+₺</span>
+              <input
+                type="number"
+                min="0"
+                max="100"
+                step="0.5"
+                value={extraSaucePrice}
+                onChange={(e) => setExtraSaucePrice(Math.max(0, parseFloat(e.target.value) || 0))}
+                className="w-16 bg-stone-50 border border-stone-200 rounded-lg px-2 py-1 text-xs font-bold text-brand-600 text-center focus:outline-none focus:border-brand-500"
+              />
+            </label>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-1.5">
+            <button
+              type="button"
+              onClick={() => handleSaveSaucePolicy(2, 5)}
+              className="text-[11px] font-semibold px-2.5 py-1 rounded-lg bg-stone-100 hover:bg-amber-50 text-stone-600 hover:text-amber-800 transition-colors cursor-pointer"
+            >
+              2 Bedava / +₺5
+            </button>
+            <button
+              type="button"
+              onClick={() => handleSaveSaucePolicy(3, 7.5)}
+              className="text-[11px] font-semibold px-2.5 py-1 rounded-lg bg-stone-100 hover:bg-amber-50 text-stone-600 hover:text-amber-800 transition-colors cursor-pointer"
+            >
+              3 Bedava / +₺7.5
+            </button>
+            <button
+              type="button"
+              onClick={() => handleSaveSaucePolicy(1, 5)}
+              className="text-[11px] font-semibold px-2.5 py-1 rounded-lg bg-stone-100 hover:bg-amber-50 text-stone-600 hover:text-amber-800 transition-colors cursor-pointer"
+            >
+              1 Bedava / +₺5
+            </button>
+            <button
+              type="button"
+              onClick={() => handleSaveSaucePolicy(99, 0)}
+              className="text-[11px] font-semibold px-2.5 py-1 rounded-lg bg-stone-100 hover:bg-emerald-50 text-stone-600 hover:text-emerald-800 transition-colors cursor-pointer"
+            >
+              Hepsi Bedava
+            </button>
             <button
               type="button"
               onClick={() => handleSaveSaucePolicy(freeSauceLimit, extraSaucePrice)}
               disabled={saving}
-              className="bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold px-4 py-2.5 rounded-xl flex items-center justify-center gap-2 cursor-pointer shadow-xs active:scale-95 transition-all shrink-0"
+              className="bg-stone-900 hover:bg-stone-800 text-white text-xs font-bold px-3.5 py-1.5 rounded-lg flex items-center gap-1.5 cursor-pointer transition-colors ml-1"
             >
-              <i className="fa-solid fa-floppy-disk"></i>
-              <span>{saving ? 'Kaydediliyor...' : 'Politikayı Kaydet'}</span>
+              <i className="fa-solid fa-check text-[11px]"></i>
+              <span>{saving ? 'Kaydediliyor...' : 'Kaydet'}</span>
             </button>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5 pt-1">
-            <div className="bg-white p-4 rounded-2xl border border-amber-200/80 shadow-2xs">
-              <label className="block text-xs font-bold text-stone-800 uppercase mb-1">
-                Ücretsiz Sos Sınırı (Adet)
-              </label>
-              <div className="flex items-center gap-2">
-                <input
-                  type="number"
-                  min="0"
-                  max="20"
-                  value={freeSauceLimit}
-                  onChange={(e) => setFreeSauceLimit(Math.max(0, parseInt(e.target.value) || 0))}
-                  className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3.5 py-2 text-sm font-extrabold text-stone-900 focus:outline-none focus:border-amber-500"
-                />
-                <span className="text-xs font-bold text-stone-500 whitespace-nowrap">Adet</span>
-              </div>
-              <span className="text-[11px] text-stone-400 block mt-1">
-                Örn: 2 seçilirse ilk 2 sos tamamen bedavadır.
-              </span>
-            </div>
-
-            <div className="bg-white p-4 rounded-2xl border border-amber-200/80 shadow-2xs">
-              <label className="block text-xs font-bold text-stone-800 uppercase mb-1">
-                Kotayı Aşan Her Sosun Ücreti (₺)
-              </label>
-              <div className="flex items-center gap-2">
-                <input
-                  type="number"
-                  min="0"
-                  max="100"
-                  step="0.5"
-                  value={extraSaucePrice}
-                  onChange={(e) => setExtraSaucePrice(Math.max(0, parseFloat(e.target.value) || 0))}
-                  className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3.5 py-2 text-sm font-extrabold text-brand-600 focus:outline-none focus:border-amber-500"
-                />
-                <span className="text-xs font-bold text-stone-500 whitespace-nowrap">₺ / Adet</span>
-              </div>
-              <span className="text-[11px] text-stone-400 block mt-1">
-                Örn: 5 seçilirse, 3. sostan itibaren tanesi ₺5 eklenir.
-              </span>
-            </div>
-
-            <div className="bg-white p-4 rounded-2xl border border-amber-200/80 shadow-2xs sm:col-span-2 lg:col-span-1 flex flex-col justify-between">
-              <div>
-                <label className="block text-xs font-bold text-stone-800 uppercase mb-1.5">
-                  Hızlı Hazır Şablonlar
-                </label>
-                <div className="grid grid-cols-2 gap-1.5">
-                  <button
-                    type="button"
-                    onClick={() => handleSaveSaucePolicy(2, 5)}
-                    className="text-[11px] font-bold p-1.5 rounded-lg bg-stone-100 hover:bg-amber-100 text-stone-700 hover:text-amber-900 transition-colors cursor-pointer text-center"
-                  >
-                    2 Bedava / +₺5
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleSaveSaucePolicy(3, 7.5)}
-                    className="text-[11px] font-bold p-1.5 rounded-lg bg-stone-100 hover:bg-amber-100 text-stone-700 hover:text-amber-900 transition-colors cursor-pointer text-center"
-                  >
-                    3 Bedava / +₺7.5
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleSaveSaucePolicy(1, 5)}
-                    className="text-[11px] font-bold p-1.5 rounded-lg bg-stone-100 hover:bg-amber-100 text-stone-700 hover:text-amber-900 transition-colors cursor-pointer text-center"
-                  >
-                    1 Bedava / +₺5
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleSaveSaucePolicy(99, 0)}
-                    className="text-[11px] font-bold p-1.5 rounded-lg bg-stone-100 hover:bg-emerald-100 text-stone-700 hover:text-emerald-900 transition-colors cursor-pointer text-center"
-                  >
-                    Hepsi Bedava
-                  </button>
-                </div>
-              </div>
-              <span className="text-[10px] text-stone-400 mt-2 block">
-                Şablona tıkladığınızda kural anında kaydedilir ve yürürlüğe girer.
-              </span>
-            </div>
           </div>
         </div>
       )}
 
-      {/* 5. SOS LİSTESİ BÖLÜMÜ */}
+      {/* 4. SOS LİSTESİ */}
       {activeSubTab === 'sauces' && (
-        <div className="bg-white rounded-2xl border border-stone-200 divide-y divide-stone-100 overflow-hidden shadow-xs">
-          <div className="p-4 bg-stone-50/70 flex items-center justify-between text-xs font-bold text-stone-600 border-b border-stone-200/80">
-            <span>Sos Adı & Detay</span>
+        <div className="bg-white rounded-2xl border border-stone-200 divide-y divide-stone-100 overflow-hidden">
+          <div className="hidden sm:flex px-4 py-2.5 bg-stone-50/80 items-center justify-between text-[11px] font-bold uppercase tracking-wider text-stone-500 border-b border-stone-200/80">
+            <span>Sos Adı</span>
             <div className="flex items-center gap-6">
-              <span>Satış Durumu (Aç / Kapat)</span>
-              <span className="w-20 text-right">İşlemler</span>
+              <span>Durum</span>
+              <span className="w-16 text-right">İşlem</span>
             </div>
           </div>
 
           {filteredSauces.length === 0 ? (
-            <div className="p-12 text-center text-stone-400 space-y-2">
-              <i className="fa-solid fa-bottle-droplet text-3xl text-stone-300"></i>
+            <div className="p-10 text-center text-stone-400 space-y-1.5">
+              <i className="fa-solid fa-bottle-droplet text-2xl text-stone-300"></i>
               <p className="text-xs font-medium">Aramanıza uygun sos bulunamadı.</p>
             </div>
           ) : (
@@ -649,50 +549,39 @@ export default function OptionsManagementTab() {
               return (
                 <div
                   key={sauce.id}
-                  className="p-3.5 sm:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-stone-50/60 transition-colors"
+                  className="px-4 py-2.5 flex items-center justify-between gap-3 hover:bg-stone-50/70 transition-colors"
                 >
-                  <div className="flex items-center gap-3.5 min-w-0">
-                    <div
-                      className={`w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 border ${
-                        isOpen
-                          ? 'bg-amber-50 text-amber-600 border-amber-200'
-                          : 'bg-stone-100 text-stone-400 border-stone-200'
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <span
+                      className={`w-2 h-2 rounded-full shrink-0 ${
+                        isOpen ? 'bg-emerald-500' : 'bg-stone-300'
                       }`}
-                    >
-                      <i className="fa-solid fa-bottle-droplet text-base"></i>
-                    </div>
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className="font-bold text-stone-900 text-sm">{sauce.name}</span>
-                        <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
-                          Ücretsiz
-                        </span>
-                      </div>
-                      <span className="text-[11px] text-stone-400 block mt-0.5">
-                        Müşteriler sepet modalından dilediği adette seçebilir.
-                      </span>
-                    </div>
+                    ></span>
+                    <span className="font-semibold text-stone-900 text-sm truncate">
+                      {sauce.name}
+                    </span>
                   </div>
 
-                  <div className="flex items-center justify-between sm:justify-end gap-4 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-stone-100">
-                    {/* Durum Aç / Kapat Butonu */}
+                  <div className="flex items-center gap-3 shrink-0">
                     <button
                       type="button"
                       onClick={() => handleToggleSauce(sauce.id)}
-                      className={`text-xs font-bold px-3 py-1.5 rounded-xl flex items-center gap-2 transition-all cursor-pointer shadow-2xs active:scale-95 ${
+                      className={`text-xs font-semibold px-2.5 py-1 rounded-lg flex items-center gap-1.5 transition-colors cursor-pointer border ${
                         isOpen
-                          ? 'bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200'
-                          : 'bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200'
+                          ? 'bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border-emerald-200'
+                          : 'bg-stone-100 hover:bg-stone-200 text-stone-500 border-stone-200'
                       }`}
                       title={isOpen ? 'Sos satışta - Kapatmak için tıklayın' : 'Sos kapalı - Açmak için tıklayın'}
                     >
-                      <span className={`w-2 h-2 rounded-full ${isOpen ? 'bg-emerald-500' : 'bg-rose-500'}`}></span>
-                      <span>{isOpen ? 'Satışta (Açık)' : 'Tükendi (Kapalı)'}</span>
-                      <i className={`fa-solid ${isOpen ? 'fa-toggle-on text-emerald-600 text-sm' : 'fa-toggle-off text-rose-500 text-sm'}`}></i>
+                      <i
+                        className={`fa-solid ${
+                          isOpen ? 'fa-toggle-on text-emerald-600' : 'fa-toggle-off text-stone-400'
+                        }`}
+                      ></i>
+                      <span>{isOpen ? 'Açık' : 'Kapalı'}</span>
                     </button>
 
-                    {/* Düzenle & Sil */}
-                    <div className="flex items-center gap-1.5">
+                    <div className="flex items-center gap-1">
                       <button
                         type="button"
                         onClick={() => {
@@ -704,7 +593,7 @@ export default function OptionsManagementTab() {
                           });
                           setIsAddSauceModalOpen(true);
                         }}
-                        className="p-2 text-stone-600 hover:text-stone-900 bg-stone-100 hover:bg-stone-200 rounded-lg text-xs font-semibold cursor-pointer transition-colors"
+                        className="p-1.5 text-stone-500 hover:text-stone-900 hover:bg-stone-100 rounded-lg text-xs cursor-pointer transition-colors"
                         title="Düzenle"
                       >
                         <i className="fa-solid fa-pen-to-square"></i>
@@ -712,7 +601,7 @@ export default function OptionsManagementTab() {
                       <button
                         type="button"
                         onClick={() => handleDeleteSauce(sauce)}
-                        className="p-2 text-stone-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg text-xs cursor-pointer transition-colors"
+                        className="p-1.5 text-stone-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg text-xs cursor-pointer transition-colors"
                         title="Sil"
                       >
                         <i className="fa-solid fa-trash-can"></i>
@@ -726,21 +615,21 @@ export default function OptionsManagementTab() {
         </div>
       )}
 
-      {/* 5. EKSTRA MALZEMELER LİSTESİ BÖLÜMÜ */}
+      {/* 5. EKSTRA MALZEMELER LİSTESİ */}
       {activeSubTab === 'extras' && (
-        <div className="bg-white rounded-2xl border border-stone-200 divide-y divide-stone-100 overflow-hidden shadow-xs">
-          <div className="p-4 bg-stone-50/70 flex items-center justify-between text-xs font-bold text-stone-600 border-b border-stone-200/80">
-            <span>Malzeme Adı & Detay</span>
+        <div className="bg-white rounded-2xl border border-stone-200 divide-y divide-stone-100 overflow-hidden">
+          <div className="hidden sm:flex px-4 py-2.5 bg-stone-50/80 items-center justify-between text-[11px] font-bold uppercase tracking-wider text-stone-500 border-b border-stone-200/80">
+            <span>Malzeme Adı</span>
             <div className="flex items-center gap-6">
-              <span>Ek Fiyat</span>
-              <span>Satış Durumu (Aç / Kapat)</span>
-              <span className="w-20 text-right">İşlemler</span>
+              <span>Fiyat</span>
+              <span>Durum</span>
+              <span className="w-16 text-right">İşlem</span>
             </div>
           </div>
 
           {filteredExtras.length === 0 ? (
-            <div className="p-12 text-center text-stone-400 space-y-2">
-              <i className="fa-solid fa-cheese text-3xl text-stone-300"></i>
+            <div className="p-10 text-center text-stone-400 space-y-1.5">
+              <i className="fa-solid fa-cheese text-2xl text-stone-300"></i>
               <p className="text-xs font-medium">Aramanıza uygun ekstra malzeme bulunamadı.</p>
             </div>
           ) : (
@@ -749,50 +638,43 @@ export default function OptionsManagementTab() {
               return (
                 <div
                   key={extra.id}
-                  className="p-3.5 sm:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-stone-50/60 transition-colors"
+                  className="px-4 py-2.5 flex items-center justify-between gap-3 hover:bg-stone-50/70 transition-colors"
                 >
-                  <div className="flex items-center gap-3.5 min-w-0">
-                    <div
-                      className={`w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 border ${
-                        isOpen
-                          ? 'bg-orange-50 text-orange-600 border-orange-200'
-                          : 'bg-stone-100 text-stone-400 border-stone-200'
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <span
+                      className={`w-2 h-2 rounded-full shrink-0 ${
+                        isOpen ? 'bg-emerald-500' : 'bg-stone-300'
                       }`}
-                    >
-                      <i className="fa-solid fa-cheese text-base"></i>
-                    </div>
-                    <div className="min-w-0">
-                      <span className="font-bold text-stone-900 text-sm block">{extra.name}</span>
-                      <span className="text-[11px] text-stone-400 block mt-0.5">
-                        Ürüne ilave edildiğinde sepete otomatik eklenir.
-                      </span>
-                    </div>
+                    ></span>
+                    <span className="font-semibold text-stone-900 text-sm truncate">
+                      {extra.name}
+                    </span>
                   </div>
 
-                  <div className="flex items-center justify-between sm:justify-end gap-3 sm:gap-4 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-stone-100">
-                    {/* Fiyat Göstergesi */}
-                    <span className="text-sm font-black text-brand-600 bg-brand-50 border border-brand-200 px-3 py-1 rounded-xl">
+                  <div className="flex items-center gap-2.5 sm:gap-4 shrink-0">
+                    <span className="text-xs font-bold text-brand-600 bg-brand-50 border border-brand-200/70 px-2.5 py-1 rounded-lg">
                       +₺{Number(extra.price || 0).toFixed(2)}
                     </span>
 
-                    {/* Durum Aç / Kapat Butonu */}
                     <button
                       type="button"
                       onClick={() => handleToggleExtra(extra.id)}
-                      className={`text-xs font-bold px-3 py-1.5 rounded-xl flex items-center gap-2 transition-all cursor-pointer shadow-2xs active:scale-95 ${
+                      className={`text-xs font-semibold px-2.5 py-1 rounded-lg flex items-center gap-1.5 transition-colors cursor-pointer border ${
                         isOpen
-                          ? 'bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200'
-                          : 'bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200'
+                          ? 'bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border-emerald-200'
+                          : 'bg-stone-100 hover:bg-stone-200 text-stone-500 border-stone-200'
                       }`}
                       title={isOpen ? 'Ekstra satışta - Kapatmak için tıklayın' : 'Ekstra kapalı - Açmak için tıklayın'}
                     >
-                      <span className={`w-2 h-2 rounded-full ${isOpen ? 'bg-emerald-500' : 'bg-rose-500'}`}></span>
-                      <span>{isOpen ? 'Satışta (Açık)' : 'Tükendi (Kapalı)'}</span>
-                      <i className={`fa-solid ${isOpen ? 'fa-toggle-on text-emerald-600 text-sm' : 'fa-toggle-off text-rose-500 text-sm'}`}></i>
+                      <i
+                        className={`fa-solid ${
+                          isOpen ? 'fa-toggle-on text-emerald-600' : 'fa-toggle-off text-stone-400'
+                        }`}
+                      ></i>
+                      <span>{isOpen ? 'Açık' : 'Kapalı'}</span>
                     </button>
 
-                    {/* Düzenle & Sil */}
-                    <div className="flex items-center gap-1.5">
+                    <div className="flex items-center gap-1">
                       <button
                         type="button"
                         onClick={() => {
@@ -804,7 +686,7 @@ export default function OptionsManagementTab() {
                           });
                           setIsAddExtraModalOpen(true);
                         }}
-                        className="p-2 text-stone-600 hover:text-stone-900 bg-stone-100 hover:bg-stone-200 rounded-lg text-xs font-semibold cursor-pointer transition-colors"
+                        className="p-1.5 text-stone-500 hover:text-stone-900 hover:bg-stone-100 rounded-lg text-xs cursor-pointer transition-colors"
                         title="Düzenle"
                       >
                         <i className="fa-solid fa-pen-to-square"></i>
@@ -812,7 +694,7 @@ export default function OptionsManagementTab() {
                       <button
                         type="button"
                         onClick={() => handleDeleteExtra(extra)}
-                        className="p-2 text-stone-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg text-xs cursor-pointer transition-colors"
+                        className="p-1.5 text-stone-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg text-xs cursor-pointer transition-colors"
                         title="Sil"
                       >
                         <i className="fa-solid fa-trash-can"></i>
