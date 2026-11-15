@@ -961,9 +961,9 @@ export default function YoneticiPage() {
               </div>
 
               {/* Bar Chart */}
-              <div className="relative pt-6 pb-2">
+              <div className="relative pt-8 pb-2">
                 {hoveredBar !== null && overviewData.chartBars[hoveredBar] && (
-                  <div className="mb-2 inline-flex items-center gap-2 bg-stone-900 text-white text-[11px] font-semibold px-3 py-1 rounded-lg">
+                  <div className="absolute top-0 left-0 z-10 pointer-events-none inline-flex items-center gap-2 bg-stone-900 text-white text-[11px] font-semibold px-3 py-1 rounded-lg shadow-xs">
                     <span>{overviewData.chartBars[hoveredBar].label}</span>
                     <span>&bull;</span>
                     <span>{overviewData.chartBars[hoveredBar].count} sipariş</span>
