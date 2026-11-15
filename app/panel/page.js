@@ -1757,7 +1757,10 @@ export default function AdminDashboardPage() {
                 {adminUser?.role || 'Süper Yönetici'}
               </span>
             </div>
-            {(canAccess('users') || canAccess('settings') || canViewRevenue) && (
+            {(adminUser?.role === 'Süper Yönetici' ||
+              canViewRevenue ||
+              (Array.isArray(adminUser?.permissions) &&
+                (adminUser.permissions.includes('users') || adminUser.permissions.includes('settings')))) && (
               <a
                 href="/yonetici"
                 onClick={() => setMobileSidebarOpen(false)}
