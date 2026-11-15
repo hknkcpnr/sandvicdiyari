@@ -636,23 +636,24 @@ export default function YoneticiPage() {
 
         {/* TAB 1: KASA & GİREN-ÇIKAN PARALAR */}
         {activeTab === 'finance' && (
-          <div className="p-3 sm:p-6 lg:p-8 space-y-6 w-full min-w-0">
-            <div className="flex flex-wrap items-center justify-between gap-3 bg-white p-3.5 rounded-2xl border border-stone-200 shadow-xs">
-              <div className="flex flex-wrap items-center gap-1.5">
+          <div className="p-3 sm:p-6 space-y-4 w-full min-w-0">
+            {/* Tarih Filtresi */}
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="inline-flex flex-wrap items-center gap-1 bg-white p-1 rounded-xl border border-stone-200">
                 {[
                   { id: 'today', label: 'Bugün' },
                   { id: 'week', label: 'Son 7 Gün' },
                   { id: 'month', label: 'Son 30 Gün' },
-                  { id: 'all', label: 'Tüm Zamanlar' }
+                  { id: 'all', label: 'Tümü' }
                 ].map((f) => (
                   <button
                     key={f.id}
                     type="button"
                     onClick={() => setDateFilter(f.id)}
-                    className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-colors cursor-pointer ${
+                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
                       dateFilter === f.id
                         ? 'bg-stone-900 text-white'
-                        : 'bg-stone-100 text-stone-600 hover:bg-stone-200'
+                        : 'text-stone-600 hover:bg-stone-100'
                     }`}
                   >
                     {f.label}
@@ -661,75 +662,75 @@ export default function YoneticiPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div className="bg-white p-5 rounded-3xl border border-emerald-200 shadow-xs space-y-1">
-                <span className="text-[11px] font-extrabold uppercase tracking-wider text-emerald-700 flex items-center gap-1.5">
-                  <i className="fa-solid fa-arrow-trend-up"></i>
-                  Toplam Giren Para
-                </span>
-                <p className="text-2xl sm:text-3xl font-black text-emerald-700">
-                  ₺{financeSummary.totalIn.toFixed(2)}
-                </p>
-                <p className="text-[11px] text-stone-500">
-                  Siparişler ({financeSummary.deliveredCount} adet): <strong>₺{financeSummary.orderRevenueTotal.toFixed(2)}</strong> &bull; Ek Giriş: <strong>₺{financeSummary.manualIn.toFixed(2)}</strong>
-                </p>
-                <p className="text-[11px] text-stone-400">
-                  Nakit: ₺{financeSummary.cashOrdersRevenue.toFixed(2)} &bull; Kart/POS: ₺{financeSummary.cardOrdersRevenue.toFixed(2)}
-                </p>
+            {/* Minimal Özet Şeridi */}
+            <div className="bg-white rounded-2xl border border-stone-200 grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-stone-100">
+              <div className="p-4 flex items-center justify-between gap-3">
+                <div>
+                  <span className="text-[11px] font-semibold text-stone-500 block">Giren Para</span>
+                  <p className="text-xl font-extrabold text-emerald-600 mt-0.5">
+                    ₺{financeSummary.totalIn.toFixed(2)}
+                  </p>
+                  <span className="text-[11px] text-stone-400">
+                    Sipariş: ₺{financeSummary.orderRevenueTotal.toFixed(2)} &bull; Ek: ₺{financeSummary.manualIn.toFixed(2)}
+                  </span>
+                </div>
+                <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0"></span>
               </div>
 
-              <div className="bg-white p-5 rounded-3xl border border-rose-200 shadow-xs space-y-1">
-                <span className="text-[11px] font-extrabold uppercase tracking-wider text-rose-700 flex items-center gap-1.5">
-                  <i className="fa-solid fa-arrow-trend-down"></i>
-                  Toplam Çıkan Para (Gider)
-                </span>
-                <p className="text-2xl sm:text-3xl font-black text-rose-600">
-                  ₺{financeSummary.totalOut.toFixed(2)}
-                </p>
-                <p className="text-[11px] text-stone-500">
-                  Malzeme, personel, kira, yakıt ve diğer kasa çıkışları toplamı.
-                </p>
+              <div className="p-4 flex items-center justify-between gap-3">
+                <div>
+                  <span className="text-[11px] font-semibold text-stone-500 block">Çıkan Para</span>
+                  <p className="text-xl font-extrabold text-rose-600 mt-0.5">
+                    ₺{financeSummary.totalOut.toFixed(2)}
+                  </p>
+                  <span className="text-[11px] text-stone-400">
+                    Nakit: ₺{financeSummary.cashOrdersRevenue.toFixed(2)} &bull; POS: ₺{financeSummary.cardOrdersRevenue.toFixed(2)}
+                  </span>
+                </div>
+                <span className="w-2 h-2 rounded-full bg-rose-500 shrink-0"></span>
               </div>
 
-              <div className="bg-stone-900 text-white p-5 rounded-3xl border border-stone-800 shadow-md space-y-1">
-                <span className="text-[11px] font-extrabold uppercase tracking-wider text-amber-400 flex items-center gap-1.5">
-                  <i className="fa-solid fa-scale-balanced"></i>
-                  Net Kasa Durumu
-                </span>
-                <p
-                  className={`text-2xl sm:text-3xl font-black ${
-                    financeSummary.netCash >= 0 ? 'text-white' : 'text-rose-400'
+              <div className="p-4 flex items-center justify-between gap-3">
+                <div>
+                  <span className="text-[11px] font-semibold text-stone-500 block">Net Kasa</span>
+                  <p
+                    className={`text-xl font-extrabold mt-0.5 ${
+                      financeSummary.netCash >= 0 ? 'text-stone-900' : 'text-rose-600'
+                    }`}
+                  >
+                    ₺{financeSummary.netCash.toFixed(2)}
+                  </p>
+                  <span className="text-[11px] text-stone-400">
+                    {financeSummary.deliveredCount} teslim sipariş dahil
+                  </span>
+                </div>
+                <span
+                  className={`w-2 h-2 rounded-full shrink-0 ${
+                    financeSummary.netCash >= 0 ? 'bg-stone-900' : 'bg-rose-500'
                   }`}
-                >
-                  ₺{financeSummary.netCash.toFixed(2)}
-                </p>
-                <p className="text-[11px] text-stone-400">
-                  Seçili dönemdeki net gelir - gider farkı
-                </p>
+                ></span>
               </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-              <div className="lg:col-span-4 bg-white p-5 rounded-3xl border border-stone-200 shadow-xs space-y-4">
-                <h3 className="font-black text-base text-stone-900 flex items-center gap-2">
-                  <i className="fa-solid fa-plus-circle text-brand-600"></i>
-                  <span>Yeni Kasa Hareketi Ekle</span>
-                </h3>
+            {/* Form + Liste */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
+              <div className="lg:col-span-4 bg-white p-4 rounded-2xl border border-stone-200 space-y-3.5">
+                <h3 className="font-bold text-sm text-stone-900">Kasa Hareketi Ekle</h3>
 
-                <div className="grid grid-cols-2 gap-2 bg-stone-100 p-1 rounded-2xl">
+                <div className="grid grid-cols-2 gap-1 bg-stone-100 p-1 rounded-xl">
                   <button
                     type="button"
                     onClick={() => {
                       setTxType('out');
                       setTxCategory(EXPENSE_CATEGORIES[0]);
                     }}
-                    className={`py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                    className={`py-1.5 rounded-lg text-xs font-bold transition-colors cursor-pointer ${
                       txType === 'out'
-                        ? 'bg-rose-600 text-white shadow-xs'
+                        ? 'bg-rose-600 text-white'
                         : 'text-stone-600 hover:text-stone-900'
                     }`}
                   >
-                    Çıkan Para (Gider)
+                    Çıkan (Gider)
                   </button>
                   <button
                     type="button"
@@ -737,42 +738,55 @@ export default function YoneticiPage() {
                       setTxType('in');
                       setTxCategory(INCOME_CATEGORIES[0]);
                     }}
-                    className={`py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                    className={`py-1.5 rounded-lg text-xs font-bold transition-colors cursor-pointer ${
                       txType === 'in'
-                        ? 'bg-emerald-600 text-white shadow-xs'
+                        ? 'bg-emerald-600 text-white'
                         : 'text-stone-600 hover:text-stone-900'
                     }`}
                   >
-                    Giren Para (Gelir)
+                    Giren (Gelir)
                   </button>
                 </div>
 
-                <form onSubmit={handleAddTransaction} className="space-y-3.5">
-                  <div>
-                    <label className="block text-[11px] font-bold text-stone-500 uppercase mb-1">
-                      Tutar (₺) *
-                    </label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      min="0.01"
-                      required
-                      value={txAmount}
-                      onChange={(e) => setTxAmount(e.target.value)}
-                      className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3.5 py-2.5 text-sm font-bold focus:outline-none focus:border-stone-400"
-                      placeholder="Örn: 450.00"
-                    />
+                <form onSubmit={handleAddTransaction} className="space-y-2.5">
+                  <div className="grid grid-cols-2 gap-2.5">
+                    <div>
+                      <label className="block text-[11px] font-semibold text-stone-500 mb-1">
+                        Tutar (₺) *
+                      </label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        min="0.01"
+                        required
+                        value={txAmount}
+                        onChange={(e) => setTxAmount(e.target.value)}
+                        className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-2 text-xs font-bold focus:outline-none focus:border-stone-400"
+                        placeholder="450.00"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-semibold text-stone-500 mb-1">
+                        Tarih
+                      </label>
+                      <input
+                        type="date"
+                        value={txDate}
+                        onChange={(e) => setTxDate(e.target.value)}
+                        className="w-full bg-stone-50 border border-stone-200 rounded-xl px-2.5 py-2 text-xs font-semibold focus:outline-none focus:border-stone-400"
+                      />
+                    </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-2 gap-2.5">
                     <div>
-                      <label className="block text-[11px] font-bold text-stone-500 uppercase mb-1">
+                      <label className="block text-[11px] font-semibold text-stone-500 mb-1">
                         Kategori
                       </label>
                       <select
                         value={txCategory}
                         onChange={(e) => setTxCategory(e.target.value)}
-                        className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-2.5 text-xs font-bold focus:outline-none focus:border-stone-400"
+                        className="w-full bg-stone-50 border border-stone-200 rounded-xl px-2.5 py-2 text-xs font-semibold focus:outline-none focus:border-stone-400"
                       >
                         {(txType === 'out' ? EXPENSE_CATEGORIES : INCOME_CATEGORIES).map((c) => (
                           <option key={c} value={c}>
@@ -782,13 +796,13 @@ export default function YoneticiPage() {
                       </select>
                     </div>
                     <div>
-                      <label className="block text-[11px] font-bold text-stone-500 uppercase mb-1">
-                        Kasa / Kaynak
+                      <label className="block text-[11px] font-semibold text-stone-500 mb-1">
+                        Kaynak
                       </label>
                       <select
                         value={txPaymentSource}
                         onChange={(e) => setTxPaymentSource(e.target.value)}
-                        className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-2.5 text-xs font-bold focus:outline-none focus:border-stone-400"
+                        className="w-full bg-stone-50 border border-stone-200 rounded-xl px-2.5 py-2 text-xs font-semibold focus:outline-none focus:border-stone-400"
                       >
                         <option value="Nakit Kasa">Nakit Kasa</option>
                         <option value="Banka / POS">Banka / POS</option>
@@ -797,27 +811,15 @@ export default function YoneticiPage() {
                   </div>
 
                   <div>
-                    <label className="block text-[11px] font-bold text-stone-500 uppercase mb-1">
-                      Tarih
-                    </label>
-                    <input
-                      type="date"
-                      value={txDate}
-                      onChange={(e) => setTxDate(e.target.value)}
-                      className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3.5 py-2.5 text-xs font-bold focus:outline-none focus:border-stone-400"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-[11px] font-bold text-stone-500 uppercase mb-1">
+                    <label className="block text-[11px] font-semibold text-stone-500 mb-1">
                       Açıklama *
                     </label>
-                    <textarea
-                      rows={2}
+                    <input
+                      type="text"
                       required
                       value={txDescription}
                       onChange={(e) => setTxDescription(e.target.value)}
-                      className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3.5 py-2.5 text-xs font-medium focus:outline-none focus:border-stone-400"
+                      className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-2 text-xs font-medium focus:outline-none focus:border-stone-400"
                       placeholder="Örn: Kasap et alımı, kurye yakıtı..."
                     />
                   </div>
@@ -825,7 +827,7 @@ export default function YoneticiPage() {
                   <button
                     type="submit"
                     disabled={savingTx}
-                    className={`w-full py-3 rounded-xl text-xs font-black uppercase tracking-wider text-white shadow-md transition-all cursor-pointer ${
+                    className={`w-full py-2.5 rounded-xl text-xs font-bold text-white transition-colors cursor-pointer ${
                       txType === 'out'
                         ? 'bg-rose-600 hover:bg-rose-700'
                         : 'bg-emerald-600 hover:bg-emerald-700'
@@ -834,32 +836,32 @@ export default function YoneticiPage() {
                     {savingTx
                       ? 'Kaydediliyor...'
                       : txType === 'out'
-                      ? 'Gider (Çıkış) Kaydet'
-                      : 'Gelir (Giriş) Kaydet'}
+                      ? 'Gider Kaydet'
+                      : 'Gelir Kaydet'}
                   </button>
                 </form>
               </div>
 
-              <div className="lg:col-span-8 bg-white p-5 rounded-3xl border border-stone-200 shadow-xs space-y-4">
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <h3 className="font-black text-base text-stone-900">
-                    Kasa Hareketleri ({financeSummary.filteredTx.length})
+              <div className="lg:col-span-8 bg-white rounded-2xl border border-stone-200 overflow-hidden">
+                <div className="px-4 py-3 border-b border-stone-100 flex flex-wrap items-center justify-between gap-2">
+                  <h3 className="font-bold text-sm text-stone-900">
+                    Hareketler ({financeSummary.filteredTx.length})
                   </h3>
 
-                  <div className="flex items-center gap-1.5">
+                  <div className="flex items-center gap-1 bg-stone-100 p-0.5 rounded-lg">
                     {[
                       { id: 'all', label: 'Tümü' },
-                      { id: 'in', label: 'Girenler' },
-                      { id: 'out', label: 'Çıkanlar' }
+                      { id: 'in', label: 'Giren' },
+                      { id: 'out', label: 'Çıkan' }
                     ].map((t) => (
                       <button
                         key={t.id}
                         type="button"
                         onClick={() => setTypeFilter(t.id)}
-                        className={`px-3 py-1 rounded-lg text-xs font-bold cursor-pointer transition-colors ${
+                        className={`px-2.5 py-1 rounded-md text-[11px] font-semibold cursor-pointer transition-colors ${
                           typeFilter === t.id
-                            ? 'bg-stone-900 text-white'
-                            : 'bg-stone-100 text-stone-600 hover:bg-stone-200'
+                            ? 'bg-white text-stone-900 shadow-2xs'
+                            : 'text-stone-600 hover:text-stone-900'
                         }`}
                       >
                         {t.label}
@@ -869,49 +871,40 @@ export default function YoneticiPage() {
                 </div>
 
                 {financeSummary.filteredTx.length === 0 ? (
-                  <div className="py-12 text-center text-stone-400 text-xs space-y-2 border border-dashed border-stone-200 rounded-2xl">
-                    <i className="fa-solid fa-receipt text-2xl"></i>
-                    <p>Seçili aralıkta manuel kasa hareketi bulunmuyor.</p>
+                  <div className="py-10 text-center text-stone-400 text-xs space-y-1.5">
+                    <i className="fa-solid fa-receipt text-xl text-stone-300"></i>
+                    <p>Seçili aralıkta kasa hareketi bulunmuyor.</p>
                   </div>
                 ) : (
                   <div className="divide-y divide-stone-100">
                     {financeSummary.filteredTx.map((tx) => (
                       <div
                         key={tx.id}
-                        className="py-3 flex flex-wrap sm:flex-nowrap items-center justify-between gap-3"
+                        className="px-4 py-2.5 flex items-center justify-between gap-3 hover:bg-stone-50/70 transition-colors"
                       >
-                        <div className="flex items-start gap-3 min-w-0">
+                        <div className="flex items-center gap-2.5 min-w-0">
                           <span
-                            className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 text-sm ${
-                              tx.type === 'in'
-                                ? 'bg-emerald-50 text-emerald-600 border border-emerald-200'
-                                : 'bg-rose-50 text-rose-600 border border-rose-200'
+                            className={`w-2 h-2 rounded-full shrink-0 ${
+                              tx.type === 'in' ? 'bg-emerald-500' : 'bg-rose-500'
                             }`}
-                          >
-                            <i
-                              className={`fa-solid ${
-                                tx.type === 'in' ? 'fa-arrow-down' : 'fa-arrow-up'
-                              }`}
-                            ></i>
-                          </span>
+                          ></span>
                           <div className="min-w-0">
-                            <p className="text-xs sm:text-sm font-bold text-stone-900 break-words">
+                            <p className="text-xs sm:text-sm font-semibold text-stone-900 truncate">
                               {tx.description}
                             </p>
-                            <div className="flex flex-wrap items-center gap-2 text-[11px] text-stone-500 mt-0.5">
-                              <span className="bg-stone-100 px-2 py-0.5 rounded-md font-semibold">
-                                {tx.category}
-                              </span>
+                            <div className="flex flex-wrap items-center gap-1.5 text-[11px] text-stone-400">
+                              <span>{tx.category}</span>
+                              <span>&bull;</span>
                               <span>{tx.paymentSource}</span>
-                              <span>&bull; {tx.date}</span>
-                              {tx.createdBy && <span>&bull; {tx.createdBy}</span>}
+                              <span>&bull;</span>
+                              <span>{tx.date}</span>
                             </div>
                           </div>
                         </div>
 
-                        <div className="flex items-center gap-3 shrink-0 ml-auto">
+                        <div className="flex items-center gap-2.5 shrink-0">
                           <span
-                            className={`font-black text-sm sm:text-base ${
+                            className={`font-bold text-xs sm:text-sm ${
                               tx.type === 'in' ? 'text-emerald-600' : 'text-rose-600'
                             }`}
                           >
@@ -920,10 +913,10 @@ export default function YoneticiPage() {
                           <button
                             type="button"
                             onClick={() => handleDeleteTransaction(tx.id)}
-                            className="w-8 h-8 rounded-lg bg-stone-100 hover:bg-rose-100 text-stone-400 hover:text-rose-600 flex items-center justify-center transition-colors cursor-pointer"
+                            className="p-1.5 rounded-lg text-stone-400 hover:text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
                             title="Kaydı Sil"
                           >
-                            <i className="fa-solid fa-trash text-xs"></i>
+                            <i className="fa-solid fa-trash-can text-xs"></i>
                           </button>
                         </div>
                       </div>
