@@ -15,10 +15,10 @@ export default function OptionsManagementTab() {
   const [statusFilter, setStatusFilter] = useState('all'); // 'all' | 'active' | 'inactive'
 
   // Data state
-  const [sauces, setSauces] = useState(DEFAULT_PRODUCT_OPTIONS.sauces);
-  const [freeSauceLimit, setFreeSauceLimit] = useState(DEFAULT_PRODUCT_OPTIONS.freeSauceLimit ?? 2);
+  const [sauces, setSauces] = useState([]);
+  const [freeSauceLimit, setFreeSauceLimit] = useState(DEFAULT_PRODUCT_OPTIONS.freeSauceLimit ?? 20);
   const [extraSaucePrice, setExtraSaucePrice] = useState(DEFAULT_PRODUCT_OPTIONS.extraSaucePrice ?? 5);
-  const [extras, setExtras] = useState(DEFAULT_PRODUCT_OPTIONS.extras);
+  const [extras, setExtras] = useState([]);
   const [drinks, setDrinks] = useState(DEFAULT_PRODUCT_OPTIONS.drinks);
 
   // Modal states

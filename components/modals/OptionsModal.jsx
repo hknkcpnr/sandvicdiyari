@@ -37,9 +37,12 @@ function extractProductIngredients(product) {
     return [];
   }
 
-  const cleaned = rawDesc.replace(/\.+$/, '');
+  const cleaned = rawDesc
+    .replace(/\.+$/, '')
+    .replace(/^.*ekmeğinde\s+/i, '')
+    .replace(/\s+ziyafeti$/i, '');
   return cleaned
-    .split(/[,+]+/)
+    .split(/(?:,|\+|\s+ve\s+)/i)
     .map((p) => p.trim())
     .filter((p) => p.length > 0 && p.length <= 60)
     .map((p) => p.charAt(0).toLocaleUpperCase('tr-TR') + p.slice(1));

@@ -10,27 +10,34 @@ const PRODUCT_OPTIONS_KEY = 'custom_options';
 
 export async function GET() {
   try {
-    try {
-      if (rawPrisma && rawPrisma.systemSetting) {
-        const rec = await rawPrisma.systemSetting.findUnique({
-          where: { key: PRODUCT_OPTIONS_KEY }
-        });
-        if (rec && rec.value && typeof rec.value === 'object') {
-          const val = rec.value;
-          return NextResponse.json({
-            success: true,
-            data: {
-              freeSauceLimit: typeof val.freeSauceLimit === 'number' ? val.freeSauceLimit : DEFAULT_PRODUCT_OPTIONS.freeSauceLimit,
-              extraSaucePrice: typeof val.extraSaucePrice === 'number' ? val.extraSaucePrice : DEFAULT_PRODUCT_OPTIONS.extraSaucePrice,
-              sauces: Array.isArray(val.sauces) ? val.sauces : DEFAULT_PRODUCT_OPTIONS.sauces,
-              extras: Array.isArray(val.extras) ? val.extras : DEFAULT_PRODUCT_OPTIONS.extras,
-              drinks: Array.isArray(val.drinks) ? val.drinks : DEFAULT_PRODUCT_OPTIONS.drinks
-            }
+    if (rawPrisma && rawPrisma.systemSetting) {
+      for (let attempt = 0; attempt < 2; attempt++) {
+        try {
+          const rec = await rawPrisma.systemSetting.findUnique({
+            where: { key: PRODUCT_OPTIONS_KEY }
           });
+          if (rec && rec.value && typeof rec.value === 'object') {
+            const val = rec.value;
+            return NextResponse.json({
+              success: true,
+              data: {
+                freeSauceLimit: typeof val.freeSauceLimit === 'number' ? val.freeSauceLimit : DEFAULT_PRODUCT_OPTIONS.freeSauceLimit,
+                extraSaucePrice: typeof val.extraSaucePrice === 'number' ? val.extraSaucePrice : DEFAULT_PRODUCT_OPTIONS.extraSaucePrice,
+                sauces: Array.isArray(val.sauces) ? val.sauces : DEFAULT_PRODUCT_OPTIONS.sauces,
+                extras: Array.isArray(val.extras) ? val.extras : DEFAULT_PRODUCT_OPTIONS.extras,
+                drinks: Array.isArray(val.drinks) ? val.drinks : DEFAULT_PRODUCT_OPTIONS.drinks
+              }
+            });
+          }
+          break;
+        } catch (pgErr) {
+          if (attempt === 0) {
+            await new Promise((r) => setTimeout(r, 150));
+          } else {
+            console.warn('Prisma custom_options read fallback:', pgErr.message);
+          }
         }
       }
-    } catch (pgErr) {
-      console.warn('Prisma custom_options read fallback:', pgErr.message);
     }
 
     const data = db.getProductOptions();
