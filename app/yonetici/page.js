@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import UsersRolesTab from '@/components/admin/UsersRolesTab';
 import SiteContentEditorTab from '@/components/admin/SiteContentEditorTab';
+import SettingsTab from '@/components/admin/SettingsTab';
 
 const ADMIN_SESSION_KEY = 'sandwich_admin_session';
 const ADMIN_SETTINGS_KEY = 'sandwich_admin_settings';
@@ -24,15 +25,17 @@ const INCOME_CATEGORIES = [
 ];
 
 export default function YoneticiPage() {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [adminUser, setAdminUser] = useState(null);
   const [loginUsername, setLoginUsername] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
   const [loginError, setLoginError] = useState('');
   const [loginLoading, setLoginLoading] = useState(false);
 
-  const [activeTab, setActiveTab] = useState('finance'); // 'finance' | 'users' | 'settings'
-  const [settingsSubTab, setSettingsSubTab] = useState('system'); // 'system' | 'site_content'
+  const [activeTab, setActiveTab] = useState('finance'); // 'finance' | 'users' | 'site_content' | 'settings'
+  const [selectedSettingsSubTab, setSelectedSettingsSubTab] = useState('appearance');
+  const [settingsExpanded, setSettingsExpanded] = useState(true);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [toast, setToast] = useState(null);
 
   // Finance states
@@ -51,15 +54,13 @@ export default function YoneticiPage() {
   const [txDescription, setTxDescription] = useState('');
   const [savingTx, setSavingTx] = useState(false);
 
-  // System settings
+  // System settings (synced with /panel)
   const [adminSettings, setAdminSettings] = useState({
     soundEnabled: true,
     fontSize: 'normal',
     autoPrintReceipt: false,
     receiptFooterNote: 'Afiyet olsun! Bizi tercih ettiğiniz için teşekkürler.'
   });
-  const [dbHealth, setDbHealth] = useState(null);
-  const [checkingDb, setCheckingDb] = useState(false);
 
   const showToast = (message, type = 'success') => {
     setToast({ message, type });
@@ -73,7 +74,6 @@ export default function YoneticiPage() {
         const parsed = JSON.parse(saved);
         if (parsed && parsed.name) {
           setAdminUser(parsed);
-          setIsLoggedIn(true);
         }
       }
       const savedSettings = localStorage.getItem(ADMIN_SETTINGS_KEY);
@@ -106,10 +106,10 @@ export default function YoneticiPage() {
   };
 
   useEffect(() => {
-    if (isLoggedIn) {
+    if (adminUser) {
       fetchFinanceData();
     }
-  }, [isLoggedIn]);
+  }, [adminUser]);
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -141,7 +141,6 @@ export default function YoneticiPage() {
 
       localStorage.setItem(ADMIN_SESSION_KEY, JSON.stringify(userObj));
       setAdminUser(userObj);
-      setIsLoggedIn(true);
       setLoginPassword('');
     } catch {
       setLoginError('Sunucuya bağlanılamadı.');
@@ -153,7 +152,6 @@ export default function YoneticiPage() {
   const handleLogout = () => {
     localStorage.removeItem(ADMIN_SESSION_KEY);
     setAdminUser(null);
-    setIsLoggedIn(false);
   };
 
   const handleAddTransaction = async (e) => {
@@ -211,30 +209,6 @@ export default function YoneticiPage() {
     }
   };
 
-  const saveSystemSettings = (next) => {
-    setAdminSettings(next);
-    try {
-      localStorage.setItem(ADMIN_SETTINGS_KEY, JSON.stringify(next));
-      showToast('Sistem ayarları kaydedildi.');
-    } catch {
-      showToast('Ayarlar kaydedilemedi.', 'error');
-    }
-  };
-
-  const checkDatabaseHealth = async () => {
-    setCheckingDb(true);
-    try {
-      const res = await fetch('/api/health/db', { cache: 'no-store' });
-      const json = await res.json();
-      setDbHealth(json);
-    } catch {
-      setDbHealth({ success: false, error: 'Bağlantı kurulamadı' });
-    } finally {
-      setCheckingDb(false);
-    }
-  };
-
-  // Date matching helper
   const matchesDateRange = (isoOrDateStr) => {
     if (dateFilter === 'all') return true;
     const raw = String(isoOrDateStr || '').slice(0, 10);
@@ -275,7 +249,6 @@ export default function YoneticiPage() {
     const totalIn = orderRevenueTotal + manualIn;
     const totalOut = manualOut;
     const netCash = totalIn - totalOut;
-
     const filteredTx = rangeTx.filter((t) => (typeFilter === 'all' ? true : t.type === typeFilter));
 
     return {
@@ -292,68 +265,78 @@ export default function YoneticiPage() {
     };
   }, [orders, transactions, dateFilter, typeFilter]);
 
-  if (!isLoggedIn) {
+  // ----------------------------------------------------
+  // LOGIN SCREEN (/panel ile birebir aynı tasarım)
+  // ----------------------------------------------------
+  if (!adminUser) {
     return (
-      <div className="min-h-screen bg-stone-950 flex items-center justify-center p-4 font-poppins">
-        <div className="w-full max-w-md bg-stone-900 border border-stone-800 rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6">
-          <div className="text-center space-y-2">
-            <div className="w-14 h-14 rounded-2xl bg-indigo-500/15 border border-indigo-500/30 text-indigo-400 flex items-center justify-center text-2xl mx-auto">
-              <i className="fa-solid fa-crown"></i>
+      <div className="min-h-screen bg-stone-50 flex items-center justify-center p-4 font-poppins text-stone-800">
+        <div className="w-full max-w-sm bg-white rounded-2xl border border-stone-200 p-8 shadow-sm space-y-6">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2.5">
+              <img
+                src="/logo.png?v=2"
+                alt="Sandviç Diyarı Logo"
+                className="h-9 w-auto object-contain drop-shadow-sm shrink-0"
+              />
+              <div>
+                <h1 className="font-extrabold text-stone-900 text-base leading-tight">Sandviç Diyarı</h1>
+                <span className="text-[11px] text-stone-500 font-medium block">Yönetici Merkezi Portalı</span>
+              </div>
             </div>
-            <h1 className="text-2xl font-black text-white tracking-tight">Yönetici Merkezi</h1>
-            <p className="text-xs text-stone-400">
-              Kasa (Giren/Çıkan Paralar), Kullanıcı Oluşturma &amp; Sistem Ayarları
-            </p>
           </div>
 
           {loginError && (
-            <div className="bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs font-semibold p-3 rounded-xl flex items-center gap-2">
-              <i className="fa-solid fa-circle-exclamation"></i>
+            <div className="bg-red-50 text-red-600 text-xs p-3 rounded-xl border border-red-100 flex items-center gap-2">
+              <i className="fa-solid fa-circle-exclamation shrink-0"></i>
               <span>{loginError}</span>
             </div>
           )}
 
-          <form onSubmit={handleLogin} className="space-y-4">
+          <form onSubmit={handleLogin} className="space-y-3.5">
             <div>
-              <label className="block text-[11px] font-bold text-stone-400 uppercase mb-1.5">
-                Yönetici Kullanıcı Adı / E-posta
+              <label className="block text-[11px] font-semibold text-stone-500 uppercase mb-1">
+                Kullanıcı Adı, E-Posta veya Telefon
               </label>
               <input
                 type="text"
                 required
+                autoComplete="username"
                 value={loginUsername}
                 onChange={(e) => setLoginUsername(e.target.value)}
-                className="w-full bg-stone-950 border border-stone-800 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-indigo-500"
-                placeholder="Kullanıcı adı veya e-posta"
+                placeholder="admin, e-posta veya telefon"
+                className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3.5 py-2.5 text-xs text-stone-900 focus:outline-none focus:border-stone-400 font-medium"
               />
             </div>
             <div>
-              <label className="block text-[11px] font-bold text-stone-400 uppercase mb-1.5">
+              <label className="block text-[11px] font-semibold text-stone-500 uppercase mb-1">
                 Şifre
               </label>
               <input
                 type="password"
                 required
+                autoComplete="current-password"
                 value={loginPassword}
                 onChange={(e) => setLoginPassword(e.target.value)}
-                className="w-full bg-stone-950 border border-stone-800 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-indigo-500"
-                placeholder="••••••••"
+                placeholder="•••••"
+                className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3.5 py-2.5 text-xs text-stone-900 focus:outline-none focus:border-stone-400 font-medium"
               />
             </div>
+
             <button
               type="submit"
               disabled={loginLoading}
-              className="w-full bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white font-bold py-3.5 rounded-xl text-sm transition-all cursor-pointer shadow-lg shadow-indigo-600/20"
+              className="w-full bg-stone-900 hover:bg-black text-white text-xs font-semibold py-3 rounded-xl transition-colors cursor-pointer mt-2"
             >
-              {loginLoading ? 'Giriş Yapılıyor...' : 'Yönetici Girişi Yap'}
+              {loginLoading ? 'Giriş Yapılıyor...' : 'Yönetime Giriş Yap'}
             </button>
           </form>
 
-          <div className="pt-2 border-t border-stone-800 flex items-center justify-between text-xs text-stone-400">
-            <a href="/panel" className="hover:text-white transition-colors">
-              &larr; Operasyon Paneli (/panel)
+          <div className="pt-2 border-t border-stone-100 flex items-center justify-between text-xs">
+            <a href="/panel" className="text-stone-400 hover:text-stone-700 transition-colors">
+              &larr; Operasyon Paneli
             </a>
-            <a href="/" className="hover:text-white transition-colors">
+            <a href="/" className="text-stone-400 hover:text-stone-700 transition-colors">
               Müşteri Sitesi &rarr;
             </a>
           </div>
@@ -362,82 +345,298 @@ export default function YoneticiPage() {
     );
   }
 
+  const fontSizeClass =
+    adminSettings?.fontSize === 'large'
+      ? 'text-sm [&_.text-xs]:text-[13px] [&_.text-\\[10px\\]]:text-xs [&_.text-\\[11px\\]]:text-xs'
+      : '';
+
+  const settingsSubItems = [
+    { id: 'appearance', label: 'Yazı Boyutu & Arayüz', icon: 'fa-solid fa-text-height' },
+    { id: 'users', label: 'Kullanıcılar & Roller', icon: 'fa-solid fa-user-shield' },
+    { id: 'sound', label: 'Ses & Bildirimler', icon: 'fa-solid fa-volume-high' },
+    { id: 'receipt', label: 'Fiş & Adisyon Baskısı', icon: 'fa-solid fa-receipt' },
+    { id: 'system', label: 'Yedekleme & Sistem', icon: 'fa-solid fa-box-archive' },
+    { id: 'api', label: 'PostgreSQL & Güvenlik', icon: 'fa-solid fa-database' }
+  ];
+
   return (
-    <div className="min-h-screen bg-stone-100 text-stone-900 font-poppins pb-16">
-      {/* Top Header */}
-      <header className="sticky top-0 z-30 bg-stone-950 text-white border-b border-stone-800 shadow-md">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-indigo-600 flex items-center justify-center text-white shadow-sm">
-              <i className="fa-solid fa-crown text-sm"></i>
+    <div className={`min-h-screen bg-stone-50 text-stone-800 font-poppins flex flex-col md:flex-row ${fontSizeClass}`}>
+      {/* Mobile Sidebar Backdrop */}
+      {mobileSidebarOpen && (
+        <div
+          className="fixed inset-0 bg-black/50 backdrop-blur-xs z-40 md:hidden"
+          onClick={() => setMobileSidebarOpen(false)}
+        />
+      )}
+
+      {/* SIDEBAR (/panel ile birebir aynı beyaz/taş arayüz) */}
+      <aside
+        className={`fixed inset-y-0 left-0 z-50 bg-white border-r border-stone-200 flex flex-col justify-between shrink-0 transition-all duration-300 ease-in-out md:sticky md:top-0 md:h-screen md:translate-x-0 md:z-auto ${
+          mobileSidebarOpen ? 'translate-x-0 w-72 shadow-2xl' : '-translate-x-full'
+        } ${sidebarCollapsed ? 'md:w-20' : 'md:w-64'}`}
+      >
+        <div className="flex-1 overflow-y-auto overflow-x-hidden">
+          {/* Brand Header */}
+          <div className={`p-5 border-b border-stone-100 flex items-center ${sidebarCollapsed ? 'md:justify-center md:px-3 justify-between' : 'justify-between'}`}>
+            <div className={`flex items-center gap-2.5 min-w-0 ${sidebarCollapsed ? 'md:justify-center' : ''}`}>
+              <img
+                src="/logo.png?v=2"
+                alt="Sandviç Diyarı Logo"
+                className="h-9 w-auto object-contain drop-shadow-sm shrink-0"
+              />
+              <div className={`min-w-0 ${sidebarCollapsed ? 'md:hidden block' : 'block'}`}>
+                <h1 className="font-extrabold text-stone-900 text-sm leading-tight truncate">Sandviç Diyarı</h1>
+                <span className="text-[11px] text-indigo-600 font-bold block truncate">Yönetici Merkezi</span>
+              </div>
             </div>
-            <div>
-              <h1 className="font-black text-sm sm:text-base leading-tight">
-                Yönetici Merkezi
-              </h1>
-              <span className="text-[11px] text-indigo-300 font-semibold block">
-                {adminUser?.name} &bull; {adminUser?.role || 'Yönetici'}
-              </span>
-            </div>
+
+            <button
+              type="button"
+              onClick={() => setSidebarCollapsed((prev) => !prev)}
+              className="hidden md:flex w-7 h-7 rounded-lg bg-stone-100 hover:bg-stone-200 text-stone-600 items-center justify-center text-xs transition-colors cursor-pointer shrink-0"
+              title={sidebarCollapsed ? 'Menüyü Genişlet' : 'Menüyü Daralt'}
+            >
+              <i className={`fa-solid ${sidebarCollapsed ? 'fa-angles-right' : 'fa-angles-left'}`}></i>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setMobileSidebarOpen(false)}
+              className="md:hidden w-8 h-8 rounded-lg bg-stone-100 hover:bg-stone-200 text-stone-600 flex items-center justify-center text-sm cursor-pointer"
+            >
+              <i className="fa-solid fa-xmark"></i>
+            </button>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
+          {/* Navigation Items */}
+          <nav className={`p-3 space-y-1 ${sidebarCollapsed ? 'md:px-2' : ''}`}>
+            <button
+              type="button"
+              onClick={() => {
+                setActiveTab('finance');
+                setMobileSidebarOpen(false);
+              }}
+              className={`w-full flex items-center ${
+                sidebarCollapsed ? 'md:justify-center md:h-11 md:px-0 justify-between px-3 py-2.5' : 'justify-between px-3 py-2.5'
+              } rounded-xl font-medium transition-colors cursor-pointer ${
+                activeTab === 'finance'
+                  ? 'bg-stone-900 text-white font-semibold shadow-xs'
+                  : 'text-stone-600 hover:text-stone-900 hover:bg-stone-100'
+              }`}
+            >
+              <div className={`flex items-center ${sidebarCollapsed ? 'md:justify-center gap-2.5' : 'gap-2.5 min-w-0'}`}>
+                <i className="fa-solid fa-wallet text-sm w-4 text-center"></i>
+                <span className={`truncate text-xs ${sidebarCollapsed ? 'md:hidden inline' : ''}`}>Kasa &amp; Giren-Çıkan</span>
+              </div>
+              <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold shrink-0 bg-emerald-50 text-emerald-700 ${sidebarCollapsed ? 'md:hidden inline' : ''}`}>
+                Finans
+              </span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setActiveTab('users');
+                setMobileSidebarOpen(false);
+              }}
+              className={`w-full flex items-center ${
+                sidebarCollapsed ? 'md:justify-center md:h-11 md:px-0 justify-between px-3 py-2.5' : 'justify-between px-3 py-2.5'
+              } rounded-xl font-medium transition-colors cursor-pointer ${
+                activeTab === 'users'
+                  ? 'bg-stone-900 text-white font-semibold shadow-xs'
+                  : 'text-stone-600 hover:text-stone-900 hover:bg-stone-100'
+              }`}
+            >
+              <div className={`flex items-center ${sidebarCollapsed ? 'md:justify-center gap-2.5' : 'gap-2.5 min-w-0'}`}>
+                <i className="fa-solid fa-user-shield text-sm w-4 text-center"></i>
+                <span className={`truncate text-xs ${sidebarCollapsed ? 'md:hidden inline' : ''}`}>Kullanıcılar &amp; Roller</span>
+              </div>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setActiveTab('site_content');
+                setMobileSidebarOpen(false);
+              }}
+              className={`w-full flex items-center ${
+                sidebarCollapsed ? 'md:justify-center md:h-11 md:px-0 justify-between px-3 py-2.5' : 'justify-between px-3 py-2.5'
+              } rounded-xl font-medium transition-colors cursor-pointer ${
+                activeTab === 'site_content'
+                  ? 'bg-stone-900 text-white font-semibold shadow-xs'
+                  : 'text-stone-600 hover:text-stone-900 hover:bg-stone-100'
+              }`}
+            >
+              <div className={`flex items-center ${sidebarCollapsed ? 'md:justify-center gap-2.5' : 'gap-2.5 min-w-0'}`}>
+                <i className="fa-solid fa-paintbrush text-sm w-4 text-center"></i>
+                <span className={`truncate text-xs ${sidebarCollapsed ? 'md:hidden inline' : ''}`}>Sayfa Düzenleri</span>
+              </div>
+            </button>
+
+            {/* Sistem Ayarları (Alt Menülü - /panel'den taşındı) */}
+            <div className="space-y-1">
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveTab('settings');
+                  setSettingsExpanded((prev) => !prev);
+                  if (sidebarCollapsed) setSidebarCollapsed(false);
+                }}
+                className={`w-full flex items-center ${
+                  sidebarCollapsed ? 'md:justify-center md:h-11 md:px-0 justify-between px-3 py-2.5' : 'justify-between px-3 py-2.5'
+                } rounded-xl font-medium transition-colors cursor-pointer ${
+                  activeTab === 'settings'
+                    ? 'bg-stone-900 text-white font-semibold shadow-xs'
+                    : 'text-stone-600 hover:text-stone-900 hover:bg-stone-100'
+                }`}
+              >
+                <div className={`flex items-center ${sidebarCollapsed ? 'md:justify-center gap-2.5' : 'gap-2.5 min-w-0'}`}>
+                  <i className="fa-solid fa-sliders text-sm w-4 text-center"></i>
+                  <span className={`truncate text-xs ${sidebarCollapsed ? 'md:hidden inline' : ''}`}>Sistem Ayarları</span>
+                </div>
+                <i
+                  className={`fa-solid fa-chevron-down text-[10px] transition-transform duration-300 ${
+                    settingsExpanded ? 'rotate-180' : ''
+                  } ${sidebarCollapsed ? 'md:hidden inline' : ''}`}
+                ></i>
+              </button>
+
+              {settingsExpanded && !sidebarCollapsed && (
+                <div className="pl-2 pr-1">
+                  <div className="bg-stone-100/90 border border-stone-200/80 rounded-2xl p-1.5 space-y-0.5">
+                    {settingsSubItems.map((sub) => {
+                      const isSubActive = activeTab === 'settings' && selectedSettingsSubTab === sub.id;
+                      return (
+                        <button
+                          key={sub.id}
+                          type="button"
+                          onClick={() => {
+                            setActiveTab('settings');
+                            setSelectedSettingsSubTab(sub.id);
+                            setMobileSidebarOpen(false);
+                          }}
+                          className={`w-full flex items-center justify-between px-2.5 py-2 rounded-xl text-left transition-all cursor-pointer ${
+                            isSubActive
+                              ? 'bg-amber-400 text-stone-950 font-bold shadow-xs'
+                              : 'text-stone-600 hover:text-stone-950 hover:bg-white'
+                          }`}
+                        >
+                          <span className="flex items-center gap-2 min-w-0">
+                            <i className={`${sub.icon} text-xs w-4 text-center shrink-0`}></i>
+                            <span className="truncate font-medium text-[11px]">{sub.label}</span>
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+          </nav>
+        </div>
+
+        {/* Footer Controls */}
+        <div className={`p-3 pb-8 border-t border-stone-100 space-y-1.5 ${sidebarCollapsed ? 'md:px-2 md:flex md:flex-col md:items-center' : ''}`}>
+          <div className="space-y-1.5 w-full">
+            <div className={`px-3 py-1.5 text-[11px] text-stone-400 truncate ${sidebarCollapsed ? 'md:hidden' : ''}`}>
+              <div>
+                Yetkili: <strong className="text-stone-700">{adminUser?.name || 'Yönetici'}</strong>
+              </div>
+              <span className="inline-block mt-0.5 text-[10px] font-bold text-indigo-700 bg-indigo-50 border border-indigo-200/70 px-2 py-0.2 rounded-md">
+                {adminUser?.role || 'Süper Yönetici'}
+              </span>
+            </div>
+
             <a
               href="/panel"
-              className="bg-stone-800 hover:bg-stone-700 text-stone-100 text-xs font-bold px-3 py-2 rounded-xl border border-stone-700 transition-colors flex items-center gap-1.5"
+              onClick={() => setMobileSidebarOpen(false)}
+              className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-stone-700 bg-stone-100 hover:bg-stone-200 font-bold transition-colors text-xs ${
+                sidebarCollapsed ? 'md:w-10 md:h-10 md:justify-center md:px-0' : ''
+              }`}
+              title="Operasyon Paneline Geç (/panel)"
             >
-              <i className="fa-solid fa-kitchen-set text-amber-400"></i>
-              <span>Operasyon Paneli (/panel)</span>
+              <i className="fa-solid fa-kitchen-set text-xs w-4 text-center text-brand-600"></i>
+              <span className={`truncate ${sidebarCollapsed ? 'md:hidden' : ''}`}>Operasyon Paneli (/panel)</span>
             </a>
+
             <a
               href="/kurye"
               target="_blank"
               rel="noreferrer"
-              className="bg-stone-800 hover:bg-stone-700 text-stone-100 text-xs font-bold px-3 py-2 rounded-xl border border-stone-700 transition-colors flex items-center gap-1.5"
+              onClick={() => setMobileSidebarOpen(false)}
+              className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-amber-700 bg-amber-50/70 hover:bg-amber-100/80 font-bold transition-colors text-xs ${
+                sidebarCollapsed ? 'md:w-10 md:h-10 md:justify-center md:px-0' : ''
+              }`}
+              title="Kurye Panelini Aç"
             >
-              <i className="fa-solid fa-motorcycle text-sky-400"></i>
-              <span className="hidden sm:inline">Kurye</span>
+              <i className="fa-solid fa-motorcycle text-xs w-4 text-center text-amber-600"></i>
+              <span className={`truncate ${sidebarCollapsed ? 'md:hidden' : ''}`}>Kurye Paneli (/kurye)</span>
             </a>
+
+            <a
+              href="/"
+              target="_blank"
+              rel="noreferrer"
+              onClick={() => setMobileSidebarOpen(false)}
+              className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-stone-600 hover:text-stone-900 hover:bg-stone-100 transition-colors text-xs ${
+                sidebarCollapsed ? 'md:w-10 md:h-10 md:justify-center md:px-0' : ''
+              }`}
+              title="Müşteri Sitesi"
+            >
+              <i className="fa-solid fa-arrow-up-right-from-square text-xs w-4 text-center"></i>
+              <span className={`truncate ${sidebarCollapsed ? 'md:hidden' : ''}`}>Müşteri Sitesi</span>
+            </a>
+
             <button
               type="button"
               onClick={handleLogout}
-              className="bg-rose-950/70 hover:bg-rose-900 text-rose-200 text-xs font-bold px-3 py-2 rounded-xl border border-rose-800/70 transition-colors cursor-pointer"
+              className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-rose-600 hover:bg-rose-50 font-semibold transition-colors text-xs cursor-pointer ${
+                sidebarCollapsed ? 'md:w-10 md:h-10 md:justify-center md:px-0' : ''
+              }`}
               title="Çıkış Yap"
             >
-              <i className="fa-solid fa-arrow-right-from-bracket"></i>
+              <i className="fa-solid fa-arrow-right-from-bracket text-xs w-4 text-center"></i>
+              <span className={`truncate ${sidebarCollapsed ? 'md:hidden' : ''}`}>Çıkış Yap</span>
             </button>
           </div>
         </div>
+      </aside>
 
-        {/* Navigation Tabs */}
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 pb-2.5 flex items-center gap-2 overflow-x-auto no-scrollbar">
-          {[
-            { id: 'finance', label: 'Kasa & Giren-Çıkan Paralar', icon: 'fa-solid fa-wallet' },
-            { id: 'users', label: 'Kullanıcı Oluşturma & Roller', icon: 'fa-solid fa-user-shield' },
-            { id: 'settings', label: 'Sistem & Site Ayarları', icon: 'fa-solid fa-sliders' }
-          ].map((tab) => (
+      {/* MAIN CONTENT AREA (/panel ile aynı topbar & container) */}
+      <div className="flex-1 min-w-0 flex flex-col">
+        <header className="sticky top-0 z-30 bg-white/95 backdrop-blur-xs border-b border-stone-200 px-3 sm:px-6 lg:px-8 py-3 flex items-center justify-between gap-2.5">
+          <div className="flex items-center gap-2.5 min-w-0">
             <button
-              key={tab.id}
               type="button"
-              onClick={() => setActiveTab(tab.id)}
-              className={`px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all cursor-pointer flex items-center gap-2 ${
-                activeTab === tab.id
-                  ? 'bg-indigo-600 text-white shadow-sm'
-                  : 'bg-stone-900 text-stone-400 hover:text-white hover:bg-stone-800'
-              }`}
+              onClick={() => setMobileSidebarOpen(true)}
+              className="md:hidden h-9 px-2.5 rounded-xl bg-amber-50 hover:bg-amber-100 border border-amber-200 text-stone-900 flex items-center gap-1.5 text-xs font-extrabold cursor-pointer shrink-0 shadow-2xs"
             >
-              <i className={tab.icon}></i>
-              <span>{tab.label}</span>
+              <i className="fa-solid fa-bars"></i>
+              <span>Menü</span>
             </button>
-          ))}
-        </div>
-      </header>
+            <h2 className="font-bold text-stone-800 text-sm sm:text-base truncate">
+              {activeTab === 'finance' && 'Kasa & Giren-Çıkan Paralar'}
+              {activeTab === 'users' && 'Kullanıcılar & Rol Modelleri Yönetimi'}
+              {activeTab === 'site_content' && 'Sayfa Düzenleri & Vitrin Stüdyosu'}
+              {activeTab === 'settings' && 'Sistem & Panel Ayarları'}
+            </h2>
+          </div>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 pt-6 space-y-6">
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              type="button"
+              onClick={fetchFinanceData}
+              className="w-8 h-8 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-600 flex items-center justify-center text-xs cursor-pointer"
+              title="Verileri Yenile"
+            >
+              <i className={`fa-solid fa-rotate-right ${loadingFinance ? 'animate-spin' : ''}`}></i>
+            </button>
+          </div>
+        </header>
+
         {/* TAB 1: KASA & GİREN-ÇIKAN PARALAR */}
         {activeTab === 'finance' && (
-          <div className="space-y-6">
-            {/* Period Filter & Refresh */}
+          <div className="p-3 sm:p-6 lg:p-8 space-y-6 w-full min-w-0">
             <div className="flex flex-wrap items-center justify-between gap-3 bg-white p-3.5 rounded-2xl border border-stone-200 shadow-xs">
               <div className="flex flex-wrap items-center gap-1.5">
                 {[
@@ -460,19 +659,8 @@ export default function YoneticiPage() {
                   </button>
                 ))}
               </div>
-
-              <button
-                type="button"
-                onClick={fetchFinanceData}
-                disabled={loadingFinance}
-                className="px-3.5 py-1.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold border border-indigo-200 transition-colors cursor-pointer flex items-center gap-1.5"
-              >
-                <i className={`fa-solid fa-rotate-right ${loadingFinance ? 'animate-spin' : ''}`}></i>
-                <span>Yenile</span>
-              </button>
             </div>
 
-            {/* Summary KPI Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div className="bg-white p-5 rounded-3xl border border-emerald-200 shadow-xs space-y-1">
                 <span className="text-[11px] font-extrabold uppercase tracking-wider text-emerald-700 flex items-center gap-1.5">
@@ -521,14 +709,12 @@ export default function YoneticiPage() {
               </div>
             </div>
 
-            {/* Form + Ledger Grid */}
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-              {/* Left: New Cash Transaction Form */}
               <div className="lg:col-span-4 bg-white p-5 rounded-3xl border border-stone-200 shadow-xs space-y-4">
-                <h2 className="font-black text-base text-stone-900 flex items-center gap-2">
-                  <i className="fa-solid fa-plus-circle text-indigo-600"></i>
+                <h3 className="font-black text-base text-stone-900 flex items-center gap-2">
+                  <i className="fa-solid fa-plus-circle text-brand-600"></i>
                   <span>Yeni Kasa Hareketi Ekle</span>
-                </h2>
+                </h3>
 
                 <div className="grid grid-cols-2 gap-2 bg-stone-100 p-1 rounded-2xl">
                   <button
@@ -573,7 +759,7 @@ export default function YoneticiPage() {
                       required
                       value={txAmount}
                       onChange={(e) => setTxAmount(e.target.value)}
-                      className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3.5 py-2.5 text-sm font-bold focus:outline-none focus:border-indigo-500"
+                      className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3.5 py-2.5 text-sm font-bold focus:outline-none focus:border-stone-400"
                       placeholder="Örn: 450.00"
                     />
                   </div>
@@ -586,7 +772,7 @@ export default function YoneticiPage() {
                       <select
                         value={txCategory}
                         onChange={(e) => setTxCategory(e.target.value)}
-                        className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-2.5 text-xs font-bold focus:outline-none focus:border-indigo-500"
+                        className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-2.5 text-xs font-bold focus:outline-none focus:border-stone-400"
                       >
                         {(txType === 'out' ? EXPENSE_CATEGORIES : INCOME_CATEGORIES).map((c) => (
                           <option key={c} value={c}>
@@ -602,7 +788,7 @@ export default function YoneticiPage() {
                       <select
                         value={txPaymentSource}
                         onChange={(e) => setTxPaymentSource(e.target.value)}
-                        className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-2.5 text-xs font-bold focus:outline-none focus:border-indigo-500"
+                        className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3 py-2.5 text-xs font-bold focus:outline-none focus:border-stone-400"
                       >
                         <option value="Nakit Kasa">Nakit Kasa</option>
                         <option value="Banka / POS">Banka / POS</option>
@@ -618,7 +804,7 @@ export default function YoneticiPage() {
                       type="date"
                       value={txDate}
                       onChange={(e) => setTxDate(e.target.value)}
-                      className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3.5 py-2.5 text-xs font-bold focus:outline-none focus:border-indigo-500"
+                      className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3.5 py-2.5 text-xs font-bold focus:outline-none focus:border-stone-400"
                     />
                   </div>
 
@@ -631,7 +817,7 @@ export default function YoneticiPage() {
                       required
                       value={txDescription}
                       onChange={(e) => setTxDescription(e.target.value)}
-                      className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3.5 py-2.5 text-xs font-medium focus:outline-none focus:border-indigo-500"
+                      className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3.5 py-2.5 text-xs font-medium focus:outline-none focus:border-stone-400"
                       placeholder="Örn: Kasap et alımı, kurye yakıtı..."
                     />
                   </div>
@@ -654,12 +840,11 @@ export default function YoneticiPage() {
                 </form>
               </div>
 
-              {/* Right: Transaction Ledger */}
               <div className="lg:col-span-8 bg-white p-5 rounded-3xl border border-stone-200 shadow-xs space-y-4">
                 <div className="flex flex-wrap items-center justify-between gap-3">
-                  <h2 className="font-black text-base text-stone-900">
+                  <h3 className="font-black text-base text-stone-900">
                     Kasa Hareketleri ({financeSummary.filteredTx.length})
-                  </h2>
+                  </h3>
 
                   <div className="flex items-center gap-1.5">
                     {[
@@ -750,164 +935,40 @@ export default function YoneticiPage() {
           </div>
         )}
 
-        {/* TAB 2: KULLANICI OLUŞTURMA & ROLLER */}
+        {/* TAB 2: KULLANICILAR & ROLLER */}
         {activeTab === 'users' && (
-          <div className="bg-white rounded-3xl border border-stone-200 p-4 sm:p-6 shadow-xs">
+          <div className="p-3 sm:p-6 lg:p-8 w-full min-w-0">
             <UsersRolesTab adminUser={adminUser} onNotify={showToast} />
           </div>
         )}
 
-        {/* TAB 3: SİSTEM & SİTE AYARLARI */}
-        {activeTab === 'settings' && (
-          <div className="space-y-6">
-            <div className="flex items-center gap-2 bg-white p-2 rounded-2xl border border-stone-200 w-fit">
-              <button
-                type="button"
-                onClick={() => setSettingsSubTab('system')}
-                className={`px-4 py-2 rounded-xl text-xs font-bold cursor-pointer transition-colors ${
-                  settingsSubTab === 'system'
-                    ? 'bg-stone-900 text-white'
-                    : 'text-stone-600 hover:bg-stone-100'
-                }`}
-              >
-                Sistem, Ses &amp; Veritabanı Ayarları
-              </button>
-              <button
-                type="button"
-                onClick={() => setSettingsSubTab('site_content')}
-                className={`px-4 py-2 rounded-xl text-xs font-bold cursor-pointer transition-colors ${
-                  settingsSubTab === 'site_content'
-                    ? 'bg-stone-900 text-white'
-                    : 'text-stone-600 hover:bg-stone-100'
-                }`}
-              >
-                Site İçeriği &amp; Vitrin Düzeni
-              </button>
-            </div>
-
-            {settingsSubTab === 'system' && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* Panel & Ses Ayarları */}
-                <div className="bg-white p-6 rounded-3xl border border-stone-200 shadow-xs space-y-5">
-                  <h3 className="font-black text-base text-stone-900 flex items-center gap-2">
-                    <i className="fa-solid fa-sliders text-indigo-600"></i>
-                    <span>Panel &amp; Bildirim Ayarları</span>
-                  </h3>
-
-                  <div className="flex items-center justify-between gap-4 py-2 border-b border-stone-100">
-                    <div>
-                      <p className="text-xs font-bold text-stone-900">Mutfak Zili &amp; Sesli Uyarı</p>
-                      <p className="text-[11px] text-stone-500">Yeni siparişlerde sesli alarm çalsın</p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() =>
-                        saveSystemSettings({
-                          ...adminSettings,
-                          soundEnabled: !adminSettings.soundEnabled
-                        })
-                      }
-                      className={`px-4 py-1.5 rounded-xl text-xs font-bold cursor-pointer ${
-                        adminSettings.soundEnabled
-                          ? 'bg-emerald-600 text-white'
-                          : 'bg-stone-200 text-stone-700'
-                      }`}
-                    >
-                      {adminSettings.soundEnabled ? 'Açık' : 'Kapalı'}
-                    </button>
-                  </div>
-
-                  <div className="flex items-center justify-between gap-4 py-2 border-b border-stone-100">
-                    <div>
-                      <p className="text-xs font-bold text-stone-900">Panel Yazı Boyutu</p>
-                      <p className="text-[11px] text-stone-500">Operasyon paneli okunabilirliği</p>
-                    </div>
-                    <select
-                      value={adminSettings.fontSize || 'normal'}
-                      onChange={(e) =>
-                        saveSystemSettings({ ...adminSettings, fontSize: e.target.value })
-                      }
-                      className="bg-stone-50 border border-stone-200 rounded-xl px-3 py-1.5 text-xs font-bold"
-                    >
-                      <option value="normal">Normal</option>
-                      <option value="large">Büyük</option>
-                    </select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <label className="block text-xs font-bold text-stone-900">
-                      Adisyon / Fiş Alt Notu
-                    </label>
-                    <input
-                      type="text"
-                      value={adminSettings.receiptFooterNote || ''}
-                      onChange={(e) =>
-                        saveSystemSettings({ ...adminSettings, receiptFooterNote: e.target.value })
-                      }
-                      className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3.5 py-2 text-xs font-medium"
-                    />
-                  </div>
-                </div>
-
-                {/* Veritabanı & Sistem Durumu */}
-                <div className="bg-white p-6 rounded-3xl border border-stone-200 shadow-xs space-y-5">
-                  <h3 className="font-black text-base text-stone-900 flex items-center gap-2">
-                    <i className="fa-solid fa-database text-emerald-600"></i>
-                    <span>Veritabanı &amp; Sistem Durumu</span>
-                  </h3>
-
-                  <div className="bg-stone-50 border border-stone-200 rounded-2xl p-4 space-y-2 text-xs">
-                    <div className="flex items-center justify-between">
-                      <span className="text-stone-500 font-semibold">Çalışma Saatleri:</span>
-                      <span className="font-bold text-stone-900">10:00 - 03:00</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-stone-500 font-semibold">Operasyon Paneli Yolu:</span>
-                      <code className="bg-stone-200/70 px-2 py-0.5 rounded font-bold">/panel</code>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-stone-500 font-semibold">Yönetici Merkezi Yolu:</span>
-                      <code className="bg-indigo-100 text-indigo-800 px-2 py-0.5 rounded font-bold">/yonetici</code>
-                    </div>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={checkDatabaseHealth}
-                    disabled={checkingDb}
-                    className="w-full bg-stone-900 hover:bg-stone-800 text-white font-bold py-3 rounded-xl text-xs transition-colors cursor-pointer flex items-center justify-center gap-2"
-                  >
-                    <i className={`fa-solid fa-heart-pulse ${checkingDb ? 'animate-pulse' : ''}`}></i>
-                    <span>{checkingDb ? 'Kontrol Ediliyor...' : 'PostgreSQL Bağlantısını Test Et'}</span>
-                  </button>
-
-                  {dbHealth && (
-                    <div
-                      className={`p-3 rounded-xl text-xs font-semibold border ${
-                        dbHealth.success
-                          ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
-                          : 'bg-rose-50 border-rose-200 text-rose-800'
-                      }`}
-                    >
-                      {dbHealth.success
-                        ? 'Veritabanı bağlantısı sağlıklı (Aktif).'
-                        : `Bağlantı hatası: ${dbHealth.error || 'Bilinmeyen hata'}`}
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {settingsSubTab === 'site_content' && (
-              <div className="bg-white rounded-3xl border border-stone-200 p-4 sm:p-6 shadow-xs">
-                <SiteContentEditorTab onNotify={showToast} />
-              </div>
-            )}
+        {/* TAB 3: SAYFA DÜZENLERİ & VİTRİN */}
+        {activeTab === 'site_content' && (
+          <div className="p-3 sm:p-6 lg:p-8 w-full min-w-0">
+            <SiteContentEditorTab />
           </div>
         )}
-      </main>
 
-      {/* Toast */}
+        {/* TAB 4: TÜM SİSTEM AYARLARI (/panel'deki SettingsTab'ın tamamı) */}
+        {activeTab === 'settings' && (
+          <SettingsTab
+            currentSettings={adminSettings}
+            currentAdmin={adminUser}
+            initialSubTab={selectedSettingsSubTab}
+            onSubTabChange={setSelectedSettingsSubTab}
+            showToast={showToast}
+            onSaveSettings={(newSettings) => {
+              setAdminSettings(newSettings);
+              try {
+                localStorage.setItem(ADMIN_SETTINGS_KEY, JSON.stringify(newSettings));
+              } catch {}
+              showToast('Sistem ayarları başarıyla güncellendi.', 'success');
+            }}
+          />
+        )}
+      </div>
+
+      {/* GLOBAL TOAST */}
       {toast && (
         <div className="fixed bottom-6 right-6 z-50">
           <div
@@ -927,4 +988,3 @@ export default function YoneticiPage() {
     </div>
   );
 }
-

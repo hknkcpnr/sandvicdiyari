@@ -1569,22 +1569,6 @@ export default function AdminDashboardPage() {
                   ? 'bg-amber-500 text-white font-bold animate-pulse'
                   : 'bg-stone-100 text-stone-600',
               },
-              {
-                id: 'settings',
-                label: 'Sistem Ayarları',
-                icon: 'fa-solid fa-sliders',
-                badge: 'Panel',
-                badgeColor: 'bg-stone-100 text-stone-600 font-bold',
-                hasSubmenu: true,
-                subItems: [
-                  { id: 'appearance', label: 'Yazı Boyutu & Arayüz', icon: 'fa-solid fa-text-height' },
-                  { id: 'users', label: 'Kullanıcılar & Roller', icon: 'fa-solid fa-user-shield' },
-                  { id: 'sound', label: 'Ses & Bildirimler', icon: 'fa-solid fa-volume-high' },
-                  { id: 'receipt', label: 'Fiş & Adisyon Baskısı', icon: 'fa-solid fa-receipt' },
-                  { id: 'system', label: 'Yedekleme & Sistem', icon: 'fa-solid fa-box-archive' },
-                  { id: 'api', label: 'PostgreSQL & Güvenlik', icon: 'fa-solid fa-database' },
-                ],
-              },
             ]
               .filter((item) => {
                 if (isSuperAdmin) return true;
