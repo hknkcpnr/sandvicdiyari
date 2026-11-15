@@ -114,7 +114,7 @@ export default function Footer() {
             </div>
 
             {/* Sağ Taraf: Değerlendirme Formu */}
-            <div className="lg:col-span-7 space-y-6 text-left">
+            <div className="lg:col-span-7 space-y-6 text-center lg:text-left">
               <div className="space-y-2">
                 <span className="text-xs font-bold text-brand-400 uppercase tracking-widest">
                   <i className="fa-solid fa-star text-brand-500 mr-1"></i> Geri Bildiriminiz Değerli
@@ -127,7 +127,7 @@ export default function Footer() {
 
               <form onSubmit={handleSubmitReview} className="space-y-5">
                 {/* Yıldız Seçimi */}
-                <div className="flex justify-start gap-2.5 text-2xl text-stone-500" id="star-rating-container">
+                <div className="flex justify-center lg:justify-start gap-2.5 text-2xl text-stone-500" id="star-rating-container">
                   {[1, 2, 3, 4, 5].map((star) => (
                     <button
                       key={star}
@@ -199,10 +199,10 @@ export default function Footer() {
 
         {/* İletişim, Şube Adresi ve Çalışma Saatleri (İletişim sayfasında kendi yatay kartları olduğu için tekrar gösterilmez) */}
         {activePage !== 'iletisim' && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 py-8 border-t border-b border-stone-800 text-left">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 py-8 border-t border-b border-stone-800 text-center md:text-left">
             {/* Adres */}
             <div className="space-y-2.5">
-              <div className="flex items-center gap-2 text-brand-400 font-bold text-sm uppercase tracking-wider">
+              <div className="flex items-center justify-center md:justify-start gap-2 text-brand-400 font-bold text-sm uppercase tracking-wider">
                 <i className="fa-solid fa-location-dot"></i>
                 <span>Adresimiz</span>
               </div>
@@ -223,7 +223,7 @@ export default function Footer() {
 
             {/* Telefon & Alo Paket */}
             <div className="space-y-2">
-              <div className="flex items-center gap-2 text-brand-400 font-bold text-sm uppercase tracking-wider">
+              <div className="flex items-center justify-center md:justify-start gap-2 text-brand-400 font-bold text-sm uppercase tracking-wider">
                 <i className="fa-solid fa-phone-volume"></i>
                 <span>Sipariş & Alo Paket</span>
               </div>
@@ -260,14 +260,14 @@ export default function Footer() {
 
             {/* Çalışma Saatleri & Ödeme */}
             <div className="space-y-2">
-              <div className="flex items-center gap-2 text-brand-400 font-bold text-sm uppercase tracking-wider">
+              <div className="flex items-center justify-center md:justify-start gap-2 text-brand-400 font-bold text-sm uppercase tracking-wider">
                 <i className="fa-solid fa-clock"></i>
                 <span>Çalışma Saatleri & Ödeme</span>
               </div>
               <p className="text-stone-300 text-xs leading-relaxed">
                 Sabah 10:00 - Gece 03:00 Arası Açığız<br />
                 <span className="text-stone-400">Paket Servisimiz Gece 03:00&apos;e Kadar Vardır.</span><br />
-                <span className="text-amber-400 font-semibold flex items-center gap-1.5 mt-1">
+                <span className="text-amber-400 font-semibold flex items-center justify-center md:justify-start gap-1.5 mt-1">
                   <i className="fa-brands fa-cc-visa text-sm"></i>
                   <i className="fa-brands fa-cc-mastercard text-sm"></i>
                   <span>Kapıda Kredi Kartı & Nakit Ödeme</span>
@@ -277,7 +277,7 @@ export default function Footer() {
           </div>
         )}
 
-        {/* Telif, Alt Bilgi ve Yönetim Paneli Linki */}
+        {/* Telif ve Alt Bilgi */}
         <div className="text-center text-stone-500 text-xs space-y-3.5 pt-2 flex flex-col items-center">
           <div className="inline-flex items-center gap-2.5">
             <img
@@ -292,14 +292,6 @@ export default function Footer() {
           <p>&copy; 2026 Sandviç Diyarı - Torbalı / İzmir. Tüm Hakları Saklıdır.</p>
           <div className="flex flex-wrap items-center justify-center gap-4 text-stone-400 text-xs">
             <span>Ev ve işyerlerine sıcak & hızlı paket servis.</span>
-            <span>&bull;</span>
-            <a
-              href="/admin"
-              className="text-brand-400 hover:text-brand-300 transition-colors font-medium flex items-center gap-1.5 bg-stone-800 hover:bg-stone-700 px-3 py-1 rounded-lg border border-stone-700"
-            >
-              <i className="fa-solid fa-lock text-[11px]"></i>
-              Yönetici Paneli (Admin)
-            </a>
           </div>
         </div>
       </div>
