@@ -142,7 +142,7 @@ export default function Footer() {
                   ))}
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-left">
+                <div className="space-y-4 text-left">
                   <div>
                     <label className="block text-xs font-semibold text-stone-400 uppercase mb-1.5">
                       Adınız Soyadınız
@@ -161,13 +161,14 @@ export default function Footer() {
                     <label className="block text-xs font-semibold text-stone-400 uppercase mb-1.5">
                       Deneyiminiz
                     </label>
-                    <input
-                      type="text"
+                    <textarea
                       id="review-comment"
                       required
+                      rows={3}
+                      maxLength={600}
                       value={reviewComment}
                       onChange={(e) => setReviewComment(e.target.value)}
-                      className="w-full bg-stone-900 border border-stone-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-brand-500 text-white"
+                      className="w-full bg-stone-900 border border-stone-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-brand-500 text-white resize-y min-h-[92px]"
                       placeholder="Örn: Efsane lezzet, çok hızlı geldi!"
                     />
                   </div>
