@@ -43,9 +43,12 @@ export const cartSlice = createSlice({
   initialState,
   reducers: {
     addToCart: (state, action) => {
-      const { product, sauces, extras, note, drink } = action.payload;
+      const { product, sauces, extras, note, drink, removedIngredients } = action.payload;
 
       let descriptionDetails = [];
+      if (Array.isArray(removedIngredients) && removedIngredients.length > 0) {
+        descriptionDetails.push(`Çıkarılanlar: ${removedIngredients.join(', ')}`);
+      }
       if (drink) {
         descriptionDetails.push(`İçecek: ${drink}`);
       }
@@ -84,8 +87,9 @@ export const cartSlice = createSlice({
         descriptionDetails.push(`Not: "${note.trim()}"`);
       }
 
+      const removedKey = Array.isArray(removedIngredients) ? [...removedIngredients].sort().join(',') : '';
       const finalPrice = product.price + extraPrice + extraSauceFee;
-      const cartKey = `${product.id}-${drink || ''}-${JSON.stringify(sauces || {})}-${(extras || []).map(e => e.name).sort().join()}-${note || ''}`;
+      const cartKey = `${product.id}-${drink || ''}-${JSON.stringify(sauces || {})}-${(extras || []).map(e => e.name).sort().join()}-${removedKey}-${note || ''}`;
 
       const existingIndex = state.items.findIndex(item => item.cartKey === cartKey);
       if (existingIndex >= 0) {
@@ -98,6 +102,7 @@ export const cartSlice = createSlice({
           price: finalPrice,
           image: product.image,
           details: descriptionDetails.join(' | '),
+          removedIngredients: Array.isArray(removedIngredients) ? removedIngredients : [],
           quantity: 1,
         });
       }

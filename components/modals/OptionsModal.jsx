@@ -11,6 +11,21 @@ import {
 import { addToCart } from '@/store/slices/cartSlice';
 import { DEFAULT_PRODUCT_OPTIONS } from '@/lib/productOptionsDefaults';
 
+function extractProductIngredients(product) {
+  if (!product) return [];
+  if (Array.isArray(product.ingredients) && product.ingredients.length > 0) {
+    return product.ingredients.map((s) => String(s).trim()).filter(Boolean);
+  }
+  const rawDesc = String(product.description || product.desc || '').trim();
+  if (!rawDesc) return [];
+  const cleaned = rawDesc.replace(/\.+$/, '');
+  return cleaned
+    .split(/[,+]+/)
+    .map((p) => p.trim())
+    .filter((p) => p.length > 0 && p.length <= 60)
+    .map((p) => p.charAt(0).toLocaleUpperCase('tr-TR') + p.slice(1));
+}
+
 export default function OptionsModal() {
   const dispatch = useDispatch();
   const { isOptionsModalOpen, selectedProductForOptions, sauceCounts } = useSelector(
@@ -29,6 +44,13 @@ export default function OptionsModal() {
     DEFAULT_PRODUCT_OPTIONS.drinks.map((d) => (typeof d === 'string' ? d : d.name))
   );
   const [note, setNote] = useState('');
+  const [removedIngredients, setRemovedIngredients] = useState([]);
+
+  useEffect(() => {
+    if (isOptionsModalOpen) {
+      setRemovedIngredients([]);
+    }
+  }, [isOptionsModalOpen, selectedProductForOptions?.id]);
 
   // Fetch dynamic options from backend API
   useEffect(() => {
@@ -111,6 +133,16 @@ export default function OptionsModal() {
     );
   };
 
+  const productIngredients = extractProductIngredients(selectedProductForOptions);
+
+  const handleToggleIngredient = (ingredient) => {
+    setRemovedIngredients((prev) =>
+      prev.includes(ingredient)
+        ? prev.filter((item) => item !== ingredient)
+        : [...prev, ingredient]
+    );
+  };
+
   const handleConfirm = () => {
     const selectedExtras = extras.filter((e) => e.checked && e.isAvailable !== false);
 
@@ -131,6 +163,7 @@ export default function OptionsModal() {
         extras: selectedExtras,
         drink: isMenu ? selectedDrink : null,
         note,
+        removedIngredients,
       })
     );
     dispatch(closeOptionsModal());
@@ -143,6 +176,7 @@ export default function OptionsModal() {
     );
     // Reset form state
     setNote('');
+    setRemovedIngredients([]);
     if (drinkOptions.length > 0) {
       setSelectedDrink(drinkOptions[0]);
     }
@@ -204,6 +238,48 @@ export default function OptionsModal() {
         </div>
 
         <div className="space-y-5 text-left">
+          {/* Ürün İçeriği (Çıkarılabilir Etiketler) */}
+          {productIngredients.length > 0 && (
+            <div>
+              <label className="block text-xs font-bold text-stone-800 uppercase mb-2 flex flex-wrap items-center justify-between gap-1.5">
+                <span className="flex items-center gap-1.5">
+                  <i className="fa-solid fa-layer-group text-brand-500"></i>
+                  Ürün İçeriği
+                </span>
+                <span className="text-[10px] font-semibold text-stone-500 bg-stone-100 px-2.5 py-0.5 rounded-md">
+                  İstemediğiniz içeriğe tıklayıp çıkarabilirsiniz
+                </span>
+              </label>
+              <div className="flex flex-wrap gap-2">
+                {productIngredients.map((ing) => {
+                  const isRemoved = removedIngredients.includes(ing);
+                  return (
+                    <button
+                      key={ing}
+                      type="button"
+                      onClick={() => handleToggleIngredient(ing)}
+                      className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all cursor-pointer ${
+                        isRemoved
+                          ? 'bg-rose-50/70 border-rose-200 text-rose-600 line-through opacity-75 hover:opacity-100'
+                          : 'bg-stone-50 border-stone-200 text-stone-800 hover:border-rose-300 hover:bg-rose-50/40'
+                      }`}
+                      title={isRemoved ? 'Tekrar eklemek için tıklayın' : 'Çıkarmak için tıklayın'}
+                    >
+                      <span>{ing}</span>
+                      <i
+                        className={`fa-solid ${
+                          isRemoved
+                            ? 'fa-rotate-left text-[10px] text-rose-500'
+                            : 'fa-xmark text-[11px] text-stone-400'
+                        }`}
+                      ></i>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           {/* Sos Seçimleri & Adetleri (Ücretsiz Sınırı) */}
           <div>
             <label className="block text-xs font-bold text-stone-800 uppercase mb-2 flex flex-wrap items-center justify-between gap-1.5">
