@@ -53,15 +53,14 @@ export default function OptionsModal() {
   const { currentUser } = useSelector((state) => state.auth);
 
   const [selectedDrink, setSelectedDrink] = useState('Kutu Pepsi (330ml)');
-  const [saucesList, setSaucesList] = useState(DEFAULT_PRODUCT_OPTIONS.sauces);
+  const [saucesList, setSaucesList] = useState([]);
   const [freeSauceLimit, setFreeSauceLimit] = useState(DEFAULT_PRODUCT_OPTIONS.freeSauceLimit ?? 2);
   const [extraSaucePrice, setExtraSaucePrice] = useState(DEFAULT_PRODUCT_OPTIONS.extraSaucePrice ?? 5);
-  const [extras, setExtras] = useState(
-    DEFAULT_PRODUCT_OPTIONS.extras.map((e) => ({ ...e, checked: false }))
-  );
+  const [extras, setExtras] = useState([]);
   const [drinkOptions, setDrinkOptions] = useState(
     DEFAULT_PRODUCT_OPTIONS.drinks.map((d) => (typeof d === 'string' ? d : d.name))
   );
+  const [optionsLoaded, setOptionsLoaded] = useState(false);
   const [note, setNote] = useState('');
   const [removedIngredients, setRemovedIngredients] = useState([]);
 
@@ -71,12 +70,12 @@ export default function OptionsModal() {
     }
   }, [isOptionsModalOpen, selectedProductForOptions?.id]);
 
-  // Fetch dynamic options from backend API
+  // Fetch dynamic options from backend API on mount and when modal opens
   useEffect(() => {
     let isMounted = true;
     async function fetchDynamicOptions() {
       try {
-        const res = await fetch('/api/options');
+        const res = await fetch('/api/options', { cache: 'no-store' });
         const json = await res.json();
         if (isMounted && json && json.success && json.data) {
           if (typeof json.data.freeSauceLimit === 'number') {
@@ -107,15 +106,19 @@ export default function OptionsModal() {
                 .map((d) => (typeof d === 'string' ? d : d.name))
             );
           }
+          setOptionsLoaded(true);
         }
       } catch (err) {
         console.warn('Options API fetch fallback:', err);
+        if (isMounted && !optionsLoaded) {
+          setSaucesList(DEFAULT_PRODUCT_OPTIONS.sauces);
+          setExtras(DEFAULT_PRODUCT_OPTIONS.extras.map((e) => ({ ...e, checked: false })));
+          setOptionsLoaded(true);
+        }
       }
     }
 
-    if (isOptionsModalOpen) {
-      fetchDynamicOptions();
-    }
+    fetchDynamicOptions();
 
     return () => {
       isMounted = false;
@@ -326,7 +329,11 @@ export default function OptionsModal() {
               </div>
             </label>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5" id="sauces-container">
-              {availableSauces.length === 0 ? (
+              {!optionsLoaded ? (
+                <div className="col-span-full text-center py-3 text-xs text-stone-400 bg-stone-50 rounded-2xl border border-dashed border-stone-200">
+                  Soslar yükleniyor...
+                </div>
+              ) : availableSauces.length === 0 ? (
                 <div className="col-span-full text-center py-3 text-xs text-stone-400 bg-stone-50 rounded-2xl border border-dashed border-stone-200">
                   Şu an için seçilebilir sos bulunmuyor.
                 </div>
