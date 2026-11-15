@@ -601,7 +601,7 @@ export default function CourierPortalPage() {
           {/* Alt Yönetim Linki */}
           <div className="text-center pt-2 border-t border-stone-800/80">
             <a
-              href="/admin"
+              href="/panel"
               className="text-stone-400 hover:text-amber-400 text-xs font-semibold transition-colors inline-flex items-center gap-1.5"
             >
               <i className="fa-solid fa-shield-halved text-[11px]"></i>

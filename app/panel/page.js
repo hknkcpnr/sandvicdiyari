@@ -1757,6 +1757,19 @@ export default function AdminDashboardPage() {
                 {adminUser?.role || 'Süper Yönetici'}
               </span>
             </div>
+            {(canAccess('users') || canAccess('settings') || canViewRevenue) && (
+              <a
+                href="/yonetici"
+                onClick={() => setMobileSidebarOpen(false)}
+                className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-indigo-700 bg-indigo-50/80 hover:bg-indigo-100 font-bold transition-colors ${
+                  sidebarCollapsed ? 'md:w-10 md:h-10 md:justify-center md:px-0' : ''
+                }`}
+                title="Yönetici Merkezi (Kasa, Kullanıcılar & Sistem Ayarları)"
+              >
+                <i className="fa-solid fa-crown text-xs w-4 text-center text-indigo-600"></i>
+                <span className={`truncate ${sidebarCollapsed ? 'md:hidden' : ''}`}>Yönetici Merkezi (/yonetici)</span>
+              </a>
+            )}
             <a
               href="/kurye"
               target="_blank"
