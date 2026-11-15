@@ -200,10 +200,10 @@ export default function Footer() {
 
         {/* İletişim, Şube Adresi ve Çalışma Saatleri (İletişim sayfasında kendi yatay kartları olduğu için tekrar gösterilmez) */}
         {activePage !== 'iletisim' && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 py-8 border-t border-b border-stone-800 text-center md:text-left">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 py-8 border-t border-b border-stone-800 text-center">
             {/* Adres */}
             <div className="space-y-2.5">
-              <div className="flex items-center justify-center md:justify-start gap-2 text-brand-400 font-bold text-sm uppercase tracking-wider">
+              <div className="flex items-center justify-center gap-2 text-brand-400 font-bold text-sm uppercase tracking-wider">
                 <i className="fa-solid fa-location-dot"></i>
                 <span>Adresimiz</span>
               </div>
@@ -224,7 +224,7 @@ export default function Footer() {
 
             {/* Telefon & Alo Paket */}
             <div className="space-y-2">
-              <div className="flex items-center justify-center md:justify-start gap-2 text-brand-400 font-bold text-sm uppercase tracking-wider">
+              <div className="flex items-center justify-center gap-2 text-brand-400 font-bold text-sm uppercase tracking-wider">
                 <i className="fa-solid fa-phone-volume"></i>
                 <span>Sipariş & Alo Paket</span>
               </div>
@@ -261,14 +261,14 @@ export default function Footer() {
 
             {/* Çalışma Saatleri & Ödeme */}
             <div className="space-y-2">
-              <div className="flex items-center justify-center md:justify-start gap-2 text-brand-400 font-bold text-sm uppercase tracking-wider">
+              <div className="flex items-center justify-center gap-2 text-brand-400 font-bold text-sm uppercase tracking-wider">
                 <i className="fa-solid fa-clock"></i>
                 <span>Çalışma Saatleri & Ödeme</span>
               </div>
               <p className="text-stone-300 text-xs leading-relaxed">
                 Sabah 10:00 - Gece 03:00 Arası Açığız<br />
                 <span className="text-stone-400">Paket Servisimiz Gece 03:00&apos;e Kadar Vardır.</span><br />
-                <span className="text-amber-400 font-semibold flex items-center justify-center md:justify-start gap-1.5 mt-1">
+                <span className="text-amber-400 font-semibold flex items-center justify-center gap-1.5 mt-1">
                   <i className="fa-brands fa-cc-visa text-sm"></i>
                   <i className="fa-brands fa-cc-mastercard text-sm"></i>
                   <span>Kapıda Kredi Kartı & Nakit Ödeme</span>
