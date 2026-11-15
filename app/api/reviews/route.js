@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/prisma';
 import {
+  ConflictError,
   ValidationError,
   handleApiError,
   jsonSuccess,
@@ -32,27 +33,66 @@ export async function GET(request) {
 
 export async function POST(request) {
   try {
+    // 1. Kısa süreli çift gönderim / seri spam koruması (30 saniyede en fazla 1 istek)
     checkRateLimit(request, {
-      keyPrefix: 'POST:/api/reviews',
-      maxRequests: 10,
-      windowMs: 60 * 1000
+      keyPrefix: 'POST:/api/reviews:burst',
+      maxRequests: 1,
+      windowMs: 30 * 1000,
+      blockDurationMs: 60 * 1000
+    });
+
+    // 2. Uzun süreli kötüye kullanım koruması (15 dakikada en fazla 3 değerlendirme)
+    checkRateLimit(request, {
+      keyPrefix: 'POST:/api/reviews:window',
+      maxRequests: 3,
+      windowMs: 15 * 60 * 1000,
+      blockDurationMs: 15 * 60 * 1000
     });
 
     const body = await parseJsonBody(request);
+
+    // Honeypot (bot) koruması
+    if (body.website && String(body.website).trim() !== '') {
+      throw new ValidationError('Geçersiz form gönderimi.');
+    }
+
     const name = sanitizeText(body.name, 120, 'Ad Soyad', '/api/reviews');
     const comment = sanitizeText(body.comment, 600, 'Yorum', '/api/reviews');
     const location = sanitizeText(body.location || 'Torbalı, İzmir', 100, 'Konum', '/api/reviews');
 
-    if (!name || name.length < 2 || !comment || comment.length < 3) {
-      throw new ValidationError('Geçerli bir ad ve yorum metni zorunludur.');
+    if (!name || name.length < 2 || !comment || comment.length < 5) {
+      throw new ValidationError('Geçerli bir ad (en az 2 karakter) ve yorum (en az 5 karakter) zorunludur.');
+    }
+
+    // Aynı yorumun kısa süre içinde tekrar kaydedilmesini engelle (çift tıklama / tekrar gönderim)
+    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+    const duplicate = await prisma.review.findFirst({
+      where: {
+        name: { equals: name, mode: 'insensitive' },
+        comment: { equals: comment, mode: 'insensitive' },
+        createdAt: { gte: oneHourAgo }
+      }
+    });
+    if (duplicate) {
+      throw new ConflictError('Bu değerlendirme zaten gönderildi. Lütfen tekrar göndermeyin.');
     }
 
     const rating = Math.max(1, Math.min(5, parseInt(String(body.rating), 10) || 5));
+    const initials =
+      name
+        .trim()
+        .split(/\s+/)
+        .filter(Boolean)
+        .map((n) => n[0])
+        .join('')
+        .substring(0, 2)
+        .toUpperCase() || 'M';
 
     // Müşteriden gelen yeni değerlendirmeler ONAY BEKLİYOR olarak kaydedilir (isApproved: false)
     const review = await prisma.review.create({
       data: {
         name,
+        initials,
         rating,
         comment,
         location,

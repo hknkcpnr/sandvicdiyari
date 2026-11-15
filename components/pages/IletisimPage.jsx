@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useDispatch } from 'react-redux';
 import { showMessageModal } from '@/store/slices/uiSlice';
 import { getRestaurantStatus, CLOSED_MESSAGE } from '@/lib/openingHours';
@@ -11,33 +11,82 @@ export default function IletisimPage() {
   const [email, setEmail] = useState('');
   const [type, setType] = useState('Öneri / İstek');
   const [message, setMessage] = useState('');
+  const [website, setWebsite] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const isSubmittingRef = useRef(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (isSubmittingRef.current) return;
 
-    // Call API in background
-    try {
-      await fetch('/api/feedback', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, email, type, message })
-      });
-    } catch (err) {
-      console.error(err);
+    const trimmedName = name.trim();
+    const trimmedEmail = email.trim();
+    const trimmedMessage = message.trim();
+    if (!trimmedName || !trimmedEmail || trimmedMessage.length < 5) {
+      dispatch(
+        showMessageModal({
+          title: 'Eksik Bilgi',
+          text: 'Lütfen adınızı, geçerli bir e-posta adresini ve en az 5 karakterlik mesajınızı girin.',
+          type: 'error'
+        })
+      );
+      return;
     }
 
-    dispatch(
-      showMessageModal({
-        title: 'Bildiriminiz Alındı! 📝',
-        text: `Sayın ${name}, "${type}" konulu bildiriminiz incelenmek üzere ekibimize iletildi. Teşekkür ederiz!`,
-        type: 'success',
-      })
-    );
+    isSubmittingRef.current = true;
+    setIsSubmitting(true);
 
-    setName('');
-    setEmail('');
-    setType('Öneri / İstek');
-    setMessage('');
+    try {
+      const res = await fetch('/api/feedback', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: trimmedName,
+          email: trimmedEmail,
+          type,
+          message: trimmedMessage,
+          website
+        })
+      });
+      const json = await res.json().catch(() => ({}));
+
+      if (!res.ok || !json.success) {
+        dispatch(
+          showMessageModal({
+            title: res.status === 429 ? 'Lütfen Bekleyin' : 'Gönderilemedi',
+            text: json.error || json.message || 'Bildiriminiz gönderilemedi. Lütfen biraz sonra tekrar deneyin.',
+            type: 'error'
+          })
+        );
+        return;
+      }
+
+      dispatch(
+        showMessageModal({
+          title: 'Bildiriminiz Alındı! 📝',
+          text: `Sayın ${trimmedName}, "${type}" konulu bildiriminiz incelenmek üzere ekibimize iletildi. Teşekkür ederiz!`,
+          type: 'success',
+        })
+      );
+
+      setName('');
+      setEmail('');
+      setType('Öneri / İstek');
+      setMessage('');
+      setWebsite('');
+    } catch (err) {
+      console.error(err);
+      dispatch(
+        showMessageModal({
+          title: 'Bağlantı Hatası',
+          text: 'Sunucuya ulaşılamadı. Lütfen internet bağlantınızı kontrol edip tekrar deneyin.',
+          type: 'error'
+        })
+      );
+    } finally {
+      isSubmittingRef.current = false;
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -157,11 +206,23 @@ export default function IletisimPage() {
                     placeholder="Görüşlerinizi detaylıca yazabilirsiniz..."
                   />
                 </div>
+                {/* Bot Koruması (Honeypot) */}
+                <input
+                  type="text"
+                  name="website"
+                  value={website}
+                  onChange={(e) => setWebsite(e.target.value)}
+                  tabIndex={-1}
+                  autoComplete="off"
+                  aria-hidden="true"
+                  className="hidden"
+                />
                 <button
                   type="submit"
-                  className="w-full bg-brand-500 hover:bg-brand-600 text-white font-bold py-3.5 rounded-xl text-sm uppercase tracking-wider shadow-lg shadow-brand-500/20 transition-all cursor-pointer"
+                  disabled={isSubmitting}
+                  className="w-full bg-brand-500 hover:bg-brand-600 disabled:bg-stone-700 disabled:text-stone-400 disabled:cursor-not-allowed text-white font-bold py-3.5 rounded-xl text-sm uppercase tracking-wider shadow-lg shadow-brand-500/20 transition-all cursor-pointer"
                 >
-                  Bildirimi Gönder
+                  {isSubmitting ? 'Gönderiliyor...' : 'Bildirimi Gönder'}
                 </button>
               </form>
             </div>

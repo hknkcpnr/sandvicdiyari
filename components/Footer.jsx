@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import { showMessageModal, addReview } from '@/store/slices/uiSlice';
+import { showMessageModal } from '@/store/slices/uiSlice';
 import { getRestaurantStatus, CLOSED_MESSAGE } from '@/lib/openingHours';
 
 export default function Footer() {
@@ -11,51 +11,80 @@ export default function Footer() {
   const [rating, setRating] = useState(5);
   const [reviewName, setReviewName] = useState('');
   const [reviewComment, setReviewComment] = useState('');
+  const [website, setWebsite] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const isSubmittingRef = useRef(false);
 
   const handleSubmitReview = async (e) => {
     e.preventDefault();
-    if (!reviewName || !reviewComment) return;
+    if (isSubmittingRef.current) return;
 
-    const newReview = {
-      id: Date.now(),
-      name: reviewName,
-      rating,
-      comment: reviewComment,
-      initials: (reviewName || 'M')
-        .toString()
-        .trim()
-        .split(/\s+/)
-        .filter(Boolean)
-        .map((n) => n[0])
-        .join('')
-        .substring(0, 2)
-        .toUpperCase() || 'M',
-      location: 'Torbalı, İzmir',
-      isApproved: false
-    };
-
-    // Submit to API (Yeni yorumlar yönetici onayı bekler)
-    try {
-      await fetch('/api/reviews', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newReview)
-      });
-    } catch (err) {
-      console.error(err);
+    const trimmedName = reviewName.trim();
+    const trimmedComment = reviewComment.trim();
+    if (trimmedName.length < 2 || trimmedComment.length < 5) {
+      dispatch(
+        showMessageModal({
+          title: 'Eksik Bilgi',
+          text: 'Lütfen adınızı (en az 2 karakter) ve yorumunuzu (en az 5 karakter) girin.',
+          type: 'error'
+        })
+      );
+      return;
     }
 
-    dispatch(
-      showMessageModal({
-        title: 'Değerlendirmeniz Alındı! ⭐',
-        text: `Teşekkür ederiz, ${reviewName}! Yorumunuz incelenip yönetici tarafından onaylandıktan sonra sitemizde yayınlanacaktır.`,
-        type: 'success',
-      })
-    );
+    isSubmittingRef.current = true;
+    setIsSubmitting(true);
 
-    setReviewName('');
-    setReviewComment('');
-    setRating(5);
+    try {
+      const res = await fetch('/api/reviews', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: trimmedName,
+          rating,
+          comment: trimmedComment,
+          location: 'Torbalı, İzmir',
+          website
+        })
+      });
+      const json = await res.json().catch(() => ({}));
+
+      if (!res.ok || !json.success) {
+        dispatch(
+          showMessageModal({
+            title: res.status === 429 ? 'Lütfen Bekleyin' : 'Gönderilemedi',
+            text: json.error || json.message || 'Değerlendirmeniz gönderilemedi. Lütfen biraz sonra tekrar deneyin.',
+            type: 'error'
+          })
+        );
+        return;
+      }
+
+      dispatch(
+        showMessageModal({
+          title: 'Değerlendirmeniz Alındı! ⭐',
+          text: `Teşekkür ederiz, ${trimmedName}! Yorumunuz incelenip yönetici tarafından onaylandıktan sonra sitemizde yayınlanacaktır.`,
+          type: 'success',
+        })
+      );
+
+      setReviewName('');
+      setReviewComment('');
+      setRating(5);
+      setWebsite('');
+    } catch (err) {
+      console.error(err);
+      dispatch(
+        showMessageModal({
+          title: 'Bağlantı Hatası',
+          text: 'Sunucuya ulaşılamadı. Lütfen internet bağlantınızı kontrol edip tekrar deneyin.',
+          type: 'error'
+        })
+      );
+    } finally {
+      isSubmittingRef.current = false;
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -144,11 +173,24 @@ export default function Footer() {
                   </div>
                 </div>
 
+                {/* Bot Koruması (Honeypot) */}
+                <input
+                  type="text"
+                  name="website"
+                  value={website}
+                  onChange={(e) => setWebsite(e.target.value)}
+                  tabIndex={-1}
+                  autoComplete="off"
+                  aria-hidden="true"
+                  className="hidden"
+                />
+
                 <button
                   type="submit"
-                  className="w-full bg-brand-500 hover:bg-brand-600 text-white font-bold py-3.5 rounded-xl text-sm uppercase tracking-wider shadow-lg shadow-brand-500/20 transition-all cursor-pointer"
+                  disabled={isSubmitting}
+                  className="w-full bg-brand-500 hover:bg-brand-600 disabled:bg-stone-700 disabled:text-stone-400 disabled:cursor-not-allowed text-white font-bold py-3.5 rounded-xl text-sm uppercase tracking-wider shadow-lg shadow-brand-500/20 transition-all cursor-pointer"
                 >
-                  Değerlendirmeyi Gönder
+                  {isSubmitting ? 'Gönderiliyor...' : 'Değerlendirmeyi Gönder'}
                 </button>
               </form>
             </div>
