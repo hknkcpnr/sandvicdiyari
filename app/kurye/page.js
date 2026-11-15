@@ -708,10 +708,10 @@ export default function CourierPortalPage() {
 
       {/* 3. ANA GÖVDE VE İÇERİK ALANI */}
       <main className="max-w-3xl mx-auto px-3 sm:px-4 pt-4 space-y-4">
-        {/* 3.1. BUGÜNKÜ PERFORMANS VE TAHSİLAT KARTLARI */}
-        <div className="grid grid-cols-3 gap-2 sm:gap-3">
+        {/* 3.1. BUGÜNKÜ PERFORMANS KARTLARI */}
+        <div className="grid grid-cols-2 gap-2.5 sm:gap-3">
           <div className="bg-white p-2.5 sm:p-3.5 rounded-2xl border border-stone-200/90 shadow-2xs text-center flex flex-col justify-center">
-            <span className="text-[9px] sm:text-[10px] font-extrabold uppercase tracking-wider text-stone-400 block leading-tight">
+            <span className="text-[10px] font-extrabold uppercase tracking-wider text-stone-400 block leading-tight">
               Üzerimdeki Paket
             </span>
             <span
@@ -724,20 +724,11 @@ export default function CourierPortalPage() {
           </div>
 
           <div className="bg-white p-2.5 sm:p-3.5 rounded-2xl border border-stone-200/90 shadow-2xs text-center flex flex-col justify-center">
-            <span className="text-[9px] sm:text-[10px] font-extrabold uppercase tracking-wider text-stone-400 block leading-tight">
+            <span className="text-[10px] font-extrabold uppercase tracking-wider text-stone-400 block leading-tight">
               Bugün Teslim
             </span>
             <span className="text-xl sm:text-2xl font-black text-emerald-600 block mt-1">
               {stats.completedCount}
-            </span>
-          </div>
-
-          <div className="bg-white p-2.5 sm:p-3.5 rounded-2xl border border-stone-200/90 shadow-2xs text-center flex flex-col justify-center">
-            <span className="text-[9px] sm:text-[10px] font-extrabold uppercase tracking-wider text-stone-400 block leading-tight">
-              Tahsil Edilen
-            </span>
-            <span className="text-base sm:text-xl font-black text-stone-900 block mt-1 truncate">
-              ₺{stats.totalRevenue.toFixed(0)}
             </span>
           </div>
         </div>
