@@ -589,7 +589,7 @@ export default function CourierPortalPage() {
   // 3. COURIER DASHBOARD VIEW (When logged in)
   // --------------------------------------------------------------------------
   return (
-    <div className="min-h-screen bg-stone-100 text-stone-900 font-poppins pb-24 selection:bg-brand-500 selection:text-white">
+    <div className="min-h-screen bg-stone-100 text-stone-900 font-poppins pb-24 overflow-x-hidden selection:bg-brand-500 selection:text-white">
       {/* 1. STICKY TOP APP BAR */}
       <header className="sticky top-0 z-30 bg-stone-900 text-white shadow-md border-b border-stone-800">
         <div className="max-w-3xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
@@ -681,13 +681,13 @@ export default function CourierPortalPage() {
       {/* 3. ANA GÖVDE VE İÇERİK ALANI */}
       <main className="max-w-3xl mx-auto px-3 sm:px-4 pt-4 space-y-4">
         {/* 3.1. BUGÜNKÜ PERFORMANS VE TAHSİLAT KARTLARI */}
-        <div className="grid grid-cols-3 gap-2.5 sm:gap-3">
-          <div className="bg-white p-3 sm:p-3.5 rounded-2xl border border-stone-200/90 shadow-2xs text-center">
-            <span className="text-[10px] font-extrabold uppercase tracking-wider text-stone-400 block">
+        <div className="grid grid-cols-3 gap-2 sm:gap-3">
+          <div className="bg-white p-2.5 sm:p-3.5 rounded-2xl border border-stone-200/90 shadow-2xs text-center flex flex-col justify-center">
+            <span className="text-[9px] sm:text-[10px] font-extrabold uppercase tracking-wider text-stone-400 block leading-tight">
               Üzerimdeki Paket
             </span>
             <span
-              className={`text-xl sm:text-2xl font-black block mt-0.5 ${
+              className={`text-xl sm:text-2xl font-black block mt-1 ${
                 stats.activeCount > 0 ? 'text-brand-600 animate-pulse' : 'text-stone-800'
               }`}
             >
@@ -695,17 +695,17 @@ export default function CourierPortalPage() {
             </span>
           </div>
 
-          <div className="bg-white p-3 sm:p-3.5 rounded-2xl border border-stone-200/90 shadow-2xs text-center">
-            <span className="text-[10px] font-extrabold uppercase tracking-wider text-stone-400 block">
+          <div className="bg-white p-2.5 sm:p-3.5 rounded-2xl border border-stone-200/90 shadow-2xs text-center flex flex-col justify-center">
+            <span className="text-[9px] sm:text-[10px] font-extrabold uppercase tracking-wider text-stone-400 block leading-tight">
               Bugün Teslim
             </span>
-            <span className="text-xl sm:text-2xl font-black text-emerald-600 block mt-0.5">
+            <span className="text-xl sm:text-2xl font-black text-emerald-600 block mt-1">
               {stats.completedCount}
             </span>
           </div>
 
-          <div className="bg-white p-3 sm:p-3.5 rounded-2xl border border-stone-200/90 shadow-2xs text-center">
-            <span className="text-[10px] font-extrabold uppercase tracking-wider text-stone-400 block">
+          <div className="bg-white p-2.5 sm:p-3.5 rounded-2xl border border-stone-200/90 shadow-2xs text-center flex flex-col justify-center">
+            <span className="text-[9px] sm:text-[10px] font-extrabold uppercase tracking-wider text-stone-400 block leading-tight">
               Tahsil Edilen
             </span>
             <span className="text-base sm:text-xl font-black text-stone-900 block mt-1 truncate">
@@ -715,18 +715,18 @@ export default function CourierPortalPage() {
         </div>
 
         {/* 3.2. SEKMELER (ÜZERİMDEKİLER / MUTFAKTA BOŞTAKİLER / TESLİM EDİLENLER) */}
-        <div className="flex items-center gap-1.5 bg-white p-1 rounded-2xl border border-stone-200 shadow-2xs">
+        <div className="grid grid-cols-3 gap-1 bg-white p-1 rounded-2xl border border-stone-200 shadow-2xs">
           <button
             type="button"
             onClick={() => setActiveTab('active')}
-            className={`flex-1 py-2.5 px-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+            className={`py-2.5 px-1.5 sm:px-2 rounded-xl text-[11px] sm:text-xs font-bold transition-all cursor-pointer flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-1.5 min-w-0 ${
               activeTab === 'active'
                 ? 'bg-stone-900 text-white shadow-xs'
                 : 'text-stone-600 hover:bg-stone-100'
             }`}
           >
             <i className="fa-solid fa-box-open text-xs"></i>
-            <span>Üzerimdekiler</span>
+            <span className="truncate">Üzerimdekiler</span>
             {stats.activeCount > 0 && (
               <span
                 className={`px-1.5 py-0.2 rounded-full text-[10px] font-black ${
@@ -741,14 +741,14 @@ export default function CourierPortalPage() {
           <button
             type="button"
             onClick={() => setActiveTab('unassigned')}
-            className={`flex-1 py-2.5 px-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+            className={`py-2.5 px-1.5 sm:px-2 rounded-xl text-[11px] sm:text-xs font-bold transition-all cursor-pointer flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-1.5 min-w-0 ${
               activeTab === 'unassigned'
                 ? 'bg-stone-900 text-white shadow-xs'
                 : 'text-stone-600 hover:bg-stone-100'
             }`}
           >
             <i className="fa-solid fa-fire-burner text-xs"></i>
-            <span>Mutfakta Hazır</span>
+            <span className="truncate">Mutfakta Hazır</span>
             {stats.unassignedCount > 0 && (
               <span
                 className={`px-1.5 py-0.2 rounded-full text-[10px] font-black ${
@@ -765,14 +765,14 @@ export default function CourierPortalPage() {
           <button
             type="button"
             onClick={() => setActiveTab('completed')}
-            className={`flex-1 py-2.5 px-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+            className={`py-2.5 px-1.5 sm:px-2 rounded-xl text-[11px] sm:text-xs font-bold transition-all cursor-pointer flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-1.5 min-w-0 ${
               activeTab === 'completed'
                 ? 'bg-stone-900 text-white shadow-xs'
                 : 'text-stone-600 hover:bg-stone-100'
             }`}
           >
             <i className="fa-solid fa-circle-check text-xs"></i>
-            <span>Teslim Edilen</span>
+            <span className="truncate">Teslim Edilen</span>
             <span className="text-[10px] text-stone-400">({stats.completedCount})</span>
           </button>
         </div>
@@ -844,19 +844,19 @@ export default function CourierPortalPage() {
                   className={`bg-white rounded-2xl sm:rounded-3xl border ${statusCfg.cardBorder} shadow-sm hover:shadow-md transition-all overflow-hidden p-4 sm:p-5 space-y-4`}
                 >
                   {/* Kart Üst Başlık: Sipariş No, Saat, Durum */}
-                  <div className="flex items-center justify-between gap-2 border-b border-stone-100 pb-3">
-                    <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center justify-between gap-2 border-b border-stone-100 pb-3">
+                    <div className="flex flex-wrap items-center gap-2 min-w-0">
                       <span className="font-black text-sm sm:text-base text-stone-900 tracking-tight">
                         #{order.orderNumber || order.id}
                       </span>
-                      <span className="text-[11px] font-bold text-stone-500 bg-stone-100 px-2 py-0.5 rounded-lg">
+                      <span className="text-[11px] font-bold text-stone-500 bg-stone-100 px-2 py-0.5 rounded-lg whitespace-nowrap">
                         {formatTime(order.createdAt)} ({formatElapsedTime(order.createdAt)})
                       </span>
                     </div>
 
                     {/* Durum Rozeti */}
                     <span
-                      className={`text-[11px] font-extrabold px-2.5 py-1 rounded-xl border flex items-center gap-1.5 ${statusCfg.badgeBg}`}
+                      className={`text-[11px] font-extrabold px-2.5 py-1 rounded-xl border flex items-center gap-1.5 shrink-0 ${statusCfg.badgeBg}`}
                     >
                       <span className={`w-2 h-2 rounded-full ${statusCfg.dot}`}></span>
                       <span>{statusCfg.label}</span>
@@ -866,7 +866,7 @@ export default function CourierPortalPage() {
                   {/* Müşteri ve Adres Bloğu (Kurye İçin En Kritik Alan!) */}
                   <div className="space-y-3">
                     {/* Müşteri Adı ve Telefon Arama Butonu */}
-                    <div className="flex items-center justify-between gap-3">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
                       <div className="min-w-0">
                         <span className="text-[10px] font-extrabold text-stone-400 uppercase tracking-wider block">
                           Müşteri
@@ -880,7 +880,7 @@ export default function CourierPortalPage() {
                       {phoneClean && (
                         <a
                           href={`tel:${phoneClean}`}
-                          className="bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white font-black text-xs px-3.5 py-2 rounded-xl flex items-center gap-1.5 shadow-xs transition-all shrink-0 cursor-pointer"
+                          className="w-full sm:w-auto justify-center bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white font-black text-xs px-3.5 py-2.5 sm:py-2 rounded-xl flex items-center gap-1.5 shadow-xs transition-all shrink-0 cursor-pointer"
                         >
                           <i className="fa-solid fa-phone text-xs"></i>
                           <span>Ara ({order.customerPhone || order.phone})</span>
@@ -890,23 +890,23 @@ export default function CourierPortalPage() {
 
                     {/* Teslimat Adresi ve Yol Tarifi Butonu */}
                     <div className="bg-stone-50 p-3.5 rounded-2xl border border-stone-200/90 space-y-2.5">
-                      <div className="flex items-start justify-between gap-2.5">
-                        <div className="min-w-0 space-y-0.5">
+                      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+                        <div className="min-w-0 space-y-0.5 flex-1">
                           <span className="text-[10px] font-bold text-stone-400 uppercase tracking-wider block">
                             Teslimat Adresi
                           </span>
-                          <p className="text-xs sm:text-sm font-bold text-stone-900 leading-snug">
+                          <p className="text-xs sm:text-sm font-bold text-stone-900 leading-snug break-words">
                             {order.customerAddress || order.address || 'Adres bilgisi girilmedi.'}
                           </p>
                         </div>
 
                         {/* Yol Tarifi Al (Google / Apple Maps Navigasyon) */}
-                        <div className="flex flex-col gap-1.5 shrink-0">
+                        <div className="grid grid-cols-2 sm:flex sm:flex-col gap-2 sm:gap-1.5 shrink-0">
                           <a
                             href={directionsUrl}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="bg-sky-600 hover:bg-sky-500 active:scale-95 text-white font-extrabold text-xs px-3.5 py-2.5 rounded-xl flex items-center gap-1.5 shadow-xs transition-all cursor-pointer"
+                            className="bg-sky-600 hover:bg-sky-500 active:scale-95 text-white font-extrabold text-xs px-3 py-2.5 rounded-xl flex items-center justify-center gap-1.5 shadow-xs transition-all cursor-pointer"
                             title="Haritada Yol Tarifi Başlat"
                           >
                             <i className="fa-solid fa-location-arrow text-xs text-amber-300"></i>
@@ -918,10 +918,11 @@ export default function CourierPortalPage() {
                             onClick={() =>
                               handleCopyAddress(order.customerAddress || order.address)
                             }
-                            className="bg-stone-200/90 hover:bg-stone-300 text-stone-700 font-bold text-[10px] py-1 px-2 rounded-lg text-center cursor-pointer transition-colors"
+                            className="bg-stone-200/90 hover:bg-stone-300 text-stone-700 font-bold text-[11px] sm:text-[10px] py-2 sm:py-1 px-2.5 rounded-xl sm:rounded-lg flex items-center justify-center gap-1 cursor-pointer transition-colors"
                             title="Adresi Kopyala"
                           >
-                            <i className="fa-solid fa-copy mr-1"></i>Adresi Kopyala
+                            <i className="fa-solid fa-copy"></i>
+                            <span>Adresi Kopyala</span>
                           </button>
                         </div>
                       </div>
@@ -941,7 +942,7 @@ export default function CourierPortalPage() {
                   {/* 3.4. TAHMİNİ VARIŞ SÜRESİ (ETA) GİRİŞ MODÜLÜ (KURYE MÜŞTERİYE BİLDİRİR) */}
                   {!isDelivered && (
                     <div className="bg-gradient-to-r from-amber-500/10 via-amber-50/50 to-white p-3.5 rounded-2xl border border-amber-200/90 space-y-2">
-                      <div className="flex items-center justify-between gap-2">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
                         <span className="text-xs font-black text-amber-950 flex items-center gap-1.5">
                           <i className="fa-solid fa-stopwatch text-amber-600"></i>
                           <span>Müşteriye Tahmini Varış Süresi</span>
@@ -981,7 +982,7 @@ export default function CourierPortalPage() {
                             setEtaInputs({ ...etaInputs, [order.id]: e.target.value })
                           }
                           placeholder="Örn: 12 dk veya Saat 14:30"
-                          className="bg-white border border-stone-200 rounded-xl px-3 py-1.5 text-xs font-semibold text-stone-800 focus:outline-none focus:border-amber-500 flex-1"
+                          className="bg-white border border-stone-200 rounded-xl px-3 py-2 text-xs font-semibold text-stone-800 focus:outline-none focus:border-amber-500 flex-1 min-w-0"
                         />
                         <button
                           type="button"
@@ -997,12 +998,12 @@ export default function CourierPortalPage() {
                   )}
 
                   {/* Ödeme Yöntemi ve Tahsil Edilecek Tutar */}
-                  <div className="flex items-center justify-between gap-3 bg-stone-900 text-white p-3.5 rounded-2xl">
-                    <div>
+                  <div className="flex flex-wrap sm:flex-nowrap items-center justify-between gap-2.5 bg-stone-900 text-white p-3.5 rounded-2xl">
+                    <div className="min-w-0">
                       <span className="text-[10px] font-bold text-stone-400 uppercase tracking-wider block">
                         Ödeme &amp; Tahsilat
                       </span>
-                      <div className="flex items-center gap-2 mt-0.5">
+                      <div className="flex flex-wrap items-center gap-1.5 mt-0.5">
                         <span className="text-xs font-bold">
                           {order.paymentMethod || 'Kapıda Nakit'}
                         </span>
