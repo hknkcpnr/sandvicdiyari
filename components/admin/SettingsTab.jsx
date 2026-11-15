@@ -348,13 +348,13 @@ export default function SettingsTab({
               className="app-select bg-stone-50 hover:bg-white border border-stone-300 hover:border-brand-500 text-stone-900 text-xs font-bold rounded-2xl px-4 py-2.5 cursor-pointer focus:outline-none focus:ring-3 focus:ring-brand-500/15 transition-all shadow-xs"
               title="Ayar Sayfası Değiştir"
             >
-              <option value="appearance">🔤 Yazı Boyutu &amp; Arayüz</option>
-              <option value="site_content">🎨 Müşteri Sayfası &amp; Vitrin</option>
-              <option value="users">🛡️ Kullanıcılar &amp; Roller</option>
-              <option value="sound">🔔 Ses &amp; Bildirimler</option>
-              <option value="receipt">🧾 Fiş &amp; Adisyon Baskısı</option>
-              <option value="system">💾 Yedekleme &amp; Sistem</option>
-              <option value="api">🐘 PostgreSQL ORM &amp; Güvenlik</option>
+              <option value="appearance">🔤 Arayüz</option>
+              <option value="site_content">🎨 Vitrin</option>
+              <option value="users">🛡️ Kullanıcılar</option>
+              <option value="sound">🔔 Ses</option>
+              <option value="receipt">🧾 Fiş Baskı</option>
+              <option value="system">💾 Yedekleme</option>
+              <option value="api">🐘 Veritabanı</option>
             </select>
           </div>
 

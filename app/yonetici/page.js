@@ -532,12 +532,12 @@ export default function YoneticiPage() {
       : '';
 
   const settingsSubItems = [
-    { id: 'appearance', label: 'Yazı Boyutu & Arayüz', icon: 'fa-solid fa-text-height' },
-    { id: 'users', label: 'Kullanıcılar & Roller', icon: 'fa-solid fa-user-shield' },
-    { id: 'sound', label: 'Ses & Bildirimler', icon: 'fa-solid fa-volume-high' },
-    { id: 'receipt', label: 'Fiş & Adisyon Baskısı', icon: 'fa-solid fa-receipt' },
-    { id: 'system', label: 'Yedekleme & Sistem', icon: 'fa-solid fa-box-archive' },
-    { id: 'api', label: 'PostgreSQL & Güvenlik', icon: 'fa-solid fa-database' }
+    { id: 'appearance', label: 'Arayüz', icon: 'fa-solid fa-text-height' },
+    { id: 'users', label: 'Kullanıcılar', icon: 'fa-solid fa-user-shield' },
+    { id: 'sound', label: 'Ses', icon: 'fa-solid fa-volume-high' },
+    { id: 'receipt', label: 'Fiş Baskı', icon: 'fa-solid fa-receipt' },
+    { id: 'system', label: 'Yedekleme', icon: 'fa-solid fa-box-archive' },
+    { id: 'api', label: 'Veritabanı', icon: 'fa-solid fa-database' }
   ];
 
   return (
