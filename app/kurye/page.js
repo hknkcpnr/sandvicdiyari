@@ -956,15 +956,22 @@ export default function CourierPortalPage() {
                         </div>
                       </div>
 
-                      {/* Müşteri Notu */}
-                      {(order.notes || order.orderNote) && (
-                        <div className="bg-amber-50 border border-amber-200 text-amber-900 p-2.5 rounded-xl text-xs font-semibold flex items-start gap-1.5">
-                          <i className="fa-solid fa-triangle-exclamation text-amber-600 mt-0.5 shrink-0"></i>
-                          <span>
-                            <strong>Müşteri Notu:</strong> {order.notes || order.orderNote}
-                          </span>
-                        </div>
-                      )}
+                      {/* Müşteri Notu (Onay tercihi etiketi kuryeye gösterilmez) */}
+                      {(() => {
+                        const rawNote = String(order.notes || order.orderNote || '');
+                        const cleanCourierNote = rawNote
+                          .replace(/\[ONAY TERCİHİ:[^\]]*\]\s*/gi, '')
+                          .trim();
+                        if (!cleanCourierNote) return null;
+                        return (
+                          <div className="bg-amber-50 border border-amber-200 text-amber-900 p-2.5 rounded-xl text-xs font-semibold flex items-start gap-1.5">
+                            <i className="fa-solid fa-triangle-exclamation text-amber-600 mt-0.5 shrink-0"></i>
+                            <span>
+                              <strong>Müşteri Notu:</strong> {cleanCourierNote}
+                            </span>
+                          </div>
+                        );
+                      })()}
                     </div>
                   </div>
 
