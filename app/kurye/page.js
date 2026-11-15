@@ -361,6 +361,35 @@ export default function CourierPortalPage() {
     }
   };
 
+  // Update Payment Method (Kapıda Nakit <-> Kapıda Kart)
+  const handleUpdatePaymentMethod = async (orderId, nextMethod) => {
+    setUpdatingId(orderId);
+    try {
+      const res = await fetch(`/api/orders/${orderId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'update_payment_method',
+          paymentMethod: nextMethod,
+          courierName: courierUser?.name || 'Kurye',
+        }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        showToast(`Ödeme şekli "${nextMethod}" olarak güncellendi! 💳`);
+        setOrders((prev) =>
+          prev.map((o) => (o.id === orderId ? { ...o, paymentMethod: nextMethod } : o))
+        );
+      } else {
+        showToast(json.error || 'Ödeme şekli güncellenemedi.', 'error');
+      }
+    } catch {
+      showToast('Bağlantı hatası oluştu.', 'error');
+    } finally {
+      setUpdatingId(null);
+    }
+  };
+
   // Copy address to clipboard
   const handleCopyAddress = (address) => {
     if (!address) return;
@@ -998,41 +1027,80 @@ export default function CourierPortalPage() {
                   )}
 
                   {/* Ödeme Yöntemi ve Tahsil Edilecek Tutar */}
-                  <div className="flex flex-wrap sm:flex-nowrap items-center justify-between gap-2.5 bg-stone-900 text-white p-3.5 rounded-2xl">
-                    <div className="min-w-0">
-                      <span className="text-[10px] font-bold text-stone-400 uppercase tracking-wider block">
-                        Ödeme &amp; Tahsilat
-                      </span>
-                      <div className="flex flex-wrap items-center gap-1.5 mt-0.5">
-                        <span className="text-xs font-bold">
-                          {order.paymentMethod || 'Kapıda Nakit'}
+                  <div className="bg-stone-900 text-white p-3.5 rounded-2xl space-y-2.5">
+                    <div className="flex flex-wrap sm:flex-nowrap items-center justify-between gap-2.5">
+                      <div className="min-w-0">
+                        <span className="text-[10px] font-bold text-stone-400 uppercase tracking-wider block">
+                          Ödeme &amp; Tahsilat
                         </span>
-                        {isCash && (
-                          <span className="bg-amber-500 text-stone-950 text-[10px] font-black px-2 py-0.5 rounded-md uppercase">
-                            Nakit Tahsil Et
+                        <div className="flex flex-wrap items-center gap-1.5 mt-0.5">
+                          <span className="text-xs font-bold">
+                            {order.paymentMethod || 'Kapıda Nakit'}
                           </span>
-                        )}
-                        {isCard && (
-                          <span className="bg-sky-500 text-white text-[10px] font-black px-2 py-0.5 rounded-md uppercase">
-                            POS Çek
-                          </span>
-                        )}
-                        {isOnline && (
-                          <span className="bg-emerald-500 text-white text-[10px] font-black px-2 py-0.5 rounded-md uppercase">
-                            Online Ödendi
-                          </span>
-                        )}
+                          {isCash && (
+                            <span className="bg-amber-500 text-stone-950 text-[10px] font-black px-2 py-0.5 rounded-md uppercase">
+                              Nakit Tahsil Et
+                            </span>
+                          )}
+                          {isCard && (
+                            <span className="bg-sky-500 text-white text-[10px] font-black px-2 py-0.5 rounded-md uppercase">
+                              POS Çek
+                            </span>
+                          )}
+                          {isOnline && (
+                            <span className="bg-emerald-500 text-white text-[10px] font-black px-2 py-0.5 rounded-md uppercase">
+                              Online Ödendi
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="text-right">
+                        <span className="text-[10px] font-bold text-stone-400 uppercase tracking-wider block">
+                          Toplam Tutar
+                        </span>
+                        <span className="text-lg sm:text-xl font-black text-amber-400 block leading-tight">
+                          ₺{(Number(order.total) || Number(order.subtotal) || 0).toFixed(2)}
+                        </span>
                       </div>
                     </div>
 
-                    <div className="text-right">
-                      <span className="text-[10px] font-bold text-stone-400 uppercase tracking-wider block">
-                        Toplam Tutar
-                      </span>
-                      <span className="text-lg sm:text-xl font-black text-amber-400 block leading-tight">
-                        ₺{(Number(order.total) || Number(order.subtotal) || 0).toFixed(2)}
-                      </span>
-                    </div>
+                    {/* Kurye Ödeme Şekli Değiştirme (Kapıda Nakit / Kapıda Kart) */}
+                    {!isOnline && order.status !== 'İptal Edildi' && (
+                      <div className="pt-2 border-t border-stone-800 flex flex-wrap items-center justify-between gap-2">
+                        <span className="text-[10px] font-bold text-stone-400">
+                          Ödeme Şeklini Değiştir:
+                        </span>
+                        <div className="grid grid-cols-2 gap-1.5 w-full sm:w-auto">
+                          <button
+                            type="button"
+                            disabled={isUpdating || isCash}
+                            onClick={() => handleUpdatePaymentMethod(order.id, 'Kapıda Nakit')}
+                            className={`px-3 py-1.5 rounded-xl text-[11px] font-bold transition-all flex items-center justify-center gap-1 cursor-pointer ${
+                              isCash
+                                ? 'bg-amber-500 text-stone-950 cursor-default'
+                                : 'bg-stone-800 hover:bg-stone-700 text-stone-200 border border-stone-700'
+                            }`}
+                          >
+                            <i className="fa-solid fa-money-bill-wave text-[10px]"></i>
+                            <span>Kapıda Nakit</span>
+                          </button>
+                          <button
+                            type="button"
+                            disabled={isUpdating || isCard}
+                            onClick={() => handleUpdatePaymentMethod(order.id, 'Kapıda Kart')}
+                            className={`px-3 py-1.5 rounded-xl text-[11px] font-bold transition-all flex items-center justify-center gap-1 cursor-pointer ${
+                              isCard
+                                ? 'bg-sky-500 text-white cursor-default'
+                                : 'bg-stone-800 hover:bg-stone-700 text-stone-200 border border-stone-700'
+                            }`}
+                          >
+                            <i className="fa-solid fa-credit-card text-[10px]"></i>
+                            <span>Kapıda Kart</span>
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   {/* Sipariş Kalemleri Özeti (Kurye Çantayı Kontrol Etsin Diye) */}

@@ -105,6 +105,9 @@ export async function PATCH(request, { params }) {
     const paymentCollectedMethod = body.paymentCollectedMethod
       ? sanitizeText(body.paymentCollectedMethod, 64, 'paymentCollectedMethod', '/api/orders/[id]')
       : null;
+    const paymentMethodInput = body.paymentMethod
+      ? sanitizeText(body.paymentMethod, 64, 'paymentMethod', '/api/orders/[id]')
+      : null;
 
     const pgOrder = await findOrderInPg(id);
 
@@ -219,6 +222,50 @@ export async function PATCH(request, { params }) {
       return jsonSuccess({
         message: 'Sipariş teslim edildi ve ödeme tahsilatı tamamlandı.',
         data: deliveredOrder
+      });
+    }
+
+    // 2b. Update Payment Method (Kurye tarafından kapıda ödeme şekli değişikliği)
+    if (action === 'update_payment_method') {
+      const allowedMethods = ['Kapıda Nakit', 'Kapıda Kart'];
+      const nextMethod = paymentMethodInput || paymentCollectedMethod;
+      if (!nextMethod || !allowedMethods.includes(nextMethod)) {
+        throw new ValidationError('Geçerli bir ödeme şekli seçilmelidir (Kapıda Nakit veya Kapıda Kart).');
+      }
+      const actorName = courierName || user || 'Kurye';
+      if (pgOrder) {
+        if (pgOrder.status === 'İptal Edildi') {
+          throw new ValidationError('İptal edilmiş siparişin ödeme şekli değiştirilemez.');
+        }
+        const updatedPg = await rawPrisma.order.update({
+          where: { id: pgOrder.id },
+          data: {
+            paymentMethod: nextMethod,
+            statusHistory: {
+              create: {
+                status: pgOrder.status,
+                user: `Kurye (${actorName})`,
+                note: `Ödeme şekli "${nextMethod}" olarak güncellendi.`
+              }
+            }
+          },
+          include: { items: true, statusHistory: true }
+        });
+
+        return jsonSuccess({
+          message: `Ödeme şekli "${nextMethod}" olarak güncellendi.`,
+          data: formatPrismaOrder(updatedPg)
+        });
+      }
+
+      const memOrder = db.getOrderById(id);
+      if (!memOrder) {
+        throw new NotFoundError('Sipariş bulunamadı.');
+      }
+      memOrder.paymentMethod = nextMethod;
+      return jsonSuccess({
+        message: `Ödeme şekli "${nextMethod}" olarak güncellendi.`,
+        data: memOrder
       });
     }
 
