@@ -112,20 +112,17 @@ const STATUS_CONFIG = {
   },
 };
 
-// Next allowed operational step
+// Next allowed operational step (Sadeleştirilmiş 3 adımlı akış: Yeni -> Hazırlanıyor -> Yolda -> Teslim Edildi)
 function getNextStep(status) {
   switch (status) {
     case 'Yeni':
     case 'Görüntülendi':
-      return { nextStatus: 'Onaylandı', label: 'Siparişi Onayla', icon: 'fa-solid fa-check', color: 'bg-blue-600 hover:bg-blue-700 text-white' };
+      return { nextStatus: 'Hazırlanıyor', label: 'Onayla ve Hazırla', icon: 'fa-solid fa-fire-burner', color: 'bg-orange-600 hover:bg-orange-700 text-white' };
     case 'Onaylandı':
-      return { nextStatus: 'Hazırlanıyor', label: 'Hazırlamaya Başla', icon: 'fa-solid fa-fire-burner', color: 'bg-orange-600 hover:bg-orange-700 text-white' };
     case 'Hazırlanıyor':
-      return { nextStatus: 'Hazır', label: 'Hazır Olarak İşaretle', icon: 'fa-solid fa-box', color: 'bg-purple-600 hover:bg-purple-700 text-white' };
+      return { nextStatus: 'Yolda', label: 'Kuryeye Ver (Yolda)', icon: 'fa-solid fa-person-biking', color: 'bg-indigo-600 hover:bg-indigo-700 text-white' };
     case 'Hazır':
-      return { nextStatus: 'Kurye Teslim Aldı', label: 'Kuryeye Teslim Et', icon: 'fa-solid fa-person-biking', color: 'bg-indigo-600 hover:bg-indigo-700 text-white' };
     case 'Kurye Teslim Aldı':
-      return { nextStatus: 'Yolda', label: 'Yola Çıkar', icon: 'fa-solid fa-route', color: 'bg-sky-600 hover:bg-sky-700 text-white' };
     case 'Yolda':
       return { nextStatus: 'Teslim Edildi', label: 'Teslim Edildi Olarak İşaretle', icon: 'fa-solid fa-circle-check', color: 'bg-green-600 hover:bg-green-700 text-white' };
     default:
@@ -762,8 +759,10 @@ export default function AdminDashboardPage() {
           setDetailOrder(json.data);
         }
         showToast(
-          newStatus === 'Onaylandı'
-            ? `Sipariş #${json.data.orderNumber || orderId} onaylandı ve mutfağa iletildi! ✅`
+          newStatus === 'Hazırlanıyor'
+            ? `Sipariş #${json.data.orderNumber || orderId} onaylandı ve hazırlanıyor! 🍳`
+            : newStatus === 'Yolda'
+            ? `Sipariş #${json.data.orderNumber || orderId} kuryeye verildi (yolda)! 🛵`
             : `Sipariş durumu güncellendi: ${newStatus}`,
           'success'
         );
@@ -1809,7 +1808,7 @@ export default function AdminDashboardPage() {
         <KitchenPosBell
           orders={orders}
           onOpenOrderDetail={handleOpenDetail}
-          onAcceptOrder={(id) => handleProgressStatus(id, 'Onaylandı')}
+          onAcceptOrder={(id) => handleProgressStatus(id, 'Hazırlanıyor')}
         />
 
         {/* TOP BAR & QUICK ACTIONS */}
@@ -1972,7 +1971,7 @@ export default function AdminDashboardPage() {
             products={products}
             canViewRevenue={canViewRevenue}
             onOpenOrderDetail={handleOpenDetail}
-            onAcceptOrder={(id) => handleProgressStatus(id, 'Onaylandı')}
+            onAcceptOrder={(id) => handleProgressStatus(id, 'Hazırlanıyor')}
             onNavigateToOrders={(targetStage) => {
               setCurrentTab('orders');
               if (targetStage) {
@@ -2007,9 +2006,9 @@ export default function AdminDashboardPage() {
                   className="app-select w-full bg-stone-50 hover:bg-white border border-stone-300 hover:border-brand-500 text-stone-900 text-xs font-bold rounded-2xl px-4 py-3 cursor-pointer shadow-xs focus:ring-3 focus:ring-brand-500/15"
                 >
                   <option value="all">📦 Tüm Siparişler ({orders.length})</option>
-                  <option value="new">🔔 Yeni &amp; Görüntülenen ({newOrdersCount})</option>
-                  <option value="kitchen">🍳 Mutfakta (Hazırlık) ({kitchenCount})</option>
-                  <option value="courier">🛵 Kuryede (Yolda) ({courierCount})</option>
+                  <option value="new">🔔 Yeni ({newOrdersCount})</option>
+                  <option value="kitchen">🍳 Hazırlanıyor ({kitchenCount})</option>
+                  <option value="courier">🛵 Kuryede ({courierCount})</option>
                   <option value="completed">✅ Teslim Edilen ({completedCount})</option>
                   <option value="cancelled">❌ İptal Edilen ({cancelledCount})</option>
                 </select>
@@ -2019,9 +2018,9 @@ export default function AdminDashboardPage() {
               <div className="hidden sm:flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-0.5 sm:pb-0">
                 {[
                   { id: 'all', label: 'Tüm Siparişler', count: orders.length },
-                  { id: 'new', label: '🔔 Yeni & Görüntülenen', count: newOrdersCount, alert: newOrdersCount > 0 },
-                  { id: 'kitchen', label: '🍳 Mutfakta (Hazırlık)', count: kitchenCount },
-                  { id: 'courier', label: '🛵 Kuryede (Yolda)', count: courierCount },
+                  { id: 'new', label: '🔔 Yeni', count: newOrdersCount, alert: newOrdersCount > 0 },
+                  { id: 'kitchen', label: '🍳 Hazırlanıyor', count: kitchenCount },
+                  { id: 'courier', label: '🛵 Kuryede', count: courierCount },
                   { id: 'completed', label: '✅ Teslim Edilen', count: completedCount },
                   { id: 'cancelled', label: '❌ İptal Edilen', count: cancelledCount },
                 ].map((st) => (

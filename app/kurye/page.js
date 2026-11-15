@@ -1091,20 +1091,20 @@ export default function CourierPortalPage() {
                       </button>
                     )}
 
-                    {/* B) Paketi Mutfaktan Teslim Aldım */}
+                    {/* B) Paketi Teslim Aldım & Yola Çıktım */}
                     {(isReady || order.status === 'Onaylandı' || order.status === 'Hazırlanıyor') &&
                       !isDelivered && (
                         <button
                           type="button"
                           disabled={isUpdating}
-                          onClick={() => handleUpdateStatus(order.id, 'Kurye Teslim Aldı')}
-                          className="w-full bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-500 hover:to-indigo-600 active:scale-98 text-white font-black py-3.5 rounded-2xl text-sm transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer"
+                          onClick={() => handleUpdateStatus(order.id, 'Yolda')}
+                          className="w-full bg-gradient-to-r from-sky-600 to-indigo-600 hover:from-sky-500 hover:to-indigo-500 active:scale-98 text-white font-black py-3.5 rounded-2xl text-sm transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer"
                         >
-                          <i className="fa-solid fa-box text-base text-yellow-300"></i>
+                          <i className="fa-solid fa-motorcycle text-base text-yellow-300"></i>
                           <span>
                             {isUpdating
                               ? 'Güncelleniyor...'
-                              : '1. Paketi Mutfaktan Teslim Aldım'}
+                              : 'Teslim Aldım & Yola Çıktım'}
                           </span>
                         </button>
                       )}
