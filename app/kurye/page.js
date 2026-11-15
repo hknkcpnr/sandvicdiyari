@@ -419,14 +419,13 @@ export default function CourierPortalPage() {
       );
     };
 
-    // Active deliveries on this courier
+    // Active deliveries on this courier (Sadece kurye aşamasındaki siparişler)
     const active = orders.filter((o) => {
       const isAssigned = matchesCourier(o);
       const isDeliveryStage =
         o.status === 'Kurye Teslim Aldı' ||
         o.status === 'Yolda' ||
-        (o.status === 'Hazır' && isAssigned) ||
-        (o.status === 'Hazırlanıyor' && isAssigned);
+        (o.status === 'Hazır' && isAssigned);
       return isAssigned && isDeliveryStage;
     });
 
@@ -438,9 +437,9 @@ export default function CourierPortalPage() {
       return isAssigned && isDelivered && isToday;
     });
 
-    // Unassigned ready orders in kitchen
+    // Unassigned orders ready for courier (Hazırlanıyor aşamasındakiler kuryeye düşmez)
     const unassignedReady = orders.filter(
-      (o) => (o.status === 'Hazır' || o.status === 'Hazırlanıyor') && !o.courierName
+      (o) => (o.status === 'Hazır' || o.status === 'Yolda') && !o.courierName
     );
 
     // Revenue collected today by this courier

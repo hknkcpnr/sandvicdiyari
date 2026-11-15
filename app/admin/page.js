@@ -2363,30 +2363,36 @@ export default function AdminDashboardPage() {
                             )}
                           </div>
 
-                          {/* Sağ: Kurye Seçimi */}
+                          {/* Sağ: Kurye Seçimi (Sadece Kurye aşamasına geçince aktif) */}
                           <div className="md:col-span-3 flex flex-col justify-center gap-1">
                             <span className="text-[10px] font-bold uppercase tracking-wider text-stone-400 block">
                               <i className="fa-solid fa-motorcycle text-brand-600 mr-1"></i>Atanan Kurye
                             </span>
-                            <select
-                              value={order.courierName || ''}
-                              onChange={(e) => handleAssignCourier(order.id, e.target.value)}
-                              className={`app-select border rounded-xl px-3 py-2 text-xs font-extrabold focus:outline-none focus:ring-2 focus:ring-brand-500/20 cursor-pointer w-full transition-all shadow-2xs ${
-                                order.courierName
-                                  ? 'bg-emerald-50/90 border-emerald-300 text-emerald-950'
-                                  : 'bg-stone-50 hover:bg-stone-100/80 border-stone-200 text-stone-700'
-                              }`}
-                            >
-                              <option value="">Kurye Seçilmedi</option>
-                              {courierOptions.map((cName) => (
-                                <option key={cName} value={cName}>
-                                  🛵 {cName}
-                                </option>
-                              ))}
-                              {order.courierName && !courierOptions.includes(order.courierName) && (
-                                <option value={order.courierName}>🛵 {order.courierName}</option>
-                              )}
-                            </select>
+                            {['Hazır', 'Kurye Teslim Aldı', 'Yolda', 'Teslim Edildi'].includes(order.status) ? (
+                              <select
+                                value={order.courierName || ''}
+                                onChange={(e) => handleAssignCourier(order.id, e.target.value)}
+                                className={`app-select border rounded-xl px-3 py-2 text-xs font-extrabold focus:outline-none focus:ring-2 focus:ring-brand-500/20 cursor-pointer w-full transition-all shadow-2xs ${
+                                  order.courierName
+                                    ? 'bg-emerald-50/90 border-emerald-300 text-emerald-950'
+                                    : 'bg-stone-50 hover:bg-stone-100/80 border-stone-200 text-stone-700'
+                                }`}
+                              >
+                                <option value="">Kurye Seçilmedi</option>
+                                {courierOptions.map((cName) => (
+                                  <option key={cName} value={cName}>
+                                    🛵 {cName}
+                                  </option>
+                                ))}
+                                {order.courierName && !courierOptions.includes(order.courierName) && (
+                                  <option value={order.courierName}>🛵 {order.courierName}</option>
+                                )}
+                              </select>
+                            ) : (
+                              <div className="bg-stone-50 border border-dashed border-stone-200 rounded-xl px-3 py-2 text-[11px] font-semibold text-stone-400 text-center">
+                                Kuryeye verilince atanır
+                              </div>
+                            )}
                           </div>
 
                           {order.notes && (
@@ -3994,25 +4000,31 @@ export default function AdminDashboardPage() {
               </div>
 
               <div className="flex items-center gap-2 sm:w-72">
-                <select
-                  value={detailOrder.courierName || ''}
-                  onChange={(e) => handleAssignCourier(detailOrder.id, e.target.value)}
-                  className={`app-select border rounded-xl px-3.5 py-2.5 text-xs font-black focus:outline-none focus:ring-2 focus:ring-amber-500/25 cursor-pointer w-full transition-all shadow-xs ${
-                    detailOrder.courierName
-                      ? 'bg-emerald-600 text-white border-emerald-700'
-                      : 'bg-white border-amber-300 text-stone-800'
-                  }`}
-                >
-                  <option value="">🛵 Kurye Seçiniz...</option>
-                  {courierOptions.map((cName) => (
-                    <option key={cName} value={cName}>
-                      🛵 {cName}
-                    </option>
-                  ))}
-                  {detailOrder.courierName && !courierOptions.includes(detailOrder.courierName) && (
-                    <option value={detailOrder.courierName}>🛵 {detailOrder.courierName}</option>
-                  )}
-                </select>
+                {['Hazır', 'Kurye Teslim Aldı', 'Yolda', 'Teslim Edildi'].includes(detailOrder.status) ? (
+                  <select
+                    value={detailOrder.courierName || ''}
+                    onChange={(e) => handleAssignCourier(detailOrder.id, e.target.value)}
+                    className={`app-select border rounded-xl px-3.5 py-2.5 text-xs font-black focus:outline-none focus:ring-2 focus:ring-amber-500/25 cursor-pointer w-full transition-all shadow-xs ${
+                      detailOrder.courierName
+                        ? 'bg-emerald-600 text-white border-emerald-700'
+                        : 'bg-white border-amber-300 text-stone-800'
+                    }`}
+                  >
+                    <option value="">🛵 Kurye Seçiniz...</option>
+                    {courierOptions.map((cName) => (
+                      <option key={cName} value={cName}>
+                        🛵 {cName}
+                      </option>
+                    ))}
+                    {detailOrder.courierName && !courierOptions.includes(detailOrder.courierName) && (
+                      <option value={detailOrder.courierName}>🛵 {detailOrder.courierName}</option>
+                    )}
+                  </select>
+                ) : (
+                  <div className="w-full bg-white/80 border border-dashed border-amber-300 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-amber-800 text-center">
+                    Kuryeye verildiğinde atama açılır
+                  </div>
+                )}
               </div>
             </div>
 
