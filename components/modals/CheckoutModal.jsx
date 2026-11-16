@@ -536,6 +536,13 @@ export default function CheckoutModal() {
             </div>
           </div>
 
+          <p className="text-[11px] text-stone-400 flex items-center gap-1.5 px-1">
+            <i className="fa-solid fa-shield-halved text-emerald-600"></i>
+            <span>
+              Siparişi onaylayarak iletişim ve adres bilgilerinizin <strong>6698 sayılı KVKK</strong> kapsamında yalnızca sipariş teslimatı amacıyla işlenmesini kabul etmiş olursunuz.
+            </span>
+          </p>
+
           <div className={`grid grid-cols-1 ${restaurantStatus.isOpen ? 'sm:grid-cols-3' : 'sm:grid-cols-2'} gap-3 pt-2 border-t border-stone-100`}>
             <button
               type="button"

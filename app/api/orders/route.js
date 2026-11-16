@@ -6,7 +6,7 @@ import {
   jsonSuccess,
   parseJsonBody
 } from '@/lib/security/errors';
-import { checkRateLimit } from '@/lib/security/auth';
+import { assertProtectedApiAccess, checkRateLimit } from '@/lib/security/auth';
 import {
   assertNoSqlInjection,
   sanitizeText,
@@ -27,6 +27,12 @@ export async function GET(request) {
     if (phone) assertNoSqlInjection(phone, 'phone', '/api/orders');
     if (orderNo) assertNoSqlInjection(orderNo, 'orderNo', '/api/orders');
     if (userEmail) assertNoSqlInjection(userEmail, 'userEmail', '/api/orders');
+
+    const isCustomerFilteredQuery = Boolean(userEmail || orderNo || phone);
+    assertProtectedApiAccess(request, {
+      allowCustomerScoped: isCustomerFilteredQuery,
+      endpoint: '/api/orders'
+    });
 
     let orders = await prisma.order.findMany();
 

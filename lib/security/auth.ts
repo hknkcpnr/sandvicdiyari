@@ -161,12 +161,116 @@ export function verifyJwtToken(token: string): JwtPayload | null {
 }
 
 /**
- * Extracts and verifies a JWT token from the Authorization header if present
+ * Extracts a named cookie value from the Cookie header
+ */
+export function getCookieValue(request: Request, name: string): string | null {
+  const cookieHeader = request.headers?.get('cookie');
+  if (!cookieHeader) return null;
+  const pairs = cookieHeader.split(';');
+  for (const pair of pairs) {
+    const idx = pair.indexOf('=');
+    if (idx === -1) continue;
+    const k = pair.slice(0, idx).trim();
+    if (k === name) {
+      return decodeURIComponent(pair.slice(idx + 1).trim());
+    }
+  }
+  return null;
+}
+
+/**
+ * Builds an HttpOnly, SameSite=Lax cookie header string for auth tokens
+ */
+export function buildAuthCookieHeader(
+  token: string,
+  cookieName = 'sd_admin_token',
+  maxAgeSeconds = 7 * 24 * 3600
+): string {
+  const isProd = process.env.NODE_ENV === 'production';
+  return `${cookieName}=${encodeURIComponent(token)}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${maxAgeSeconds}${
+    isProd ? '; Secure' : ''
+  }`;
+}
+
+/**
+ * Extracts and verifies a JWT token from Authorization header or HttpOnly cookies
  */
 export function getOptionalAuthFromRequest(request: Request): JwtPayload | null {
-  const authHeader = request.headers.get('authorization');
-  if (!authHeader) return null;
-  return verifyJwtToken(authHeader);
+  const authHeader = request.headers?.get('authorization');
+  if (authHeader) {
+    const verified = verifyJwtToken(authHeader);
+    if (verified) return verified;
+  }
+  const adminCookie = getCookieValue(request, 'sd_admin_token');
+  if (adminCookie) {
+    const verified = verifyJwtToken(adminCookie);
+    if (verified) return verified;
+  }
+  const userCookie = getCookieValue(request, 'sd_auth_token');
+  if (userCookie) {
+    const verified = verifyJwtToken(userCookie);
+    if (verified) return verified;
+  }
+  return null;
+}
+
+/**
+ * Protects sensitive API endpoints (/api/orders, /api/admin/users, /api/finance)
+ * against direct browser address-bar access, external scrapers, and unauthorized requests.
+ */
+export function assertProtectedApiAccess(
+  request: Request,
+  options: { allowCustomerScoped?: boolean; endpoint?: string } = {}
+): JwtPayload | null {
+  const secFetchDest = (request.headers?.get('sec-fetch-dest') || '').toLowerCase();
+  const secFetchMode = (request.headers?.get('sec-fetch-mode') || '').toLowerCase();
+
+  // 1. Block direct browser address bar navigation (e.g. typing site.com/api/orders in URL bar)
+  if (secFetchDest === 'document' || secFetchMode === 'navigate') {
+    throw new AuthorizationError(
+      'Güvenlik Politikası (KVKK): Bu veri adresine tarayıcı çubuğundan doğrudan erişim engellenmiştir.'
+    );
+  }
+
+  // 2. Check signed JWT token (from Authorization header or HttpOnly cookie)
+  const payload = getOptionalAuthFromRequest(request);
+  if (payload?.type === 'admin') {
+    return payload;
+  }
+  if (options.allowCustomerScoped && payload) {
+    return payload;
+  }
+
+  // 3. Verify same-origin internal application context for active panel/customer sessions
+  const secFetchSite = (request.headers?.get('sec-fetch-site') || '').toLowerCase();
+  const referer = request.headers?.get('referer') || '';
+
+  let refererPath = '';
+  try {
+    if (referer) {
+      refererPath = new URL(referer).pathname.toLowerCase();
+    }
+  } catch {
+    refererPath = '';
+  }
+
+  const isSameOrigin = secFetchSite === 'same-origin' || Boolean(refererPath);
+  const isAdminPanelReferer =
+    refererPath.startsWith('/panel') ||
+    refererPath.startsWith('/yonetici') ||
+    refererPath.startsWith('/kurye');
+
+  if (isSameOrigin && isAdminPanelReferer) {
+    return null;
+  }
+
+  if (options.allowCustomerScoped && isSameOrigin && refererPath.startsWith('/')) {
+    return null;
+  }
+
+  throw new AuthenticationError(
+    'Yetkisiz erişim: Müşteri ve sipariş verilerine erişmek için yetkili oturum gereklidir.'
+  );
 }
 
 /**

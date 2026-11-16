@@ -5,7 +5,7 @@ import {
   jsonSuccess,
   parseJsonBody
 } from '@/lib/security/errors';
-import { checkRateLimit } from '@/lib/security/auth';
+import { assertProtectedApiAccess, checkRateLimit } from '@/lib/security/auth';
 import { sanitizeText } from '@/lib/security/validation';
 
 export const dynamic = 'force-dynamic';
@@ -34,6 +34,7 @@ async function writeTransactions(list) {
 
 export async function GET(request) {
   try {
+    assertProtectedApiAccess(request, { endpoint: '/api/finance' });
     checkRateLimit(request, {
       keyPrefix: 'GET:/api/finance',
       maxRequests: 60,
@@ -51,6 +52,7 @@ export async function GET(request) {
 
 export async function POST(request) {
   try {
+    assertProtectedApiAccess(request, { endpoint: '/api/finance' });
     checkRateLimit(request, {
       keyPrefix: 'POST:/api/finance',
       maxRequests: 30,
@@ -108,6 +110,7 @@ export async function POST(request) {
 
 export async function DELETE(request) {
   try {
+    assertProtectedApiAccess(request, { endpoint: '/api/finance' });
     checkRateLimit(request, {
       keyPrefix: 'DELETE:/api/finance',
       maxRequests: 30,

@@ -13,6 +13,7 @@ export default function Footer() {
   const [reviewComment, setReviewComment] = useState('');
   const [website, setWebsite] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [legalDocModal, setLegalDocModal] = useState(null); // 'kvkk' | 'privacy' | 'terms' | null
   const isSubmittingRef = useRef(false);
 
   const handleSubmitReview = async (e) => {
@@ -294,8 +295,144 @@ export default function Footer() {
           <div className="flex flex-wrap items-center justify-center gap-4 text-stone-400 text-xs">
             <span>Ev ve işyerlerine sıcak & hızlı paket servis.</span>
           </div>
+          <div className="flex flex-wrap items-center justify-center gap-3 pt-1 text-[11px] font-medium text-stone-400">
+            <button
+              type="button"
+              onClick={() => setLegalDocModal('kvkk')}
+              className="hover:text-brand-400 underline underline-offset-4 transition-colors cursor-pointer"
+            >
+              KVKK Aydınlatma Metni
+            </button>
+            <span className="text-stone-700">&bull;</span>
+            <button
+              type="button"
+              onClick={() => setLegalDocModal('privacy')}
+              className="hover:text-brand-400 underline underline-offset-4 transition-colors cursor-pointer"
+            >
+              Gizlilik ve Güvenlik Politikası
+            </button>
+            <span className="text-stone-700">&bull;</span>
+            <button
+              type="button"
+              onClick={() => setLegalDocModal('terms')}
+              className="hover:text-brand-400 underline underline-offset-4 transition-colors cursor-pointer"
+            >
+              Sipariş ve İptal Koşulları
+            </button>
+          </div>
         </div>
       </div>
+
+      {/* KVKK, Gizlilik ve Sipariş Koşulları Açılır Penceresi */}
+      {legalDocModal && (
+        <div
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setLegalDocModal(null);
+          }}
+          className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-stone-950/75 backdrop-blur-xs"
+        >
+          <div className="bg-white text-stone-800 rounded-3xl max-w-2xl w-full shadow-2xl overflow-hidden flex flex-col max-h-[85vh]">
+            <div className="flex items-center justify-between px-5 py-4 bg-stone-50 border-b border-stone-200">
+              <div className="flex items-center gap-2">
+                <i className="fa-solid fa-shield-halved text-brand-600 text-base"></i>
+                <h4 className="font-extrabold text-sm sm:text-base text-stone-900">
+                  {legalDocModal === 'kvkk' && '6698 Sayılı KVKK Kapsamında Aydınlatma Metni'}
+                  {legalDocModal === 'privacy' && 'Gizlilik, Veri Güvenliği ve Çerez Politikası'}
+                  {legalDocModal === 'terms' && 'Sipariş, Teslimat ve İptal Koşulları'}
+                </h4>
+              </div>
+              <button
+                type="button"
+                onClick={() => setLegalDocModal(null)}
+                className="w-8 h-8 rounded-full bg-stone-200/70 hover:bg-stone-300 text-stone-700 flex items-center justify-center cursor-pointer"
+              >
+                <i className="fa-solid fa-xmark text-sm"></i>
+              </button>
+            </div>
+
+            <div className="flex gap-1.5 px-5 pt-3 bg-white border-b border-stone-100 pb-2.5">
+              {[
+                { key: 'kvkk', label: 'KVKK Aydınlatma' },
+                { key: 'privacy', label: 'Gizlilik & Güvenlik' },
+                { key: 'terms', label: 'Sipariş & İptal' }
+              ].map((t) => (
+                <button
+                  key={t.key}
+                  type="button"
+                  onClick={() => setLegalDocModal(t.key)}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-colors cursor-pointer ${
+                    legalDocModal === t.key
+                      ? 'bg-brand-500 text-white'
+                      : 'bg-stone-100 text-stone-600 hover:bg-stone-200'
+                  }`}
+                >
+                  {t.label}
+                </button>
+              ))}
+            </div>
+
+            <div className="p-5 overflow-y-auto text-xs sm:text-sm text-stone-600 space-y-3 leading-relaxed text-left">
+              {legalDocModal === 'kvkk' && (
+                <>
+                  <p>
+                    <strong>1. Veri Sorumlusu:</strong> 6698 sayılı Kişisel Verilerin Korunması Kanunu (&ldquo;KVKK&rdquo;) uyarınca kişisel verileriniz, veri sorumlusu sıfatıyla <strong>Sandviç Diyarı (Torbalı / İzmir)</strong> tarafından aşağıda açıklanan kapsamda işlenmektedir.
+                  </p>
+                  <p>
+                    <strong>2. İşlenen Kişisel Veriler ve Amaçları:</strong> Sitemiz üzerinden verdiğiniz siparişlerin hazırlanması, adresinize teslim edilmesi ve gerektiğinde kurye/restoran bilgilendirmelerinin yapılması amacıyla yalnızca <em>Ad-Soyad, Telefon Numarası, Teslimat Adresi, E-posta Adresi ve Sipariş Detaylarınız</em> işlenmektedir.
+                  </p>
+                  <p>
+                    <strong>3. Ödeme Güvenliği:</strong> Sitemizde online kredi kartı bilgisi talep edilmemekte ve saklanmamaktadır. Tüm ödemeler teslimat anında kapıda nakit veya fiziksel POS cihazı ile tahsil edilir.
+                  </p>
+                  <p>
+                    <strong>4. Verilerin Aktarımı ve Korunması:</strong> Verileriniz, siparişin ulaştırılması dışında üçüncü kişi veya reklam firmalarıyla paylaşılmaz; şifreli bulut veritabanı altyapısında (SSL/TLS ve kriptografik parola koruması altında) muhafaza edilir.
+                  </p>
+                  <p>
+                    <strong>5. KVKK Madde 11 Kapsamındaki Haklarınız:</strong> İletişim numaramız üzerinden bize ulaşarak kayıtlı kişisel verilerinizin silinmesini, düzeltilmesini veya bilgi verilmesini her zaman talep edebilirsiniz.
+                  </p>
+                </>
+              )}
+
+              {legalDocModal === 'privacy' && (
+                <>
+                  <p>
+                    <strong>1. Bilgi Güvenliği:</strong> Kullanıcı şifreleri veritabanımızda açık metin olarak tutulmaz; tek yönlü kriptografik özetleme (Scrypt + Salt) ile korunur.
+                  </p>
+                  <p>
+                    <strong>2. Yetkisiz Erişim Koruması:</strong> Müşteri ve sipariş uç noktaları oturum doğrulaması (HttpOnly JWT), hız sınırlaması (Rate Limiting) ve SQL/XSS filtreleriyle korunmaktadır.
+                  </p>
+                  <p>
+                    <strong>3. Çerez (Cookie) Kullanımı:</strong> Sitemizde yalnızca sepet içeriğinizi ve üye oturumunuzu korumak için zorunlu işlevsel çerezler/oturum verileri kullanılır; reklam veya üçüncü taraf takip çerezi kullanılmaz.
+                  </p>
+                </>
+              )}
+
+              {legalDocModal === 'terms' && (
+                <>
+                  <p>
+                    <strong>1. Teslimat Bölgesi ve Saatleri:</strong> Paket servisimiz Torbalı teslimat bölgelerimize 10:00 &ndash; 03:00 saatleri arasında ücretsiz olarak yapılmaktadır.
+                  </p>
+                  <p>
+                    <strong>2. Sipariş İptali ve Değişiklik:</strong> Siparişiniz &ldquo;Mutfakta Hazırlanıyor&rdquo; aşamasına geçmeden önce sitemizdeki Sipariş Takip ekranından veya telefon/WhatsApp hattımızdan ücretsiz iptal edebilirsiniz.
+                  </p>
+                  <p>
+                    <strong>3. Kapıda Ödeme:</strong> Sipariş tutarı teslimat sırasında kapıda nakit veya kredi/banka kartı (POS) ile ödenir.
+                  </p>
+                </>
+              )}
+            </div>
+
+            <div className="px-5 py-3 bg-stone-50 border-t border-stone-200 flex justify-end">
+              <button
+                type="button"
+                onClick={() => setLegalDocModal(null)}
+                className="bg-stone-900 hover:bg-stone-800 text-white font-bold px-5 py-2 rounded-xl text-xs cursor-pointer"
+              >
+                Anladım, Kapat
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </footer>
   );
 }

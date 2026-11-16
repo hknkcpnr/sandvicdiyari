@@ -9,7 +9,7 @@ import {
   jsonSuccess,
   parseJsonBody
 } from '@/lib/security/errors';
-import { checkRateLimit, signJwtToken, verifyPassword } from '@/lib/security/auth';
+import { buildAuthCookieHeader, checkRateLimit, signJwtToken, verifyPassword } from '@/lib/security/auth';
 import { sanitizeEmailOrUsername } from '@/lib/security/validation';
 
 export async function POST(request) {
@@ -113,13 +113,15 @@ export async function POST(request) {
       permissions: authenticatedAdmin.permissions
     });
 
-    return jsonSuccess({
+    const response = jsonSuccess({
       message: 'Yönetim paneline giriş başarılı!',
       data: {
         admin: authenticatedAdmin,
         token
       }
     });
+    response.headers.append('Set-Cookie', buildAuthCookieHeader(token, 'sd_admin_token'));
+    return response;
   } catch (error) {
     return handleApiError(error, '/api/admin/login', request);
   }

@@ -9,7 +9,7 @@ import {
   jsonSuccess,
   parseJsonBody
 } from '@/lib/security/errors';
-import { getOptionalAuthFromRequest, verifyPassword } from '@/lib/security/auth';
+import { assertProtectedApiAccess, getOptionalAuthFromRequest, verifyPassword } from '@/lib/security/auth';
 import { sanitizeText } from '@/lib/security/validation';
 
 const VALID_ORDER_STATUSES = [
@@ -53,6 +53,7 @@ async function findOrderInPg(idOrNumber) {
 
 export async function GET(request, { params }) {
   try {
+    assertProtectedApiAccess(request, { allowCustomerScoped: true, endpoint: '/api/orders/[id]' });
     const resolvedParams = await params;
     const id = sanitizeText(resolvedParams.id, 64, 'id', '/api/orders/[id]');
 
@@ -88,6 +89,7 @@ export async function GET(request, { params }) {
 
 export async function PATCH(request, { params }) {
   try {
+    assertProtectedApiAccess(request, { allowCustomerScoped: true, endpoint: '/api/orders/[id]' });
     const resolvedParams = await params;
     const id = sanitizeText(resolvedParams.id, 64, 'id', '/api/orders/[id]');
     const body = await parseJsonBody(request);

@@ -1,7 +1,7 @@
 import { db } from '@/lib/db';
 import { orm } from '@/lib/orm/postgresEngine';
 import { rawPrisma } from '@/lib/prisma';
-import { hashPassword } from '@/lib/security/auth';
+import { assertProtectedApiAccess, hashPassword } from '@/lib/security/auth';
 import {
   ConflictError,
   ValidationError,
@@ -135,6 +135,7 @@ async function getSyncedRolesAndAdmins() {
 
 export async function GET(request) {
   try {
+    assertProtectedApiAccess(request, { endpoint: '/api/admin/users' });
     const [{ roles, adminUsers }, customers] = await Promise.all([
       getSyncedRolesAndAdmins(),
       getSyncedCustomers()
@@ -154,6 +155,7 @@ export async function GET(request) {
 
 export async function POST(request) {
   try {
+    assertProtectedApiAccess(request, { endpoint: '/api/admin/users' });
     const body = await parseJsonBody(request);
     const entityType = sanitizeText(body.entityType || 'user', 32, 'entityType', '/api/admin/users');
 

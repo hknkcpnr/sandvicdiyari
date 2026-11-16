@@ -8,7 +8,7 @@ import {
   jsonSuccess,
   parseJsonBody
 } from '@/lib/security/errors';
-import { checkRateLimit, signJwtToken, verifyPassword } from '@/lib/security/auth';
+import { buildAuthCookieHeader, checkRateLimit, signJwtToken, verifyPassword } from '@/lib/security/auth';
 import { sanitizeEmailOrUsername } from '@/lib/security/validation';
 
 export async function POST(request) {
@@ -190,13 +190,18 @@ export async function POST(request) {
       type: user.type === 'admin' ? 'admin' : 'customer'
     });
 
-    return jsonSuccess({
+    const response = jsonSuccess({
       message: 'Giriş başarılı!',
       data: {
         user: userSafe,
         token
       }
     });
+    response.headers.append('Set-Cookie', buildAuthCookieHeader(token, 'sd_auth_token'));
+    if (isAdmin) {
+      response.headers.append('Set-Cookie', buildAuthCookieHeader(token, 'sd_admin_token'));
+    }
+    return response;
   } catch (error) {
     return handleApiError(error, '/api/auth/login', request);
   }
