@@ -285,119 +285,133 @@ export default function OptionsModal() {
 
         {/* Tek Ekrana Sığan Düzenli Seçenekler Alanı (Scrollsuz) */}
         <div className="p-3.5 sm:p-4 space-y-2.5 text-left">
-          {/* 1. Ürün İçeriği (Çıkarılabilir Etiketler) */}
-          {productIngredients.length > 0 && (
+          {/* 1 & 2. Ürün İçeriği ve Sos Seçimleri Yan Yana */}
+          <div
+            className={`grid grid-cols-1 ${
+              productIngredients.length > 0 ? 'sm:grid-cols-2' : ''
+            } gap-2.5 items-stretch`}
+          >
+            {/* 1. Ürün İçeriği (Çıkarılabilir Etiketler) */}
+            {productIngredients.length > 0 && (
+              <div className="bg-stone-50/80 border border-stone-200/80 rounded-2xl p-2.5 sm:px-3.5 flex flex-col justify-between gap-2">
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between gap-1">
+                    <span className="text-[11px] font-extrabold text-stone-800 uppercase flex items-center gap-1.5">
+                      <i className="fa-solid fa-layer-group text-brand-500"></i>
+                      Ürün İçeriği
+                    </span>
+                    <span className="text-[10px] font-medium text-stone-400">
+                      Çıkarmak için dokunun
+                    </span>
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {productIngredients.map((ing) => {
+                      const isRemoved = removedIngredients.includes(ing);
+                      return (
+                        <button
+                          key={ing}
+                          type="button"
+                          onClick={() => handleToggleIngredient(ing)}
+                          className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-semibold border transition-all cursor-pointer ${
+                            isRemoved
+                              ? 'bg-rose-50 border-rose-200 text-rose-600 line-through opacity-80 hover:opacity-100'
+                              : 'bg-white border-stone-200 text-stone-800 hover:border-rose-300 hover:bg-rose-50/40'
+                          }`}
+                          title={isRemoved ? 'Tekrar eklemek için tıklayın' : 'Çıkarmak için tıklayın'}
+                        >
+                          <i
+                            className={`fa-solid ${
+                              isRemoved
+                                ? 'fa-rotate-left text-[9px] text-rose-500'
+                                : 'fa-check text-[9px] text-emerald-600'
+                            }`}
+                          ></i>
+                          <span>{ing}</span>
+                          {!isRemoved && (
+                            <i className="fa-solid fa-xmark text-[9px] text-stone-400 ml-0.5"></i>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* 2. Sos Seçimleri & Adetleri */}
             <div className="bg-stone-50/80 border border-stone-200/80 rounded-2xl p-2.5 sm:px-3.5 space-y-1.5">
               <div className="flex flex-wrap items-center justify-between gap-1">
                 <span className="text-[11px] font-extrabold text-stone-800 uppercase flex items-center gap-1.5">
-                  <i className="fa-solid fa-layer-group text-brand-500"></i>
-                  Ürün İçeriği
+                  <i className="fa-solid fa-bottle-droplet text-amber-500"></i>
+                  Sos Seçimleri
                 </span>
-                <span className="text-[10px] font-medium text-stone-400">
-                  Çıkarmak istediğiniz malzemeye dokunun
-                </span>
-              </div>
-              <div className="flex flex-wrap gap-1.5">
-                {productIngredients.map((ing) => {
-                  const isRemoved = removedIngredients.includes(ing);
-                  return (
-                    <button
-                      key={ing}
-                      type="button"
-                      onClick={() => handleToggleIngredient(ing)}
-                      className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-semibold border transition-all cursor-pointer ${
-                        isRemoved
-                          ? 'bg-rose-50 border-rose-200 text-rose-600 line-through opacity-80 hover:opacity-100'
-                          : 'bg-white border-stone-200 text-stone-800 hover:border-rose-300 hover:bg-rose-50/40'
-                      }`}
-                      title={isRemoved ? 'Tekrar eklemek için tıklayın' : 'Çıkarmak için tıklayın'}
-                    >
-                      <i
-                        className={`fa-solid ${
-                          isRemoved
-                            ? 'fa-rotate-left text-[9px] text-rose-500'
-                            : 'fa-check text-[9px] text-emerald-600'
-                        }`}
-                      ></i>
-                      <span>{ing}</span>
-                      {!isRemoved && (
-                        <i className="fa-solid fa-xmark text-[9px] text-stone-400 ml-0.5"></i>
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          {/* 2. Sos Seçimleri & Adetleri */}
-          <div className="bg-stone-50/80 border border-stone-200/80 rounded-2xl p-2.5 sm:px-3.5 space-y-1.5">
-            <div className="flex flex-wrap items-center justify-between gap-1">
-              <span className="text-[11px] font-extrabold text-stone-800 uppercase flex items-center gap-1.5">
-                <i className="fa-solid fa-bottle-droplet text-amber-500"></i>
-                Sos Seçimleri
-              </span>
-              <div className="flex items-center gap-1.5">
-                <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
-                  {freeSauceLimit > 0 ? `İlk ${freeSauceLimit} Adet Ücretsiz` : 'Tümü Ücretli'}
-                </span>
-                {extraSaucePrice > 0 && paidSauceCount > 0 && (
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-amber-100 text-amber-900 border border-amber-300">
-                    +{paidSauceCount} Ekstra (+₺{extraSauceCost.toFixed(2)})
+                <div className="flex items-center gap-1">
+                  <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
+                    {freeSauceLimit > 0 ? `İlk ${freeSauceLimit} Adet Ücretsiz` : 'Tümü Ücretli'}
                   </span>
+                  {extraSaucePrice > 0 && paidSauceCount > 0 && (
+                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-amber-100 text-amber-900 border border-amber-300">
+                      +{paidSauceCount} (+₺{extraSauceCost.toFixed(2)})
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              <div
+                className={`grid grid-cols-1 ${
+                  productIngredients.length > 0 ? '' : 'sm:grid-cols-3'
+                } gap-1.5`}
+                id="sauces-container"
+              >
+                {!optionsLoaded ? (
+                  <div className="col-span-full text-center py-2 text-xs text-stone-400 bg-white rounded-xl border border-dashed border-stone-200">
+                    Soslar yükleniyor...
+                  </div>
+                ) : availableSauces.length === 0 ? (
+                  <div className="col-span-full text-center py-2 text-xs text-stone-400 bg-white rounded-xl border border-dashed border-stone-200">
+                    Şu an için seçilebilir sos bulunmuyor.
+                  </div>
+                ) : (
+                  availableSauces.map((s) => {
+                    const sKey = s.id || s.key || s.name;
+                    const label = s.name || s.label;
+                    const count = sauceCounts[sKey] || 0;
+                    return (
+                      <div
+                        key={sKey}
+                        className={`flex items-center justify-between px-2.5 py-1.5 rounded-xl border transition-all ${
+                          count > 0
+                            ? 'bg-amber-50/60 border-amber-300'
+                            : 'bg-white border-stone-200'
+                        }`}
+                      >
+                        <span className="text-xs font-semibold text-stone-800 truncate pr-1" title={label}>
+                          {label}
+                        </span>
+                        <div className="flex items-center gap-1 shrink-0">
+                          <button
+                            type="button"
+                            onClick={() => dispatch(adjustSauceCount({ sauceKey: sKey, delta: -1 }))}
+                            className="w-5 h-5 bg-stone-100 hover:bg-stone-200 rounded-md flex items-center justify-center text-xs font-bold text-stone-700 transition-colors cursor-pointer"
+                          >
+                            -
+                          </button>
+                          <span className="text-xs font-black text-stone-900 w-4 text-center">
+                            {count}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => dispatch(adjustSauceCount({ sauceKey: sKey, delta: 1 }))}
+                            className="w-5 h-5 bg-stone-100 hover:bg-stone-200 rounded-md flex items-center justify-center text-xs font-bold text-stone-700 transition-colors cursor-pointer"
+                          >
+                            +
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })
                 )}
               </div>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5" id="sauces-container">
-              {!optionsLoaded ? (
-                <div className="col-span-full text-center py-2 text-xs text-stone-400 bg-white rounded-xl border border-dashed border-stone-200">
-                  Soslar yükleniyor...
-                </div>
-              ) : availableSauces.length === 0 ? (
-                <div className="col-span-full text-center py-2 text-xs text-stone-400 bg-white rounded-xl border border-dashed border-stone-200">
-                  Şu an için seçilebilir sos bulunmuyor.
-                </div>
-              ) : (
-                availableSauces.map((s) => {
-                  const sKey = s.id || s.key || s.name;
-                  const label = s.name || s.label;
-                  const count = sauceCounts[sKey] || 0;
-                  return (
-                    <div
-                      key={sKey}
-                      className={`flex items-center justify-between px-2.5 py-1.5 rounded-xl border transition-all ${
-                        count > 0
-                          ? 'bg-amber-50/60 border-amber-300'
-                          : 'bg-white border-stone-200'
-                      }`}
-                    >
-                      <span className="text-xs font-semibold text-stone-800 truncate pr-1" title={label}>
-                        {label}
-                      </span>
-                      <div className="flex items-center gap-1 shrink-0">
-                        <button
-                          type="button"
-                          onClick={() => dispatch(adjustSauceCount({ sauceKey: sKey, delta: -1 }))}
-                          className="w-5 h-5 bg-stone-100 hover:bg-stone-200 rounded-md flex items-center justify-center text-xs font-bold text-stone-700 transition-colors cursor-pointer"
-                        >
-                          -
-                        </button>
-                        <span className="text-xs font-black text-stone-900 w-4 text-center">
-                          {count}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => dispatch(adjustSauceCount({ sauceKey: sKey, delta: 1 }))}
-                          className="w-5 h-5 bg-stone-100 hover:bg-stone-200 rounded-md flex items-center justify-center text-xs font-bold text-stone-700 transition-colors cursor-pointer"
-                        >
-                          +
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })
-              )}
             </div>
           </div>
 
