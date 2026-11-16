@@ -8,7 +8,7 @@ import {
   jsonSuccess,
   parseJsonBody
 } from '@/lib/security/errors';
-import { checkRateLimit } from '@/lib/security/auth';
+import { assertProtectedApiAccess, checkRateLimit } from '@/lib/security/auth';
 import { sanitizeText } from '@/lib/security/validation';
 
 function computeInventorySummary(products) {
@@ -59,6 +59,7 @@ export async function GET(request) {
 
 export async function PUT(request) {
   try {
+    assertProtectedApiAccess(request, { endpoint: '/api/inventory' });
     checkRateLimit(request, {
       keyPrefix: 'PUT:/api/inventory',
       maxRequests: 60,

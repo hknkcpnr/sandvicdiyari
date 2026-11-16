@@ -495,14 +495,22 @@ export const prisma = {
   },
 
   order: {
-    findMany: async () => {
+    findMany: async (args?: Prisma.OrderFindManyArgs) => {
       const localOrders = db.getOrders();
       try {
         const pgOrders = await rawPrisma.order.findMany({
+          where: args?.where,
+          take: args?.take ?? 300,
           include: { items: true, statusHistory: true },
-          orderBy: { createdAt: 'desc' }
+          orderBy: args?.orderBy ?? { createdAt: 'desc' }
         });
-        orm.executePrepared('Order', 'SELECT', 'prisma.order.findMany({ include: { items: true, statusHistory: true } })', [], () => pgOrders.length);
+        orm.executePrepared(
+          'Order',
+          'SELECT',
+          'prisma.order.findMany({ where: $1, take: $2 })',
+          [JSON.stringify(args?.where || {}), args?.take ?? 300],
+          () => pgOrders.length
+        );
         return pgOrders.map((o) => formatPrismaOrder(o as unknown as Record<string, unknown>));
       } catch {
         return localOrders;

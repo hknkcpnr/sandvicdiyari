@@ -1,4 +1,5 @@
 import { orm, getRecentSqlQueries } from '@/lib/orm/postgresEngine';
+import { rawPrisma } from '@/lib/prisma';
 import {
   getSecurityAuditLogs,
   handleApiError,
@@ -7,6 +8,15 @@ import {
 
 export async function GET(request: Request) {
   try {
+    // Keep Supabase PostgreSQL active (prevents 7-day inactivity pause via Vercel Cron)
+    let supabasePingOk = false;
+    try {
+      await rawPrisma.$queryRaw`SELECT 1`;
+      supabasePingOk = true;
+    } catch {
+      supabasePingOk = false;
+    }
+
     const report = await orm.runFullDiagnostics();
     const recentQueries = getRecentSqlQueries(20);
     const auditLogs = getSecurityAuditLogs(30);
@@ -15,6 +25,7 @@ export async function GET(request: Request) {
       message: 'PostgreSQL 16 ORM, TypeScript ve Güvenlik Katmanı durum raporu oluşturuldu.',
       data: {
         ...report,
+        supabasePingOk,
         recentQueries,
         auditLogs
       }

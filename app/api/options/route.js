@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { db, DEFAULT_PRODUCT_OPTIONS } from '@/lib/db';
 import { rawPrisma } from '@/lib/prisma';
-import { checkRateLimit } from '@/lib/security/auth';
+import { assertProtectedApiAccess, checkRateLimit } from '@/lib/security/auth';
 import { sanitizeText } from '@/lib/security/validation';
 
 export const dynamic = 'force-dynamic';
@@ -56,6 +56,7 @@ export async function GET() {
 
 export async function POST(request) {
   try {
+    assertProtectedApiAccess(request, { endpoint: '/api/options' });
     checkRateLimit(request, {
       keyPrefix: 'POST:/api/options',
       maxRequests: 60,

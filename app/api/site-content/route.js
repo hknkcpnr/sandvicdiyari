@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { db, DEFAULT_SITE_CONTENT } from '@/lib/db';
 import { rawPrisma } from '@/lib/prisma';
-import { checkRateLimit } from '@/lib/security/auth';
+import { assertProtectedApiAccess, checkRateLimit } from '@/lib/security/auth';
 
 export const dynamic = 'force-dynamic';
 
@@ -53,6 +53,7 @@ export async function GET() {
 
 export async function POST(request) {
   try {
+    assertProtectedApiAccess(request, { endpoint: '/api/site-content' });
     checkRateLimit(request, {
       keyPrefix: 'POST:/api/site-content',
       maxRequests: 30,

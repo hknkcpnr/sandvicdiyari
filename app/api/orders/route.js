@@ -34,7 +34,25 @@ export async function GET(request) {
       endpoint: '/api/orders'
     });
 
-    let orders = await prisma.order.findMany();
+    const whereClause = {};
+    if (userEmail) {
+      whereClause.userEmail = { equals: userEmail.trim(), mode: 'insensitive' };
+    }
+    if (status) {
+      whereClause.status = { equals: status.trim(), mode: 'insensitive' };
+    }
+    if (orderNo) {
+      const cleanNo = sanitizeText(orderNo, 32, 'orderNo', '/api/orders').toUpperCase();
+      whereClause.OR = [
+        { orderNumber: { contains: cleanNo, mode: 'insensitive' } },
+        { id: { contains: cleanNo, mode: 'insensitive' } }
+      ];
+    }
+
+    let orders = await prisma.order.findMany({
+      where: Object.keys(whereClause).length > 0 ? whereClause : undefined,
+      take: isCustomerFilteredQuery ? 50 : 300
+    });
 
     if (userEmail) {
       const cleanUserEmail = userEmail.trim().toLowerCase();

@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/prisma';
+import { assertProtectedApiAccess } from '@/lib/security/auth';
 import {
   ValidationError,
   handleApiError,
@@ -35,6 +36,7 @@ export async function GET(request) {
 
 export async function POST(request) {
   try {
+    assertProtectedApiAccess(request, { endpoint: '/api/products' });
     const body = await parseJsonBody(request);
     const name = sanitizeText(body.name, 191, 'Ürün Adı', '/api/products');
     const desc = sanitizeText(body.description || body.desc || 'Özel şef sandviçimiz.', 500, 'Açıklama', '/api/products');

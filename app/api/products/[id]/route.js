@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/prisma';
+import { assertProtectedApiAccess } from '@/lib/security/auth';
 import {
   NotFoundError,
   ValidationError,
@@ -27,6 +28,7 @@ export async function GET(request, { params }) {
 
 export async function PUT(request, { params }) {
   try {
+    assertProtectedApiAccess(request, { endpoint: '/api/products/[id]' });
     const resolvedParams = await params;
     const id = sanitizeText(resolvedParams.id, 64, 'id', '/api/products/[id]');
     const body = await parseJsonBody(request);
@@ -83,6 +85,7 @@ export async function PUT(request, { params }) {
 
 export async function DELETE(request, { params }) {
   try {
+    assertProtectedApiAccess(request, { endpoint: '/api/products/[id]' });
     const resolvedParams = await params;
     const id = sanitizeText(resolvedParams.id, 64, 'id', '/api/products/[id]');
 
