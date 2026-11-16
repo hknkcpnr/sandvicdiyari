@@ -707,21 +707,6 @@ export default function AuthModal() {
                 {/* ----------------------------------------------------------- */}
                 {authModalTab === 'guest' && (
                   <form onSubmit={handleGuestSubmit} className="space-y-3.5 animate-in fade-in duration-200">
-                    {/* Önemli WhatsApp Onay Uyarısı */}
-                    <div className="bg-emerald-50 border border-emerald-300 rounded-2xl p-3.5 text-xs text-emerald-950 flex items-start gap-2.5 shadow-2xs">
-                      <div className="w-8 h-8 rounded-xl bg-emerald-600 text-white flex items-center justify-center text-lg shrink-0 mt-0.5 shadow-xs">
-                        <i className="fa-brands fa-whatsapp"></i>
-                      </div>
-                      <div className="space-y-1">
-                        <strong className="block font-black text-emerald-900 text-xs sm:text-sm">
-                          WhatsApp ile Sipariş Onayı
-                        </strong>
-                        <p className="text-[11px] text-emerald-800 leading-relaxed font-medium">
-                          ⚠️ <strong>Önemli Uyarı:</strong> Vermiş olduğunuz siparişleriniz <strong>WhatsApp üzerinden onaylanacaktır</strong>. Restoran yetkilimiz siparişinizi hazırlamadan önce WhatsApp üzerinden onayınızı alacaktır. Siparişiniz teslim edildikten sonra misafir oturumunuz otomatik olarak silinecektir.
-                        </p>
-                      </div>
-                    </div>
-
                     <div>
                       <label className="block text-xs font-semibold text-stone-700 mb-1.5">
                         Adınız Soyadınız *
