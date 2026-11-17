@@ -7,20 +7,24 @@ import { formatTurkishPhoneInput } from '@/lib/phoneUtils';
 
 // Sistemde tanımlı tüm yetki modülleri
 export const AVAILABLE_PERMISSIONS = [
-  { id: 'view_revenue', label: 'Ciro & Finansal Tutarları Görme', icon: 'fa-solid fa-coins', desc: 'Ciro, toplam kazanç ve sipariş tutarlarını net görüntüleme yetkisi' },
-  { id: 'overview', label: 'Genel Bakış Sayfası', icon: 'fa-solid fa-chart-pie', desc: 'Finansal özet ve operasyon kontrol paneli' },
-  { id: 'orders', label: 'Sipariş Yönetimi', icon: 'fa-solid fa-list-check', desc: 'Sipariş durumları ve fiş yazdırma' },
-  { id: 'inventory', label: 'Stok Yönetimi', icon: 'fa-solid fa-boxes-stacked', desc: 'Ürün stok kontrolü ve satış açma/kapama' },
-  { id: 'members', label: 'Üye Yönetimi', icon: 'fa-solid fa-users', desc: 'Kayıtlı müşteriler, engelleme ve bildirimler' },
-  { id: 'products', label: 'Menü & Ürünler', icon: 'fa-solid fa-burger', desc: 'Ürün ekleme, düzenleme ve katalog' },
-  { id: 'users', label: 'Kullanıcı & Rol Yönetimi', icon: 'fa-solid fa-user-shield', desc: 'Personel ve yetki modelleri' },
-  { id: 'reviews', label: 'Geri Bildirimler', icon: 'fa-regular fa-star', desc: 'Müşteri yorumlarını inceleme' },
-  { id: 'api', label: 'Mobil REST API', icon: 'fa-solid fa-code', desc: 'Entegrasyon ve API uç noktaları' },
-  { id: 'delete_order', label: 'Sipariş Silme', icon: 'fa-solid fa-trash-can', desc: 'Siparişleri kalıcı silme yetkisi' },
-  { id: 'manage_prices', label: 'Fiyat Güncelleme', icon: 'fa-solid fa-tags', desc: 'Ürün fiyatlarını değiştirme yetkisi' },
-  { id: 'settings', label: 'Sistem & Panel Ayarları', icon: 'fa-solid fa-sliders', desc: 'Arayüz font boyutu, ses, fiş ve sistem ayarları' },
+  { id: 'overview', label: 'Genel Bakış Sayfası', icon: 'fa-solid fa-chart-pie', desc: 'Operasyon özeti ve sipariş yoğunluk paneli' },
+  { id: 'orders', label: 'Sipariş Yönetimi', icon: 'fa-solid fa-list-check', desc: 'Sipariş onaylama, durum ilerletme, kurye atama ve fiş yazdırma' },
+  { id: 'delete_order', label: 'Sipariş Silme & İptal', icon: 'fa-solid fa-trash-can', desc: 'Siparişleri iptal etme ve kalıcı silme yetkisi' },
+  { id: 'products', label: 'Menü & Ürünler Sayfası', icon: 'fa-solid fa-burger', desc: 'Menü ve ürün listesini görüntüleme yetkisi' },
+  { id: 'product_add', label: 'Menüye Ürün Ekleme', icon: 'fa-solid fa-circle-plus', desc: 'Menüye yeni sandviç, menü veya içecek ekleme yetkisi' },
+  { id: 'product_edit', label: 'Menü & Ürün Düzenleme', icon: 'fa-solid fa-pen-to-square', desc: 'Mevcut ürünlerin adını, açıklamasını ve görselini düzenleme yetkisi' },
+  { id: 'product_delete', label: 'Menüden Ürün Silme', icon: 'fa-solid fa-trash', desc: 'Menüdeki ürünleri kalıcı olarak kaldırma yetkisi' },
+  { id: 'options_manage', label: 'Soslar & Ekstralar Yönetimi', icon: 'fa-solid fa-bottle-droplet', desc: 'Sos ve ekstra malzeme ekleme, düzenleme ve silme yetkisi' },
+  { id: 'manage_prices', label: 'Fiyat Güncelleme', icon: 'fa-solid fa-tags', desc: 'Ürün ve ekstra malzeme fiyatlarını değiştirme yetkisi' },
+  { id: 'inventory', label: 'Stok Yönetimi Sayfası', icon: 'fa-solid fa-boxes-stacked', desc: 'Ürün stok tablosunu görüntüleme yetkisi' },
+  { id: 'stock_update', label: 'Stok Değişimi & Satış Aç/Kapa', icon: 'fa-solid fa-arrows-rotate', desc: 'Stok adetlerini artırma/azaltma ve ürünü satışa açıp kapatma yetkisi' },
+  { id: 'members', label: 'Üye Yönetimi', icon: 'fa-solid fa-users', desc: 'Kayıtlı müşteriler, onaylama, engelleme ve bildirimler' },
+  { id: 'reviews', label: 'Geri Bildirimler', icon: 'fa-regular fa-star', desc: 'Müşteri yorumlarını inceleme ve onaylama' },
   { id: 'site_content', label: 'Müşteri Sayfası Tasarım & İçerik', icon: 'fa-solid fa-paintbrush', desc: 'Vitrin başlıkları, banner, görseller ve kampanya bölümlerini düzenleme' },
-  { id: 'courier_delivery', label: 'Kurye Portalı & Teslimat', icon: 'fa-solid fa-motorcycle', desc: 'Kurye teslimat portalına giriş, üzerine atanan siparişleri görme, yol tarifi alma ve teslimat tamamlama yetkisi' },
+  { id: 'users', label: 'Kullanıcı & Rol Yönetimi', icon: 'fa-solid fa-user-shield', desc: 'Personel ve yetki modelleri yönetimi' },
+  { id: 'settings', label: 'Sistem & Panel Ayarları', icon: 'fa-solid fa-sliders', desc: 'Arayüz, ses, fiş baskı ve sistem ayarları' },
+  { id: 'view_revenue', label: 'Ciro & Kasa Yönetimi (/yonetici)', icon: 'fa-solid fa-coins', desc: 'Ciro, kasa giriş-çıkış ve finansal tutarları görme yetkisi' },
+  { id: 'courier_delivery', label: 'Kurye Portalı & Teslimat (/kurye)', icon: 'fa-solid fa-motorcycle', desc: 'Kurye teslimat portalına giriş ve paket teslimat yetkisi' },
 ];
 
 const ROLE_COLORS = {

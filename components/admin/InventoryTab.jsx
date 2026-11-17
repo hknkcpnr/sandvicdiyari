@@ -6,7 +6,7 @@ import { setProducts } from '@/store/slices/productSlice';
 import { showMessageModal } from '@/store/slices/uiSlice';
 import AdminPagination from './AdminPagination';
 
-export default function InventoryTab({ products = [], onRefreshProducts }) {
+export default function InventoryTab({ products = [], onRefreshProducts, canUpdateStock = true }) {
   const dispatch = useDispatch();
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -67,6 +67,16 @@ export default function InventoryTab({ products = [], onRefreshProducts }) {
 
   // 1. One-click Toggle Availability (Satışta / Tükendi)
   const handleToggleAvailability = async (product) => {
+    if (!canUpdateStock) {
+      dispatch(
+        showMessageModal({
+          title: 'Yetki Gerekli 🔒',
+          text: 'Bu işlem için rolünüzde "Stok Değişimi & Satış Aç/Kapa" yetkisi bulunmalıdır.',
+          type: 'error',
+        })
+      );
+      return;
+    }
     const newAvailable = !(product.isAvailable !== false);
     setUpdatingId(product.id);
     try {
@@ -109,6 +119,16 @@ export default function InventoryTab({ products = [], onRefreshProducts }) {
 
   // 2. Adjust Stock (+/- delta or set direct number)
   const handleStockUpdate = async (id, delta, directStock = null) => {
+    if (!canUpdateStock) {
+      dispatch(
+        showMessageModal({
+          title: 'Yetki Gerekli 🔒',
+          text: 'Stok adetlerini değiştirmek için "Stok Değişimi & Satış Aç/Kapa" yetkisi gereklidir.',
+          type: 'error',
+        })
+      );
+      return;
+    }
     setUpdatingId(id);
     try {
       const payload = { id };
@@ -145,6 +165,16 @@ export default function InventoryTab({ products = [], onRefreshProducts }) {
 
   // 3. Toggle Sınırsız / Adetli Takip
   const handleToggleTrackStock = async (product) => {
+    if (!canUpdateStock) {
+      dispatch(
+        showMessageModal({
+          title: 'Yetki Gerekli 🔒',
+          text: 'Stok takip türünü değiştirmek için "Stok Değişimi & Satış Aç/Kapa" yetkisi gereklidir.',
+          type: 'error',
+        })
+      );
+      return;
+    }
     const isCurrentlyTracked = product.trackStock !== false;
     setUpdatingId(product.id);
     try {
@@ -171,6 +201,16 @@ export default function InventoryTab({ products = [], onRefreshProducts }) {
 
   // 4. Bulk Actions (Tümünü Satışa Aç, Hepsine +20 Ekle, vb.)
   const handleBulkAction = async (action, amount = 20) => {
+    if (!canUpdateStock) {
+      dispatch(
+        showMessageModal({
+          title: 'Yetki Gerekli 🔒',
+          text: 'Toplu stok güncellemesi için "Stok Değişimi & Satış Aç/Kapa" yetkisi gereklidir.',
+          type: 'error',
+        })
+      );
+      return;
+    }
     const actionNames = {
       set_all_available: 'Tüm ürünler satışa açılacak',
       refill_all: 'Tüm ürünlerin stoğuna +20 eklenecek',

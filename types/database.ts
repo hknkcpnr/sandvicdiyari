@@ -136,12 +136,22 @@ export type PermissionCode =
   | 'overview'
   | 'orders'
   | 'inventory'
+  | 'stock_update'
   | 'products'
+  | 'product_add'
+  | 'product_edit'
+  | 'product_delete'
+  | 'options_manage'
+  | 'members'
   | 'users'
   | 'reviews'
   | 'api'
   | 'delete_order'
-  | 'manage_prices';
+  | 'manage_prices'
+  | 'view_revenue'
+  | 'settings'
+  | 'site_content'
+  | 'courier_delivery';
 
 export interface RoleModel {
   id: string;

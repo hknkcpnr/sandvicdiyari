@@ -874,12 +874,20 @@ export default function AdminDashboardPage() {
 
   // Open Add Product Modal
   const openAddProductModal = () => {
+    if (!canAddProduct) {
+      showToast('Bu işlem için "Menüye Ürün Ekleme" yetkiniz bulunmuyor.', 'error');
+      return;
+    }
     resetProductForm();
     setIsAddProductOpen(true);
   };
 
   // Open Edit Product Modal
   const openEditProductModal = (product) => {
+    if (!canEditProduct) {
+      showToast('Bu işlem için "Menü & Ürün Düzenleme" yetkiniz bulunmuyor.', 'error');
+      return;
+    }
     setEditingProduct(product);
     setProdName(product.name || '');
     setProdCategory(product.category || 'menu');
@@ -896,6 +904,10 @@ export default function AdminDashboardPage() {
 
   // Quick One-click Toggle Availability from Menu & Products list
   const handleQuickToggleAvailability = async (product) => {
+    if (!canUpdateStock) {
+      showToast('Bu işlem için "Stok Değişimi & Satış Aç/Kapa" yetkiniz bulunmuyor.', 'error');
+      return;
+    }
     const newAvail = !(product.isAvailable !== false);
     try {
       const res = await fetch('/api/inventory', {
@@ -1057,6 +1069,10 @@ export default function AdminDashboardPage() {
 
   // Delete product with API synchronization
   const handleDeleteProduct = async (id) => {
+    if (!canDeleteProduct) {
+      showToast('Bu işlem için "Menüden Ürün Silme" yetkiniz bulunmuyor.', 'error');
+      return;
+    }
     if (confirm('Bu ürünü menüden silmek istediğinize emin misiniz?')) {
       try {
         await fetch(`/api/products/${id}`, { method: 'DELETE' });
@@ -1104,7 +1120,7 @@ export default function AdminDashboardPage() {
     }
   };
 
-  // Yetki Kontrolleri: Süper Yönetici veya 'view_revenue' iznine sahip personel
+  // Yetki Kontrolleri: Süper Yönetici veya ilgili izne sahip personel
   const isSuperAdmin = Boolean(
     adminUser && (
       adminUser.email === 'admin' ||
@@ -1115,17 +1131,25 @@ export default function AdminDashboardPage() {
     )
   );
 
-  const canViewRevenue = Boolean(
-    isSuperAdmin ||
-    (Array.isArray(adminUser?.permissions) && adminUser.permissions.includes('view_revenue'))
-  );
+  const hasPerm = (code) =>
+    Boolean(
+      isSuperAdmin ||
+        (Array.isArray(adminUser?.permissions) && adminUser.permissions.includes(code))
+    );
+
+  const canViewRevenue = hasPerm('view_revenue');
+  const canAddProduct = hasPerm('product_add');
+  const canEditProduct = hasPerm('product_edit');
+  const canDeleteProduct = hasPerm('product_delete');
+  const canManageOptions = hasPerm('options_manage');
+  const canManagePrices = hasPerm('manage_prices');
+  const canUpdateStock = hasPerm('stock_update');
+  const canDeleteOrder = hasPerm('delete_order');
 
   const canEditSiteContent = Boolean(
     adminUser && (
       isSuperAdmin ||
-      !adminUser.permissions ||
-      !Array.isArray(adminUser.permissions) ||
-      adminUser.permissions.includes('site_content')
+      (Array.isArray(adminUser.permissions) && adminUser.permissions.includes('site_content'))
     )
   );
 
@@ -2522,6 +2546,7 @@ export default function AdminDashboardPage() {
         {currentTab === 'inventory' && (
           <InventoryTab
             products={products}
+            canUpdateStock={canUpdateStock}
             onRefreshProducts={() => {
               fetch('/api/products')
                 .then((r) => r.json())
@@ -2590,18 +2615,32 @@ export default function AdminDashboardPage() {
               <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
                 <button
                   type="button"
-                  onClick={() => setCurrentTab('options')}
-                  className="w-full sm:w-auto justify-center bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 text-xs font-bold px-3.5 py-2.5 rounded-xl flex items-center gap-2 cursor-pointer shadow-2xs shrink-0 active:scale-95 transition-all"
+                  onClick={() => {
+                    if (!canManageOptions) {
+                      showToast('Bu işlem için "Soslar & Ekstralar Yönetimi" yetkiniz bulunmuyor.', 'error');
+                      return;
+                    }
+                    setCurrentTab('options');
+                  }}
+                  className={`w-full sm:w-auto justify-center border text-xs font-bold px-3.5 py-2.5 rounded-xl flex items-center gap-2 cursor-pointer shadow-2xs shrink-0 active:scale-95 transition-all ${
+                    canManageOptions
+                      ? 'bg-amber-50 hover:bg-amber-100 text-amber-900 border-amber-300'
+                      : 'bg-stone-100 text-stone-400 border-stone-200 opacity-75'
+                  }`}
                   title="Sosları ve ekstra malzemeleri yönetin"
                 >
-                  <i className="fa-solid fa-bottle-droplet text-amber-600"></i>
+                  <i className={`fa-solid ${canManageOptions ? 'fa-bottle-droplet text-amber-600' : 'fa-lock text-stone-400'}`}></i>
                   <span>Soslar &amp; Ekstralar</span>
                 </button>
                 <button
                   onClick={openAddProductModal}
-                  className="w-full sm:w-auto justify-center bg-brand-600 hover:bg-brand-700 text-white text-xs font-semibold px-4 py-2.5 rounded-xl flex items-center gap-2 cursor-pointer shadow-xs shrink-0 active:scale-95 transition-all"
+                  className={`w-full sm:w-auto justify-center text-xs font-semibold px-4 py-2.5 rounded-xl flex items-center gap-2 cursor-pointer shadow-xs shrink-0 active:scale-95 transition-all ${
+                    canAddProduct
+                      ? 'bg-brand-600 hover:bg-brand-700 text-white'
+                      : 'bg-stone-200 text-stone-500 opacity-80'
+                  }`}
                 >
-                  <i className="fa-solid fa-plus"></i>
+                  <i className={`fa-solid ${canAddProduct ? 'fa-plus' : 'fa-lock'}`}></i>
                   <span>Yeni Ürün Ekle</span>
                 </button>
               </div>
@@ -2659,18 +2698,26 @@ export default function AdminDashboardPage() {
                     <div className="flex items-center gap-1.5">
                       <button
                         onClick={() => openEditProductModal(p)}
-                        className="text-stone-600 hover:text-stone-900 bg-stone-100 hover:bg-stone-200 px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 cursor-pointer transition-colors"
-                        title="Ürünü ve Görselini Düzenle"
+                        className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 cursor-pointer transition-colors ${
+                          canEditProduct
+                            ? 'text-stone-600 hover:text-stone-900 bg-stone-100 hover:bg-stone-200'
+                            : 'text-stone-400 bg-stone-100 opacity-70'
+                        }`}
+                        title={canEditProduct ? 'Ürünü ve Görselini Düzenle' : 'Menü & Ürün Düzenleme yetkisi gerekli'}
                       >
-                        <i className="fa-solid fa-pen-to-square text-[11px]"></i>
+                        <i className={`fa-solid ${canEditProduct ? 'fa-pen-to-square' : 'fa-lock'} text-[11px]`}></i>
                         <span>Düzenle</span>
                       </button>
                       <button
                         onClick={() => handleDeleteProduct(p.id)}
-                        className="text-stone-400 hover:text-red-600 p-2 cursor-pointer transition-colors rounded-lg hover:bg-red-50"
-                        title="Sil"
+                        className={`p-2 cursor-pointer transition-colors rounded-lg ${
+                          canDeleteProduct
+                            ? 'text-stone-400 hover:text-red-600 hover:bg-red-50'
+                            : 'text-stone-300 opacity-60'
+                        }`}
+                        title={canDeleteProduct ? 'Sil' : 'Menüden Ürün Silme yetkisi gerekli'}
                       >
-                        <i className="fa-solid fa-trash-can text-xs"></i>
+                        <i className={`fa-solid ${canDeleteProduct ? 'fa-trash-can' : 'fa-lock'} text-xs`}></i>
                       </button>
                     </div>
                   </div>
@@ -3540,15 +3587,21 @@ export default function AdminDashboardPage() {
                     <div>
                       <label className="block text-xs font-bold text-stone-700 uppercase tracking-wide mb-1.5">
                         Fiyat (₺) <span className="text-red-500">*</span>
+                        {editingProduct && !canManagePrices && (
+                          <span className="ml-1 text-[10px] text-amber-600 font-semibold normal-case">
+                            (Yetki Gerekli)
+                          </span>
+                        )}
                       </label>
                       <input
                         type="number"
                         step="0.01"
                         required
+                        disabled={Boolean(editingProduct && !canManagePrices)}
                         value={prodPrice}
                         onChange={(e) => setProdPrice(e.target.value)}
                         placeholder="199.99"
-                        className="w-full bg-stone-50 border border-stone-200 rounded-2xl px-4 py-3 text-sm text-stone-900 focus:outline-none focus:border-brand-500 focus:bg-white font-semibold transition-all"
+                        className="w-full bg-stone-50 border border-stone-200 rounded-2xl px-4 py-3 text-sm text-stone-900 focus:outline-none focus:border-brand-500 focus:bg-white font-semibold transition-all disabled:opacity-60 disabled:cursor-not-allowed"
                       />
                     </div>
                   </div>
@@ -3562,10 +3615,11 @@ export default function AdminDashboardPage() {
                       <input
                         type="number"
                         min="0"
+                        disabled={!canUpdateStock}
                         value={prodStock}
                         onChange={(e) => setProdStock(e.target.value)}
                         placeholder="25"
-                        className="w-full bg-stone-50 border border-stone-200 rounded-2xl px-4 py-3 text-sm text-stone-900 focus:outline-none focus:border-brand-500 focus:bg-white font-bold transition-all"
+                        className="w-full bg-stone-50 border border-stone-200 rounded-2xl px-4 py-3 text-sm text-stone-900 focus:outline-none focus:border-brand-500 focus:bg-white font-bold transition-all disabled:opacity-60 disabled:cursor-not-allowed"
                       />
                     </div>
                     <div>
@@ -3574,8 +3628,9 @@ export default function AdminDashboardPage() {
                       </label>
                       <button
                         type="button"
+                        disabled={!canUpdateStock}
                         onClick={() => setProdIsAvailable(!prodIsAvailable)}
-                        className={`w-full py-3 px-3 rounded-2xl border text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer ${
+                        className={`w-full py-3 px-3 rounded-2xl border text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed ${
                           prodIsAvailable
                             ? 'bg-emerald-50 text-emerald-800 border-emerald-300'
                             : 'bg-rose-50 text-rose-800 border-rose-300'

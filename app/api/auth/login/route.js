@@ -122,7 +122,7 @@ export async function POST(request) {
               phone: pgAdmin.phone,
               role: isOwner ? 'Süper Yönetici' : (pgAdmin.role?.name || pgAdmin.roleName),
               roleId: isOwner ? 'role_super_admin' : pgAdmin.roleId,
-              permissions: isOwner ? ['overview', 'orders', 'inventory', 'products', 'users', 'reviews', 'api', 'delete_order', 'manage_prices', 'view_revenue', 'settings', 'site_content'] : (pgAdmin.role?.permissions || []),
+              permissions: isOwner ? ['overview', 'orders', 'delete_order', 'inventory', 'stock_update', 'products', 'product_add', 'product_edit', 'product_delete', 'options_manage', 'manage_prices', 'members', 'users', 'reviews', 'api', 'view_revenue', 'settings', 'site_content', 'courier_delivery'] : (pgAdmin.role?.permissions || []),
               phoneVerified: true,
               type: 'admin'
             };

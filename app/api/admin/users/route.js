@@ -98,7 +98,17 @@ async function getSyncedRolesAndAdmins() {
         orderBy: { isSystem: 'desc' }
       });
       if (pgRoles && pgRoles.length > 0) {
-        roles = pgRoles;
+        const allSuperPerms = [
+          'overview', 'orders', 'delete_order', 'inventory', 'stock_update',
+          'products', 'product_add', 'product_edit', 'product_delete',
+          'options_manage', 'manage_prices', 'members', 'users', 'reviews',
+          'view_revenue', 'settings', 'site_content', 'courier_delivery'
+        ];
+        roles = pgRoles.map((r) =>
+          r.id === 'role_super_admin' || r.code === 'super_admin'
+            ? { ...r, permissions: allSuperPerms }
+            : r
+        );
       }
     }
 

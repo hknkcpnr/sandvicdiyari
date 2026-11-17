@@ -72,8 +72,8 @@ export async function POST(request) {
               roleId: isOwner ? 'role_super_admin' : pgUser.roleId,
               roleColor: isOwner ? 'rose' : (pgUser.role?.color || 'rose'),
               permissions: isOwner
-                ? ['overview', 'orders', 'inventory', 'products', 'users', 'reviews', 'api', 'delete_order', 'manage_prices', 'view_revenue', 'settings', 'site_content']
-                : (pgUser.role?.permissions || ['overview', 'orders', 'inventory'])
+                ? ['overview', 'orders', 'delete_order', 'inventory', 'stock_update', 'products', 'product_add', 'product_edit', 'product_delete', 'options_manage', 'manage_prices', 'members', 'users', 'reviews', 'api', 'view_revenue', 'settings', 'site_content', 'courier_delivery']
+                : (pgUser.role?.permissions || ['overview', 'orders', 'inventory', 'stock_update'])
             };
           }
         }
