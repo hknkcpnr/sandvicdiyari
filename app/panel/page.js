@@ -1868,27 +1868,19 @@ export default function AdminDashboardPage() {
           </div>
 
           <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
-            {/* Ciro & Operasyon Ticker (Desktop) */}
+            {/* Operasyon Ticker (Desktop) */}
             <div className="hidden lg:flex items-center gap-6 text-stone-600 text-xs pr-4 border-r border-stone-200">
               <div>
-                <span className="text-stone-400 block text-[10px]">Kesinleşmiş Ciro</span>
-                <BlurredAmount
-                  canView={canViewRevenue}
-                  amount={`₺${confirmedRevenue.toFixed(2)}`}
-                  className="font-bold text-green-700"
-                />
-              </div>
-              <div>
-                <span className="text-stone-400 block text-[10px]">Beklenen Ciro</span>
-                <BlurredAmount
-                  canView={canViewRevenue}
-                  amount={`₺${pendingRevenue.toFixed(2)}`}
-                  className="font-bold text-stone-800"
-                />
+                <span className="text-stone-400 block text-[10px]">Yeni / Bekleyen</span>
+                <span className="font-bold text-red-600">{newOrdersCount} Sipariş</span>
               </div>
               <div>
                 <span className="text-stone-400 block text-[10px]">Mutfak / Kurye</span>
                 <span className="font-bold text-amber-600">{kitchenCount} / {courierCount}</span>
+              </div>
+              <div>
+                <span className="text-stone-400 block text-[10px]">Teslim Edilen</span>
+                <span className="font-bold text-emerald-700">{completedCount} Adet</span>
               </div>
             </div>
 
@@ -1939,28 +1931,16 @@ export default function AdminDashboardPage() {
         {/* MOBİL & TABLET ÖZET BAR (Sadece lg altı ekranlarda görünür) */}
         <div className="lg:hidden bg-white border-b border-stone-200 px-3 py-2 grid grid-cols-3 gap-2 text-center">
           <div className="bg-stone-50 rounded-lg py-1 px-2 border border-stone-100 min-w-0">
-            <span className="text-stone-400 block text-[9px] uppercase font-semibold truncate">Kesinleşmiş</span>
-            <div className="truncate">
-              <BlurredAmount
-                canView={canViewRevenue}
-                amount={`₺${confirmedRevenue.toFixed(2)}`}
-                className="font-bold text-green-700 text-[11px] sm:text-xs"
-              />
-            </div>
-          </div>
-          <div className="bg-stone-50 rounded-lg py-1 px-2 border border-stone-100 min-w-0">
-            <span className="text-stone-400 block text-[9px] uppercase font-semibold truncate">Beklenen</span>
-            <div className="truncate">
-              <BlurredAmount
-                canView={canViewRevenue}
-                amount={`₺${pendingRevenue.toFixed(2)}`}
-                className="font-bold text-stone-800 text-[11px] sm:text-xs"
-              />
-            </div>
+            <span className="text-stone-400 block text-[9px] uppercase font-semibold truncate">Yeni Bekleyen</span>
+            <span className="font-bold text-red-600 text-[11px] sm:text-xs block truncate">{newOrdersCount} Sipariş</span>
           </div>
           <div className="bg-stone-50 rounded-lg py-1 px-2 border border-stone-100 min-w-0">
             <span className="text-stone-400 block text-[9px] uppercase font-semibold truncate">Mutfak / Kurye</span>
             <span className="font-bold text-amber-600 text-[11px] sm:text-xs block truncate">{kitchenCount} / {courierCount}</span>
+          </div>
+          <div className="bg-stone-50 rounded-lg py-1 px-2 border border-stone-100 min-w-0">
+            <span className="text-stone-400 block text-[9px] uppercase font-semibold truncate">Teslim Edilen</span>
+            <span className="font-bold text-emerald-700 text-[11px] sm:text-xs block truncate">{completedCount} Adet</span>
           </div>
         </div>
 
@@ -2107,18 +2087,6 @@ export default function AdminDashboardPage() {
                     <i className="fa-solid fa-file-excel text-emerald-600"></i>
                     <span>Excel / CSV</span>
                   </button>
-
-                  {canViewRevenue && (
-                    <button
-                      type="button"
-                      onClick={() => printZReport(orders)}
-                      className="bg-brand-50 hover:bg-brand-100 text-brand-800 border border-brand-200 px-2.5 py-1.5 rounded-xl text-[11px] font-bold flex items-center gap-1.5 transition-colors cursor-pointer shadow-2xs"
-                      title="Günlük Kasa Kapanış ve Z Raporu Yazdır"
-                    >
-                      <i className="fa-solid fa-receipt text-brand-600"></i>
-                      <span>Z Raporu</span>
-                    </button>
-                  )}
                 </div>
               </div>
             </div>

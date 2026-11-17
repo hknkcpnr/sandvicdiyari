@@ -45,8 +45,8 @@ export default function OverviewDashboard({
   const [customStart, setCustomStart] = useState('');
   const [customEnd, setCustomEnd] = useState('');
 
-  // Chart Metric: 'revenue' | 'count' (Finansal yetkisi yoksa varsayılan sipariş adedidir)
-  const [chartMetric, setChartMetric] = useState(canViewRevenue ? 'revenue' : 'count');
+  // Chart Metric: Operasyonel görünümde yalnızca sipariş adedi gösterilir
+  const [chartMetric, setChartMetric] = useState('count');
   const [hoveredBar, setHoveredBar] = useState(null);
 
   // Filter orders by date range
@@ -323,10 +323,10 @@ export default function OverviewDashboard({
           <div className="min-w-0">
             <h2 className="text-sm sm:text-lg font-bold text-stone-900 flex items-center gap-2">
               <span className="w-2.5 h-2.5 rounded-full bg-brand-500 animate-pulse shrink-0"></span>
-              <span className="truncate">İşletme Genel Bakış & Performans</span>
+              <span className="truncate">Operasyonel Genel Bakış & Sipariş Akışı</span>
             </h2>
             <p className="text-[11px] sm:text-xs text-stone-500 mt-0.5 line-clamp-1">
-              Gerçek zamanlı sipariş akışı, ciro analitiği ve menü performansı.
+              Gerçek zamanlı sipariş akışı, teslimat durumu ve ürün hareketleri.
             </p>
           </div>
 
@@ -341,18 +341,6 @@ export default function OverviewDashboard({
               >
                 <i className="fa-solid fa-file-excel text-emerald-600"></i>
                 <span>Excel İndir</span>
-              </button>
-            )}
-
-            {onPrintZReport && canViewRevenue && (
-              <button
-                type="button"
-                onClick={onPrintZReport}
-                className="bg-brand-50 hover:bg-brand-100 text-brand-800 border border-brand-200 px-2.5 sm:px-3 py-1.5 rounded-xl text-[11px] sm:text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer shadow-2xs"
-                title="Günlük Kasa Kapanış ve Z Raporu Yazdır"
-              >
-                <i className="fa-solid fa-receipt text-brand-600"></i>
-                <span>Z Raporu</span>
               </button>
             )}
           </div>
@@ -430,61 +418,9 @@ export default function OverviewDashboard({
         </div>
       )}
 
-      {/* KPI METRIC CARDS (5 METRICS - Responsive Grid) */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5 sm:gap-3.5">
-        {/* CARD 1: KESİNLEŞMİŞ CİRO */}
-        <div className="bg-white p-3 sm:p-4 rounded-2xl border border-stone-200 shadow-xs hover:border-stone-300 transition-all flex flex-col justify-between min-w-0">
-          <div className="flex items-center justify-between gap-1">
-            <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-stone-500 truncate">
-              Kesinleşmiş Ciro
-            </span>
-            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-xs shrink-0">
-              <i className="fa-solid fa-wallet"></i>
-            </div>
-          </div>
-          <div className="mt-2 min-w-0">
-            <BlurredAmount
-              canView={canViewRevenue}
-              amount={`₺${metrics.confirmedRevenue.toFixed(2)}`}
-              className="text-base sm:text-xl xl:text-2xl font-black text-stone-900 tracking-tight block truncate"
-            />
-            <span className="block text-[10px] sm:text-[11px] text-emerald-700 font-semibold mt-0.5 truncate">
-              <i className="fa-solid fa-circle-check text-[10px] mr-1"></i>
-              {metrics.deliveredCount} Teslim Edildi
-            </span>
-          </div>
-          <span className="text-[10px] text-stone-400 mt-2 hidden sm:block pt-2 border-t border-stone-100 truncate">
-            Elden tahsilatı tamamlanan net tutar
-          </span>
-        </div>
-
-        {/* CARD 2: BEKLENEN CİRO */}
-        <div className="bg-white p-3 sm:p-4 rounded-2xl border border-stone-200 shadow-xs hover:border-stone-300 transition-all flex flex-col justify-between min-w-0">
-          <div className="flex items-center justify-between gap-1">
-            <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-stone-500 truncate">
-              Beklenen Ciro
-            </span>
-            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center text-xs shrink-0">
-              <i className="fa-solid fa-hourglass-half"></i>
-            </div>
-          </div>
-          <div className="mt-2 min-w-0">
-            <BlurredAmount
-              canView={canViewRevenue}
-              amount={`₺${metrics.pendingRevenue.toFixed(2)}`}
-              className="text-base sm:text-xl xl:text-2xl font-black text-stone-900 tracking-tight block truncate"
-            />
-            <span className="block text-[10px] sm:text-[11px] text-amber-700 font-semibold mt-0.5 truncate">
-              <i className="fa-solid fa-fire text-[10px] mr-1"></i>
-              {metrics.activeCount} Sipariş İşlemde
-            </span>
-          </div>
-          <span className="text-[10px] text-stone-400 mt-2 hidden sm:block pt-2 border-t border-stone-100 truncate">
-            Mutfak & kurye aşamasındaki potansiyel
-          </span>
-        </div>
-
-        {/* CARD 3: TOPLAM SİPARİŞ ADEDİ */}
+      {/* OPERATIONAL KPI METRIC CARDS (No Revenue / Sales Amounts) */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3.5">
+        {/* CARD 1: TOPLAM SİPARİŞ ADEDİ */}
         <div className="bg-white p-3 sm:p-4 rounded-2xl border border-stone-200 shadow-xs hover:border-stone-300 transition-all flex flex-col justify-between min-w-0">
           <div className="flex items-center justify-between gap-1">
             <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-stone-500 truncate">
@@ -507,39 +443,60 @@ export default function OverviewDashboard({
           </span>
         </div>
 
-        {/* CARD 4: ORTALAMA SEPET TUTARI (AOV) */}
+        {/* CARD 2: TESLİM EDİLEN SİPARİŞLER */}
         <div className="bg-white p-3 sm:p-4 rounded-2xl border border-stone-200 shadow-xs hover:border-stone-300 transition-all flex flex-col justify-between min-w-0">
           <div className="flex items-center justify-between gap-1">
             <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-stone-500 truncate">
-              Ort. Sepet Tutarı
+              Teslim Edilen
             </span>
-            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center text-xs shrink-0">
-              <i className="fa-solid fa-chart-line"></i>
+            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-xs shrink-0">
+              <i className="fa-solid fa-circle-check"></i>
             </div>
           </div>
           <div className="mt-2 min-w-0">
-            <BlurredAmount
-              canView={canViewRevenue}
-              amount={`₺${metrics.avgOrderValue.toFixed(2)}`}
-              className="text-base sm:text-xl xl:text-2xl font-black text-stone-900 tracking-tight block truncate"
-            />
-            <span className="block text-[10px] sm:text-[11px] text-purple-700 font-semibold mt-0.5 truncate">
-              Sipariş başına ortalama
+            <span className="text-base sm:text-xl xl:text-2xl font-black text-stone-900 tracking-tight block truncate">
+              {metrics.deliveredCount} Adet
+            </span>
+            <span className="block text-[10px] sm:text-[11px] text-emerald-700 font-semibold mt-0.5 truncate">
+              Başarıyla tamamlanan sipariş
             </span>
           </div>
           <span className="text-[10px] text-stone-400 mt-2 hidden sm:block pt-2 border-t border-stone-100 truncate">
-            Teslim edilen siparişlerin ortalaması
+            Müşteriye ulaştırılan paketler
           </span>
         </div>
 
-        {/* CARD 5: NAKİT VS POS ORANI */}
-        <div className="col-span-2 sm:col-span-2 lg:col-span-1 bg-white p-3 sm:p-4 rounded-2xl border border-stone-200 shadow-xs hover:border-stone-300 transition-all flex flex-col justify-between min-w-0">
+        {/* CARD 3: AKTİF İŞLEMDEKİ SİPARİŞLER */}
+        <div className="bg-white p-3 sm:p-4 rounded-2xl border border-stone-200 shadow-xs hover:border-stone-300 transition-all flex flex-col justify-between min-w-0">
           <div className="flex items-center justify-between gap-1">
             <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-stone-500 truncate">
-              Tahsilat Türü
+              Aktif İşlemde
+            </span>
+            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center text-xs shrink-0">
+              <i className="fa-solid fa-fire-burner"></i>
+            </div>
+          </div>
+          <div className="mt-2 min-w-0">
+            <span className="text-base sm:text-xl xl:text-2xl font-black text-stone-900 tracking-tight block truncate">
+              {metrics.activeCount} Sipariş
+            </span>
+            <span className="block text-[10px] sm:text-[11px] text-amber-700 font-semibold mt-0.5 truncate">
+              Mutfak & kurye aşamasında
+            </span>
+          </div>
+          <span className="text-[10px] text-stone-400 mt-2 hidden sm:block pt-2 border-t border-stone-100 truncate">
+            Hazırlanan ve yoldaki paketler
+          </span>
+        </div>
+
+        {/* CARD 4: NAKİT VS POS YÖNTEM ORANI */}
+        <div className="bg-white p-3 sm:p-4 rounded-2xl border border-stone-200 shadow-xs hover:border-stone-300 transition-all flex flex-col justify-between min-w-0">
+          <div className="flex items-center justify-between gap-1">
+            <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-stone-500 truncate">
+              Ödeme Yöntemi Oranı
             </span>
             <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-brand-50 text-brand-600 flex items-center justify-center text-xs shrink-0">
-              <i className="fa-solid fa-money-bill-transfer"></i>
+              <i className="fa-solid fa-credit-card"></i>
             </div>
           </div>
           <div className="mt-2 space-y-1.5">
@@ -547,22 +504,21 @@ export default function OverviewDashboard({
               <span>Nakit: %{metrics.cashPercent}</span>
               <span>POS: %{metrics.posPercent}</span>
             </div>
-            {/* Split bar */}
             <div className="w-full h-2 rounded-full bg-stone-100 overflow-hidden flex">
               <div
                 style={{ width: `${metrics.cashPercent}%` }}
                 className="bg-emerald-500 h-full transition-all"
-                title={canViewRevenue ? `Nakit: ₺${metrics.cashTotal.toFixed(2)}` : 'Nakit'}
+                title={`Nakit: %${metrics.cashPercent}`}
               ></div>
               <div
                 style={{ width: `${metrics.posPercent}%` }}
                 className="bg-indigo-500 h-full transition-all"
-                title={canViewRevenue ? `POS: ₺${metrics.posTotal.toFixed(2)}` : 'POS'}
+                title={`POS: %${metrics.posPercent}`}
               ></div>
             </div>
           </div>
           <span className="text-[10px] text-stone-400 mt-2 hidden sm:block pt-2 border-t border-stone-100 truncate">
-            Kapıda Nakit vs Kapıda POS
+            Kapıda Nakit vs Kapıda POS tercihi
           </span>
         </div>
       </div>
@@ -702,46 +658,25 @@ export default function OverviewDashboard({
         </div>
       </div>
 
-      {/* SECTION 3: SALES CHART (SATIŞ GRAFİĞİ) */}
+      {/* SECTION 3: ORDER VOLUME CHART (SİPARİŞ YOĞUNLUK GRAFİĞİ) */}
       <div className="bg-white p-4 sm:p-5 rounded-2xl border border-stone-200 shadow-xs space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
             <h3 className="text-sm font-bold text-stone-900 flex items-center gap-2">
               <i className="fa-solid fa-chart-column text-brand-600"></i>
-              Satış & Sipariş Grafiği
+              Sipariş Yoğunluk Grafiği
               <span className="text-[11px] font-normal text-stone-400">
                 ({dateFilter === 'today' || dateFilter === 'yesterday' ? 'Saatlik Dağılım' : 'Günlük Trend'})
               </span>
             </h3>
             <p className="text-xs text-stone-500 mt-0.5">
-              Seçilen periyotta gerçekleşen satış hacmi ve sipariş yoğunluğu.
+              Seçilen periyotta gerçekleşen sipariş adedi ve teslimat yoğunluğu.
             </p>
           </div>
 
-          {/* Metric Toggle: Ciro vs Sipariş Adedi */}
-          <div className="flex items-center gap-1 bg-stone-100 p-1 rounded-xl text-xs">
-            <button
-              onClick={() => setChartMetric('revenue')}
-              className={`px-3 py-1.5 rounded-lg font-semibold transition-all cursor-pointer flex items-center gap-1 ${
-                chartMetric === 'revenue'
-                  ? 'bg-white text-stone-900 shadow-xs'
-                  : 'text-stone-500 hover:text-stone-800'
-              }`}
-            >
-              <i className="fa-solid fa-turkish-lira-sign mr-1"></i>
-              <span>Ciro (₺)</span>
-              {!canViewRevenue && <i className="fa-solid fa-lock text-[9px] text-stone-400"></i>}
-            </button>
-            <button
-              onClick={() => setChartMetric('count')}
-              className={`px-3 py-1.5 rounded-lg font-semibold transition-all cursor-pointer ${
-                chartMetric === 'count'
-                  ? 'bg-white text-stone-900 shadow-xs'
-                  : 'text-stone-500 hover:text-stone-800'
-              }`}
-            >
-              <i className="fa-solid fa-basket-shopping mr-1"></i> Sipariş Adedi
-            </button>
+          <div className="inline-flex items-center gap-1.5 bg-stone-100 px-3 py-1.5 rounded-xl text-xs font-semibold text-stone-800">
+            <i className="fa-solid fa-basket-shopping text-brand-600"></i>
+            <span>Sipariş Adedi</span>
           </div>
         </div>
 
@@ -829,10 +764,10 @@ export default function OverviewDashboard({
               <div>
                 <h3 className="text-sm font-bold text-stone-900 flex items-center gap-2">
                   <i className="fa-solid fa-fire text-brand-600"></i>
-                  En Çok Satan Ürünler
+                  En Çok Tercih Edilen Ürünler
                 </h3>
                 <p className="text-xs text-stone-500 mt-0.5">
-                  Siparişlerde en çok tercih edilen lezzetler.
+                  Siparişlerde en çok hazırlanan lezzetler.
                 </p>
               </div>
               <span className="text-[11px] font-bold text-brand-700 bg-brand-50 px-2 py-0.5 rounded-lg border border-brand-200/60">
@@ -889,16 +824,11 @@ export default function OverviewDashboard({
                         </div>
                       </div>
 
-                      {/* Quantity & Revenue */}
+                      {/* Quantity Only */}
                       <div className="text-right shrink-0">
-                        <span className="text-xs font-extrabold text-stone-900 block">
+                        <span className="text-xs font-extrabold text-stone-900 bg-stone-100 px-2.5 py-1 rounded-lg border border-stone-200 block">
                           {p.quantity} Adet
                         </span>
-                        <BlurredAmount
-                          canView={canViewRevenue}
-                          amount={`₺${p.revenue.toFixed(2)}`}
-                          className="text-[11px] text-brand-700 font-semibold block"
-                        />
                       </div>
                     </div>
                   );
@@ -983,12 +913,6 @@ export default function OverviewDashboard({
                           <span className={`w-1.5 h-1.5 rounded-full ${statusStyle.dot}`}></span>
                           {statusStyle.label}
                         </span>
-
-                        <BlurredAmount
-                          canView={canViewRevenue}
-                          amount={`₺${Number(order.total || order.subtotal || 0).toFixed(2)}`}
-                          className="text-xs font-black text-stone-900 min-w-[70px] text-right"
-                        />
 
                         {(order.status === 'Yeni' || order.status === 'Görüntülendi') && onAcceptOrder && (
                           <button
