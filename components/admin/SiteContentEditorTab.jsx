@@ -70,6 +70,14 @@ const SECTION_METAS = {
     getVisibility: (c) => c.reviewsSection?.visible !== false,
     setVisibility: (c, v) => ({ ...c, reviewsSection: { ...c.reviewsSection, visible: v } }),
   },
+  story: {
+    id: 'story',
+    title: 'Hikayemiz & Görsel Slider',
+    icon: 'fa-solid fa-images',
+    desc: 'Hikayemiz sayfasındaki tanıtım yazıları ve çoklu fotoğraf galerisi (slider).',
+    getVisibility: (c) => c.storySection?.visible !== false,
+    setVisibility: (c, v) => ({ ...c, storySection: { ...c.storySection, visible: v } }),
+  },
   contact: {
     id: 'contact',
     title: 'İletişim, Şube Adresi & Saatler',
@@ -102,6 +110,7 @@ export default function SiteContentEditorTab({ initialSubTab = 'hero', onSubTabC
 
   const heroFileInputRef = useRef(null);
   const featuresFileInputRef = useRef(null);
+  const storyFileInputRef = useRef(null);
 
   // Veriyi API'den çek
   const fetchContent = async () => {
@@ -185,22 +194,43 @@ export default function SiteContentEditorTab({ initialSubTab = 'hero', onSubTabC
         body: formData,
       });
       const json = await res.json();
-      if (json.success && json.data?.url) {
+      const uploadedUrl = json.url || json.data?.url;
+      if (json.success && uploadedUrl) {
         if (targetField === 'heroImage') {
           updateField((prev) => ({
             ...prev,
-            hero: { ...prev.hero, image: json.data.url },
+            hero: { ...prev.hero, image: uploadedUrl },
           }));
         } else if (targetField === 'featuresBgImage') {
           updateField((prev) => ({
             ...prev,
-            featuresSection: { ...prev.featuresSection, bgImage: json.data.url },
+            featuresSection: { ...prev.featuresSection, bgImage: uploadedUrl },
           }));
+        } else if (targetField === 'storySlideNew') {
+          updateField((prev) => {
+            const currentImages = Array.isArray(prev.storySection?.images)
+              ? prev.storySection.images
+              : DEFAULT_SITE_CONTENT.storySection.images;
+            return {
+              ...prev,
+              storySection: {
+                ...(prev.storySection || DEFAULT_SITE_CONTENT.storySection),
+                images: [
+                  ...currentImages,
+                  {
+                    id: `st_${Date.now()}`,
+                    url: uploadedUrl,
+                    caption: file.name.replace(/\.[^/.]+$/, '') || 'Sandviç Diyarı Lezzet Durağı',
+                  },
+                ],
+              },
+            };
+          });
         }
         dispatch(
           showMessageModal({
             title: 'Görsel Yüklendi! 📸',
-            text: 'Yeni fotoğraf başarıyla sisteme aktarıldı.',
+            text: 'Yeni fotoğraf başarıyla sisteme aktarıldı. Kaydet butonuna basarak yayına alabilirsiniz.',
             type: 'success',
           })
         );
@@ -275,6 +305,7 @@ export default function SiteContentEditorTab({ initialSubTab = 'hero', onSubTabC
               <option value="newMenus">🍔 En Yeni Menüler Vitrini</option>
               <option value="features">🛡️ Neden Sandviç Diyarı?</option>
               <option value="reviews">⭐ Müşteri Yorumları Vitrini</option>
+              <option value="story">📸 Hikayemiz &amp; Görsel Slider</option>
               <option value="contact">📞 İletişim, Şube Adresi &amp; Saatler</option>
             </select>
           </div>
@@ -996,6 +1027,291 @@ export default function SiteContentEditorTab({ initialSubTab = 'hero', onSubTabC
               placeholder="https://images.unsplash.com/photo-... veya /images/..."
               className="w-full text-xs bg-stone-50 border border-stone-300 rounded-xl px-3.5 py-2 font-mono"
             />
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* 5B. HİKAYEMİZ & GÖRSEL SLIDER YÖNETİMİ */}
+      {/* ========================================================================= */}
+      {activeSubTab === 'story' && (
+        <div className="bg-white p-4 sm:p-6 rounded-2xl border border-stone-200 shadow-xs space-y-5">
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-stone-100 pb-3">
+            <h3 className="text-xs font-bold text-stone-900 flex items-center gap-2">
+              <i className="fa-solid fa-images text-brand-600"></i>
+              <span>Hikayemiz Sayfası &amp; Fotoğraf Slider Yönetimi</span>
+            </h3>
+
+            <div className="flex flex-wrap items-center gap-2">
+              <input
+                ref={storyFileInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => handleFileUpload(e, 'storySlideNew')}
+              />
+              <button
+                type="button"
+                disabled={uploadingTarget === 'storySlideNew'}
+                onClick={() => storyFileInputRef.current?.click()}
+                className="bg-brand-600 hover:bg-brand-700 text-white font-bold px-3.5 py-2 rounded-xl text-xs flex items-center gap-1.5 cursor-pointer shadow-xs transition-all"
+              >
+                <i
+                  className={`fa-solid ${
+                    uploadingTarget === 'storySlideNew' ? 'fa-spinner fa-spin' : 'fa-upload'
+                  }`}
+                ></i>
+                <span>
+                  {uploadingTarget === 'storySlideNew'
+                    ? 'Yükleniyor...'
+                    : '+ Cihazdan Yeni Resim Yükle'}
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() =>
+                  updateField((prev) => {
+                    const currentImages = Array.isArray(prev.storySection?.images)
+                      ? prev.storySection.images
+                      : DEFAULT_SITE_CONTENT.storySection.images;
+                    return {
+                      ...prev,
+                      storySection: {
+                        ...(prev.storySection || DEFAULT_SITE_CONTENT.storySection),
+                        images: [
+                          ...currentImages,
+                          {
+                            id: `st_${Date.now()}`,
+                            url: '/images/hero_sandwich_banner.jpg',
+                            caption: 'Yeni Slider Görseli',
+                          },
+                        ],
+                      },
+                    };
+                  })
+                }
+                className="bg-stone-100 hover:bg-stone-200 text-stone-800 font-bold px-3.5 py-2 rounded-xl text-xs flex items-center gap-1.5 cursor-pointer transition-colors"
+              >
+                <i className="fa-solid fa-plus text-brand-600"></i>
+                <span>+ URL ile Slayt Ekle</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Hikaye Başlık ve Açıklama Alanları */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="text-xs font-bold text-stone-700 block mb-1">Üst Rozet Yazısı</label>
+              <input
+                type="text"
+                value={content.storySection?.badgeText ?? DEFAULT_SITE_CONTENT.storySection.badgeText}
+                onChange={(e) =>
+                  updateField((prev) => ({
+                    ...prev,
+                    storySection: {
+                      ...(prev.storySection || DEFAULT_SITE_CONTENT.storySection),
+                      badgeText: e.target.value,
+                    },
+                  }))
+                }
+                className="w-full text-xs bg-stone-50 border border-stone-300 rounded-xl px-3.5 py-2.5 font-semibold"
+              />
+            </div>
+
+            <div>
+              <label className="text-xs font-bold text-stone-700 block mb-1">Hikayemiz Ana Başlığı</label>
+              <input
+                type="text"
+                value={content.storySection?.title ?? DEFAULT_SITE_CONTENT.storySection.title}
+                onChange={(e) =>
+                  updateField((prev) => ({
+                    ...prev,
+                    storySection: {
+                      ...(prev.storySection || DEFAULT_SITE_CONTENT.storySection),
+                      title: e.target.value,
+                    },
+                  }))
+                }
+                className="w-full text-xs bg-stone-50 border border-stone-300 rounded-xl px-3.5 py-2.5 font-bold"
+              />
+            </div>
+
+            <div className="sm:col-span-2">
+              <label className="text-xs font-bold text-stone-700 block mb-1">Hikayemiz Açıklama Metni</label>
+              <textarea
+                rows={3}
+                value={content.storySection?.description ?? DEFAULT_SITE_CONTENT.storySection.description}
+                onChange={(e) =>
+                  updateField((prev) => ({
+                    ...prev,
+                    storySection: {
+                      ...(prev.storySection || DEFAULT_SITE_CONTENT.storySection),
+                      description: e.target.value,
+                    },
+                  }))
+                }
+                className="w-full text-xs bg-stone-50 border border-stone-300 rounded-xl px-3.5 py-2.5 font-medium resize-none"
+              />
+            </div>
+          </div>
+
+          {/* Hızlı Hazır Şablonlardan Slider'a Tek Tıkla Ekleme */}
+          <div className="bg-stone-50 p-3.5 rounded-2xl border border-stone-200/80 space-y-2">
+            <span className="text-[11px] font-extrabold text-stone-700 uppercase block">
+              Hazır Görsellerden Slider&apos;a Hızlı Ekle:
+            </span>
+            <div className="flex flex-wrap gap-2">
+              {HERO_IMAGE_PRESETS.map((preset) => (
+                <button
+                  key={preset.url}
+                  type="button"
+                  onClick={() =>
+                    updateField((prev) => {
+                      const currentImages = Array.isArray(prev.storySection?.images)
+                        ? prev.storySection.images
+                        : DEFAULT_SITE_CONTENT.storySection.images;
+                      return {
+                        ...prev,
+                        storySection: {
+                          ...(prev.storySection || DEFAULT_SITE_CONTENT.storySection),
+                          images: [
+                            ...currentImages,
+                            {
+                              id: `st_${Date.now()}_${Math.random().toString(36).slice(2, 5)}`,
+                              url: preset.url,
+                              caption: preset.label,
+                            },
+                          ],
+                        },
+                      };
+                    })
+                  }
+                  className="inline-flex items-center gap-2 bg-white hover:bg-brand-50 border border-stone-200 hover:border-brand-300 rounded-xl px-2.5 py-1.5 text-xs font-semibold text-stone-700 cursor-pointer transition-all"
+                >
+                  <img
+                    src={preset.url}
+                    alt={preset.label}
+                    className="w-6 h-6 rounded-md object-cover border border-stone-200"
+                  />
+                  <span>+ {preset.label}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Mevcut Slider Görselleri Listesi */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-extrabold text-stone-800 uppercase">
+                Aktif Slider Fotoğrafları (
+                {(content.storySection?.images || DEFAULT_SITE_CONTENT.storySection.images).length}{' '}
+                Adet)
+              </span>
+              <span className="text-[11px] text-stone-400">
+                Görseller Hikayemiz sayfasında sırayla kayarak gösterilir
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {(content.storySection?.images || DEFAULT_SITE_CONTENT.storySection.images).map(
+                (slide, idx, arr) => (
+                  <div
+                    key={slide.id || idx}
+                    className="flex items-start gap-3 p-3 rounded-2xl border border-stone-200 bg-stone-50/70"
+                  >
+                    <div className="relative w-24 h-20 rounded-xl overflow-hidden bg-stone-200 border border-stone-300 shrink-0">
+                      <img
+                        src={slide.url}
+                        alt={slide.caption || `Slayt ${idx + 1}`}
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          e.currentTarget.src = '/images/kasap_sucuk_ekmek.jpg';
+                        }}
+                      />
+                      <span className="absolute top-1 left-1 bg-stone-900/80 text-white text-[10px] font-black px-1.5 py-0.5 rounded-md">
+                        #{idx + 1}
+                      </span>
+                    </div>
+
+                    <div className="flex-1 min-w-0 space-y-2">
+                      <input
+                        type="text"
+                        value={slide.caption || ''}
+                        onChange={(e) =>
+                          updateField((prev) => {
+                            const list = [
+                              ...(prev.storySection?.images ||
+                                DEFAULT_SITE_CONTENT.storySection.images),
+                            ];
+                            list[idx] = { ...list[idx], caption: e.target.value };
+                            return {
+                              ...prev,
+                              storySection: {
+                                ...(prev.storySection || DEFAULT_SITE_CONTENT.storySection),
+                                images: list,
+                              },
+                            };
+                          })
+                        }
+                        placeholder="Görsel başlığı / açıklaması..."
+                        className="w-full text-xs bg-white border border-stone-300 rounded-lg px-2.5 py-1.5 font-bold text-stone-800"
+                      />
+
+                      <input
+                        type="text"
+                        value={slide.url || ''}
+                        onChange={(e) =>
+                          updateField((prev) => {
+                            const list = [
+                              ...(prev.storySection?.images ||
+                                DEFAULT_SITE_CONTENT.storySection.images),
+                            ];
+                            list[idx] = { ...list[idx], url: e.target.value };
+                            return {
+                              ...prev,
+                              storySection: {
+                                ...(prev.storySection || DEFAULT_SITE_CONTENT.storySection),
+                                images: list,
+                              },
+                            };
+                          })
+                        }
+                        placeholder="/images/... veya https://..."
+                        className="w-full text-[11px] bg-white border border-stone-200 rounded-lg px-2.5 py-1 font-mono text-stone-600"
+                      />
+
+                      <div className="flex items-center justify-end gap-1.5">
+                        {arr.length > 1 && (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              updateField((prev) => {
+                                const list = [
+                                  ...(prev.storySection?.images ||
+                                    DEFAULT_SITE_CONTENT.storySection.images),
+                                ].filter((_, i) => i !== idx);
+                                return {
+                                  ...prev,
+                                  storySection: {
+                                    ...(prev.storySection || DEFAULT_SITE_CONTENT.storySection),
+                                    images: list,
+                                  },
+                                };
+                              })
+                            }
+                            className="text-rose-600 hover:bg-rose-50 border border-rose-200 px-2.5 py-1 rounded-lg text-[11px] font-bold flex items-center gap-1 cursor-pointer transition-colors"
+                          >
+                            <i className="fa-solid fa-trash-can text-[10px]"></i>
+                            <span>Kaldır</span>
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )
+              )}
+            </div>
           </div>
         </div>
       )}
