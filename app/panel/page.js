@@ -350,6 +350,8 @@ export default function AdminDashboardPage() {
   const [prodCategory, setProdCategory] = useState('menu');
   const [prodPrice, setProdPrice] = useState('');
   const [prodDesc, setProdDesc] = useState('');
+  const [prodIngredients, setProdIngredients] = useState([]);
+  const [ingredientInput, setIngredientInput] = useState('');
   const [prodBadge, setProdBadge] = useState('Yeni Çıktı');
   const [prodStock, setProdStock] = useState('25');
   const [prodIsAvailable, setProdIsAvailable] = useState(true);
@@ -359,6 +361,74 @@ export default function AdminDashboardPage() {
   const [dragActive, setDragActive] = useState(false);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const fileInputRef = useRef(null);
+
+  const COMMON_INGREDIENT_TAGS = [
+    'Sosis',
+    'Sucuk',
+    'Salam',
+    'Kaşar Peyniri',
+    'Domates',
+    'Kornişon Turşu',
+    'Marul',
+    'Ketçap',
+    'Mayonez',
+    'Rus Salatası',
+    'Patates Kızartması',
+    'Kasap Köfte',
+    'Tavuk',
+    'Cheddar',
+    'Karamelize Soğan',
+  ];
+
+  const extractInitialIngredients = (product) => {
+    if (!product) return [];
+    if (Array.isArray(product.ingredients) && product.ingredients.length > 0) {
+      return product.ingredients.map((s) => String(s).trim()).filter(Boolean);
+    }
+    if (
+      Array.isArray(product.options) &&
+      product.options.length > 0 &&
+      product.options.every((s) => typeof s === 'string')
+    ) {
+      return product.options.map((s) => String(s).trim()).filter(Boolean);
+    }
+    const rawDesc = String(product.description || product.desc || '').trim();
+    if (!rawDesc) return [];
+    const cleaned = rawDesc
+      .replace(/\.+$/, '')
+      .replace(/^.*ekmeğinde\s+/i, '')
+      .replace(/\s+ziyafeti$/i, '');
+    return cleaned
+      .split(/(?:,|\+|\s+ve\s+)/i)
+      .map((p) => p.trim())
+      .filter((p) => p.length > 0 && p.length <= 50)
+      .map((p) => p.charAt(0).toLocaleUpperCase('tr-TR') + p.slice(1));
+  };
+
+  const handleAddIngredientTag = (rawVal) => {
+    const val = String(rawVal ?? ingredientInput ?? '').trim();
+    if (!val) return;
+    const parts = val
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean)
+      .map((s) => s.charAt(0).toLocaleUpperCase('tr-TR') + s.slice(1));
+    if (parts.length === 0) return;
+    setProdIngredients((prev) => {
+      const next = [...prev];
+      for (const p of parts) {
+        if (!next.some((existing) => existing.toLocaleLowerCase('tr-TR') === p.toLocaleLowerCase('tr-TR'))) {
+          next.push(p);
+        }
+      }
+      return next;
+    });
+    setIngredientInput('');
+  };
+
+  const handleRemoveIngredientTag = (tagToRemove) => {
+    setProdIngredients((prev) => prev.filter((t) => t !== tagToRemove));
+  };
 
   // Quick Preset Food Images
   const PRODUCT_IMAGE_PRESETS = [
@@ -865,6 +935,8 @@ export default function AdminDashboardPage() {
     setProdStock('25');
     setProdIsAvailable(true);
     setProdDesc('');
+    setProdIngredients([]);
+    setIngredientInput('');
     setProdBadge('Yeni Çıktı');
     setProdImageUrl('/images/hero_banner.jpg');
     setSelectedFileName('');
@@ -895,6 +967,8 @@ export default function AdminDashboardPage() {
     setProdStock(String(product.stock ?? 25));
     setProdIsAvailable(product.isAvailable !== false);
     setProdDesc(product.description || '');
+    setProdIngredients(extractInitialIngredients(product));
+    setIngredientInput('');
     setProdBadge(product.badge || '');
     setProdImageUrl(product.image || '/images/hero_banner.jpg');
     setSelectedFileName(product.image?.startsWith('/uploads/') ? 'Yüklenmiş Dosya' : '');
@@ -1004,6 +1078,24 @@ export default function AdminDashboardPage() {
       return;
     }
 
+    const finalIngredients = [...prodIngredients];
+    if (ingredientInput.trim()) {
+      const pendingParts = ingredientInput
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean)
+        .map((s) => s.charAt(0).toLocaleUpperCase('tr-TR') + s.slice(1));
+      for (const p of pendingParts) {
+        if (!finalIngredients.some((ex) => ex.toLocaleLowerCase('tr-TR') === p.toLocaleLowerCase('tr-TR'))) {
+          finalIngredients.push(p);
+        }
+      }
+    }
+
+    const effectiveDesc =
+      prodDesc.trim() ||
+      (finalIngredients.length > 0 ? finalIngredients.join(', ') : 'Özel şef sandviçimiz.');
+
     const payload = {
       name: prodName.trim(),
       category: prodCategory,
@@ -1011,7 +1103,9 @@ export default function AdminDashboardPage() {
       stock: prodStock !== '' ? Number(prodStock) : 25,
       isAvailable: prodIsAvailable,
       trackStock: true,
-      description: prodDesc.trim(),
+      description: effectiveDesc,
+      options: finalIngredients,
+      ingredients: finalIngredients,
       badge: prodBadge.trim(),
       image: prodImageUrl || '/images/hero_banner.jpg',
     };
@@ -2690,6 +2784,19 @@ export default function AdminDashboardPage() {
                         {p.category === 'menu' ? '🍱 Menülü Satış' : '🥪 Bireysel Satış'} &bull;{' '}
                         {p.description}
                       </span>
+                      {extractInitialIngredients(p).length > 0 && (
+                        <div className="flex flex-wrap gap-1 mt-1.5">
+                          {extractInitialIngredients(p).map((tag) => (
+                            <span
+                              key={tag}
+                              className="inline-flex items-center gap-1 bg-stone-100 text-stone-700 border border-stone-200/80 px-2 py-0.5 rounded-md text-[10px] font-semibold"
+                            >
+                              <i className="fa-solid fa-tag text-[8px] text-brand-500"></i>
+                              <span>{tag}</span>
+                            </span>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   </div>
 
@@ -3654,17 +3761,126 @@ export default function AdminDashboardPage() {
                     </div>
                   </div>
 
+                  {/* ÜRÜN İÇERİĞİ (ETİKETLER) */}
+                  <div className="bg-stone-50/90 border border-stone-200 rounded-2xl p-3.5 space-y-2.5">
+                    <div className="flex flex-wrap items-center justify-between gap-1">
+                      <label className="text-xs font-bold text-stone-800 uppercase tracking-wide flex items-center gap-1.5">
+                        <i className="fa-solid fa-tags text-brand-600"></i>
+                        <span>Ürün İçeriği (Malzeme Etiketleri)</span>
+                      </label>
+                      <span className="text-[10px] text-stone-500 font-medium">
+                        Müşteriler sipariş verirken bu etiketlere dokunup malzeme çıkarabilir
+                      </span>
+                    </div>
+
+                    {/* Eklenen Etiketler */}
+                    <div className="flex flex-wrap gap-1.5 min-h-[34px] p-2 bg-white rounded-xl border border-stone-200">
+                      {prodIngredients.length === 0 ? (
+                        <span className="text-xs text-stone-400 italic px-1 py-0.5">
+                          Henüz içerik etiketi eklenmedi. Aşağıdan yazarak veya hazır etiketlere tıklayarak ekleyin...
+                        </span>
+                      ) : (
+                        prodIngredients.map((tag) => (
+                          <span
+                            key={tag}
+                            className="inline-flex items-center gap-1.5 bg-brand-50 text-brand-900 border border-brand-200 px-2.5 py-1 rounded-lg text-xs font-bold shadow-2xs"
+                          >
+                            <span>{tag}</span>
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveIngredientTag(tag)}
+                              className="w-4 h-4 rounded-full bg-brand-200/70 hover:bg-rose-500 hover:text-white text-brand-800 flex items-center justify-center text-[10px] transition-colors cursor-pointer"
+                              title="Etiketi Kaldır"
+                            >
+                              <i className="fa-solid fa-xmark"></i>
+                            </button>
+                          </span>
+                        ))
+                      )}
+                    </div>
+
+                    {/* Yeni Etiket Yazıp Ekleme */}
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="text"
+                        value={ingredientInput}
+                        onChange={(e) => setIngredientInput(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            handleAddIngredientTag();
+                          }
+                        }}
+                        placeholder="Malzeme adı yazın (örn: Sosis, Kaşar) ve Enter'a basın..."
+                        className="flex-1 bg-white border border-stone-200 rounded-xl px-3.5 py-2 text-xs text-stone-900 focus:outline-none focus:border-brand-500 font-semibold"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => handleAddIngredientTag()}
+                        className="bg-stone-900 hover:bg-black text-white text-xs font-bold px-3.5 py-2 rounded-xl flex items-center gap-1.5 shrink-0 cursor-pointer transition-colors"
+                      >
+                        <i className="fa-solid fa-plus text-[10px] text-amber-400"></i>
+                        <span>Etiket Ekle</span>
+                      </button>
+                    </div>
+
+                    {/* Hızlı Hazır Malzeme Etiketleri */}
+                    <div className="pt-1 space-y-1.5">
+                      <span className="text-[10px] font-bold text-stone-400 uppercase block">
+                        Hızlı Malzeme Seçimi (Tıklayarak Ekle / Çıkar):
+                      </span>
+                      <div className="flex flex-wrap gap-1.5">
+                        {COMMON_INGREDIENT_TAGS.map((presetTag) => {
+                          const isSelected = prodIngredients.some(
+                            (t) => t.toLocaleLowerCase('tr-TR') === presetTag.toLocaleLowerCase('tr-TR')
+                          );
+                          return (
+                            <button
+                              key={presetTag}
+                              type="button"
+                              onClick={() => {
+                                if (isSelected) {
+                                  setProdIngredients((prev) =>
+                                    prev.filter(
+                                      (t) =>
+                                        t.toLocaleLowerCase('tr-TR') !==
+                                        presetTag.toLocaleLowerCase('tr-TR')
+                                    )
+                                  );
+                                } else {
+                                  handleAddIngredientTag(presetTag);
+                                }
+                              }}
+                              className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold border transition-all cursor-pointer flex items-center gap-1 ${
+                                isSelected
+                                  ? 'bg-emerald-50 border-emerald-300 text-emerald-800 font-bold'
+                                  : 'bg-white border-stone-200 text-stone-600 hover:border-brand-300 hover:text-stone-900'
+                              }`}
+                            >
+                              <i
+                                className={`fa-solid ${
+                                  isSelected ? 'fa-check text-emerald-600' : 'fa-plus text-stone-400'
+                                } text-[9px]`}
+                              ></i>
+                              <span>{presetTag}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+
                   {/* Açıklama */}
                   <div>
                     <label className="block text-xs font-bold text-stone-700 uppercase tracking-wide mb-1.5">
-                      Açıklama / Malzeme Detayları
+                      Ürün Kısa Açıklaması (İsteğe Bağlı)
                     </label>
                     <textarea
-                      rows={3}
+                      rows={2}
                       value={prodDesc}
                       onChange={(e) => setProdDesc(e.target.value)}
-                      placeholder="Özel sos, taze yeşillikler, büyük boy patates..."
-                      className="w-full bg-stone-50 border border-stone-200 rounded-2xl px-4 py-3 text-sm text-stone-900 focus:outline-none focus:border-brand-500 focus:bg-white font-medium transition-all resize-none"
+                      placeholder="Özel susamlı sandviç ekmeğinde sıcak servis edilir..."
+                      className="w-full bg-stone-50 border border-stone-200 rounded-2xl px-4 py-2.5 text-sm text-stone-900 focus:outline-none focus:border-brand-500 focus:bg-white font-medium transition-all resize-none"
                     />
                   </div>
                 </div>

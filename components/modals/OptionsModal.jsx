@@ -16,6 +16,13 @@ function extractProductIngredients(product) {
   if (Array.isArray(product.ingredients) && product.ingredients.length > 0) {
     return product.ingredients.map((s) => String(s).trim()).filter(Boolean);
   }
+  if (
+    Array.isArray(product.options) &&
+    product.options.length > 0 &&
+    product.options.every((s) => typeof s === 'string')
+  ) {
+    return product.options.map((s) => String(s).trim()).filter(Boolean);
+  }
   const nameLower = String(product.name || '').toLocaleLowerCase('tr-TR');
   const rawDesc = String(product.description || product.desc || '').trim();
   const descLower = rawDesc.toLocaleLowerCase('tr-TR');

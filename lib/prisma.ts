@@ -218,6 +218,11 @@ export const prisma = {
         if (typeof args.data.criticalThreshold === 'number') {
           updateData.criticalThreshold = args.data.criticalThreshold;
         }
+        if (Array.isArray(args.data.options)) {
+          updateData.options = args.data.options as Prisma.InputJsonValue;
+        } else if (Array.isArray(args.data.ingredients)) {
+          updateData.options = args.data.ingredients as Prisma.InputJsonValue;
+        }
 
         const updated = await rawPrisma.product.update({
           where: { id: numericId },

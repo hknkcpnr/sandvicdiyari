@@ -64,6 +64,16 @@ export async function PUT(request, { params }) {
       }
       sanitizedUpdates.price = Number(p.toFixed(2));
     }
+    if (Array.isArray(body.ingredients) || Array.isArray(body.options)) {
+      const rawTags = Array.isArray(body.ingredients) ? body.ingredients : body.options;
+      const cleanTags = rawTags
+        .map((t) =>
+          typeof t === 'string' ? sanitizeText(t, 60, 'İçerik Etiketi', '/api/products/[id]') : t
+        )
+        .filter(Boolean);
+      sanitizedUpdates.options = cleanTags;
+      sanitizedUpdates.ingredients = cleanTags;
+    }
 
     const updated = await prisma.product.update({
       where: { id },

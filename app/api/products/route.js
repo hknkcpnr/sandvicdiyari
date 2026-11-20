@@ -68,6 +68,15 @@ export async function POST(request) {
       Math.min(1000, typeof body.criticalThreshold !== 'undefined' ? Number(body.criticalThreshold) : 5)
     );
 
+    const rawTags = Array.isArray(body.ingredients)
+      ? body.ingredients
+      : Array.isArray(body.options)
+      ? body.options
+      : [];
+    const cleanOptions = rawTags
+      .map((t) => (typeof t === 'string' ? sanitizeText(t, 60, 'İçerik Etiketi', '/api/products') : t))
+      .filter(Boolean);
+
     const newProduct = await prisma.product.create({
       data: {
         name,
@@ -83,7 +92,8 @@ export async function POST(request) {
         trackStock: typeof body.trackStock === 'boolean' ? body.trackStock : true,
         isAvailable: typeof body.isAvailable === 'boolean' ? body.isAvailable : stock > 0,
         criticalThreshold,
-        options: Array.isArray(body.options) ? body.options : []
+        options: cleanOptions,
+        ingredients: cleanOptions
       }
     });
 
