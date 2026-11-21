@@ -3682,42 +3682,46 @@ export default function AdminDashboardPage() {
         </button>
       </nav>
 
-      {/* MODAL: YENİ ÜRÜN EKLEME / DÜZENLEME (GENİŞ & SCROLLSUZ 2 SÜTUNLU DÜZEN) */}
+      {/* MODAL: YENİ ÜRÜN EKLEME / DÜZENLEME (MOBİLDE & MASAÜSTÜNDE KUSURSUZ SCROLL VE SABİT AKSİYON BARI) */}
       {isAddProductOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-2.5 sm:p-4 bg-stone-900/60 backdrop-blur-xs animate-in fade-in duration-150">
-          <div className="bg-white rounded-3xl max-w-5xl w-full p-4 sm:p-6 border border-stone-200 shadow-2xl space-y-3.5 my-auto max-h-[95vh] overflow-y-auto no-scrollbar">
-            {/* Modal Header */}
-            <div className="flex justify-between items-center pb-3 border-b border-stone-100">
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-2xl bg-brand-50 text-brand-600 flex items-center justify-center text-sm font-bold">
+        <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center p-2 sm:p-4 bg-stone-900/60 backdrop-blur-xs overflow-y-auto animate-in fade-in duration-150">
+          <div className="bg-white rounded-2xl sm:rounded-3xl max-w-5xl w-full border border-stone-200 shadow-2xl my-auto sm:my-6 max-h-[94vh] sm:max-h-[90vh] flex flex-col overflow-hidden">
+            {/* Modal Header (Sabit Üst Başlık) */}
+            <div className="shrink-0 flex justify-between items-center p-3.5 sm:p-5 border-b border-stone-150 bg-white z-10">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-9 h-9 rounded-2xl bg-brand-50 text-brand-600 flex items-center justify-center text-sm font-bold shrink-0">
                   <i className={editingProduct ? 'fa-solid fa-pen-to-square' : 'fa-solid fa-plus'}></i>
                 </div>
-                <div>
-                  <h4 className="font-extrabold text-stone-900 text-sm sm:text-base leading-tight">
+                <div className="min-w-0">
+                  <h4 className="font-extrabold text-stone-900 text-sm sm:text-base leading-tight truncate">
                     {editingProduct ? 'Ürünü / Görseli Düzenle' : 'Menüye Yeni Ürün Ekle'}
                   </h4>
-                  <p className="text-[11px] text-stone-500">
+                  <p className="text-[11px] text-stone-500 truncate">
                     {editingProduct ? `"${editingProduct.name}" düzenleniyor` : 'Ürün bilgilerini girin, içeriği ve görseli seçin'}
                   </p>
                 </div>
               </div>
               <button
+                type="button"
                 onClick={() => {
                   setIsAddProductOpen(false);
                   resetProductForm();
                 }}
-                className="text-stone-400 hover:text-stone-700 p-1.5 rounded-xl hover:bg-stone-100 transition-colors cursor-pointer"
+                className="text-stone-400 hover:text-stone-700 p-1.5 rounded-xl hover:bg-stone-100 transition-colors cursor-pointer shrink-0"
+                title="Kapat"
               >
                 <i className="fa-solid fa-xmark text-base"></i>
               </button>
             </div>
 
-            <form onSubmit={handleProductSubmit} className="space-y-3.5">
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-stretch">
-                {/* SOL SÜTUN: TEMEL ÜRÜN BİLGİLERİ, STOK & AÇIKLAMA */}
-                <div className="lg:col-span-6 flex flex-col justify-between space-y-3 bg-stone-50/50 p-3.5 rounded-2xl border border-stone-200/70">
-                  <div className="space-y-3">
-                    {/* Product Name */}
+            <form onSubmit={handleProductSubmit} className="flex-1 flex flex-col min-h-0 overflow-hidden">
+              {/* Scrollable Form Body (Mobilde Akıcı Kaydırma) */}
+              <div className="flex-1 overflow-y-auto overscroll-contain p-3.5 sm:p-6 space-y-4 touch-pan-y">
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
+                  {/* SOL SÜTUN: TEMEL ÜRÜN BİLGİLERİ, STOK & AÇIKLAMA */}
+                  <div className="lg:col-span-6 flex flex-col space-y-3 bg-stone-50/50 p-3.5 rounded-2xl border border-stone-200/70">
+                    <div className="space-y-3">
+                      {/* Product Name */}
                     <div>
                       <label className="block text-[11px] font-bold text-stone-700 uppercase tracking-wide mb-1">
                         Ürün veya Menü Adı <span className="text-red-500">*</span>
@@ -4076,7 +4080,7 @@ export default function AdminDashboardPage() {
 
                   {/* ÜRÜNE ÖZEL SİPARİŞ SESİ & OTOMATİK İSİM OKUMA */}
                   <div className="bg-white p-3 rounded-xl border border-stone-200/90 space-y-2">
-                    <div className="flex items-center justify-between gap-2">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                       <div>
                         <span className="text-[11px] font-bold text-stone-800 uppercase tracking-wide flex items-center gap-1.5">
                           <i className="fa-solid fa-volume-high text-indigo-600"></i>
@@ -4089,7 +4093,7 @@ export default function AdminDashboardPage() {
                         </span>
                       </div>
 
-                      <div className="flex items-center gap-1.5 shrink-0">
+                      <div className="flex items-center gap-1.5 shrink-0 flex-wrap">
                         <input
                           ref={prodAudioInputRef}
                           type="file"
@@ -4133,16 +4137,17 @@ export default function AdminDashboardPage() {
                   </div>
                 </div>
               </div>
+              </div>
 
-              {/* Action Buttons */}
-              <div className="flex justify-end gap-2.5 pt-3 border-t border-stone-100">
+              {/* Action Buttons (Sabit Alt Bar - Mobilde Asla Kaybolmaz) */}
+              <div className="shrink-0 flex items-center justify-end gap-2.5 p-3.5 sm:px-6 sm:py-4 border-t border-stone-150 bg-stone-50/90 rounded-b-2xl sm:rounded-b-3xl">
                 <button
                   type="button"
                   onClick={() => {
                     setIsAddProductOpen(false);
                     resetProductForm();
                   }}
-                  className="px-5 py-2.5 bg-stone-100 hover:bg-stone-200 text-stone-700 rounded-xl text-xs sm:text-sm font-bold cursor-pointer transition-colors"
+                  className="px-5 py-2.5 bg-white hover:bg-stone-100 border border-stone-200 text-stone-700 rounded-xl text-xs sm:text-sm font-bold cursor-pointer transition-colors"
                 >
                   Vazgeç
                 </button>
@@ -4176,8 +4181,8 @@ export default function AdminDashboardPage() {
 
       {/* MODAL: SİPARİŞ DETAYI, ADİSYON & DURUM GEÇMİŞİ */}
       {detailOrder && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-2.5 sm:p-4 bg-stone-900/50 backdrop-blur-xs animate-in fade-in duration-150">
-          <div className="bg-white rounded-3xl max-w-4xl w-full p-4 sm:p-6 border border-stone-200 shadow-2xl space-y-3.5 my-auto max-h-[95vh] overflow-y-auto no-scrollbar">
+        <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center p-2.5 sm:p-4 bg-stone-900/50 backdrop-blur-xs overflow-y-auto animate-in fade-in duration-150">
+          <div className="bg-white rounded-2xl sm:rounded-3xl max-w-4xl w-full p-4 sm:p-6 border border-stone-200 shadow-2xl space-y-3.5 my-auto max-h-[92vh] overflow-y-auto overscroll-contain">
             {/* Header */}
             <div className="flex justify-between items-start pb-4 border-b border-stone-100">
               <div>

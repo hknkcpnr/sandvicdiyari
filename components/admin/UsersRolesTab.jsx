@@ -1097,8 +1097,8 @@ export default function UsersRolesTab({ currentAdmin, onRolesOrUsersUpdated }) {
 
       {/* MODAL 1: KULLANICI EKLE / DÜZENLE */}
       {isUserModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-900/60 backdrop-blur-xs">
-          <div className="bg-white rounded-2xl max-w-xl w-full p-6 shadow-2xl space-y-4">
+        <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center p-3 sm:p-4 bg-stone-900/60 backdrop-blur-xs overflow-y-auto animate-in fade-in duration-150">
+          <div className="bg-white rounded-2xl sm:rounded-3xl max-w-xl w-full p-5 sm:p-6 shadow-2xl space-y-4 my-auto max-h-[92vh] overflow-y-auto overscroll-contain">
             <div className="flex items-center justify-between border-b border-stone-100 pb-3">
               <div>
                 <h3 className="font-bold text-base text-stone-900">
@@ -1296,8 +1296,8 @@ export default function UsersRolesTab({ currentAdmin, onRolesOrUsersUpdated }) {
 
       {/* MODAL 2: ROL MODELİ EKLE / DÜZENLE */}
       {isRoleModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-stone-900/60 backdrop-blur-xs">
-          <div className="bg-white rounded-3xl max-w-4xl w-full p-5 sm:p-6 shadow-2xl space-y-3.5 max-h-[95vh] overflow-y-auto no-scrollbar">
+        <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center p-3 sm:p-4 bg-stone-900/60 backdrop-blur-xs overflow-y-auto animate-in fade-in duration-150">
+          <div className="bg-white rounded-2xl sm:rounded-3xl max-w-4xl w-full p-4 sm:p-6 shadow-2xl space-y-3.5 my-auto max-h-[92vh] overflow-y-auto overscroll-contain">
             <div className="flex items-center justify-between border-b border-stone-100 pb-3">
               <h3 className="font-bold text-base text-stone-900">
                 {editingRole ? `"${editingRole.name}" Rolünü Düzenle` : 'Yeni Rol Modeli'}
@@ -1425,8 +1425,8 @@ export default function UsersRolesTab({ currentAdmin, onRolesOrUsersUpdated }) {
 
       {/* MODAL 3: MÜŞTERİ EKLE / DÜZENLE */}
       {isCustomerModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-900/60 backdrop-blur-xs">
-          <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-5">
+        <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center p-3 sm:p-4 bg-stone-900/60 backdrop-blur-xs overflow-y-auto animate-in fade-in duration-150">
+          <div className="bg-white rounded-2xl sm:rounded-3xl max-w-lg w-full p-5 sm:p-6 shadow-2xl space-y-5 my-auto max-h-[92vh] overflow-y-auto overscroll-contain">
             <div className="flex items-center justify-between border-b border-stone-100 pb-3">
               <h3 className="font-bold text-base text-stone-900">
                 {editingCustomer ? 'Müşteriyi Düzenle' : 'Yeni Müşteri Ekle'}

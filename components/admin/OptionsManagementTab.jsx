@@ -710,8 +710,8 @@ export default function OptionsManagementTab() {
 
       {/* MODAL 1: SOS EKLE / DÜZENLE */}
       {isAddSauceModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-900/60 backdrop-blur-xs animate-in fade-in duration-150">
-          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl relative space-y-4">
+        <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center p-3 sm:p-4 bg-stone-900/60 backdrop-blur-xs overflow-y-auto animate-in fade-in duration-150">
+          <div className="bg-white rounded-2xl sm:rounded-3xl max-w-md w-full p-5 sm:p-6 shadow-2xl relative space-y-4 my-auto max-h-[92vh] overflow-y-auto overscroll-contain">
             <div className="flex items-center justify-between border-b border-stone-100 pb-3">
               <h3 className="font-extrabold text-base text-stone-900 flex items-center gap-2">
                 <i className="fa-solid fa-bottle-droplet text-amber-500"></i>
@@ -778,8 +778,8 @@ export default function OptionsManagementTab() {
 
       {/* MODAL 2: EKSTRA EKLE / DÜZENLE */}
       {isAddExtraModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-900/60 backdrop-blur-xs animate-in fade-in duration-150">
-          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl relative space-y-4">
+        <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center p-3 sm:p-4 bg-stone-900/60 backdrop-blur-xs overflow-y-auto animate-in fade-in duration-150">
+          <div className="bg-white rounded-2xl sm:rounded-3xl max-w-md w-full p-5 sm:p-6 shadow-2xl relative space-y-4 my-auto max-h-[92vh] overflow-y-auto overscroll-contain">
             <div className="flex items-center justify-between border-b border-stone-100 pb-3">
               <h3 className="font-extrabold text-base text-stone-900 flex items-center gap-2">
                 <i className="fa-solid fa-cheese text-orange-500"></i>
