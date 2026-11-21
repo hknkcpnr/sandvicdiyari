@@ -591,7 +591,7 @@ export default function YoneticiPage() {
     { id: 'users', label: 'Kullanıcılar', icon: 'fa-solid fa-user-shield' },
     { id: 'sound', label: 'Ses', icon: 'fa-solid fa-volume-high' },
     { id: 'receipt', label: 'Fiş Baskı', icon: 'fa-solid fa-receipt' },
-    { id: 'system', label: 'Yedekleme', icon: 'fa-solid fa-box-archive' },
+    { id: 'system', label: 'Depolama & Yedek', icon: 'fa-solid fa-hard-drive' },
     { id: 'api', label: 'Veritabanı', icon: 'fa-solid fa-database' }
   ];
 

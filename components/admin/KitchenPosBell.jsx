@@ -582,6 +582,7 @@ export default function KitchenPosBell({
     const handleStorage = (e) => {
       if (
         e.key === 'sd_bell_sound' ||
+        e.key === 'sd_bell_volume' ||
         e.key === 'sd_bell_interval' ||
         e.key === 'sd_custom_bell_sounds' ||
         e.key === 'sd_pos_bell_updated' ||
@@ -595,8 +596,23 @@ export default function KitchenPosBell({
       }
     };
 
+    const handleCustomSoundSettingsChanged = (e) => {
+      if (e?.detail) {
+        if (typeof e.detail.volume === 'number') {
+          setVolume(Math.min(1, Math.max(0.1, e.detail.volume)));
+        }
+        if (typeof e.detail.interval === 'number') {
+          setRepeatInterval(Math.max(0, e.detail.interval));
+        }
+      }
+    };
+
     window.addEventListener('storage', handleStorage);
-    return () => window.removeEventListener('storage', handleStorage);
+    window.addEventListener('sd_sound_settings_changed', handleCustomSoundSettingsChanged);
+    return () => {
+      window.removeEventListener('storage', handleStorage);
+      window.removeEventListener('sd_sound_settings_changed', handleCustomSoundSettingsChanged);
+    };
   }, []);
 
   // Update clock every second ONLY while snoozed for snooze countdown
@@ -1168,10 +1184,13 @@ export default function KitchenPosBell({
             </div>
 
             {/* Volume Control */}
-            <div className="space-y-1.5">
+            <div className="space-y-2">
               <div className="flex items-center justify-between text-xs">
-                <span className="font-bold text-stone-700 uppercase tracking-wider">Ses Seviyesi</span>
-                <span className="font-extrabold text-amber-600">%{Math.round(volume * 100)}</span>
+                <span className="font-bold text-stone-700 uppercase tracking-wider flex items-center gap-1.5">
+                  <i className={`fa-solid ${volume <= 0.15 ? 'fa-volume-off text-stone-400' : volume <= 0.6 ? 'fa-volume-low text-amber-500' : 'fa-volume-high text-amber-600'}`}></i>
+                  <span>Ses Seviyesi</span>
+                </span>
+                <span className="font-extrabold text-amber-600 text-sm">%{Math.round(volume * 100)}</span>
               </div>
               <input
                 type="range"
@@ -1180,12 +1199,31 @@ export default function KitchenPosBell({
                 step="0.05"
                 value={volume}
                 onChange={(e) => handleSaveVolume(parseFloat(e.target.value))}
-                className="w-full accent-amber-600 cursor-pointer"
+                className="custom-range w-full cursor-pointer h-2 rounded-full"
+                style={{
+                  background: `linear-gradient(to right, #d97706 0%, #d97706 ${Math.round(volume * 100)}%, #e7e5e4 ${Math.round(volume * 100)}%, #e7e5e4 100%)`
+                }}
               />
-              <div className="flex justify-between text-[10px] text-stone-400">
-                <span>Düşük (%10)</span>
-                <span>Normal (%50)</span>
-                <span>Maksimum (%100)</span>
+              <div className="grid grid-cols-4 gap-1.5 pt-1">
+                {[
+                  { v: 0.25, label: '%25' },
+                  { v: 0.50, label: '%50' },
+                  { v: 0.80, label: '%80' },
+                  { v: 1.00, label: '%100' }
+                ].map((p) => (
+                  <button
+                    key={p.v}
+                    type="button"
+                    onClick={() => handleSaveVolume(p.v)}
+                    className={`py-1 rounded-lg text-[11px] font-bold transition-all border cursor-pointer ${
+                      Math.abs(volume - p.v) < 0.04
+                        ? 'bg-amber-600 text-white border-amber-600 shadow-2xs'
+                        : 'bg-white hover:bg-stone-50 border-stone-200 text-stone-600'
+                    }`}
+                  >
+                    {p.label}
+                  </button>
+                ))}
               </div>
             </div>
 

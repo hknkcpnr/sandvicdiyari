@@ -68,11 +68,11 @@ const SETTINGS_PAGES = {
   },
   system: {
     id: 'system',
-    title: 'Sistem & Veri Yedekleme',
-    badge: 'JSON Yedek & Sistem',
+    title: 'Sistem, Depolama & Veri Yedekleme',
+    badge: 'Depolama & JSON Yedek',
     badgeColor: 'bg-rose-50 text-rose-800 border-rose-200',
-    icon: 'fa-solid fa-box-archive',
-    desc: 'Tüm sistem verilerini, personelleri ve ayarları tek tıkla bilgisayarınıza güvenle yedekleyin.',
+    icon: 'fa-solid fa-hard-drive',
+    desc: 'Sistemin diskte kapladığı toplam alan (GB / MB), veritabanı boyutu, yüklenen medya ve tam sistem yedeklemesi.',
   },
   api: {
     id: 'api',
@@ -124,6 +124,60 @@ export default function SettingsTab({
   const [suffixUploadError, setSuffixUploadError] = useState('');
   const [isPlayingSuffixPreview, setIsPlayingSuffixPreview] = useState(false);
   const suffixFileInputRef = useRef(null);
+
+  // Sunucu Disk & Depolama Bilgisi State'leri
+  const [storageInfo, setStorageInfo] = useState(null);
+  const [loadingStorage, setLoadingStorage] = useState(false);
+
+  const fetchStorageInfo = async () => {
+    setLoadingStorage(true);
+    try {
+      const res = await fetch('/api/admin/storage', { cache: 'no-store' });
+      const data = await res.json();
+      if (data.success && data.data) {
+        setStorageInfo(data.data);
+      }
+    } catch (e) {
+      console.warn('Storage fetch error:', e);
+    } finally {
+      setLoadingStorage(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeSubTab === 'system') {
+      fetchStorageInfo();
+    }
+  }, [activeSubTab]);
+
+  // Ses Düzeyi Canlı Güncelleme & Anında Kaydetme Fonksiyonu
+  const handleUpdateVolume = (newVol, andPlayTest = false) => {
+    const cleanVol = Math.max(10, Math.min(100, Math.round(newVol)));
+    handleChange('soundVolume', cleanVol);
+    try {
+      localStorage.setItem('sd_bell_volume', String(cleanVol / 100));
+      window.dispatchEvent(new Event('storage'));
+      window.dispatchEvent(new CustomEvent('sd_sound_settings_changed', { detail: { volume: cleanVol / 100 } }));
+    } catch {}
+
+    const customList = Array.isArray(settings.customSounds) ? settings.customSounds : [];
+    const activeSoundType =
+      customList.length > 0 && (!settings.soundType || settings.soundType === 'chime')
+        ? customList[customList.length - 1].id
+        : settings.soundType || 'chime';
+
+    syncSoundSettingsEverywhere(
+      customList,
+      activeSoundType,
+      cleanVol,
+      Number(settings.autoRefreshInterval ?? 60),
+      false
+    );
+
+    if (andPlayTest) {
+      handlePlaySoundTest(activeSoundType, customList);
+    }
+  };
 
   useEffect(() => {
     try {
@@ -1279,11 +1333,12 @@ export default function SettingsTab({
                   {/* 1. Tekrarlama Aralığı */}
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
-                      <label className="text-xs font-bold text-stone-800">
-                        Tekrarlama Aralığı
+                      <label className="text-xs font-bold text-stone-800 flex items-center gap-1.5">
+                        <i className="fa-solid fa-clock-rotate-left text-amber-600"></i>
+                        <span>Tekrarlama Aralığı</span>
                       </label>
-                      <span className="text-[10px] font-bold text-stone-500">
-                        Onaylanana kadar
+                      <span className="text-[10px] font-bold text-stone-500 bg-stone-200/60 px-2 py-0.5 rounded-full">
+                        Sipariş onaylanana dek
                       </span>
                     </div>
 
@@ -1305,6 +1360,11 @@ export default function SettingsTab({
                             type="button"
                             onClick={() => {
                               handleChange('autoRefreshInterval', item.val);
+                              try {
+                                localStorage.setItem('sd_bell_interval', String(item.val));
+                                window.dispatchEvent(new Event('storage'));
+                                window.dispatchEvent(new CustomEvent('sd_sound_settings_changed', { detail: { interval: item.val } }));
+                              } catch {}
                               const customList = Array.isArray(settings.customSounds) ? settings.customSounds : [];
                               const activeSoundType =
                                 customList.length > 0 && (!settings.soundType || settings.soundType === 'chime')
@@ -1326,7 +1386,7 @@ export default function SettingsTab({
                                 );
                               }
                             }}
-                            className={`px-2.5 py-2 rounded-xl text-xs transition-all cursor-pointer border text-center ${
+                            className={`px-2 py-2 rounded-xl text-xs transition-all cursor-pointer border text-center ${
                               isSelected
                                 ? 'bg-stone-900 text-white font-bold border-stone-900 shadow-2xs'
                                 : 'bg-white text-stone-700 border-stone-200 hover:bg-stone-100 font-medium'
@@ -1339,66 +1399,96 @@ export default function SettingsTab({
                     </div>
                   </div>
 
-                  {/* 2. Ses Seviyesi */}
-                  <div className="space-y-2 pt-3 border-t border-stone-200/80">
+                  {/* 2. Ses Seviyesi (Özel Tasarım, Hassas Butonlar & Presetler) */}
+                  <div className="space-y-3 pt-3 border-t border-stone-200/80">
                     <div className="flex items-center justify-between text-xs">
-                      <span className="font-bold text-stone-800">
-                        Ses Düzeyi: <strong className="text-brand-600">%{settings.soundVolume || 80}</strong>
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => handlePlaySoundTest()}
-                        className="bg-white hover:bg-stone-100 text-stone-800 border border-stone-200 text-xs px-2.5 py-1 rounded-lg font-bold flex items-center gap-1.5 transition-colors cursor-pointer shadow-2xs"
-                      >
-                        <i className="fa-solid fa-play text-[10px] text-brand-600"></i>
-                        <span>Test Et</span>
-                      </button>
+                      <div className="flex items-center gap-2">
+                        <i className={`fa-solid ${
+                          (settings.soundVolume || 80) <= 20
+                            ? 'fa-volume-low text-stone-500'
+                            : (settings.soundVolume || 80) <= 60
+                            ? 'fa-volume-low text-amber-600'
+                            : 'fa-volume-high text-brand-600'
+                        }`}></i>
+                        <span className="font-bold text-stone-800">
+                          Ses Düzeyi: <strong className="text-brand-600 font-black">%{settings.soundVolume || 80}</strong>
+                        </span>
+                      </div>
+
+                      <div className="flex items-center gap-1.5">
+                        {/* -5 Azalt */}
+                        <button
+                          type="button"
+                          onClick={() => handleUpdateVolume(Math.max(10, (settings.soundVolume || 80) - 5))}
+                          className="w-7 h-7 rounded-lg bg-white hover:bg-stone-100 border border-stone-200 text-stone-700 font-bold flex items-center justify-center text-xs cursor-pointer shadow-2xs transition-colors"
+                          title="Sesi %5 Azalt"
+                        >
+                          <i className="fa-solid fa-minus text-[10px]"></i>
+                        </button>
+
+                        {/* +5 Artır */}
+                        <button
+                          type="button"
+                          onClick={() => handleUpdateVolume(Math.min(100, (settings.soundVolume || 80) + 5))}
+                          className="w-7 h-7 rounded-lg bg-white hover:bg-stone-100 border border-stone-200 text-stone-700 font-bold flex items-center justify-center text-xs cursor-pointer shadow-2xs transition-colors"
+                          title="Sesi %5 Artır"
+                        >
+                          <i className="fa-solid fa-plus text-[10px]"></i>
+                        </button>
+
+                        {/* Test Et */}
+                        <button
+                          type="button"
+                          onClick={() => handlePlaySoundTest()}
+                          className="bg-brand-50 hover:bg-brand-100 text-brand-800 border border-brand-200 text-xs px-2.5 py-1 rounded-lg font-bold flex items-center gap-1.5 transition-colors cursor-pointer shadow-2xs ml-1"
+                        >
+                          <i className="fa-solid fa-play text-[10px] text-brand-600"></i>
+                          <span>Test Et</span>
+                        </button>
+                      </div>
                     </div>
-                    <input
-                      type="range"
-                      min="10"
-                      max="100"
-                      step="5"
-                      value={settings.soundVolume || 80}
-                      onChange={(e) => {
-                        const nextVol = Number(e.target.value);
-                        handleChange('soundVolume', nextVol);
-                        try {
-                          localStorage.setItem('sd_bell_volume', String(nextVol / 100));
-                        } catch {}
-                      }}
-                      onMouseUp={(e) => {
-                        const nextVol = Number(e.currentTarget.value);
-                        const customList = Array.isArray(settings.customSounds) ? settings.customSounds : [];
-                        const activeSoundType =
-                          customList.length > 0 && (!settings.soundType || settings.soundType === 'chime')
-                            ? customList[customList.length - 1].id
-                            : settings.soundType || 'chime';
-                        syncSoundSettingsEverywhere(
-                          customList,
-                          activeSoundType,
-                          nextVol,
-                          Number(settings.autoRefreshInterval ?? 60),
-                          false
+
+                    {/* Kaydırıcı Bar (Custom Range Slider) */}
+                    <div className="relative pt-1 pb-1">
+                      <input
+                        type="range"
+                        min="10"
+                        max="100"
+                        step="5"
+                        value={settings.soundVolume || 80}
+                        onChange={(e) => handleUpdateVolume(Number(e.target.value))}
+                        className="custom-range w-full cursor-pointer h-2.5 rounded-full"
+                        style={{
+                          background: `linear-gradient(to right, #d97706 0%, #d97706 ${settings.soundVolume || 80}%, #e7e5e4 ${settings.soundVolume || 80}%, #e7e5e4 100%)`
+                        }}
+                      />
+                    </div>
+
+                    {/* Hızlı Seçim Butonları (Presetler) */}
+                    <div className="grid grid-cols-4 gap-1.5">
+                      {[
+                        { val: 20, label: '%20 Düşük' },
+                        { val: 50, label: '%50 Orta' },
+                        { val: 80, label: '%80 Standart' },
+                        { val: 100, label: '%100 Maks.' },
+                      ].map((preset) => {
+                        const isPresetActive = (settings.soundVolume || 80) === preset.val;
+                        return (
+                          <button
+                            key={preset.val}
+                            type="button"
+                            onClick={() => handleUpdateVolume(preset.val, false)}
+                            className={`py-1.5 px-1 rounded-xl text-[11px] font-bold transition-all border text-center cursor-pointer ${
+                              isPresetActive
+                                ? 'bg-brand-600 text-white border-brand-600 shadow-2xs font-black'
+                                : 'bg-white hover:bg-stone-100 text-stone-600 border-stone-200'
+                            }`}
+                          >
+                            {preset.label}
+                          </button>
                         );
-                      }}
-                      onTouchEnd={(e) => {
-                        const nextVol = Number(e.currentTarget.value);
-                        const customList = Array.isArray(settings.customSounds) ? settings.customSounds : [];
-                        const activeSoundType =
-                          customList.length > 0 && (!settings.soundType || settings.soundType === 'chime')
-                            ? customList[customList.length - 1].id
-                            : settings.soundType || 'chime';
-                        syncSoundSettingsEverywhere(
-                          customList,
-                          activeSoundType,
-                          nextVol,
-                          Number(settings.autoRefreshInterval ?? 60),
-                          false
-                        );
-                      }}
-                      className="w-full accent-brand-600 cursor-pointer"
-                    />
+                      })}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -1883,6 +1973,165 @@ export default function SettingsTab({
       {/* SEKME 4: SİSTEM VE YEDEKLEME */}
       {activeSubTab === 'system' && (
         <div className="space-y-4">
+          {/* SİSTEM DEPOLAMA VE DİSK KULLANIM PANELİ */}
+          <div className="bg-white p-4 sm:p-6 rounded-2xl border border-stone-200 shadow-xs space-y-5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-stone-100 pb-4">
+              <div>
+                <h3 className="text-sm font-extrabold text-stone-900 flex items-center gap-2">
+                  <i className="fa-solid fa-hard-drive text-amber-600"></i>
+                  <span>Sistem Depolama &amp; Disk Kapasitesi</span>
+                </h3>
+                <p className="text-xs text-stone-500 mt-0.5">
+                  Tüm sistemin, veritabanının ve yüklenen dosyaların diskte kapladığı toplam alan (GB / MB) ve sunucu kaynakları.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={fetchStorageInfo}
+                disabled={loadingStorage}
+                className="self-start sm:self-center px-3.5 py-1.5 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-800 text-xs font-bold transition-all flex items-center gap-2 cursor-pointer shadow-2xs border border-stone-200"
+              >
+                <i className={`fa-solid fa-rotate ${loadingStorage ? 'animate-spin text-amber-600' : 'text-stone-500'}`}></i>
+                <span>{loadingStorage ? 'Ölçülüyor...' : 'Şimdi Yenile'}</span>
+              </button>
+            </div>
+
+            {/* 4 Ana Metrik Kartı */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+              {/* Kart 1: Sunucu Diski */}
+              <div className="bg-stone-50/80 border border-stone-200/90 rounded-2xl p-4 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-bold text-stone-500 uppercase tracking-wider">Sunucu Diski</span>
+                  <span className="w-7 h-7 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center text-xs">
+                    <i className="fa-solid fa-server"></i>
+                  </span>
+                </div>
+                <div className="flex items-baseline gap-1.5">
+                  <span className="text-2xl font-black text-stone-900">
+                    {storageInfo?.disk?.totalGB ? `${storageInfo.disk.totalGB} GB` : 'Ölçülüyor'}
+                  </span>
+                  <span className="text-[11px] font-bold text-stone-500">toplam</span>
+                </div>
+                {storageInfo?.disk && (
+                  <div className="space-y-1.5 pt-1">
+                    <div className="w-full bg-stone-200 h-2 rounded-full overflow-hidden">
+                      <div
+                        className="bg-amber-500 h-full rounded-full transition-all duration-500"
+                        style={{ width: `${Math.min(100, storageInfo.disk.usedPercent)}%` }}
+                      ></div>
+                    </div>
+                    <div className="flex justify-between text-[10px] text-stone-500 font-medium">
+                      <span>Kullanılan: {storageInfo.disk.usedGB} GB (%{storageInfo.disk.usedPercent})</span>
+                      <span className="text-emerald-700 font-bold">Boş: {storageInfo.disk.freeGB} GB</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Kart 2: Proje Boyutu */}
+              <div className="bg-stone-50/80 border border-stone-200/90 rounded-2xl p-4 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-bold text-stone-500 uppercase tracking-wider">Sandviç Diyarı Projesi</span>
+                  <span className="w-7 h-7 rounded-lg bg-sky-100 text-sky-700 flex items-center justify-center text-xs">
+                    <i className="fa-solid fa-folder-tree"></i>
+                  </span>
+                </div>
+                <div className="flex items-baseline gap-1.5">
+                  <span className="text-2xl font-black text-stone-900">
+                    {storageInfo?.project?.totalGB ? `${storageInfo.project.totalGB} GB` : 'Ölçülüyor'}
+                  </span>
+                  <span className="text-[11px] font-bold text-stone-500">
+                    ({storageInfo?.project?.totalMB || 0} MB)
+                  </span>
+                </div>
+                {storageInfo?.project?.breakdown && (
+                  <div className="pt-1 text-[10px] text-stone-500 space-y-0.5">
+                    <div className="flex justify-between">
+                      <span>Paketler (node_modules):</span>
+                      <strong className="text-stone-800">{storageInfo.project.breakdown.nodeModulesMB} MB</strong>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Next.js Build Önbelleği:</span>
+                      <strong className="text-stone-800">{storageInfo.project.breakdown.nextBuildMB} MB</strong>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Medya &amp; Yüklenenler:</span>
+                      <strong className="text-stone-800">{storageInfo.project.breakdown.publicMediaMB} MB</strong>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Kart 3: PostgreSQL Veritabanı */}
+              <div className="bg-stone-50/80 border border-stone-200/90 rounded-2xl p-4 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-bold text-stone-500 uppercase tracking-wider">PostgreSQL Veritabanı</span>
+                  <span className="w-7 h-7 rounded-lg bg-indigo-100 text-indigo-700 flex items-center justify-center text-xs">
+                    <i className="fa-solid fa-database"></i>
+                  </span>
+                </div>
+                <div className="flex items-baseline gap-1.5">
+                  <span className="text-2xl font-black text-indigo-900">
+                    {storageInfo?.database?.sizePretty || 'Hesaplanıyor'}
+                  </span>
+                  <span className="text-[10px] font-bold bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded-md">
+                    {storageInfo?.database?.connected ? 'Aktif' : 'Bağlı'}
+                  </span>
+                </div>
+                {storageInfo?.database?.counts && (
+                  <div className="pt-1 text-[10px] text-stone-500 space-y-0.5">
+                    <div className="flex justify-between">
+                      <span>Kayıtlı Siparişler:</span>
+                      <strong className="text-stone-800">{storageInfo.database.counts.orders} adet</strong>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Menü &amp; Ürünler:</span>
+                      <strong className="text-stone-800">{storageInfo.database.counts.products} adet</strong>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Kullanıcılar:</span>
+                      <strong className="text-stone-800">{storageInfo.database.counts.users} üye</strong>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Kart 4: Sunucu RAM (Bellek) */}
+              <div className="bg-stone-50/80 border border-stone-200/90 rounded-2xl p-4 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-bold text-stone-500 uppercase tracking-wider">Sunucu RAM (Bellek)</span>
+                  <span className="w-7 h-7 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center text-xs">
+                    <i className="fa-solid fa-microchip"></i>
+                  </span>
+                </div>
+                <div className="flex items-baseline gap-1.5">
+                  <span className="text-2xl font-black text-stone-900">
+                    {storageInfo?.memory?.totalGB ? `${storageInfo.memory.totalGB} GB` : 'Ölçülüyor'}
+                  </span>
+                  <span className="text-[11px] font-bold text-stone-500">RAM</span>
+                </div>
+                {storageInfo?.memory && (
+                  <div className="pt-1 text-[10px] text-stone-500 space-y-0.5">
+                    <div className="flex justify-between">
+                      <span>Kullanılan RAM:</span>
+                      <strong className="text-amber-700">{storageInfo.memory.usedGB} GB</strong>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Boş RAM:</span>
+                      <strong className="text-emerald-700">{storageInfo.memory.freeGB} GB</strong>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Node.js Bellek:</span>
+                      <strong className="text-stone-800">{storageInfo.memory.processHeapMB} MB</strong>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* VERİ TABANI & SİSTEM YEDEĞİ İNDİRME */}
           <div className="bg-white p-4 sm:p-6 rounded-2xl border border-stone-200 shadow-xs space-y-4">
             <div>
               <h3 className="text-sm font-bold text-stone-900 flex items-center gap-2">
