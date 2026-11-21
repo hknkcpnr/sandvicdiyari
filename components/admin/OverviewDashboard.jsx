@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import BlurredAmount from './BlurredAmount';
 
 // Status color and Turkish label helper
@@ -48,6 +48,52 @@ export default function OverviewDashboard({
   // Chart Metric: Operasyonel görünümde yalnızca sipariş adedi gösterilir
   const [chartMetric, setChartMetric] = useState('count');
   const [hoveredBar, setHoveredBar] = useState(null);
+  const [visitorStats, setVisitorStats] = useState({
+    todayCount: 0,
+    yesterdayCount: 0,
+    last7DaysCount: 0,
+    last30DaysCount: 0,
+    totalCount: 0,
+    dailyCounts: {}
+  });
+
+  useEffect(() => {
+    let active = true;
+    const loadVisitors = () => {
+      fetch('/api/visitors', { cache: 'no-store' })
+        .then((r) => r.json())
+        .then((j) => {
+          if (active && j?.success && j.data) {
+            setVisitorStats(j.data);
+          }
+        })
+        .catch(() => {});
+    };
+    loadVisitors();
+    const timer = setInterval(loadVisitors, 15000);
+    return () => {
+      active = false;
+      clearInterval(timer);
+    };
+  }, []);
+
+  const periodVisitorCount = useMemo(() => {
+    if (dateFilter === 'today') return visitorStats.todayCount || 0;
+    if (dateFilter === 'yesterday') return visitorStats.yesterdayCount || 0;
+    if (dateFilter === 'last7') return visitorStats.last7DaysCount || 0;
+    if (dateFilter === 'last30') return visitorStats.last30DaysCount || 0;
+    if (dateFilter === 'custom') {
+      const map = visitorStats.dailyCounts || {};
+      let sum = 0;
+      for (const [dKey, c] of Object.entries(map)) {
+        if ((!customStart || dKey >= customStart) && (!customEnd || dKey <= customEnd)) {
+          sum += Number(c || 0);
+        }
+      }
+      return sum;
+    }
+    return visitorStats.totalCount || 0;
+  }, [dateFilter, visitorStats, customStart, customEnd]);
 
   // Filter orders by date range
   const filteredOrders = useMemo(() => {
@@ -419,7 +465,30 @@ export default function OverviewDashboard({
       )}
 
       {/* OPERATIONAL KPI METRIC CARDS (No Revenue / Sales Amounts) */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3.5">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5 sm:gap-3.5">
+        {/* CARD 0: TEKİL SİTE ZİYARETÇİ SAYISI */}
+        <div className="bg-white p-3 sm:p-4 rounded-2xl border border-stone-200 shadow-xs hover:border-stone-300 transition-all flex flex-col justify-between min-w-0">
+          <div className="flex items-center justify-between gap-1">
+            <span className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-stone-500 truncate">
+              Site Ziyaretçisi
+            </span>
+            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center text-xs shrink-0">
+              <i className="fa-solid fa-users-viewfinder"></i>
+            </div>
+          </div>
+          <div className="mt-2 min-w-0">
+            <span className="text-base sm:text-xl xl:text-2xl font-black text-indigo-600 tracking-tight block truncate">
+              {periodVisitorCount} Kişi
+            </span>
+            <span className="block text-[10px] sm:text-[11px] text-stone-600 font-medium mt-0.5 truncate">
+              Bugün: {visitorStats.todayCount} &bull; Toplam: {visitorStats.totalCount}
+            </span>
+          </div>
+          <span className="text-[10px] text-stone-400 mt-2 hidden sm:block pt-2 border-t border-stone-100 truncate">
+            Her cihaz günde yalnızca 1 kez sayılır
+          </span>
+        </div>
+
         {/* CARD 1: TOPLAM SİPARİŞ ADEDİ */}
         <div className="bg-white p-3 sm:p-4 rounded-2xl border border-stone-200 shadow-xs hover:border-stone-300 transition-all flex flex-col justify-between min-w-0">
           <div className="flex items-center justify-between gap-1">

@@ -42,6 +42,13 @@ export default function YoneticiPage() {
   const [orders, setOrders] = useState([]);
   const [transactions, setTransactions] = useState([]);
   const [staffUsers, setStaffUsers] = useState([]);
+  const [visitorStats, setVisitorStats] = useState({
+    todayCount: 0,
+    yesterdayCount: 0,
+    last7DaysCount: 0,
+    last30DaysCount: 0,
+    totalCount: 0
+  });
   const [loadingFinance, setLoadingFinance] = useState(false);
   const [dateFilter, setDateFilter] = useState('today'); // 'today' | 'week' | 'month' | 'all'
   const [typeFilter, setTypeFilter] = useState('all'); // 'all' | 'in' | 'out'
@@ -90,14 +97,16 @@ export default function YoneticiPage() {
   const fetchFinanceData = async () => {
     setLoadingFinance(true);
     try {
-      const [ordersRes, finRes, usersRes] = await Promise.all([
+      const [ordersRes, finRes, usersRes, visitorsRes] = await Promise.all([
         fetch('/api/orders', { cache: 'no-store' }),
         fetch('/api/finance', { cache: 'no-store' }),
-        fetch('/api/admin/users', { cache: 'no-store' })
+        fetch('/api/admin/users', { cache: 'no-store' }),
+        fetch('/api/visitors', { cache: 'no-store' })
       ]);
       const ordersJson = await ordersRes.json();
       const finJson = await finRes.json();
       const usersJson = await usersRes.json();
+      const visitorsJson = await visitorsRes.json().catch(() => ({}));
       if (ordersJson.success && Array.isArray(ordersJson.data)) {
         setOrders(ordersJson.data);
       }
@@ -106,6 +115,9 @@ export default function YoneticiPage() {
       }
       if (usersJson.success && Array.isArray(usersJson.data?.adminUsers)) {
         setStaffUsers(usersJson.data.adminUsers);
+      }
+      if (visitorsJson?.success && visitorsJson.data) {
+        setVisitorStats(visitorsJson.data);
       }
     } catch (e) {
       console.error('Finans verileri alınamadı:', e);
@@ -845,7 +857,20 @@ export default function YoneticiPage() {
         {activeTab === 'overview' && (
           <div className="p-3 sm:p-6 space-y-4 w-full min-w-0">
             {/* 1. Gün İçi Özet Şeridi */}
-            <div className="bg-white rounded-2xl border border-stone-200 grid grid-cols-2 lg:grid-cols-4 divide-y lg:divide-y-0 lg:divide-x divide-stone-100">
+            <div className="bg-white rounded-2xl border border-stone-200 grid grid-cols-2 lg:grid-cols-5 divide-y lg:divide-y-0 lg:divide-x divide-stone-100">
+              <div className="p-4">
+                <span className="text-[11px] font-semibold text-stone-500 flex items-center justify-between">
+                  <span>Bugünkü Site Ziyaretçisi</span>
+                  <i className="fa-solid fa-users-viewfinder text-indigo-500 text-xs"></i>
+                </span>
+                <p className="text-2xl font-extrabold text-indigo-600 mt-0.5">
+                  {visitorStats.todayCount}
+                </p>
+                <span className="text-[11px] text-stone-400">
+                  7 Gün: {visitorStats.last7DaysCount} &bull; Toplam: {visitorStats.totalCount}
+                </span>
+              </div>
+
               <div className="p-4">
                 <span className="text-[11px] font-semibold text-stone-500 block">
                   Gün İçi Giden Sipariş

@@ -162,6 +162,40 @@ export default function Home() {
 
     loadProducts();
 
+    // Günlük tekil cihaz ziyaretçi sayacı (Aynı cihaz aynı gün içinde yalnızca 1 kez sayılır)
+    try {
+      const todayKey = new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'Europe/Istanbul',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+      }).format(new Date());
+
+      let deviceId = localStorage.getItem('sd_device_id');
+      if (!deviceId) {
+        deviceId = `dev_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+        localStorage.setItem('sd_device_id', deviceId);
+      }
+
+      const lastVisitDay = localStorage.getItem('sd_last_visit_day');
+      if (lastVisitDay !== todayKey) {
+        fetch('/api/visitors', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ deviceId })
+        })
+          .then((r) => r.json())
+          .then((j) => {
+            if (j?.success) {
+              try {
+                localStorage.setItem('sd_last_visit_day', todayKey);
+              } catch {}
+            }
+          })
+          .catch(() => {});
+      }
+    } catch {}
+
     // Cross-tab real-time sync when admin changes inventory or revokes user session
     const handleStorageChange = (e) => {
       if (e.key === 'sandwich_inventory_updated') {
