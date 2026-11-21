@@ -259,7 +259,7 @@ export default function Home() {
       <MessageModal />
       <LiveOrderTracker />
       <FloatingCartBar />
-      <DraggableContactButton />
+      {!currentUser && <DraggableContactButton />}
     </div>
   );
 }

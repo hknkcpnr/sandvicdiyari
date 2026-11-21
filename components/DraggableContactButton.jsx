@@ -1,9 +1,17 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import { useSelector } from 'react-redux';
 import { getRestaurantStatus } from '@/lib/openingHours';
 
 export default function DraggableContactButton() {
+  const { currentUser } = useSelector((state) => state.auth);
+
+  // Giriş yapan üyelerde ekranda oynatılabilen WhatsApp ve telefon butonu gizlenir
+  if (currentUser) {
+    return null;
+  }
+
   const [position, setPosition] = useState(null);
   const [isOpen, setIsOpen] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
