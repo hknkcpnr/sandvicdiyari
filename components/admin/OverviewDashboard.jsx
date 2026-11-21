@@ -39,7 +39,35 @@ export default function OverviewDashboard({
   onPrintZReport,
   loading = false,
   canViewRevenue = false,
+  isCourierEnabled: propCourierEnabled,
 }) {
+  const [localCourierEnabled, setLocalCourierEnabled] = useState(true);
+
+  useEffect(() => {
+    try {
+      const sdCourier = localStorage.getItem('sd_courier_module_enabled');
+      if (sdCourier !== null) {
+        setLocalCourierEnabled(sdCourier !== 'false');
+      }
+    } catch {}
+    const handleStorage = () => {
+      try {
+        const sdCourier = localStorage.getItem('sd_courier_module_enabled');
+        if (sdCourier !== null) {
+          setLocalCourierEnabled(sdCourier !== 'false');
+        }
+      } catch {}
+    };
+    window.addEventListener('storage', handleStorage);
+    window.addEventListener('sd_courier_module_updated', handleStorage);
+    return () => {
+      window.removeEventListener('storage', handleStorage);
+      window.removeEventListener('sd_courier_module_updated', handleStorage);
+    };
+  }, []);
+
+  const isCourierEnabled = typeof propCourierEnabled === 'boolean' ? propCourierEnabled : localCourierEnabled;
+
   // Date filter state: 'today' | 'yesterday' | 'last7' | 'last30' | 'all' | 'custom'
   const [dateFilter, setDateFilter] = useState('today');
   const [customStart, setCustomStart] = useState('');
@@ -550,11 +578,11 @@ export default function OverviewDashboard({
               {metrics.activeCount} Sipariş
             </span>
             <span className="block text-[10px] sm:text-[11px] text-amber-700 font-semibold mt-0.5 truncate">
-              Mutfak & kurye aşamasında
+              {isCourierEnabled ? 'Mutfak & kurye aşamasında' : 'Mutfak hazırlık aşamasında'}
             </span>
           </div>
           <span className="text-[10px] text-stone-400 mt-2 hidden sm:block pt-2 border-t border-stone-100 truncate">
-            Hazırlanan ve yoldaki paketler
+            {isCourierEnabled ? 'Hazırlanan ve yoldaki paketler' : 'Mutfakta hazırlanan siparişler'}
           </span>
         </div>
 
@@ -630,7 +658,7 @@ export default function OverviewDashboard({
               title={`Mutfakta: ${statusCounts.kitchen}`}
             ></div>
           )}
-          {statusCounts.courier > 0 && (
+          {isCourierEnabled && statusCounts.courier > 0 && (
             <div
               style={{ width: `${statusCounts.courierPercent}%` }}
               className="bg-sky-500 rounded-full h-full transition-all"
@@ -653,8 +681,8 @@ export default function OverviewDashboard({
           )}
         </div>
 
-        {/* 5 Status Clickable Cards */}
-        <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 sm:gap-2.5 pt-1">
+        {/* Status Clickable Cards */}
+        <div className={`grid gap-2 sm:gap-2.5 pt-1 ${isCourierEnabled ? 'grid-cols-2 sm:grid-cols-5' : 'grid-cols-2 sm:grid-cols-4'}`}>
           {/* 1. Yeni & Görüntülendi */}
           <button
             type="button"
@@ -683,19 +711,21 @@ export default function OverviewDashboard({
             <span className="text-[10px] text-orange-600 block mt-0.5">%{statusCounts.kitchenPercent} oranında</span>
           </button>
 
-          {/* 3. Kuryede */}
-          <button
-            type="button"
-            onClick={() => onNavigateToOrders && onNavigateToOrders('courier')}
-            className="p-3 rounded-xl bg-sky-50/50 border border-sky-200/80 hover:bg-sky-50 hover:border-sky-300 text-left transition-all cursor-pointer group"
-          >
-            <div className="flex items-center justify-between mb-1">
-              <span className="text-[11px] font-bold text-sky-800">Kuryede / Yolda</span>
-              <i className="fa-solid fa-person-biking text-sky-500 text-xs"></i>
-            </div>
-            <span className="text-lg sm:text-xl font-black text-sky-900 block">{statusCounts.courier}</span>
-            <span className="text-[10px] text-sky-600 block mt-0.5">%{statusCounts.courierPercent} oranında</span>
-          </button>
+          {/* 3. Kuryede (Yalnızca Kurye Modülü Açıkken Gösterilir) */}
+          {isCourierEnabled && (
+            <button
+              type="button"
+              onClick={() => onNavigateToOrders && onNavigateToOrders('courier')}
+              className="p-3 rounded-xl bg-sky-50/50 border border-sky-200/80 hover:bg-sky-50 hover:border-sky-300 text-left transition-all cursor-pointer group"
+            >
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-[11px] font-bold text-sky-800">Kuryede / Yolda</span>
+                <i className="fa-solid fa-person-biking text-sky-500 text-xs"></i>
+              </div>
+              <span className="text-lg sm:text-xl font-black text-sky-900 block">{statusCounts.courier}</span>
+              <span className="text-[10px] text-sky-600 block mt-0.5">%{statusCounts.courierPercent} oranında</span>
+            </button>
+          )}
 
           {/* 4. Teslim Edildi */}
           <button
@@ -715,7 +745,9 @@ export default function OverviewDashboard({
           <button
             type="button"
             onClick={() => onNavigateToOrders && onNavigateToOrders('cancelled')}
-            className="col-span-2 sm:col-span-1 p-3 rounded-xl bg-stone-100/70 border border-stone-200/90 hover:bg-stone-100 text-left transition-all cursor-pointer group"
+            className={`p-3 rounded-xl bg-stone-100/70 border border-stone-200/90 hover:bg-stone-100 text-left transition-all cursor-pointer group ${
+              isCourierEnabled ? 'col-span-2 sm:col-span-1' : ''
+            }`}
           >
             <div className="flex items-center justify-between mb-1">
               <span className="text-[11px] font-bold text-stone-700">İptal Edilen</span>

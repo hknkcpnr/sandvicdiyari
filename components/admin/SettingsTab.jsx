@@ -28,11 +28,11 @@ export const DEFAULT_ADMIN_SETTINGS = {
 const SETTINGS_PAGES = {
   appearance: {
     id: 'appearance',
-    title: 'Yazı Boyutu & Panel Arayüzü',
-    badge: 'Arayüz & Tipografi',
+    title: 'Arayüz, Yazı Boyutu & Kurye Görünürlüğü',
+    badge: 'Arayüz & Kurye Modülü',
     badgeColor: 'bg-indigo-50 text-indigo-700 border-indigo-200',
-    icon: 'fa-solid fa-text-height',
-    desc: 'Panel metinleri, sipariş kartları ve ürün tablolarının yazı boyutunu ve yoğunluğunu yönetin.',
+    icon: 'fa-solid fa-sliders',
+    desc: 'Panel metinleri, kuryeyi sistemden tamamen görünmez yapma ayarı, sipariş kartları ve arayüz düzenini yönetin.',
   },
   site_content: {
     id: 'site_content',
@@ -954,50 +954,93 @@ export default function SettingsTab({
             </div>
           </div>
 
-          {/* Kurye İşlemleri ve Kurye Modülü Aç / Kapat Kartı */}
-          <div className="lg:col-span-12 bg-white p-4 sm:p-5 rounded-2xl border border-stone-200 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div className="flex items-start gap-3.5 min-w-0">
-              <span className={`w-11 h-11 rounded-2xl flex items-center justify-center text-base shrink-0 transition-all ${
-                settings.courierModuleEnabled !== false
-                  ? 'bg-amber-100 text-amber-800 ring-2 ring-amber-200/60'
-                  : 'bg-stone-100 text-stone-400 border border-stone-200'
-              }`}>
-                <i className="fa-solid fa-motorcycle"></i>
-              </span>
-              <div className="min-w-0">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <h3 className="text-sm font-extrabold text-stone-900">
-                    Kurye İşlemleri ve Kurye Modülü
-                  </h3>
-                  <span className={`text-[10px] font-extrabold px-2.5 py-0.5 rounded-full border ${
-                    settings.courierModuleEnabled !== false
-                      ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                      : 'bg-rose-50 text-rose-700 border-rose-200'
-                  }`}>
-                    {settings.courierModuleEnabled !== false ? '● Aktif (Kurye Açık)' : '○ Kapalı (Kurye Gizli)'}
-                  </span>
-                </div>
-                <p className="text-xs text-stone-500 mt-1 max-w-2xl leading-relaxed">
-                  {settings.courierModuleEnabled !== false
-                    ? 'Kurye sistemi devrede: Sipariş kartlarında kurye atama alanı, /kurye portalı, kurye aşama sekmeleri ve anlık kurye takip tabloları aktiftir.'
-                    : 'Kurye sistemi kapalı: Sistem genelinde tüm kurye seçim alanları, /kurye paneli bağlantıları ve kurye aşamaları tamamen gizlenmiştir. Siparişler doğrudan mutfaktan teslim edildi durumuna alınır.'}
+          {/* Kurye Modülü ve Görünürlük Ayarı (Kuryeyi Sistemden Tamamen Görünmez Yap) */}
+          <div className="lg:col-span-12 bg-white p-4 sm:p-5 rounded-2xl border border-stone-200 shadow-xs space-y-3.5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-stone-100 pb-3">
+              <div>
+                <h3 className="text-sm font-extrabold text-stone-900 flex items-center gap-2">
+                  <i className="fa-solid fa-motorcycle text-amber-500"></i>
+                  <span>Kurye Modülü ve Görünürlük Ayarı</span>
+                </h3>
+                <p className="text-xs text-stone-500 mt-0.5">
+                  Kurye işlemlerini arayüzde görünür tutabilir veya kuryeyi sistemden tamamen görünmez yapabilirsiniz.
                 </p>
               </div>
+              <span className={`text-[10px] font-extrabold px-2.5 py-1 rounded-full border self-start sm:self-center ${
+                settings.courierModuleEnabled !== false
+                  ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                  : 'bg-rose-50 text-rose-700 border-rose-200'
+              }`}>
+                {settings.courierModuleEnabled !== false ? '● Kurye: Açık (Görünür)' : '○ Kurye: Sistemden Tamamen Gizli'}
+              </span>
             </div>
 
-            <div className="flex items-center gap-3 shrink-0 self-end sm:self-center">
-              <button
-                type="button"
-                onClick={() => handleCourierModuleToggle(settings.courierModuleEnabled === false)}
-                className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer border shadow-2xs ${
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {/* Seçenek 1: Kuryeyi Göster */}
+              <div
+                onClick={() => handleCourierModuleToggle(true)}
+                className={`p-4 rounded-2xl border-2 transition-all cursor-pointer flex items-start gap-3.5 ${
                   settings.courierModuleEnabled !== false
-                    ? 'bg-emerald-600 hover:bg-emerald-700 text-white border-emerald-600 shadow-emerald-600/15'
-                    : 'bg-stone-100 hover:bg-stone-200 text-stone-700 border-stone-300'
+                    ? 'border-emerald-600 bg-emerald-50/30 shadow-xs ring-1 ring-emerald-500/20'
+                    : 'border-stone-200 hover:border-stone-300 bg-white opacity-70'
                 }`}
               >
-                <i className={`fa-solid ${settings.courierModuleEnabled !== false ? 'fa-toggle-on text-base' : 'fa-toggle-off text-base text-stone-400'}`}></i>
-                <span>{settings.courierModuleEnabled !== false ? 'Kurye İşlemlerini Kapat' : 'Kurye İşlemlerini Aç'}</span>
-              </button>
+                <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 text-base ${
+                  settings.courierModuleEnabled !== false
+                    ? 'bg-emerald-600 text-white shadow-xs'
+                    : 'bg-stone-100 text-stone-500'
+                }`}>
+                  <i className="fa-solid fa-motorcycle"></i>
+                </div>
+                <div className="space-y-1 min-w-0">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-extrabold text-xs text-stone-900">Kuryeyi Göster (Standart Operasyon)</span>
+                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${
+                      settings.courierModuleEnabled !== false
+                        ? 'bg-emerald-600 text-white'
+                        : 'bg-stone-100 text-stone-500'
+                    }`}>
+                      {settings.courierModuleEnabled !== false ? 'Seçili' : 'Aç'}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-stone-500 leading-snug">
+                    Sipariş kartlarında kurye atama alanı, /kurye teslimat portalı, kurye aşama sekmeleri ve anlık kurye takip tabloları sistemde aktif ve görünürdür.
+                  </p>
+                </div>
+              </div>
+
+              {/* Seçenek 2: Kuryeyi Tamamen Görünmez Yap */}
+              <div
+                onClick={() => handleCourierModuleToggle(false)}
+                className={`p-4 rounded-2xl border-2 transition-all cursor-pointer flex items-start gap-3.5 ${
+                  settings.courierModuleEnabled === false
+                    ? 'border-rose-600 bg-rose-50/30 shadow-xs ring-1 ring-rose-500/20'
+                    : 'border-stone-200 hover:border-stone-300 bg-white opacity-70'
+                }`}
+              >
+                <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 text-base ${
+                  settings.courierModuleEnabled === false
+                    ? 'bg-rose-600 text-white shadow-xs'
+                    : 'bg-stone-100 text-stone-500'
+                }`}>
+                  <i className="fa-solid fa-eye-slash"></i>
+                </div>
+                <div className="space-y-1 min-w-0">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-extrabold text-xs text-stone-900">Kuryeyi Sistemden Tamamen Görünmez Yap</span>
+                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${
+                      settings.courierModuleEnabled === false
+                        ? 'bg-rose-600 text-white'
+                        : 'bg-stone-100 text-stone-500'
+                    }`}>
+                      {settings.courierModuleEnabled === false ? 'Seçili' : 'Gizle'}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-stone-500 leading-snug">
+                    Kurye portalı, sipariş kurye atama kutuları, kurye filtreleri ve aşamaları tüm arayüzden tamamen gizlenir. Siparişler doğrudan mutfaktan teslim edildi durumuna alınır.
+                  </p>
+                </div>
+              </div>
             </div>
           </div>
         </div>

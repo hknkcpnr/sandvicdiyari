@@ -587,7 +587,7 @@ export default function YoneticiPage() {
       : '';
 
   const settingsSubItems = [
-    { id: 'appearance', label: 'Arayüz', icon: 'fa-solid fa-text-height' },
+    { id: 'appearance', label: 'Arayüz & Kurye', icon: 'fa-solid fa-sliders' },
     { id: 'users', label: 'Kullanıcılar', icon: 'fa-solid fa-user-shield' },
     { id: 'sound', label: 'Ses', icon: 'fa-solid fa-volume-high' },
     { id: 'receipt', label: 'Fiş Baskı', icon: 'fa-solid fa-receipt' },

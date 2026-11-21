@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { logout } from '@/store/slices/authSlice';
 import { showMessageModal } from '@/store/slices/uiSlice';
@@ -29,7 +29,68 @@ export default function LiveOrderTracker() {
   const { currentUser } = useSelector((state) => state.auth);
   const [activeOrder, setActiveOrder] = useState(null);
   const [isExpanded, setIsExpanded] = useState(false);
+  const [isCourierEnabled, setIsCourierEnabled] = useState(true);
   const guestClearedRef = useRef(false);
+
+  useEffect(() => {
+    try {
+      const rawAdmin = localStorage.getItem('sandwich_admin_settings');
+      if (rawAdmin) {
+        const parsed = JSON.parse(rawAdmin);
+        if (typeof parsed?.courierModuleEnabled === 'boolean') {
+          setIsCourierEnabled(parsed.courierModuleEnabled);
+        }
+      }
+      const sdCourier = localStorage.getItem('sd_courier_module_enabled');
+      if (sdCourier !== null) {
+        setIsCourierEnabled(sdCourier !== 'false');
+      }
+    } catch {}
+
+    const handleStorage = () => {
+      try {
+        const rawAdmin = localStorage.getItem('sandwich_admin_settings');
+        if (rawAdmin) {
+          const parsed = JSON.parse(rawAdmin);
+          if (typeof parsed?.courierModuleEnabled === 'boolean') {
+            setIsCourierEnabled(parsed.courierModuleEnabled);
+          }
+        }
+        const sdCourier = localStorage.getItem('sd_courier_module_enabled');
+        if (sdCourier !== null) {
+          setIsCourierEnabled(sdCourier !== 'false');
+        }
+      } catch {}
+    };
+    window.addEventListener('storage', handleStorage);
+    window.addEventListener('sd_courier_module_updated', handleStorage);
+
+    fetch('/api/admin/settings', { cache: 'no-store' })
+      .then((r) => r.json())
+      .then((j) => {
+        if (j?.success && j?.data) {
+          setIsCourierEnabled(j.data.courierModuleEnabled !== false);
+        }
+      })
+      .catch(() => {});
+
+    return () => {
+      window.removeEventListener('storage', handleStorage);
+      window.removeEventListener('sd_courier_module_updated', handleStorage);
+    };
+  }, []);
+
+  const effectiveSteps = useMemo(() => {
+    if (!isCourierEnabled) {
+      return [
+        { key: 'Yeni', label: 'Alındı', icon: 'fa-solid fa-receipt' },
+        { key: 'Onaylandı', label: 'Onaylandı', icon: 'fa-solid fa-thumbs-up' },
+        { key: 'Hazırlanıyor', label: 'Hazırlanıyor', icon: 'fa-solid fa-fire-burner' },
+        { key: 'Teslim Edildi', label: 'Teslim Edildi', icon: 'fa-solid fa-circle-check' },
+      ];
+    }
+    return STATUS_STEPS;
+  }, [isCourierEnabled]);
 
   const isGuestUserSession = () => {
     try {
@@ -180,7 +241,15 @@ export default function LiveOrderTracker() {
 
   if (!activeOrder) return null;
 
-  const currentIndex = getStatusIndex(activeOrder.status);
+  const currentIndex = isCourierEnabled
+    ? getStatusIndex(activeOrder.status)
+    : activeOrder.status === 'Yeni' || activeOrder.status === 'Görüntülendi'
+    ? 0
+    : activeOrder.status === 'Onaylandı'
+    ? 1
+    : activeOrder.status === 'Hazırlanıyor' || activeOrder.status === 'Hazır' || activeOrder.status === 'Kurye Teslim Aldı' || activeOrder.status === 'Yolda'
+    ? 2
+    : 3;
   const isCompleted = activeOrder.status === 'Teslim Edildi';
 
   // Kuryenin bildirdiği tahmini varış süresini (ETA) doğrudan veya statusHistory içinden al
@@ -210,7 +279,7 @@ export default function LiveOrderTracker() {
         >
           <div className="relative">
             <div className="w-10 h-10 bg-brand-500 rounded-xl flex items-center justify-center text-white text-base shadow-md shadow-brand-500/30">
-              <i className="fa-solid fa-motorcycle"></i>
+              <i className={isCourierEnabled ? "fa-solid fa-motorcycle" : "fa-solid fa-bag-shopping"}></i>
             </div>
             {!isCompleted && (
               <span className="absolute -top-1 -right-1 w-3 h-3 bg-emerald-500 rounded-full animate-ping"></span>
@@ -244,7 +313,7 @@ export default function LiveOrderTracker() {
             <div className="flex justify-between items-center border-b border-stone-100 pb-3">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 bg-brand-500 text-white rounded-xl flex items-center justify-center text-lg shadow-md shadow-brand-500/20">
-                  <i className="fa-solid fa-motorcycle"></i>
+                  <i className={isCourierEnabled ? "fa-solid fa-motorcycle" : "fa-solid fa-bag-shopping"}></i>
                 </div>
                 <div>
                   <h3 className="font-bold text-lg text-stone-900 leading-tight">Sipariş Durumu</h3>
@@ -265,13 +334,13 @@ export default function LiveOrderTracker() {
                   <i className="fa-solid fa-stopwatch text-emerald-600 text-lg"></i>
                   <div className="leading-tight">
                     <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-700 block">
-                      Kurye Tahmini Varış Süresi
+                      {isCourierEnabled ? 'Kurye Tahmini Varış Süresi' : 'Tahmini Teslimat Süresi'}
                     </span>
                     <span className="text-sm font-black text-emerald-950">{resolvedEta}</span>
                   </div>
                 </div>
                 <span className="text-[11px] font-bold bg-emerald-600 text-white px-2.5 py-1 rounded-lg">
-                  Yolda
+                  {isCourierEnabled ? 'Yolda' : 'Hazırlanıyor'}
                 </span>
               </div>
             )}
@@ -283,11 +352,11 @@ export default function LiveOrderTracker() {
                 <div className="absolute left-4 right-4 top-1/2 -translate-y-1/2 h-1 bg-stone-200 z-0">
                   <div
                     className="h-full bg-brand-500 transition-all duration-500"
-                    style={{ width: `${(currentIndex / (STATUS_STEPS.length - 1)) * 100}%` }}
+                    style={{ width: `${(currentIndex / (effectiveSteps.length - 1)) * 100}%` }}
                   ></div>
                 </div>
 
-                {STATUS_STEPS.map((step, idx) => {
+                {effectiveSteps.map((step, idx) => {
                   const isPassed = idx <= currentIndex;
                   const isCurrent = idx === currentIndex;
                   return (

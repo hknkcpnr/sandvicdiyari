@@ -2097,6 +2097,37 @@ export default function AdminDashboardPage() {
               <span className="hidden sm:inline">Canlı</span>
             </span>
 
+            {/* Hızlı Kurye Modülü Aç / Kapat Butonu */}
+            <button
+              type="button"
+              onClick={() => {
+                const nextVal = !isCourierEnabled;
+                const nextAdmin = { ...adminSettings, courierModuleEnabled: nextVal };
+                setAdminSettings(nextAdmin);
+                try {
+                  localStorage.setItem('sandwich_admin_settings', JSON.stringify(nextAdmin));
+                  localStorage.setItem('sd_courier_module_enabled', String(nextVal));
+                  window.dispatchEvent(new Event('storage'));
+                  window.dispatchEvent(new CustomEvent('sd_courier_module_updated', { detail: { enabled: nextVal } }));
+                } catch {}
+                fetch('/api/admin/settings', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ courierModuleEnabled: nextVal })
+                }).catch(() => {});
+                showToast(nextVal ? 'Kurye modülü açıldı! (Arayüzde görünür)' : 'Kurye modülü kapatıldı! (Arayüzden tamamen gizlendi)', nextVal ? 'success' : 'info');
+              }}
+              title={isCourierEnabled ? 'Kuryeyi Sistemden Tamamen Görünmez Yap' : 'Kuryeyi Arayüzde Görünür Yap'}
+              className={`h-8 sm:h-9 px-2.5 rounded-xl border text-xs font-extrabold flex items-center gap-1.5 transition-all cursor-pointer shadow-2xs ${
+                isCourierEnabled
+                  ? 'bg-amber-50 hover:bg-amber-100/90 border-amber-300 text-amber-900'
+                  : 'bg-stone-100 hover:bg-stone-200 border-stone-300 text-stone-600'
+              }`}
+            >
+              <i className={`fa-solid ${isCourierEnabled ? 'fa-motorcycle text-amber-600' : 'fa-eye-slash text-stone-400'}`}></i>
+              <span className="hidden sm:inline">{isCourierEnabled ? 'Kurye: Açık' : 'Kurye: Gizli'}</span>
+            </button>
+
             {/* Sound alert switch */}
             <button
               onClick={() => setSoundEnabled(!soundEnabled)}
@@ -2157,6 +2188,7 @@ export default function AdminDashboardPage() {
             orders={orders}
             products={products}
             canViewRevenue={canViewRevenue}
+            isCourierEnabled={isCourierEnabled}
             onOpenOrderDetail={handleOpenDetail}
             onAcceptOrder={(id) => handleProgressStatus(id, 'Hazırlanıyor')}
             onNavigateToOrders={(targetStage) => {
