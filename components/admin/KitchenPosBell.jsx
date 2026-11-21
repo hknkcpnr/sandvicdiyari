@@ -352,7 +352,7 @@ export default function KitchenPosBell({
   const [soundType, setSoundType] = useState('pos_bell'); // 'pos_bell' | 'kitchen_alarm' | 'classic_dingdong' | custom_*
   const [customSounds, setCustomSounds] = useState([]);
   const [volume, setVolume] = useState(0.85);
-  const [repeatInterval, setRepeatInterval] = useState(8); // seconds
+  const [repeatInterval, setRepeatInterval] = useState(60); // seconds (default 60s)
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   // Snooze state (timestamp until which the bell is muted)
@@ -397,20 +397,33 @@ export default function KitchenPosBell({
         const savedVol = localStorage.getItem('sd_bell_volume');
         if (savedVol) setVolume(parseFloat(savedVol));
 
+        // Read interval from sandwich_admin_settings (/yonetici) and sd_bell_interval
+        let resolvedLocalInterval = null;
+        try {
+          const rawAdminSettings = localStorage.getItem('sandwich_admin_settings');
+          if (rawAdminSettings) {
+            const parsedSettings = JSON.parse(rawAdminSettings);
+            if (typeof parsedSettings?.autoRefreshInterval === 'number' && parsedSettings.autoRefreshInterval >= 0) {
+              resolvedLocalInterval = parsedSettings.autoRefreshInterval;
+            }
+          }
+        } catch {}
+
         const savedInt = localStorage.getItem('sd_bell_interval');
         if (savedInt !== null && savedInt !== '') {
           const parsedInt = parseInt(savedInt, 10);
           if (!Number.isNaN(parsedInt) && parsedInt >= 0) {
-            setRepeatInterval(parsedInt);
-          }
-        } else {
-          const rawAdminSettings = localStorage.getItem('sandwich_admin_settings');
-          if (rawAdminSettings) {
-            const parsedSettings = JSON.parse(rawAdminSettings);
-            if (typeof parsedSettings?.autoRefreshInterval === 'number') {
-              setRepeatInterval(parsedSettings.autoRefreshInterval);
+            // If /yonetici has a larger configured interval (like 60s) and sd_bell_interval was stuck on old 8s default, prefer /yonetici setting
+            if (resolvedLocalInterval !== null && parsedInt === 8 && resolvedLocalInterval !== 8) {
+              setRepeatInterval(resolvedLocalInterval);
+              localStorage.setItem('sd_bell_interval', String(resolvedLocalInterval));
+            } else {
+              setRepeatInterval(parsedInt);
             }
           }
+        } else if (resolvedLocalInterval !== null) {
+          setRepeatInterval(resolvedLocalInterval);
+          localStorage.setItem('sd_bell_interval', String(resolvedLocalInterval));
         }
 
         const rawCustom = localStorage.getItem('sd_custom_bell_sounds');
@@ -432,33 +445,16 @@ export default function KitchenPosBell({
             if (typeof window !== 'undefined') {
               window.__sdCustomBellSounds = s.customSounds;
             }
-            try {
-              localStorage.setItem('sd_custom_bell_sounds', JSON.stringify(s.customSounds));
-            } catch {
-              try {
-                const latestOnly = s.customSounds.slice(-1);
-                localStorage.setItem('sd_custom_bell_sounds', JSON.stringify(latestOnly));
-              } catch { }
-            }
           }
           if (s.posSoundType) {
             setSoundType(s.posSoundType);
-            try {
-              localStorage.setItem('sd_bell_sound', s.posSoundType);
-            } catch { }
           }
           if (typeof s.posSoundVolume === 'number') {
             const normVol = Math.min(1, Math.max(0.1, s.posSoundVolume / 100));
             setVolume(normVol);
-            try {
-              localStorage.setItem('sd_bell_volume', String(normVol));
-            } catch { }
           }
           if (typeof s.posSoundInterval === 'number' && s.posSoundInterval >= 0) {
             setRepeatInterval(s.posSoundInterval);
-            try {
-              localStorage.setItem('sd_bell_interval', String(s.posSoundInterval));
-            } catch { }
           }
         })
         .catch(() => { });
@@ -469,7 +465,6 @@ export default function KitchenPosBell({
 
     const handleStorage = (e) => {
       if (
-        !e.key ||
         e.key === 'sd_bell_sound' ||
         e.key === 'sd_bell_interval' ||
         e.key === 'sd_custom_bell_sounds' ||
@@ -477,7 +472,9 @@ export default function KitchenPosBell({
         e.key === 'sandwich_admin_settings'
       ) {
         syncSoundFromLocal();
-        syncSoundFromApi();
+        if (e.key === 'sd_pos_bell_updated') {
+          syncSoundFromApi();
+        }
       }
     };
 
@@ -485,11 +482,12 @@ export default function KitchenPosBell({
     return () => window.removeEventListener('storage', handleStorage);
   }, []);
 
-  // Update clock every second for snooze countdown
+  // Update clock every second ONLY while snoozed for snooze countdown
   useEffect(() => {
+    if (!snoozeUntil) return;
     const timer = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(timer);
-  }, []);
+  }, [snoozeUntil]);
 
   // Filter unconfirmed 'Yeni' or 'Görüntülendi' orders (until approved as 'Onaylandı')
   const newOrders = useMemo(() => {
@@ -548,70 +546,105 @@ export default function KitchenPosBell({
     }
   };
 
-  // Keep latest notification trigger & newOrders in refs so 5s polling of /api/orders never resets the interval timer!
+  // Keep latest notification trigger, newOrders, isRinging, and repeatInterval in refs
   const triggerFnRef = useRef(triggerOrderPriorityNotification);
   const newOrdersRef = useRef(newOrders);
+  const isRingingRef = useRef(isRinging);
+  const repeatIntervalRef = useRef(repeatInterval);
   const lastPlayedAtRef = useRef(0);
+
   triggerFnRef.current = triggerOrderPriorityNotification;
   newOrdersRef.current = newOrders;
+  isRingingRef.current = isRinging;
+  repeatIntervalRef.current = repeatInterval;
 
-  // If a BRAND NEW order arrives while snoozed, cancel snooze and immediately play appropriate audio!
+  const getLastPlayedTimestamp = () => {
+    let ts = lastPlayedAtRef.current || 0;
+    if (typeof window !== 'undefined') {
+      const winTs = Number(window.__sdLastOrderAudioPlayedAt || 0);
+      if (winTs > ts) ts = winTs;
+      try {
+        const storedTs = Number(localStorage.getItem('sd_last_order_sound_at') || 0);
+        if (storedTs > ts) ts = storedTs;
+      } catch {}
+    }
+    return ts;
+  };
+
+  const recordPlayedTimestamp = () => {
+    const nowTs = Date.now();
+    lastPlayedAtRef.current = nowTs;
+    if (typeof window !== 'undefined') {
+      window.__sdLastOrderAudioPlayedAt = nowTs;
+      try {
+        localStorage.setItem('sd_last_order_sound_at', String(nowTs));
+      } catch {}
+    }
+  };
+
+  // Detect brand new incoming order ID (Wait until initial non-empty orders list loads before arming detector!)
   useEffect(() => {
+    if (!Array.isArray(orders) || orders.length === 0) return;
+
     const currentIds = new Set(orders.map((o) => o.id));
-    if (!initialMountRef.current) {
-      let brandNewOrder = null;
-      for (const order of newOrders) {
-        if (!prevOrderIdsRef.current.has(order.id)) {
-          brandNewOrder = order;
-          break;
-        }
-      }
-      if (brandNewOrder) {
-        if (snoozeUntil) {
-          setSnoozeUntil(null); // Cancel snooze for new order
-        }
-        lastPlayedAtRef.current = Date.now();
-        // Pass newOrders if >1 pending orders, otherwise [brandNewOrder]
-        triggerFnRef.current(newOrders.length > 1 ? newOrders : [brandNewOrder], false);
-      }
-    } else {
+    // On initial mount, if there are unconfirmed new orders and cooldown has passed, play once
+    if (initialMountRef.current) {
       initialMountRef.current = false;
-    }
-    prevOrderIdsRef.current = currentIds;
-  }, [orders, newOrders, snoozeUntil]);
-
-  // Continuous Sound Interval Timer (Strictly respects repeatInterval e.g. 60s without resetting on 5s order polling!)
-  useEffect(() => {
-    if (!isRinging) return;
-
-    const nowMs = Date.now();
-    const minGapMs = repeatInterval > 0 ? repeatInterval * 1000 : 0;
-
-    // Only play on initial ring start if we haven't already just played within the current interval window
-    if (lastPlayedAtRef.current === 0 || (minGapMs > 0 && nowMs - lastPlayedAtRef.current >= minGapMs)) {
-      lastPlayedAtRef.current = nowMs;
-      triggerFnRef.current(newOrdersRef.current, false);
-      if (typeof navigator !== 'undefined' && navigator.vibrate) {
-        navigator.vibrate([250, 100, 250, 100, 400]);
+      prevOrderIdsRef.current = currentIds;
+      if (newOrders.length > 0 && continuousBellEnabled) {
+        const intervalSec = typeof repeatIntervalRef.current === 'number' ? repeatIntervalRef.current : 60;
+        const minGapMs = Math.max(8, intervalSec || 60) * 1000;
+        const lastTs = getLastPlayedTimestamp();
+        if (lastTs === 0 || Date.now() - lastTs >= minGapMs) {
+          recordPlayedTimestamp();
+          triggerFnRef.current(newOrders, false);
+        }
       }
-    }
-
-    // If repeatInterval === 0 ('Tek Sefer Çal'), do not repeat on an interval
-    if (!repeatInterval || repeatInterval <= 0) {
       return;
     }
 
-    const intervalMs = Math.max(4, repeatInterval) * 1000;
-    const intervalTimer = setInterval(() => {
-      lastPlayedAtRef.current = Date.now();
-      triggerFnRef.current(newOrdersRef.current, true);
-      if (typeof navigator !== 'undefined' && navigator.vibrate) {
-        navigator.vibrate([250, 100, 250, 100, 400]);
+    let brandNewOrder = null;
+    for (const order of newOrders) {
+      if (!prevOrderIdsRef.current.has(order.id)) {
+        brandNewOrder = order;
+        break;
       }
-    }, intervalMs);
+    }
+    prevOrderIdsRef.current = currentIds;
 
-    return () => clearInterval(intervalTimer);
-  }, [isRinging, repeatInterval]);
+    if (brandNewOrder) {
+      if (snoozeUntil) {
+        setSnoozeUntil(null); // Cancel snooze for new order
+      }
+      recordPlayedTimestamp();
+      triggerFnRef.current(newOrders.length > 1 ? newOrders : [brandNewOrder], false);
+    }
+  }, [orders, newOrders, snoozeUntil, continuousBellEnabled]);
+
+  // Single Wall-Clock Periodic Repeat Checker:
+  // Checks once per second if (Date.now() - lastPlayedTimestamp >= repeatInterval * 1000).
+  // Never resets when /api/orders polls every 5s or when state re-renders!
+  useEffect(() => {
+    const checkTimer = setInterval(() => {
+      if (!isRingingRef.current) return;
+      const intervalSec = typeof repeatIntervalRef.current === 'number' ? repeatIntervalRef.current : 60;
+      if (intervalSec <= 0) return; // 0 = Tek Sefer Çal (no periodic repeat)
+
+      const requiredGapMs = Math.max(8, intervalSec) * 1000;
+      const lastPlayed = getLastPlayedTimestamp();
+      const nowMs = Date.now();
+
+      if (nowMs - lastPlayed >= requiredGapMs) {
+        recordPlayedTimestamp();
+        triggerFnRef.current(newOrdersRef.current, true);
+        if (typeof navigator !== 'undefined' && navigator.vibrate) {
+          navigator.vibrate([250, 100, 250, 100, 400]);
+        }
+      }
+    }, 1000);
+
+    return () => clearInterval(checkTimer);
+  }, []);
 
   // Document Title Blinking during Active Alarm
   useEffect(() => {

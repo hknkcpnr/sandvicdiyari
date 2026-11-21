@@ -69,6 +69,7 @@ export default function YoneticiPage() {
   const [adminSettings, setAdminSettings] = useState({
     soundEnabled: true,
     fontSize: 'normal',
+    autoRefreshInterval: 60,
     autoPrintReceipt: false,
     receiptFooterNote: 'Afiyet olsun! Bizi tercih ettiğiniz için teşekkürler.'
   });

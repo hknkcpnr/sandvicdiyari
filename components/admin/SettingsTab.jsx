@@ -15,7 +15,7 @@ export const DEFAULT_ADMIN_SETTINGS = {
   soundType: 'chime', // 'chime' | 'bell' | 'beep' | 'custom_*'
   soundVolume: 80, // 0 - 100
   customSounds: [],
-  autoRefreshInterval: 30, // seconds: 15, 30, 60, 0
+  autoRefreshInterval: 60, // seconds: 8, 15, 30, 60, 0
   storeName: 'Sandviç Diyarı',
   storeAddress: 'Torbalı Mah. Hüseyin Kurtuldu Sok. No:32 Torbalı/İZMİR',
   storePhone: '0232 856 81 21 / 0552 104 55 35',
@@ -374,7 +374,15 @@ export default function SettingsTab({
         ? customList[customList.length - 1].id
         : settings.soundType || 'chime';
 
-    await syncSoundSettingsEverywhere(customList, activeSoundType, settings.soundVolume || 80);
+    const activeInterval =
+      typeof settings.autoRefreshInterval === 'number' ? settings.autoRefreshInterval : 60;
+
+    await syncSoundSettingsEverywhere(
+      customList,
+      activeSoundType,
+      settings.soundVolume || 80,
+      activeInterval
+    );
 
     setSavedSuccess(true);
     setTimeout(() => setSavedSuccess(false), 3000);

@@ -338,7 +338,7 @@ export async function POST(request) {
             ? Math.min(300, Math.max(0, s.posSoundInterval))
             : typeof current.posSoundInterval === 'number'
             ? current.posSoundInterval
-            : 30
+            : 60
       });
 
       return NextResponse.json({
