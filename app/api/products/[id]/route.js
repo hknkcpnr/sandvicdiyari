@@ -79,6 +79,7 @@ export async function PUT(request, { params }) {
       if (
         !rawAudio ||
         rawAudio.startsWith('data:audio/') ||
+        rawAudio.startsWith('data:video/') ||
         rawAudio.startsWith('data:application/octet-stream') ||
         rawAudio.startsWith('http://') ||
         rawAudio.startsWith('https://') ||

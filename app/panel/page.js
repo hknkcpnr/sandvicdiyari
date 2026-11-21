@@ -368,8 +368,12 @@ export default function AdminDashboardPage() {
   const handleProductAudioSelect = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (!file.type.startsWith('audio/') && !/\.(mp3|wav|ogg|m4a|aac)$/i.test(file.name)) {
-      showToast('Lütfen geçerli bir ses dosyası (.mp3, .wav, .ogg) seçin.', 'error');
+    if (
+      !file.type.startsWith('audio/') &&
+      !file.type.startsWith('video/') &&
+      !/\.(mp3|wav|ogg|m4a|aac|mp4|webm)$/i.test(file.name)
+    ) {
+      showToast('Lütfen geçerli bir ses dosyası (.mp3, .wav, .ogg, .m4a) seçin.', 'error');
       return;
     }
     if (file.size > 3.5 * 1024 * 1024) {

@@ -44,48 +44,118 @@ export function speakProductPreview(productName = '', audioUrl = '', volume = 0.
   }
 }
 
-// Announce an incoming order's product names (plays product custom audio if set, plus Turkish TTS readout)
+// Helper: Extract custom product audio URLs from an order or array of orders
+export function extractOrderCustomAudios(orderOrOrders, productsList = []) {
+  const orderArray = Array.isArray(orderOrOrders)
+    ? orderOrOrders
+    : orderOrOrders
+    ? [orderOrOrders]
+    : [];
+  const customProductAudios = [];
+
+  for (const ord of orderArray) {
+    const rawItems = Array.isArray(ord?.items) ? ord.items : [];
+    for (const item of rawItems) {
+      if (!item) continue;
+      const directItemAudio =
+        typeof item.audioUrl === 'string' && item.audioUrl.trim() ? item.audioUrl.trim() : '';
+
+      const itemName = String(item.name || '').trim();
+      const candId = item.productId ?? item.id;
+      const matchedProd = Array.isArray(productsList)
+        ? productsList.find(
+            (p) =>
+              (candId !== undefined && candId !== null && String(p.id) === String(candId)) ||
+              (itemName &&
+                String(p.name || '').trim().toLocaleLowerCase('tr-TR') ===
+                  itemName.toLocaleLowerCase('tr-TR'))
+          )
+        : null;
+
+      const resolvedAudio =
+        directItemAudio ||
+        (typeof matchedProd?.audioUrl === 'string' && matchedProd.audioUrl.trim()
+          ? matchedProd.audioUrl.trim()
+          : '');
+
+      if (resolvedAudio && !customProductAudios.includes(resolvedAudio)) {
+        customProductAudios.push(resolvedAudio);
+      }
+    }
+  }
+
+  return customProductAudios;
+}
+
+// Helper: Play one or more custom audio URLs sequentially
+function playSequentialProductAudios(audioUrls = [], volume = 0.9) {
+  if (!Array.isArray(audioUrls) || audioUrls.length === 0) return false;
+  try {
+    const safeVolume = Math.min(1, Math.max(0.1, Number(volume) || 0.9));
+    if (activeCustomAudio) {
+      try {
+        activeCustomAudio.pause();
+        activeCustomAudio.currentTime = 0;
+      } catch {}
+      activeCustomAudio = null;
+    }
+    if (activeAudioCtx) {
+      try {
+        activeAudioCtx.close();
+      } catch {}
+      activeAudioCtx = null;
+    }
+    if (typeof window !== 'undefined' && window.speechSynthesis) {
+      window.speechSynthesis.cancel();
+    }
+
+    let index = 0;
+    const playNext = () => {
+      if (index >= audioUrls.length) return;
+      const url = audioUrls[index];
+      index += 1;
+      const audio = new Audio(url);
+      audio.volume = safeVolume;
+      activeCustomAudio = audio;
+      audio.onended = () => {
+        if (index < audioUrls.length) {
+          playNext();
+        }
+      };
+      audio.play().catch((err) => {
+        console.warn('Product custom audio playback error:', err);
+      });
+    };
+
+    playNext();
+    return true;
+  } catch (e) {
+    console.warn('Sequential product audio error:', e);
+    return false;
+  }
+}
+
+// Announce an incoming order's product names (plays product custom audio with #1 priority, otherwise Turkish TTS readout)
 export function announceOrderItems(order, productsList = [], volume = 0.9) {
   if (!order || typeof window === 'undefined') return;
   try {
     const safeVolume = Math.min(1, Math.max(0.1, Number(volume) || 0.9));
-    const rawItems = Array.isArray(order.items) ? order.items : [];
+    const customProductAudios = extractOrderCustomAudios(order, productsList);
 
-    const customProductAudios = [];
+    // 1. TOP PRIORITY: If any ordered product has a custom audio recording uploaded, play it directly
+    if (customProductAudios.length > 0) {
+      playSequentialProductAudios(customProductAudios, safeVolume);
+      return;
+    }
+
+    const rawItems = Array.isArray(order.items) ? order.items : [];
     const speechParts = [];
 
     for (const item of rawItems) {
       const qty = Number(item?.quantity || 1);
       const name = String(item?.name || '').trim();
       if (!name) continue;
-
-      const matchedProd = Array.isArray(productsList)
-        ? productsList.find(
-            (p) =>
-              (item.id && String(p.id) === String(item.id)) ||
-              String(p.name || '').toLocaleLowerCase('tr-TR') === name.toLocaleLowerCase('tr-TR')
-          )
-        : null;
-
-      if (matchedProd?.audioUrl) {
-        customProductAudios.push(matchedProd.audioUrl);
-      }
-
       speechParts.push(qty > 1 ? `${qty} adet ${name}` : `1 adet ${name}`);
-    }
-
-    // 1. If any ordered product has a custom audio recording uploaded, play it
-    if (customProductAudios.length > 0) {
-      if (activeCustomAudio) {
-        try {
-          activeCustomAudio.pause();
-        } catch {}
-      }
-      const audio = new Audio(customProductAudios[0]);
-      audio.volume = safeVolume;
-      activeCustomAudio = audio;
-      audio.play().catch(() => {});
-      return;
     }
 
     // 2. Otherwise announce the ordered product names in Turkish via Web Speech API
@@ -392,7 +462,36 @@ export default function KitchenPosBell({
   const isSnoozed = snoozeUntil && now < snoozeUntil;
   const isRinging = hasNewOrders && continuousBellEnabled && !isSnoozed;
 
-  // If a BRAND NEW order arrives while snoozed, cancel snooze so staff hears the new order!
+  // Helper: Play notification sound for active food orders with PRIORITY to ordered products' custom audio
+  const triggerOrderPriorityNotification = (targetOrders = newOrders, isPeriodicRepeat = false) => {
+    // If a periodic repeat fires while a custom audio clip is still actively playing, let it finish
+    if (
+      isPeriodicRepeat &&
+      activeCustomAudio &&
+      !activeCustomAudio.paused &&
+      !activeCustomAudio.ended
+    ) {
+      return;
+    }
+
+    // 1. PRIORITY #1: Custom audio attached inside the ordered food products
+    const orderedProductAudios = extractOrderCustomAudios(targetOrders, products);
+    if (orderedProductAudios.length > 0) {
+      playSequentialProductAudios(orderedProductAudios, volume);
+      return;
+    }
+
+    // 2. FALLBACK: General POS bell sound + optional Turkish TTS product name readout
+    playKitchenBellSound(soundType, volume, customSounds);
+    const primaryOrder = Array.isArray(targetOrders) ? targetOrders[0] : targetOrders;
+    if (voiceReadoutEnabled && primaryOrder) {
+      setTimeout(() => {
+        announceOrderItems(primaryOrder, products, volume);
+      }, 850);
+    }
+  };
+
+  // If a BRAND NEW order arrives while snoozed, cancel snooze and immediately play with product audio priority!
   useEffect(() => {
     const currentIds = new Set(orders.map((o) => o.id));
     if (!initialMountRef.current) {
@@ -407,38 +506,34 @@ export default function KitchenPosBell({
         if (snoozeUntil) {
           setSnoozeUntil(null); // Cancel snooze for new order
         }
-        if (voiceReadoutEnabled) {
-          setTimeout(() => {
-            announceOrderItems(brandNewOrder, products, volume);
-          }, 900);
-        }
+        triggerOrderPriorityNotification([brandNewOrder], false);
       }
     } else {
       initialMountRef.current = false;
     }
     prevOrderIdsRef.current = currentIds;
-  }, [orders, newOrders, snoozeUntil]);
+  }, [orders, newOrders, snoozeUntil, products]);
 
-  // Continuous Sound Interval Timer
+  // Continuous Sound Interval Timer (Prioritizes sound inside ordered food items)
   useEffect(() => {
     if (!isRinging) return;
 
-    // Play immediately when ringing starts
-    playKitchenBellSound(soundType, volume, customSounds);
+    // Play immediately when ringing starts (or when products load with custom audio)
+    triggerOrderPriorityNotification(newOrders, false);
     if (typeof navigator !== 'undefined' && navigator.vibrate) {
       navigator.vibrate([250, 100, 250, 100, 400]);
     }
 
     const intervalMs = Math.max(4, repeatInterval) * 1000;
     const intervalTimer = setInterval(() => {
-      playKitchenBellSound(soundType, volume, customSounds);
+      triggerOrderPriorityNotification(newOrders, true);
       if (typeof navigator !== 'undefined' && navigator.vibrate) {
         navigator.vibrate([250, 100, 250, 100, 400]);
       }
     }, intervalMs);
 
     return () => clearInterval(intervalTimer);
-  }, [isRinging, soundType, volume, repeatInterval, customSounds]);
+  }, [isRinging, soundType, volume, repeatInterval, customSounds, newOrders, products, voiceReadoutEnabled]);
 
   // Document Title Blinking during Active Alarm
   useEffect(() => {
@@ -506,7 +601,11 @@ export default function KitchenPosBell({
   };
 
   const testCurrentSound = () => {
-    playKitchenBellSound(soundType, volume);
+    if (hasNewOrders) {
+      triggerOrderPriorityNotification(newOrders, false);
+    } else {
+      playKitchenBellSound(soundType, volume, customSounds);
+    }
   };
 
   // Remaining snooze seconds

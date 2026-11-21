@@ -44,7 +44,16 @@ async function findOrderInPg(idOrNumber) {
       where: {
         OR: [{ id: idOrNumber }, { orderNumber: idOrNumber }]
       },
-      include: { items: true, statusHistory: true }
+      include: {
+        items: {
+          include: {
+            product: {
+              select: { id: true, name: true, recipe: true }
+            }
+          }
+        },
+        statusHistory: true
+      }
     });
   } catch {
     return null;

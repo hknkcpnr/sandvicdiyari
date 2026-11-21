@@ -67,13 +67,27 @@ export function formatPrismaOrder(o: Record<string, unknown> | null) {
         : selectedOpts.length > 0
         ? selectedOpts.join(', ')
         : '';
+
+    let itemAudioUrl = typeof it.audioUrl === 'string' ? it.audioUrl : '';
+    const relProd = it.product as Record<string, unknown> | null | undefined;
+    if (!itemAudioUrl && relProd && Array.isArray(relProd.recipe)) {
+      const foundAudio = (relProd.recipe as Record<string, unknown>[]).find(
+        (r) => r && typeof r === 'object' && r.type === 'product_audio' && typeof r.audioUrl === 'string'
+      );
+      if (foundAudio && typeof foundAudio.audioUrl === 'string') {
+        itemAudioUrl = foundAudio.audioUrl;
+      }
+    }
+
     return {
       ...it,
       id: it.productId ?? it.id,
+      productId: it.productId ?? it.id,
       price: Number(it.price ?? 0),
       quantity: Number(it.quantity ?? 1),
       details,
-      selectedOptions: selectedOpts
+      selectedOptions: selectedOpts,
+      ...(itemAudioUrl ? { audioUrl: itemAudioUrl } : {})
     };
   });
 
@@ -517,7 +531,16 @@ export const prisma = {
         const pgOrders = await rawPrisma.order.findMany({
           where: args?.where,
           take: args?.take ?? 300,
-          include: { items: true, statusHistory: true },
+          include: {
+            items: {
+              include: {
+                product: {
+                  select: { id: true, name: true, recipe: true }
+                }
+              }
+            },
+            statusHistory: true
+          },
           orderBy: args?.orderBy ?? { createdAt: 'desc' }
         });
         orm.executePrepared(
@@ -648,7 +671,16 @@ export const prisma = {
                 ]
               }
             },
-            include: { items: true, statusHistory: true }
+            include: {
+              items: {
+                include: {
+                  product: {
+                    select: { id: true, name: true, recipe: true }
+                  }
+                }
+              },
+              statusHistory: true
+            }
           });
         });
         orm.executePrepared('Order', 'TRANSACTION', 'prisma.$transaction([prisma.order.create($1)])', [orderNo], () => orderNo);

@@ -82,6 +82,7 @@ export async function POST(request) {
       const rawAudio = body.audioUrl.trim();
       if (
         rawAudio.startsWith('data:audio/') ||
+        rawAudio.startsWith('data:video/') ||
         rawAudio.startsWith('data:application/octet-stream') ||
         rawAudio.startsWith('http://') ||
         rawAudio.startsWith('https://') ||
