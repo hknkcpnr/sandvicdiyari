@@ -274,10 +274,10 @@ export default function CheckoutModal() {
   return (
     <div
       id="checkout-modal"
-      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-stone-900/60 backdrop-blur-sm overflow-y-auto"
+      className="fixed inset-0 z-50 flex items-center justify-center p-2.5 sm:p-4 bg-stone-900/60 backdrop-blur-sm"
     >
-      <div className="bg-white rounded-3xl max-w-3xl w-full p-5 sm:p-9 shadow-2xl relative space-y-5 animate-in fade-in zoom-in-95 duration-200 my-auto max-h-[92vh] overflow-y-auto">
-        <div className="flex items-center justify-between border-b border-stone-100 pb-4">
+      <div className="bg-white rounded-3xl max-w-4xl w-full p-4 sm:p-6 shadow-2xl relative space-y-3.5 animate-in fade-in zoom-in-95 duration-200 my-auto max-h-[95vh] overflow-y-auto no-scrollbar">
+        <div className="flex items-center justify-between border-b border-stone-100 pb-3">
           <div className="flex items-center gap-3.5">
             <div className="w-12 h-12 bg-brand-50 text-brand-600 rounded-2xl flex items-center justify-center text-xl shadow-inner border border-brand-200 shrink-0">
               <i className="fa-solid fa-bag-shopping"></i>
@@ -392,10 +392,10 @@ export default function CheckoutModal() {
           </div>
         )}
 
-        <form id="order-form" onSubmit={handleSubmitOrder} className="space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <form id="order-form" onSubmit={handleSubmitOrder} className="space-y-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-bold text-stone-700 uppercase mb-1.5 tracking-wide">
+              <label className="block text-[11px] font-bold text-stone-700 uppercase mb-1 tracking-wide">
                 Ad Soyad <span className="text-rose-500">*</span>
               </label>
               <input
@@ -404,13 +404,13 @@ export default function CheckoutModal() {
                 required
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                className="w-full bg-stone-50 border border-stone-200 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:border-brand-500 font-semibold text-stone-800"
+                className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3.5 py-2 text-xs sm:text-sm focus:outline-none focus:border-brand-500 font-semibold text-stone-800"
                 placeholder="Ad Soyad"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-stone-700 uppercase mb-1.5 tracking-wide">
+              <label className="block text-[11px] font-bold text-stone-700 uppercase mb-1 tracking-wide">
                 Telefon Numarası <span className="text-rose-500">*</span>
               </label>
               <input
@@ -424,16 +424,16 @@ export default function CheckoutModal() {
                   setPhone(formatTurkishPhoneInput(e.target.value));
                   setErrorMsg('');
                 }}
-                className="w-full bg-stone-50 border border-stone-200 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:border-brand-500 font-semibold text-stone-800"
+                className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3.5 py-2 text-xs sm:text-sm focus:outline-none focus:border-brand-500 font-semibold text-stone-800"
                 placeholder="0532 123 45 67"
               />
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <div className="flex justify-between items-center mb-1.5">
-                <label className="block text-xs font-bold text-stone-700 uppercase tracking-wide">
+              <div className="flex justify-between items-center mb-1">
+                <label className="block text-[11px] font-bold text-stone-700 uppercase tracking-wide">
                   Teslimat Bölgesi / Mahalle <span className="text-rose-500">*</span>
                 </label>
                 <span className="text-[11px] text-brand-600 font-bold">
@@ -443,7 +443,7 @@ export default function CheckoutModal() {
               <select
                 value={neighborhood}
                 onChange={(e) => setNeighborhood(e.target.value)}
-                className="app-select w-full bg-stone-50 hover:bg-white border border-stone-200 hover:border-brand-400 rounded-2xl px-4 py-3 text-xs sm:text-sm focus:outline-none focus:border-brand-500 font-bold text-stone-800 cursor-pointer shadow-2xs transition-all"
+                className="app-select w-full bg-stone-50 hover:bg-white border border-stone-200 hover:border-brand-400 rounded-xl px-3.5 py-2 text-xs sm:text-sm focus:outline-none focus:border-brand-500 font-bold text-stone-800 cursor-pointer shadow-2xs transition-all"
               >
                 {TORBALI_NEIGHBORHOODS.map((nh) => (
                   <option key={nh.name} value={nh.name}>
@@ -454,7 +454,7 @@ export default function CheckoutModal() {
             </div>
 
             <div>
-              <label className="block text-xs font-bold text-stone-700 uppercase mb-1.5 tracking-wide">
+              <label className="block text-[11px] font-bold text-stone-700 uppercase mb-1 tracking-wide">
                 Sipariş Notu / Daire &amp; Kat{' '}
                 <span className="text-stone-400 font-normal lowercase">(isteğe bağlı)</span>
               </label>
@@ -463,36 +463,36 @@ export default function CheckoutModal() {
                 id="order-notes"
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
-                className="w-full bg-stone-50 border border-stone-200 rounded-2xl px-4 py-3 text-xs sm:text-sm focus:outline-none focus:border-brand-500 font-medium text-stone-800"
+                className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3.5 py-2 text-xs sm:text-sm focus:outline-none focus:border-brand-500 font-medium text-stone-800"
                 placeholder="Örn: 3. Kat Daire 7, zile basmayın..."
               />
             </div>
           </div>
 
-          <div>
-            <label className="block text-xs font-bold text-stone-700 uppercase mb-1.5 tracking-wide">
-              Açık Adres (Sokak, Bina No, Torbalı) <span className="text-rose-500">*</span>
-            </label>
-            <textarea
-              id="order-address"
-              required
-              rows={2}
-              value={address}
-              onChange={(e) => setAddress(e.target.value)}
-              className="w-full bg-stone-50 border border-stone-200 rounded-2xl px-4 py-2.5 text-xs sm:text-sm focus:outline-none focus:border-brand-500 font-medium text-stone-800 resize-none"
-              placeholder="Örn: Hüseyin Kurtuldu Sok. No:32 Torbalı / İzmir..."
-            />
-          </div>
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
+            <div className="md:col-span-5">
+              <label className="block text-[11px] font-bold text-stone-700 uppercase mb-1 tracking-wide">
+                Açık Adres (Sokak, Bina No, Torbalı) <span className="text-rose-500">*</span>
+              </label>
+              <input
+                type="text"
+                id="order-address"
+                required
+                value={address}
+                onChange={(e) => setAddress(e.target.value)}
+                className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm focus:outline-none focus:border-brand-500 font-medium text-stone-800"
+                placeholder="Örn: Hüseyin Kurtuldu Sok. No:32..."
+              />
+            </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
-            <div className="md:col-span-8">
-              <label className="block text-xs font-bold text-stone-700 uppercase mb-1.5 tracking-wide">
+            <div className="md:col-span-5">
+              <label className="block text-[11px] font-bold text-stone-700 uppercase mb-1 tracking-wide">
                 Ödeme Yöntemi (Kapıda Teslim)
               </label>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 gap-2">
                 <label
-                  className={`flex items-center gap-3 p-3.5 rounded-2xl border cursor-pointer transition-all ${paymentMethod === 'Kapıda Nakit'
-                    ? 'border-brand-500 bg-brand-50/50 shadow-sm'
+                  className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border cursor-pointer transition-all ${paymentMethod === 'Kapıda Nakit'
+                    ? 'border-brand-500 bg-brand-50/50 shadow-2xs'
                     : 'border-stone-200 bg-stone-50 hover:border-brand-300'
                     }`}
                 >
@@ -504,14 +504,14 @@ export default function CheckoutModal() {
                     onChange={() => setPaymentMethod('Kapıda Nakit')}
                     className="text-brand-600 focus:ring-brand-500"
                   />
-                  <span className="text-xs sm:text-sm font-bold text-stone-800 flex items-center gap-2">
+                  <span className="text-xs font-bold text-stone-800 flex items-center gap-1.5">
                     <i className="fa-solid fa-wallet text-brand-600"></i> Kapıda Nakit
                   </span>
                 </label>
 
                 <label
-                  className={`flex items-center gap-3 p-3.5 rounded-2xl border cursor-pointer transition-all ${paymentMethod === 'Kapıda Kredi Kartı'
-                    ? 'border-brand-500 bg-brand-50/50 shadow-sm'
+                  className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border cursor-pointer transition-all ${paymentMethod === 'Kapıda Kredi Kartı'
+                    ? 'border-brand-500 bg-brand-50/50 shadow-2xs'
                     : 'border-stone-200 bg-stone-50 hover:border-brand-300'
                     }`}
                 >
@@ -523,16 +523,16 @@ export default function CheckoutModal() {
                     onChange={() => setPaymentMethod('Kapıda Kredi Kartı')}
                     className="text-brand-600 focus:ring-brand-500"
                   />
-                  <span className="text-xs sm:text-sm font-bold text-stone-800 flex items-center gap-2">
+                  <span className="text-xs font-bold text-stone-800 flex items-center gap-1.5">
                     <i className="fa-solid fa-credit-card text-brand-600"></i> Kapıda Kart
                   </span>
                 </label>
               </div>
             </div>
 
-            <div className="md:col-span-4 bg-stone-50 rounded-2xl p-3.5 border border-stone-200 flex justify-between items-center">
-              <span className="text-stone-500 font-bold text-xs">Toplam:</span>
-              <span className="text-xl font-black text-brand-600">₺{grandTotal.toFixed(2)}</span>
+            <div className="md:col-span-2 bg-stone-50 rounded-xl px-3 py-2 border border-stone-200 flex md:flex-col justify-between md:justify-center items-center">
+              <span className="text-stone-500 font-bold text-[10px] uppercase">Toplam</span>
+              <span className="text-base font-black text-brand-600 leading-tight">₺{grandTotal.toFixed(2)}</span>
             </div>
           </div>
 

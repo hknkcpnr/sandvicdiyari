@@ -1087,8 +1087,8 @@ export default function UsersRolesTab({ currentAdmin, onRolesOrUsersUpdated }) {
 
       {/* MODAL 2: ROL MODELİ EKLE / DÜZENLE */}
       {isRoleModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-900/60 backdrop-blur-xs">
-          <div className="bg-white rounded-2xl max-w-2xl w-full p-6 shadow-2xl space-y-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-stone-900/60 backdrop-blur-xs">
+          <div className="bg-white rounded-3xl max-w-4xl w-full p-5 sm:p-6 shadow-2xl space-y-3.5 max-h-[95vh] overflow-y-auto no-scrollbar">
             <div className="flex items-center justify-between border-b border-stone-100 pb-3">
               <h3 className="font-bold text-base text-stone-900">
                 {editingRole ? `"${editingRole.name}" Rolünü Düzenle` : 'Yeni Rol Modeli'}
@@ -1163,13 +1163,13 @@ export default function UsersRolesTab({ currentAdmin, onRolesOrUsersUpdated }) {
                   </button>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-1.5">
                   {AVAILABLE_PERMISSIONS.map((perm) => {
                     const checked = rolePermissions.includes(perm.id);
                     return (
                       <label
                         key={perm.id}
-                        className={`flex items-center gap-2 p-2.5 rounded-xl border cursor-pointer transition-colors ${
+                        className={`flex items-center gap-2 px-3 py-2 rounded-xl border cursor-pointer transition-colors ${
                           checked
                             ? 'bg-emerald-50 border-emerald-300 text-stone-900 font-bold'
                             : 'bg-stone-50 border-stone-200 text-stone-600 hover:bg-stone-100'
