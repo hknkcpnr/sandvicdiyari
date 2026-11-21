@@ -40,6 +40,7 @@ export default function YoneticiPage() {
 
   // Finance & Overview states
   const [orders, setOrders] = useState([]);
+  const [products, setProducts] = useState([]);
   const [transactions, setTransactions] = useState([]);
   const [staffUsers, setStaffUsers] = useState([]);
   const [visitorStats, setVisitorStats] = useState({
@@ -136,18 +137,23 @@ export default function YoneticiPage() {
   const fetchFinanceData = async () => {
     setLoadingFinance(true);
     try {
-      const [ordersRes, finRes, usersRes, visitorsRes] = await Promise.all([
+      const [ordersRes, finRes, usersRes, visitorsRes, productsRes] = await Promise.all([
         fetch('/api/orders', { cache: 'no-store' }),
         fetch('/api/finance', { cache: 'no-store' }),
         fetch('/api/admin/users', { cache: 'no-store' }),
-        fetch('/api/visitors', { cache: 'no-store' })
+        fetch('/api/visitors', { cache: 'no-store' }),
+        fetch('/api/products', { cache: 'no-store' })
       ]);
       const ordersJson = await ordersRes.json();
       const finJson = await finRes.json();
       const usersJson = await usersRes.json();
       const visitorsJson = await visitorsRes.json().catch(() => ({}));
+      const productsJson = await productsRes.json().catch(() => ({}));
       if (ordersJson.success && Array.isArray(ordersJson.data)) {
         setOrders(ordersJson.data);
+      }
+      if (productsJson?.success && Array.isArray(productsJson.data)) {
+        setProducts(productsJson.data);
       }
       if (finJson.success && Array.isArray(finJson.data)) {
         setTransactions(finJson.data);
@@ -500,6 +506,212 @@ export default function YoneticiPage() {
       periodRevenue
     };
   }, [orders, staffUsers, chartPeriod, chartMetric]);
+
+  // ----------------------------------------------------
+  // ÜRÜN & STOK ÖNGÖRÜLERİ (Üye Tercihleri & Tahmini Stok Bitişi)
+  // ----------------------------------------------------
+  const productInsights = useMemo(() => {
+    const validOrders = Array.isArray(orders) ? orders.filter((o) => o.status !== 'İptal Edildi') : [];
+    
+    // Üye ve misafir metrikleri
+    let memberOrdersCount = 0;
+    let memberRevenue = 0;
+    let guestOrdersCount = 0;
+    let guestRevenue = 0;
+
+    // Ürün bazında satış & üye tercih haritası
+    const productStatsMap = new Map();
+
+    // Katalogdaki ürünleri başlangıç haritasına yükle
+    if (Array.isArray(products)) {
+      products.forEach((p) => {
+        productStatsMap.set(String(p.id), {
+          id: String(p.id),
+          name: p.name,
+          category: p.category || 'menu',
+          price: Number(p.price) || 0,
+          stock: Number(p.stock) || 0,
+          isAvailable: p.isAvailable !== false,
+          image: p.image || '/images/hero_banner.jpg',
+          totalQuantity: 0,
+          memberQuantity: 0,
+          totalRevenue: 0,
+          orderCount: 0,
+          memberOrderCount: 0
+        });
+      });
+    }
+
+    // Siparişleri analiz et
+    validOrders.forEach((o) => {
+      const isMemberOrder = Boolean(
+        o.isMember ||
+        o.userId ||
+        (o.userEmail && !String(o.userEmail).toLowerCase().startsWith('guest_') && !String(o.userEmail).toLowerCase().startsWith('misafir_'))
+      );
+      const orderTotal = Number(o.total) || 0;
+
+      if (isMemberOrder) {
+        memberOrdersCount += 1;
+        memberRevenue += orderTotal;
+      } else {
+        guestOrdersCount += 1;
+        guestRevenue += orderTotal;
+      }
+
+      // items listesi parse
+      let items = [];
+      if (Array.isArray(o.items)) {
+        items = o.items;
+      } else if (typeof o.items === 'string') {
+        try {
+          items = JSON.parse(o.items);
+        } catch {
+          items = [];
+        }
+      }
+
+      items.forEach((item) => {
+        const pid = String(item.productId || item.id || item.name || '');
+        const qty = Number(item.quantity || item.qty || 1);
+        const itemPrice = Number(item.price || item.unitPrice || 0);
+        const itemTotal = itemPrice * qty;
+
+        let stat = productStatsMap.get(pid);
+        if (!stat) {
+          // İsim ile eşleştirme dene
+          const matchedByExactName = Array.from(productStatsMap.values()).find(
+            (p) => p.name.trim().toLowerCase() === String(item.name || '').trim().toLowerCase()
+          );
+          if (matchedByExactName) {
+            stat = matchedByExactName;
+          } else {
+            stat = {
+              id: pid || `item_${item.name}`,
+              name: item.name || 'Özel Ürün',
+              category: item.category || 'menu',
+              price: itemPrice,
+              stock: 25,
+              isAvailable: true,
+              image: item.image || '/images/hero_banner.jpg',
+              totalQuantity: 0,
+              memberQuantity: 0,
+              totalRevenue: 0,
+              orderCount: 0,
+              memberOrderCount: 0
+            };
+            productStatsMap.set(stat.id, stat);
+          }
+        }
+
+        stat.totalQuantity += qty;
+        stat.totalRevenue += itemTotal;
+        stat.orderCount += 1;
+        if (isMemberOrder) {
+          stat.memberQuantity += qty;
+          stat.memberOrderCount += 1;
+        }
+      });
+    });
+
+    const allStats = Array.from(productStatsMap.values());
+
+    // 1. ÜYELERİN EN ÇOK TERCİH ETTİĞİ ÜRÜNLER (TOP SELLERS)
+    const topProducts = [...allStats]
+      .filter((p) => p.totalQuantity > 0 || p.orderCount > 0)
+      .sort((a, b) => b.totalQuantity - a.totalQuantity || b.totalRevenue - a.totalRevenue)
+      .slice(0, 6)
+      .map((p, idx) => {
+        const memberRatio = p.totalQuantity > 0 ? Math.round((p.memberQuantity / p.totalQuantity) * 100) : 0;
+        return {
+          ...p,
+          rank: idx + 1,
+          memberRatio
+        };
+      });
+
+    // 2. SATIŞ HIZINA GÖRE TAHMİNİ STOK BİTİŞİ (RUNOUT FORECAST)
+    // Siparişlerin yayılım süresi (varsayılan 14 gün)
+    const nowMs = Date.now();
+    const oldestOrderMs = validOrders.length > 0
+      ? new Date(validOrders[validOrders.length - 1]?.createdAt || nowMs).getTime()
+      : nowMs - 7 * 24 * 60 * 60 * 1000;
+    const daysSpan = Math.max(2, Math.min(30, Math.ceil((nowMs - oldestOrderMs) / (1000 * 60 * 60 * 24))));
+
+    const stockRunouts = allStats
+      .map((p) => {
+        const currentStock = Math.max(0, Number(p.stock) || 0);
+        // Günlük satış hızı
+        const dailyRunRate = p.totalQuantity > 0 ? p.totalQuantity / daysSpan : 0.2;
+        const daysLeft = currentStock > 0 ? currentStock / dailyRunRate : 0;
+
+        let statusKey = 'safe';
+        let statusLabel = 'Yeterli Stok';
+        let statusBadge = 'bg-emerald-50 text-emerald-800 border-emerald-300';
+        let barColor = 'bg-emerald-500';
+        let estimatedText = `${Math.ceil(daysLeft)} gün yeterli`;
+
+        if (currentStock <= 0 || !p.isAvailable) {
+          statusKey = 'out_of_stock';
+          statusLabel = 'Tükendi / Kapalı';
+          statusBadge = 'bg-stone-100 text-stone-600 border-stone-300';
+          barColor = 'bg-stone-400';
+          estimatedText = 'Mutfakta stok yok';
+        } else if (daysLeft <= 1.2 || currentStock <= 3) {
+          statusKey = 'critical';
+          statusLabel = 'Kritik: Bugün Biter';
+          statusBadge = 'bg-rose-50 text-rose-700 border-rose-300 animate-pulse';
+          barColor = 'bg-rose-600';
+          estimatedText = '< 24 saat içinde tükenir';
+        } else if (daysLeft <= 3.5) {
+          statusKey = 'warning';
+          statusLabel = 'Azalıyor: ~2-3 Gün';
+          statusBadge = 'bg-amber-50 text-amber-800 border-amber-300';
+          barColor = 'bg-amber-500';
+          estimatedText = `~${Math.ceil(daysLeft)} günde biter`;
+        } else if (daysLeft <= 7) {
+          statusKey = 'moderate';
+          statusLabel = 'İzlenmeli: ~1 Hafta';
+          statusBadge = 'bg-sky-50 text-sky-800 border-sky-300';
+          barColor = 'bg-sky-500';
+          estimatedText = `~${Math.ceil(daysLeft)} gün yeterli`;
+        }
+
+        return {
+          ...p,
+          currentStock,
+          dailyRunRate: dailyRunRate.toFixed(1),
+          daysLeft: Math.round(daysLeft),
+          statusKey,
+          statusLabel,
+          statusBadge,
+          barColor,
+          estimatedText
+        };
+      })
+      .sort((a, b) => {
+        const orderWeight = { out_of_stock: 1, critical: 2, warning: 3, moderate: 4, safe: 5 };
+        return (orderWeight[a.statusKey] || 99) - (orderWeight[b.statusKey] || 99) || a.daysLeft - b.daysLeft;
+      })
+      .slice(0, 6);
+
+    const totalValidOrders = memberOrdersCount + guestOrdersCount;
+    const memberOrderRate = totalValidOrders > 0 ? Math.round((memberOrdersCount / totalValidOrders) * 100) : 0;
+    const memberAvgBasket = memberOrdersCount > 0 ? memberRevenue / memberOrdersCount : 0;
+    const guestAvgBasket = guestOrdersCount > 0 ? guestRevenue / guestOrdersCount : 0;
+    const totalSoldItemsCount = allStats.reduce((s, p) => s + p.totalQuantity, 0);
+
+    return {
+      topProducts,
+      stockRunouts,
+      memberOrderRate,
+      memberOrdersCount,
+      guestOrdersCount,
+      memberAvgBasket,
+      guestAvgBasket,
+      totalSoldItemsCount
+    };
+  }, [orders, products]);
 
   // ----------------------------------------------------
   // LOGIN SCREEN (/panel ile birebir aynı tasarım)
@@ -1107,7 +1319,228 @@ export default function YoneticiPage() {
               </div>
             </div>
 
-            {/* 3. Anlık Kurye ve Sipariş İlişkileri (Kurye Modülü Açıkken Gösterilir) */}
+            {/* 3. Üye Tercihleri ve Akıllı Stok Bitiş Tahmini Bilgi Panelleri */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+              {/* Sol Panel: Üyelerin En Çok Tercih Ettiği Ürünler */}
+              <div className="lg:col-span-6 bg-white rounded-2xl border border-stone-200 overflow-hidden shadow-2xs">
+                <div className="px-4 py-3.5 border-b border-stone-100 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="w-8 h-8 rounded-xl bg-amber-50 text-amber-600 border border-amber-200 flex items-center justify-center text-xs">
+                      <i className="fa-solid fa-fire"></i>
+                    </span>
+                    <div>
+                      <h3 className="font-extrabold text-xs sm:text-sm text-stone-900 leading-tight">
+                        Üyelerin En Çok Tercih Ettiği Ürünler
+                      </h3>
+                      <p className="text-[10px] text-stone-400">En çok satan lezzetler ve üye sipariş oranı</p>
+                    </div>
+                  </div>
+                  <span className="text-[11px] font-bold text-amber-800 bg-amber-50 border border-amber-200/80 px-2.5 py-1 rounded-xl shrink-0">
+                    %{productInsights.memberOrderRate} Üye Oranı
+                  </span>
+                </div>
+
+                {productInsights.topProducts.length === 0 ? (
+                  <div className="p-8 text-center text-stone-400 text-xs">
+                    Henüz analiz edilecek sipariş verisi bulunmuyor.
+                  </div>
+                ) : (
+                  <div className="divide-y divide-stone-100">
+                    {productInsights.topProducts.map((p) => {
+                      const maxQty = productInsights.topProducts[0]?.totalQuantity || 1;
+                      const progressPct = Math.min(100, Math.round((p.totalQuantity / maxQty) * 100));
+
+                      return (
+                        <div key={p.id} className="p-3.5 hover:bg-stone-50/60 transition-colors space-y-2">
+                          <div className="flex items-center justify-between gap-3">
+                            <div className="flex items-center gap-3 min-w-0">
+                              <div className="relative shrink-0">
+                                <span className={`absolute -top-1.5 -left-1.5 w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-black shadow-xs ${
+                                  p.rank === 1 ? 'bg-amber-400 text-stone-950 ring-2 ring-white' :
+                                  p.rank === 2 ? 'bg-stone-300 text-stone-800 ring-2 ring-white' :
+                                  p.rank === 3 ? 'bg-amber-700 text-white ring-2 ring-white' :
+                                  'bg-stone-100 text-stone-600'
+                                }`}>
+                                  #{p.rank}
+                                </span>
+                                <div className="w-11 h-11 rounded-xl overflow-hidden bg-stone-100 border border-stone-200">
+                                  <img src={p.image} alt={p.name} className="w-full h-full object-cover" />
+                                </div>
+                              </div>
+
+                              <div className="min-w-0">
+                                <span className="font-extrabold text-xs text-stone-900 block truncate">
+                                  {p.name}
+                                </span>
+                                <div className="flex items-center gap-2 mt-0.5">
+                                  <span className="text-[10px] font-bold text-stone-500">
+                                    ₺{p.price.toFixed(2)}
+                                  </span>
+                                  <span className="text-stone-300 text-[10px]">&bull;</span>
+                                  <span className="text-[10px] font-semibold text-indigo-600 bg-indigo-50 px-1.5 py-0.2 rounded">
+                                    %{p.memberRatio} Üye Tercihi
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="text-right shrink-0">
+                              <span className="text-xs font-black text-stone-900 block">
+                                {p.totalQuantity} Adet
+                              </span>
+                              <span className="text-[10px] font-bold text-emerald-600 block">
+                                ₺{p.totalRevenue.toFixed(2)}
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* İlerleme Çubuğu */}
+                          <div className="w-full bg-stone-100 h-1.5 rounded-full overflow-hidden">
+                            <div
+                              style={{ width: `${progressPct}%` }}
+                              className={`h-full rounded-full transition-all ${
+                                p.rank === 1 ? 'bg-gradient-to-r from-amber-500 to-amber-400' : 'bg-stone-700'
+                              }`}
+                            ></div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {/* Sağ Panel: Satış Hızına Göre Tahmini Stok Bitişi */}
+              <div className="lg:col-span-6 bg-white rounded-2xl border border-stone-200 overflow-hidden shadow-2xs">
+                <div className="px-4 py-3.5 border-b border-stone-100 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="w-8 h-8 rounded-xl bg-rose-50 text-rose-600 border border-rose-200 flex items-center justify-center text-xs">
+                      <i className="fa-solid fa-hourglass-half"></i>
+                    </span>
+                    <div>
+                      <h3 className="font-extrabold text-xs sm:text-sm text-stone-900 leading-tight">
+                        Satış Hızına Göre Tahmini Stok Bitişi
+                      </h3>
+                      <p className="text-[10px] text-stone-400">Tüketim hızına göre otomatik stok tükenme öngörüsü</p>
+                    </div>
+                  </div>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-rose-700 bg-rose-50 border border-rose-200 px-2 py-0.5 rounded-full shrink-0">
+                    Akıllı Tedarik
+                  </span>
+                </div>
+
+                {productInsights.stockRunouts.length === 0 ? (
+                  <div className="p-8 text-center text-stone-400 text-xs">
+                    Stok takip verisi bulunmuyor.
+                  </div>
+                ) : (
+                  <div className="divide-y divide-stone-100">
+                    {productInsights.stockRunouts.map((item) => {
+                      const maxCap = 50;
+                      const fillPct = Math.min(100, Math.max(5, Math.round((item.currentStock / maxCap) * 100)));
+
+                      return (
+                        <div key={item.id} className="p-3.5 hover:bg-stone-50/60 transition-colors space-y-2">
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-2">
+                                <span className="font-extrabold text-xs text-stone-900 truncate">
+                                  {item.name}
+                                </span>
+                                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border shrink-0 ${item.statusBadge}`}>
+                                  {item.statusLabel}
+                                </span>
+                              </div>
+                              <span className="text-[11px] text-stone-400 block mt-0.5">
+                                Günlük Hız: <strong className="text-stone-700">~{item.dailyRunRate} adet/gün</strong>
+                              </span>
+                            </div>
+
+                            <div className="text-right shrink-0">
+                              <span className="text-xs font-black text-stone-900 block">
+                                {item.currentStock} Adet Stok
+                              </span>
+                              <span className={`text-[10px] font-bold block ${
+                                item.statusKey === 'critical' ? 'text-rose-600' :
+                                item.statusKey === 'warning' ? 'text-amber-700' :
+                                item.statusKey === 'out_of_stock' ? 'text-stone-400' :
+                                'text-emerald-600'
+                              }`}>
+                                {item.estimatedText}
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* Stok Düzeyi Barı */}
+                          <div className="w-full bg-stone-100 h-1.5 rounded-full overflow-hidden">
+                            <div
+                              style={{ width: `${fillPct}%` }}
+                              className={`h-full rounded-full transition-all ${item.barColor}`}
+                            ></div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* 3B. Üye Sadakat & Sepet Davranışı Özet Şeridi */}
+            <div className="bg-gradient-to-r from-stone-900 via-stone-850 to-stone-900 rounded-2xl p-4 text-white border border-stone-800 shadow-xs grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-amber-400/20 text-amber-400 border border-amber-400/30 flex items-center justify-center text-sm shrink-0">
+                  <i className="fa-solid fa-award"></i>
+                </div>
+                <div className="min-w-0">
+                  <span className="text-[11px] font-bold text-stone-400 block uppercase tracking-wider">
+                    Müşteri Sadakat Oranı
+                  </span>
+                  <p className="text-base font-extrabold text-amber-400">
+                    %{productInsights.memberOrderRate} Üye &bull; %{100 - productInsights.memberOrderRate} Misafir
+                  </p>
+                  <span className="text-[10px] text-stone-400">
+                    {productInsights.memberOrdersCount} üye, {productInsights.guestOrdersCount} misafir siparişi
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-emerald-400/20 text-emerald-400 border border-emerald-400/30 flex items-center justify-center text-sm shrink-0">
+                  <i className="fa-solid fa-basket-shopping"></i>
+                </div>
+                <div className="min-w-0">
+                  <span className="text-[11px] font-bold text-stone-400 block uppercase tracking-wider">
+                    Üye vs Misafir Sepet Tutarı
+                  </span>
+                  <p className="text-base font-extrabold text-emerald-400">
+                    ₺{productInsights.memberAvgBasket.toFixed(0)} <span className="text-xs text-stone-400 font-normal">/ ₺{productInsights.guestAvgBasket.toFixed(0)}</span>
+                  </p>
+                  <span className="text-[10px] text-stone-400">
+                    Üyeler ortalama %{productInsights.guestAvgBasket > 0 ? Math.max(0, Math.round(((productInsights.memberAvgBasket - productInsights.guestAvgBasket) / productInsights.guestAvgBasket) * 100)) : 0} daha fazla harcıyor
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-indigo-400/20 text-indigo-400 border border-indigo-400/30 flex items-center justify-center text-sm shrink-0">
+                  <i className="fa-solid fa-chart-line"></i>
+                </div>
+                <div className="min-w-0">
+                  <span className="text-[11px] font-bold text-stone-400 block uppercase tracking-wider">
+                    Toplam Satılan Sandviç &amp; Lezzet
+                  </span>
+                  <p className="text-base font-extrabold text-indigo-300">
+                    {productInsights.totalSoldItemsCount} Porsiyon / Adet
+                  </p>
+                  <span className="text-[10px] text-stone-400">
+                    Aktif siparişlerde hazırlanan toplam hacim
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* 4. Anlık Kurye ve Sipariş İlişkileri (Kurye Modülü Açıkken Gösterilir) */}
             {isCourierEnabled && (
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
               <div className="lg:col-span-7 bg-white rounded-2xl border border-stone-200 overflow-hidden">
