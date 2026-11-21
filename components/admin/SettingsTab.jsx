@@ -255,16 +255,31 @@ export default function SettingsTab({
     }));
 
     if (typeof window !== 'undefined') {
+      window.__sdCustomBellSounds = nextCustomSounds;
+      // 1. Always write lightweight keys first so QuotaExceededError never blocks sd_bell_sound!
       try {
-        localStorage.setItem('sandwich_admin_settings', JSON.stringify(nextSettingsObj));
-        localStorage.setItem('sd_custom_bell_sounds', JSON.stringify(nextCustomSounds));
         localStorage.setItem('sd_bell_sound', nextSoundType);
         localStorage.setItem('sd_bell_volume', String(Number(nextVolume) / 100));
+        const { customSounds: _omitHeavyAudio, ...liteAdminSettings } = nextSettingsObj;
+        localStorage.setItem('sandwich_admin_settings', JSON.stringify(liteAdminSettings));
       } catch {}
+
+      // 2. Write customSounds array; if 5MB localStorage quota is exceeded, store only the active/newest sound in localStorage
+      try {
+        localStorage.setItem('sd_custom_bell_sounds', JSON.stringify(nextCustomSounds));
+      } catch {
+        try {
+          const activeOnly = nextCustomSounds.filter((s) => s.id === nextSoundType);
+          const fallbackSlice = activeOnly.length > 0 ? activeOnly : nextCustomSounds.slice(-1);
+          localStorage.removeItem('sd_custom_bell_sounds');
+          localStorage.setItem('sd_custom_bell_sounds', JSON.stringify(fallbackSlice));
+        } catch {}
+      }
     }
 
     if (onSaveSettings) {
-      onSaveSettings(nextSettingsObj);
+      const { customSounds: _omit, ...liteForParent } = nextSettingsObj;
+      onSaveSettings(liteForParent);
     }
 
     try {
@@ -302,53 +317,12 @@ export default function SettingsTab({
   // Ayarları Kaydet
   const handleSave = async () => {
     const customList = Array.isArray(settings.customSounds) ? settings.customSounds : [];
-    if (typeof window !== 'undefined') {
-      try {
-        localStorage.setItem('sandwich_admin_settings', JSON.stringify(settings));
-        localStorage.setItem('sd_custom_bell_sounds', JSON.stringify(customList));
-        if (settings.soundType) {
-          localStorage.setItem('sd_bell_sound', settings.soundType);
-        }
-        if (settings.soundVolume) {
-          localStorage.setItem('sd_bell_volume', String(Number(settings.soundVolume) / 100));
-        }
-      } catch (e) {
-        console.error('Ayarlar kaydedilemedi:', e);
-      }
-    }
-    if (onSaveSettings) {
-      onSaveSettings(settings);
-    }
+    const activeSoundType =
+      customList.length > 0 && (!settings.soundType || settings.soundType === 'chime')
+        ? customList[customList.length - 1].id
+        : settings.soundType || 'chime';
 
-    if (activeSubTab === 'sound') {
-      setIsSavingCustNotif(true);
-      try {
-        const res = await fetch('/api/notifications', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            action: 'save_settings',
-            settings: {
-              ...custNotifSettings,
-              customSounds: customList,
-              posSoundType: settings.soundType,
-              posSoundVolume: settings.soundVolume
-            }
-          })
-        });
-        const json = await res.json();
-        if (json?.success && json?.data?.settings) {
-          setCustNotifSettings(json.data.settings);
-          try {
-            localStorage.setItem('sandwich_notifications_updated', String(Date.now()));
-          } catch (err) {}
-        }
-      } catch (err) {
-        console.error('Müşteri bildirim ayarları kaydedilemedi:', err);
-      } finally {
-        setIsSavingCustNotif(false);
-      }
-    }
+    await syncSoundSettingsEverywhere(customList, activeSoundType, settings.soundVolume || 80);
 
     setSavedSuccess(true);
     setTimeout(() => setSavedSuccess(false), 3000);
@@ -356,13 +330,17 @@ export default function SettingsTab({
 
   // Ses Testi (Web Audio API & Özel Ses Dosyaları)
   const handlePlaySoundTest = (overrideSoundId = null, overrideList = null) => {
-    const activeType = overrideSoundId || settings.soundType || 'chime';
     const list = overrideList || settings.customSounds || [];
+    const activeType =
+      overrideSoundId ||
+      (list.length > 0 && (!settings.soundType || settings.soundType === 'chime')
+        ? list[list.length - 1].id
+        : settings.soundType || 'chime');
     const vol = (settings.soundVolume || 80) / 100;
     playKitchenBellSound(activeType, vol, list);
   };
 
-  // Cihazdan Ses Dosyası Seçme (.mp3, .wav, .ogg, .m4a)
+  // Cihazdan Ses Dosyası Seçme (.mp3, .wav, .ogg, .m4a) -> Seçildiği anda otomatik listeye ekler ve aktif ses yapar!
   const handleAudioFileSelect = (e) => {
     setSoundUploadError('');
     const file = e.target.files?.[0];
@@ -373,8 +351,8 @@ export default function SettingsTab({
       return;
     }
 
-    if (file.size > 2.5 * 1024 * 1024) {
-      setSoundUploadError('Ses dosyası boyutu en fazla 2.5 MB olabilir.');
+    if (file.size > 3.5 * 1024 * 1024) {
+      setSoundUploadError('Ses dosyası boyutu en fazla 3.5 MB olabilir.');
       return;
     }
 
@@ -382,10 +360,29 @@ export default function SettingsTab({
     reader.onload = () => {
       const dataUrl = String(reader.result || '');
       if (dataUrl.startsWith('data:')) {
-        setNewSoundUrl(dataUrl);
-        setNewSoundFileName(file.name);
-        if (!newSoundLabel.trim()) {
-          setNewSoundLabel(file.name.replace(/\.[^/.]+$/, '').slice(0, 40));
+        const autoLabel =
+          newSoundLabel.trim() || file.name.replace(/\.[^/.]+$/, '').slice(0, 40) || 'Özel Bildirim Sesi';
+        const newSound = {
+          id: `custom_${Date.now()}`,
+          label: autoLabel,
+          desc: `Dosya: ${file.name}`,
+          audioUrl: dataUrl,
+          createdAt: new Date().toISOString()
+        };
+
+        // Yeni ses eklendiğinde önceki sesin çalmaya devam etmemesi için yeni sesi aktif yap
+        const currentList = Array.isArray(settings.customSounds) ? settings.customSounds : [];
+        const nextList = [...currentList, newSound];
+
+        setNewSoundLabel('');
+        setNewSoundUrl('');
+        setNewSoundFileName('');
+        if (audioFileInputRef.current) audioFileInputRef.current.value = '';
+
+        syncSoundSettingsEverywhere(nextList, newSound.id);
+        handlePlaySoundTest(newSound.id, nextList);
+        if (showToast) {
+          showToast(`"${autoLabel}" bildirim sesi olarak eklendi ve aktif edildi! 🔊`, 'success');
         }
       }
     };

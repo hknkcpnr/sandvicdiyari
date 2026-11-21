@@ -3,13 +3,14 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 
 let activeCustomAudio = null;
+let activeAudioCtx = null;
 
 // Web Audio & Custom Audio Kitchen POS Bell Player
-export function playKitchenBellSound(soundType = 'pos_bell', volume = 0.85, customSoundsOpt = null) {
+export function playKitchenBellSound(soundType = null, volume = 0.85, customSoundsOpt = null) {
   try {
     const safeVolume = Math.min(1, Math.max(0.05, Number(volume) || 0.85));
 
-    // Stop any currently playing custom audio to prevent overlap
+    // Stop any currently playing custom audio or WebAudio context to prevent overlap
     if (activeCustomAudio) {
       try {
         activeCustomAudio.pause();
@@ -17,39 +18,42 @@ export function playKitchenBellSound(soundType = 'pos_bell', volume = 0.85, cust
       } catch {}
       activeCustomAudio = null;
     }
-
-    // Load custom sounds list from argument or localStorage
-    let customList = Array.isArray(customSoundsOpt) && customSoundsOpt.length > 0 ? customSoundsOpt : [];
-    let storedPreferredType = soundType;
-
-    if (typeof window !== 'undefined') {
+    if (activeAudioCtx) {
       try {
-        const savedBellSound = localStorage.getItem('sd_bell_sound');
-        if (savedBellSound && (!soundType || soundType === 'pos_bell' || soundType === 'chime')) {
-          storedPreferredType = savedBellSound;
-        }
-        if (customList.length === 0) {
-          const rawCustom = localStorage.getItem('sd_custom_bell_sounds');
-          if (rawCustom) {
-            const parsed = JSON.parse(rawCustom);
-            if (Array.isArray(parsed)) customList = parsed;
-          }
-        }
-        if (customList.length === 0) {
-          const rawAdminSettings = localStorage.getItem('sandwich_admin_settings');
-          if (rawAdminSettings) {
-            const parsedSettings = JSON.parse(rawAdminSettings);
-            if (Array.isArray(parsedSettings?.customSounds)) {
-              customList = parsedSettings.customSounds;
-            }
-          }
+        activeAudioCtx.close();
+      } catch {}
+      activeAudioCtx = null;
+    }
+
+    // 1. Gather custom sounds from argument, window memory cache, and localStorage
+    let customList = [];
+    if (Array.isArray(customSoundsOpt) && customSoundsOpt.length > 0) {
+      customList = customSoundsOpt;
+    } else if (typeof window !== 'undefined' && Array.isArray(window.__sdCustomBellSounds) && window.__sdCustomBellSounds.length > 0) {
+      customList = window.__sdCustomBellSounds;
+    } else if (typeof window !== 'undefined') {
+      try {
+        const rawCustom = localStorage.getItem('sd_custom_bell_sounds');
+        if (rawCustom) {
+          const parsed = JSON.parse(rawCustom);
+          if (Array.isArray(parsed)) customList = parsed;
         }
       } catch {}
     }
 
-    const effectiveType = storedPreferredType || soundType || 'pos_bell';
+    // 2. Determine the active soundType
+    let effectiveType = soundType;
+    if (typeof window !== 'undefined') {
+      const savedBellSound = localStorage.getItem('sd_bell_sound');
+      if (!effectiveType || effectiveType === 'pos_bell' || effectiveType === 'chime') {
+        if (savedBellSound) {
+          effectiveType = savedBellSound;
+        }
+      }
+    }
+    if (!effectiveType) effectiveType = 'pos_bell';
 
-    // Match by ID; if user has added custom sound(s) and effectiveType is still default ('pos_bell' / 'chime') or custom_*, use their custom sound!
+    // 3. Find matching custom sound (or latest custom sound if effectiveType is custom_* / default)
     let matchedCustom = customList.find((s) => s && s.id === effectiveType && s.audioUrl);
     if (
       !matchedCustom &&
@@ -64,8 +68,7 @@ export function playKitchenBellSound(soundType = 'pos_bell', volume = 0.85, cust
     const directAudioUrl =
       matchedCustom?.audioUrl ||
       (typeof effectiveType === 'string' &&
-      (effectiveType.startsWith('data:audio/') ||
-        effectiveType.startsWith('data:application/octet-stream') ||
+      (effectiveType.startsWith('data:') ||
         effectiveType.startsWith('http://') ||
         effectiveType.startsWith('https://') ||
         effectiveType.startsWith('/'))
@@ -82,14 +85,15 @@ export function playKitchenBellSound(soundType = 'pos_bell', volume = 0.85, cust
       return;
     }
 
-    // If a custom sound ID was requested, never play the old built-in synthesizer
-    if (String(effectiveType).startsWith('custom_')) {
+    // If a custom sound ID was requested or custom sounds exist, never fall back to the old built-in synthesizer
+    if (String(effectiveType).startsWith('custom_') || customList.length > 0) {
       return;
     }
 
     const AudioCtx = window.AudioContext || window.webkitAudioContext;
     if (!AudioCtx) return;
     const ctx = new AudioCtx();
+    activeAudioCtx = ctx;
     if (ctx.state === 'suspended') {
       ctx.resume();
     }
@@ -218,9 +222,17 @@ export default function KitchenPosBell({
           if (!s) return;
           if (Array.isArray(s.customSounds)) {
             setCustomSounds(s.customSounds);
+            if (typeof window !== 'undefined') {
+              window.__sdCustomBellSounds = s.customSounds;
+            }
             try {
               localStorage.setItem('sd_custom_bell_sounds', JSON.stringify(s.customSounds));
-            } catch {}
+            } catch {
+              try {
+                const latestOnly = s.customSounds.slice(-1);
+                localStorage.setItem('sd_custom_bell_sounds', JSON.stringify(latestOnly));
+              } catch {}
+            }
           }
           if (s.posSoundType) {
             setSoundType(s.posSoundType);
