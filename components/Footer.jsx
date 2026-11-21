@@ -2,7 +2,7 @@
 
 import { useState, useRef } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import { showMessageModal } from '@/store/slices/uiSlice';
+import { showMessageModal, openTrackOrderModal } from '@/store/slices/uiSlice';
 import { getRestaurantStatus, CLOSED_MESSAGE } from '@/lib/openingHours';
 
 export default function Footer() {
@@ -318,6 +318,15 @@ export default function Footer() {
               className="hover:text-brand-400 underline underline-offset-4 transition-colors cursor-pointer"
             >
               Sipariş ve İptal Koşulları
+            </button>
+            <span className="text-stone-700">&bull;</span>
+            <button
+              type="button"
+              onClick={() => dispatch(openTrackOrderModal())}
+              className="text-amber-400 hover:text-amber-300 font-bold transition-colors cursor-pointer inline-flex items-center gap-1"
+            >
+              <i className="fa-solid fa-location-crosshairs text-xs"></i>
+              <span>Sipariş Takibi &amp; Sorgula</span>
             </button>
           </div>
         </div>

@@ -7,9 +7,13 @@ import SiteContentEditorTab from './SiteContentEditorTab';
 import { playKitchenBellSound } from './KitchenPosBell';
 import { DEFAULT_CUSTOMER_NOTIFICATION_SETTINGS } from '@/lib/notificationDefaults';
 import { BANNER_THEMES } from '@/components/CustomerAnnouncementBanner';
+import { getOrderPauseState } from '@/lib/orderPause';
 
 export const DEFAULT_ADMIN_SETTINGS = {
   courierModuleEnabled: true,
+  ordersPaused: false,
+  ordersPausedUntil: null,
+  ordersPausedReason: '',
   fontSize: 'medium', // 'small' | 'medium' | 'large'
   density: 'comfortable', // 'comfortable' | 'compact'
   soundEnabled: true,
@@ -805,6 +809,50 @@ export default function SettingsTab({
     }
   };
 
+  // Sipariş Alımını Geçici Durdurma / Açma (Yoğunluk Kontrolü)
+  const handleOrderPauseToggle = async (minutes) => {
+    const isPausing = minutes !== null;
+    const nextSettings = {
+      ...settings,
+      ordersPaused: isPausing,
+      ordersPausedUntil: isPausing && minutes > 0 ? new Date(Date.now() + minutes * 60000).toISOString() : null,
+      ordersPausedReason: isPausing ? 'Yoğunluk nedeniyle kısa bir süre sipariş alamıyoruz.' : ''
+    };
+    setSettings(nextSettings);
+
+    try {
+      localStorage.setItem('sandwich_admin_settings', JSON.stringify(nextSettings));
+      window.dispatchEvent(new Event('storage'));
+      window.dispatchEvent(new CustomEvent('sd_order_pause_updated', { detail: { paused: isPausing } }));
+    } catch {}
+
+    if (onSaveSettings) onSaveSettings(nextSettings);
+
+    try {
+      await fetch('/api/admin/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ordersPaused: isPausing,
+          ordersPausedUntil: nextSettings.ordersPausedUntil,
+          ordersPausedReason: nextSettings.ordersPausedReason
+        })
+      });
+      if (showToast) {
+        showToast(
+          isPausing
+            ? minutes > 0
+              ? `Sipariş alımı ${minutes} dakika durduruldu.`
+              : 'Sipariş alımı siz açana kadar durduruldu.'
+            : 'Sipariş alımı tekrar açıldı (Normal operasyon).',
+          isPausing ? 'info' : 'success'
+        );
+      }
+    } catch (e) {
+      console.warn('Order pause save error:', e);
+    }
+  };
+
   // Yedek İndirme (Excel .xlsx & JSON)
   const [downloadingFormat, setDownloadingFormat] = useState(null); // 'excel' | 'json' | null
 
@@ -1110,6 +1158,88 @@ export default function SettingsTab({
                   </p>
                 </div>
               </div>
+            </div>
+          </div>
+
+          {/* Sipariş Alımını Geçici Durdurma / Acil Yoğunluk Kartı */}
+          <div className="lg:col-span-12 bg-white p-4 sm:p-5 rounded-2xl border border-stone-200 shadow-xs space-y-3.5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-stone-100 pb-3">
+              <div>
+                <h3 className="text-sm font-extrabold text-stone-900 flex items-center gap-2">
+                  <i className="fa-solid fa-hourglass-half text-amber-500"></i>
+                  <span>Sipariş Alımını Geçici Durdurma (Acil Yoğunluk &amp; Mola)</span>
+                </h3>
+                <p className="text-xs text-stone-500 mt-0.5">
+                  Mutfakta aşırı yığılma olduğunda veya malzeme tükendiğinde sipariş alımını belirli bir süre durdurabilirsiniz.
+                </p>
+              </div>
+              {(() => {
+                const pauseInfo = getOrderPauseState(settings);
+                return (
+                  <span className={`text-[10px] font-extrabold px-2.5 py-1 rounded-full border self-start sm:self-center ${
+                    pauseInfo.paused
+                      ? 'bg-rose-50 text-rose-700 border-rose-200 animate-pulse'
+                      : 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                  }`}>
+                    {pauseInfo.paused
+                      ? pauseInfo.remainingMinutes > 0
+                        ? `● Sipariş Alımı Durduruldu (${pauseInfo.remainingMinutes} dk kaldı)`
+                        : '● Sipariş Alımı Durduruldu (Süresiz)'
+                      : '● Sipariş Alımı Açık (Normal)'}
+                  </span>
+                );
+              })()}
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={() => handleOrderPauseToggle(null)}
+                className={`px-4 py-2 rounded-xl text-xs font-bold transition-all border cursor-pointer ${
+                  !getOrderPauseState(settings).paused
+                    ? 'bg-emerald-600 text-white border-emerald-600 shadow-2xs'
+                    : 'bg-stone-50 hover:bg-stone-100 border-stone-200 text-stone-700'
+                }`}
+              >
+                <i className="fa-solid fa-circle-play mr-1.5"></i>
+                Siparişe Açık (Normal)
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleOrderPauseToggle(15)}
+                className="px-3.5 py-2 rounded-xl text-xs font-bold bg-white hover:bg-rose-50 hover:text-rose-700 border border-stone-200 hover:border-rose-300 text-stone-700 transition-all cursor-pointer shadow-2xs"
+              >
+                <i className="fa-solid fa-clock mr-1.5 text-amber-500"></i>
+                15 Dakika Durdur
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleOrderPauseToggle(30)}
+                className="px-3.5 py-2 rounded-xl text-xs font-bold bg-white hover:bg-rose-50 hover:text-rose-700 border border-stone-200 hover:border-rose-300 text-stone-700 transition-all cursor-pointer shadow-2xs"
+              >
+                <i className="fa-solid fa-clock mr-1.5 text-amber-500"></i>
+                30 Dakika Durdur
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleOrderPauseToggle(60)}
+                className="px-3.5 py-2 rounded-xl text-xs font-bold bg-white hover:bg-rose-50 hover:text-rose-700 border border-stone-200 hover:border-rose-300 text-stone-700 transition-all cursor-pointer shadow-2xs"
+              >
+                <i className="fa-solid fa-clock mr-1.5 text-amber-500"></i>
+                1 Saat Durdur
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleOrderPauseToggle(0)}
+                className="px-3.5 py-2 rounded-xl text-xs font-bold bg-white hover:bg-rose-50 hover:text-rose-700 border border-stone-200 hover:border-rose-300 text-stone-700 transition-all cursor-pointer shadow-2xs"
+              >
+                <i className="fa-solid fa-hand mr-1.5 text-rose-500"></i>
+                Süresiz Durdur (Ben Açana Kadar)
+              </button>
             </div>
           </div>
         </div>

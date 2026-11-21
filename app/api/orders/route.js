@@ -1,7 +1,9 @@
 import { db } from '@/lib/db';
-import { prisma } from '@/lib/prisma';
+import { prisma, rawPrisma } from '@/lib/prisma';
+import { getOrderPauseState, formatOrderPauseMessage } from '@/lib/orderPause';
 import {
   AuthenticationError,
+  ValidationError,
   handleApiError,
   jsonSuccess,
   parseJsonBody
@@ -91,6 +93,20 @@ export async function POST(request) {
       maxRequests: 25,
       windowMs: 60 * 1000
     });
+
+    // Yönetici "Sipariş Alımını Durdur" dediyse yeni sipariş kabul edilmez (sunucu tarafı zorunlu kontrol)
+    try {
+      if (rawPrisma && rawPrisma.systemSetting) {
+        const rec = await rawPrisma.systemSetting.findUnique({ where: { key: 'admin_system_settings' } });
+        const pauseState = getOrderPauseState(rec?.value);
+        if (pauseState.paused) {
+          throw new ValidationError(formatOrderPauseMessage(pauseState));
+        }
+      }
+    } catch (pauseErr) {
+      if (pauseErr instanceof ValidationError) throw pauseErr;
+      // Ayar okunamazsa sipariş akışını engelleme
+    }
 
     const body = await parseJsonBody(request);
     const pgProducts = await prisma.product.findMany();

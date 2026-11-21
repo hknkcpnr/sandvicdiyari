@@ -17,6 +17,7 @@ import MembersTab from '@/components/admin/MembersTab';
 import OptionsManagementTab from '@/components/admin/OptionsManagementTab';
 import AdminPagination from '@/components/admin/AdminPagination';
 import { buildWhatsAppOrderConfirmUrl } from '@/lib/phoneUtils';
+import { getOrderPauseState } from '@/lib/orderPause';
 
 // Status styling and Turkish badge helpers
 const STATUS_CONFIG = {
@@ -222,6 +223,62 @@ export default function AdminDashboardPage() {
   // Sistem & Panel Ayarları (Yazı Boyutu, Ses, Fiş, Otomatik Yenileme)
   const [adminSettings, setAdminSettings] = useState(DEFAULT_ADMIN_SETTINGS);
   const isCourierEnabled = adminSettings?.courierModuleEnabled !== false;
+
+  // Sipariş Alımını Geçici Durdurma (Yoğunluk / Mola)
+  const [orderPause, setOrderPause] = useState({ paused: false });
+  const [pauseMenuOpen, setPauseMenuOpen] = useState(false);
+  const [pauseSaving, setPauseSaving] = useState(false);
+
+  const refreshOrderPause = () => {
+    fetch('/api/admin/settings', { cache: 'no-store' })
+      .then((r) => r.json())
+      .then((j) => {
+        if (j?.data) setOrderPause(getOrderPauseState(j.data));
+      })
+      .catch(() => {});
+  };
+
+  useEffect(() => {
+    refreshOrderPause();
+    const timer = setInterval(refreshOrderPause, 30000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const handleSetOrderPause = async (minutes) => {
+    // minutes: null => devam ettir, 0 => süresiz durdur, >0 => belirli süre
+    setPauseSaving(true);
+    setPauseMenuOpen(false);
+    const payload =
+      minutes === null
+        ? { ordersPaused: false }
+        : {
+            ordersPaused: true,
+            ordersPausedUntil: minutes > 0 ? new Date(Date.now() + minutes * 60000).toISOString() : null,
+            ordersPausedReason: 'Yoğunluk nedeniyle kısa bir süre sipariş alamıyoruz.'
+          };
+    try {
+      const res = await fetch('/api/admin/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const j = await res.json();
+      if (!res.ok || !j?.success) throw new Error(j?.error || 'Kaydedilemedi');
+      setOrderPause(getOrderPauseState(j.data));
+      showToast(
+        minutes === null
+          ? 'Sipariş alımı tekrar açıldı.'
+          : minutes > 0
+          ? `Sipariş alımı ${minutes} dakika durduruldu.`
+          : 'Sipariş alımı siz açana kadar durduruldu.',
+        minutes === null ? 'success' : 'info'
+      );
+    } catch (err) {
+      showToast(`Sipariş alımı ayarı kaydedilemedi: ${err.message}`, 'error');
+    } finally {
+      setPauseSaving(false);
+    }
+  };
 
   useEffect(() => {
     try {
@@ -1468,7 +1525,12 @@ export default function AdminDashboardPage() {
     .reduce((sum, o) => sum + (Number(o.total) || Number(o.subtotal) || 0), 0);
 
   const newOrdersCount = orders.filter((o) => o.status === 'Yeni' || o.status === 'Görüntülendi').length;
-  const kitchenCount = orders.filter((o) => o.status === 'Onaylandı' || o.status === 'Hazırlanıyor').length;
+  // Kurye modülü kapalıyken kuryeye ait durumlarda kalmış siparişler mutfak sekmesinde görünmeye devam etmeli
+  const isKitchenStage = (s) =>
+    s === 'Onaylandı' ||
+    s === 'Hazırlanıyor' ||
+    (!isCourierEnabled && (s === 'Hazır' || s === 'Kurye Teslim Aldı' || s === 'Yolda'));
+  const kitchenCount = orders.filter((o) => isKitchenStage(o.status)).length;
   const courierCount = orders.filter((o) => o.status === 'Hazır' || o.status === 'Kurye Teslim Aldı' || o.status === 'Yolda').length;
   const completedCount = orders.filter((o) => o.status === 'Teslim Edildi').length;
   const cancelledCount = orders.filter((o) => o.status === 'İptal Edildi').length;
@@ -1478,7 +1540,7 @@ export default function AdminDashboardPage() {
     // Stage Filter
     let stageMatch = true;
     if (orderStageFilter === 'new') stageMatch = o.status === 'Yeni' || o.status === 'Görüntülendi';
-    else if (orderStageFilter === 'kitchen') stageMatch = o.status === 'Onaylandı' || o.status === 'Hazırlanıyor';
+    else if (orderStageFilter === 'kitchen') stageMatch = isKitchenStage(o.status);
     else if (orderStageFilter === 'courier') stageMatch = o.status === 'Hazır' || o.status === 'Kurye Teslim Aldı' || o.status === 'Yolda';
     else if (orderStageFilter === 'completed') stageMatch = o.status === 'Teslim Edildi';
     else if (orderStageFilter === 'cancelled') stageMatch = o.status === 'İptal Edildi';
@@ -2096,6 +2158,60 @@ export default function AdminDashboardPage() {
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
               <span className="hidden sm:inline">Canlı</span>
             </span>
+
+            {/* Sipariş Alımını Durdur / Aç (Yoğunluk & Mola) */}
+            <div className="relative">
+              <button
+                type="button"
+                disabled={pauseSaving}
+                onClick={() => (orderPause.paused ? handleSetOrderPause(null) : setPauseMenuOpen((v) => !v))}
+                title={orderPause.paused ? 'Sipariş alımını tekrar aç' : 'Sipariş alımını geçici durdur'}
+                className={`h-8 sm:h-9 px-2.5 rounded-xl border text-xs font-extrabold flex items-center gap-1.5 transition-all cursor-pointer shadow-2xs disabled:opacity-60 ${
+                  orderPause.paused
+                    ? 'bg-rose-600 hover:bg-rose-700 border-rose-700 text-white animate-pulse'
+                    : 'bg-emerald-50 hover:bg-emerald-100 border-emerald-300 text-emerald-800'
+                }`}
+              >
+                <i className={`fa-solid ${orderPause.paused ? 'fa-circle-pause' : 'fa-circle-play text-emerald-600'}`}></i>
+                <span className="hidden sm:inline">
+                  {orderPause.paused
+                    ? orderPause.remainingMinutes > 0
+                      ? `Durduruldu (${orderPause.remainingMinutes} dk) • Aç`
+                      : 'Durduruldu • Aç'
+                    : 'Sipariş: Açık'}
+                </span>
+              </button>
+
+              {pauseMenuOpen && !orderPause.paused && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setPauseMenuOpen(false)} />
+                  <div className="absolute right-0 top-full mt-1.5 z-50 w-56 bg-white border border-stone-200 rounded-2xl shadow-xl p-2 space-y-1">
+                    <p className="text-[10px] font-extrabold text-stone-400 uppercase tracking-wider px-2 pt-1 pb-1.5">
+                      Sipariş alımını durdur
+                    </p>
+                    {[
+                      { m: 15, label: '15 dakika' },
+                      { m: 30, label: '30 dakika' },
+                      { m: 60, label: '1 saat' },
+                      { m: 0, label: 'Ben açana kadar' }
+                    ].map((opt) => (
+                      <button
+                        key={opt.m}
+                        type="button"
+                        onClick={() => handleSetOrderPause(opt.m)}
+                        className="w-full text-left px-3 py-2 rounded-xl text-xs font-bold text-stone-700 hover:bg-rose-50 hover:text-rose-700 transition-colors cursor-pointer flex items-center gap-2"
+                      >
+                        <i className="fa-solid fa-hourglass-half text-rose-500 text-[11px]"></i>
+                        <span>{opt.label}</span>
+                      </button>
+                    ))}
+                    <p className="text-[10px] text-stone-400 px-2 pt-1 leading-snug">
+                      Müşteriler bu sürede sipariş veremez; süre bitince otomatik açılır.
+                    </p>
+                  </div>
+                </>
+              )}
+            </div>
 
             {/* Hızlı Kurye Modülü Aç / Kapat Butonu */}
             <button

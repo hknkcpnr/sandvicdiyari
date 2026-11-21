@@ -1,9 +1,12 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useDispatch } from 'react-redux';
+import { openTrackOrderModal } from '@/store/slices/uiSlice';
 import { getRestaurantStatus } from '@/lib/openingHours';
 
 export default function TopBar() {
+  const dispatch = useDispatch();
   const [status, setStatus] = useState(getRestaurantStatus());
   const [contact, setContact] = useState({
     phone1: '0552 104 55 35',
@@ -129,6 +132,15 @@ export default function TopBar() {
           )}
         </div>
         <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={() => dispatch(openTrackOrderModal())}
+            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-500/15 hover:bg-amber-500/25 border border-amber-400/30 text-amber-300 hover:text-amber-200 text-[11px] font-bold transition-all cursor-pointer"
+            title="Sipariş No ve Telefonunuzla Siparişinizi Takip Edin"
+          >
+            <i className="fa-solid fa-location-crosshairs text-[10px]"></i>
+            <span>Sipariş Takibi</span>
+          </button>
           <span className="text-brand-400 font-semibold flex items-center gap-1.5">
             <i className="fa-solid fa-motorcycle text-brand-500"></i>
             <span>Torbalı / İzmir &bull; Gece 03:00&apos;e Kadar Paket Servis!</span>

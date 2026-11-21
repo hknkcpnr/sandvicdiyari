@@ -30,6 +30,7 @@ import AuthModal from '@/components/modals/AuthModal';
 import ProfileModal from '@/components/modals/ProfileModal';
 import CheckoutModal from '@/components/modals/CheckoutModal';
 import MessageModal from '@/components/modals/MessageModal';
+import TrackOrderModal from '@/components/modals/TrackOrderModal';
 import LiveOrderTracker from '@/components/LiveOrderTracker';
 import FloatingCartBar from '@/components/FloatingCartBar';
 import DraggableContactButton from '@/components/DraggableContactButton';
@@ -256,6 +257,7 @@ export default function Home() {
       <AuthModal />
       <ProfileModal />
       <CheckoutModal />
+      <TrackOrderModal />
       <MessageModal />
       <LiveOrderTracker />
       <FloatingCartBar />

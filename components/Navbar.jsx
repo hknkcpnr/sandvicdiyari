@@ -8,6 +8,7 @@ import {
   toggleCart,
   openAuthModal,
   openProfileModal,
+  openTrackOrderModal,
   showMessageModal,
   setOnlyFavoritesFilter
 } from '@/store/slices/uiSlice';
@@ -152,6 +153,17 @@ export default function Navbar() {
 
           {/* Sağ Bölüm (Bildirimler, Sepet ve Kullanıcı) */}
           <div className="flex items-center gap-1.5 sm:gap-3">
+            {/* Sipariş Takibi Butonu (Masaüstü) */}
+            <button
+              type="button"
+              onClick={() => dispatch(openTrackOrderModal())}
+              className="hidden lg:flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold text-stone-700 bg-stone-100/90 hover:bg-amber-50 hover:text-amber-900 border border-stone-200 transition-colors cursor-pointer shrink-0"
+              title="Sipariş No ve Telefon ile Sorgula"
+            >
+              <i className="fa-solid fa-location-crosshairs text-amber-600"></i>
+              <span>Sipariş Takibi</span>
+            </button>
+
             {/* Müşteri Bildirim Merkezi Zili */}
             <CustomerNotificationBell />
 
@@ -387,6 +399,23 @@ export default function Navbar() {
                 </button>
               );
             })}
+          </div>
+
+          {/* Hızlı Sipariş Sorgulama Butonu */}
+          <div className="pt-2 border-t border-stone-100">
+            <button
+              type="button"
+              onClick={() => {
+                dispatch(openTrackOrderModal());
+              }}
+              className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl font-bold text-xs bg-amber-50 hover:bg-amber-100/90 text-amber-950 border border-amber-300 transition-all cursor-pointer shadow-2xs"
+            >
+              <div className="flex items-center gap-3">
+                <i className="fa-solid fa-location-crosshairs text-amber-600 text-sm w-4 text-center"></i>
+                <span>Sipariş Takibi / Sorgula</span>
+              </div>
+              <i className="fa-solid fa-chevron-right text-[10px] text-amber-600"></i>
+            </button>
           </div>
 
           {/* Mobil Kullanıcı Alanı */}

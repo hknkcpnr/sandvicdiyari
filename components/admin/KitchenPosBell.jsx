@@ -609,7 +609,20 @@ export default function KitchenPosBell({
 
     window.addEventListener('storage', handleStorage);
     window.addEventListener('sd_sound_settings_changed', handleCustomSoundSettingsChanged);
+
+    // Başka cihazdan (ör. yöneticinin telefonu) yapılan ses değişikliklerini mutfak ekranına yansıt:
+    // sekme öne geldiğinde ve 2 dakikada bir sunucudaki güncel ayarı çek.
+    const handleVisibleSync = () => {
+      if (document.visibilityState === 'visible') syncSoundFromApi();
+    };
+    document.addEventListener('visibilitychange', handleVisibleSync);
+    window.addEventListener('focus', syncSoundFromApi);
+    const remoteSyncTimer = setInterval(syncSoundFromApi, 120000);
+
     return () => {
+      document.removeEventListener('visibilitychange', handleVisibleSync);
+      window.removeEventListener('focus', syncSoundFromApi);
+      clearInterval(remoteSyncTimer);
       window.removeEventListener('storage', handleStorage);
       window.removeEventListener('sd_sound_settings_changed', handleCustomSoundSettingsChanged);
     };

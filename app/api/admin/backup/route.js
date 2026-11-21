@@ -369,17 +369,18 @@ export async function GET(request) {
     const financeData = Array.isArray(finance)
       ? finance.map((f, i) => ({
           'İşlem Sıra': i + 1,
-          'İşlem Türü': f.type === 'income' ? 'Gelir (+)' : 'Gider (-)',
+          'İşlem Türü': f.type === 'in' || f.type === 'income' ? 'Giren (+)' : 'Çıkan (-)',
           'Tutar (₺)': safeNum(f.amount).toFixed(2),
           'Kategori': f.category || '',
+          'Ödeme Kaynağı': f.paymentSource || '',
           'Açıklama': f.description || '',
-          'Tarih': safeDateStr(f.date || f.createdAt),
-          'Kaydeden': f.user || ''
+          'Tarih': f.date || safeDateStr(f.createdAt),
+          'Kaydeden': f.createdBy || f.user || ''
         }))
       : [];
     const wsFinance = XLSX.utils.json_to_sheet(financeData.length ? financeData : [{ 'Bilgi': 'Kasa hareketi bulunamadı' }]);
     wsFinance['!cols'] = [
-      { wch: 12 }, { wch: 14 }, { wch: 14 }, { wch: 18 }, { wch: 30 },
+      { wch: 12 }, { wch: 14 }, { wch: 14 }, { wch: 18 }, { wch: 16 }, { wch: 30 },
       { wch: 20 }, { wch: 18 }
     ];
     XLSX.utils.book_append_sheet(wb, wsFinance, 'Kasa & Finans');

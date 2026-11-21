@@ -13,6 +13,7 @@ const initialState = {
   authModalNotice: '',
   isProfileModalOpen: false,
   isCheckoutModalOpen: false,
+  isTrackOrderModalOpen: false,
   isMessageModalOpen: false,
   messageModalData: {
     title: 'İşlem Başarılı',
@@ -91,6 +92,13 @@ export const uiSlice = createSlice({
     closeCheckoutModal: (state) => {
       state.isCheckoutModalOpen = false;
     },
+    openTrackOrderModal: (state) => {
+      state.isTrackOrderModalOpen = true;
+      state.isMobileMenuOpen = false;
+    },
+    closeTrackOrderModal: (state) => {
+      state.isTrackOrderModalOpen = false;
+    },
     showMessageModal: (state, action) => {
       state.messageModalData = {
         title: action.payload.title || 'Bilgi',
@@ -167,6 +175,8 @@ export const {
   closeProfileModal,
   openCheckoutModal,
   closeCheckoutModal,
+  openTrackOrderModal,
+  closeTrackOrderModal,
   showMessageModal,
   closeMessageModal,
   setReviews,

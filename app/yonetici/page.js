@@ -340,7 +340,7 @@ export default function YoneticiPage() {
     };
     const todayStr = toLocalDateStr(now);
 
-    const validOrders = orders.filter((o) => o.status !== 'İptal');
+    const validOrders = orders.filter((o) => o.status !== 'İptal Edildi');
     const isSameDay = (iso, targetStr) => {
       if (!iso) return false;
       const d = new Date(iso);
@@ -354,7 +354,7 @@ export default function YoneticiPage() {
     );
     const onRoadOrders = validOrders.filter((o) => o.status === 'Yolda');
     const kitchenOrders = validOrders.filter(
-      (o) => o.status === 'Yeni' || o.status === 'Hazırlanıyor'
+      (o) => o.status === 'Yeni' || o.status === 'Görüntülendi' || o.status === 'Onaylandı' || o.status === 'Hazırlanıyor'
     );
     const dispatchedTodayCount = onRoadOrders.length + deliveredTodayOrders.length;
     const todayRevenue = deliveredTodayOrders.reduce((s, o) => s + (Number(o.total) || 0), 0);
@@ -1265,8 +1265,11 @@ export default function YoneticiPage() {
                   <p className="text-xl font-extrabold text-emerald-600 mt-0.5">
                     ₺{financeSummary.totalIn.toFixed(2)}
                   </p>
-                  <span className="text-[11px] text-stone-400">
+                  <span className="text-[11px] text-stone-400 block">
                     Sipariş: ₺{financeSummary.orderRevenueTotal.toFixed(2)} &bull; Ek: ₺{financeSummary.manualIn.toFixed(2)}
+                  </span>
+                  <span className="text-[11px] text-stone-400 block">
+                    Nakit: ₺{financeSummary.cashOrdersRevenue.toFixed(2)} &bull; POS: ₺{financeSummary.cardOrdersRevenue.toFixed(2)}
                   </span>
                 </div>
                 <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0"></span>
@@ -1279,7 +1282,7 @@ export default function YoneticiPage() {
                     ₺{financeSummary.totalOut.toFixed(2)}
                   </p>
                   <span className="text-[11px] text-stone-400">
-                    Nakit: ₺{financeSummary.cashOrdersRevenue.toFixed(2)} &bull; POS: ₺{financeSummary.cardOrdersRevenue.toFixed(2)}
+                    {financeSummary.filteredTx.filter((t) => t.type === 'out').length} gider kaydı
                   </span>
                 </div>
                 <span className="w-2 h-2 rounded-full bg-rose-500 shrink-0"></span>

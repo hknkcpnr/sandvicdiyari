@@ -7,6 +7,7 @@ import { clearCart } from '@/store/slices/cartSlice';
 import { addOrderToUser, login } from '@/store/slices/authSlice';
 import { getRestaurantStatus, TORBALI_NEIGHBORHOODS, MIN_ORDER_AMOUNT } from '@/lib/openingHours';
 import { formatTurkishPhoneInput, isValidTurkishPhone } from '@/lib/phoneUtils';
+import { getOrderPauseState, formatOrderPauseMessage } from '@/lib/orderPause';
 
 export default function CheckoutModal() {
   const dispatch = useDispatch();
@@ -25,6 +26,27 @@ export default function CheckoutModal() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const restaurantStatus = getRestaurantStatus();
+  const [orderPause, setOrderPause] = useState({ paused: false });
+
+  // Yönetici sipariş alımını geçici durdurduysa checkout ekranında göster
+  useEffect(() => {
+    if (!isCheckoutModalOpen) return;
+    let cancelled = false;
+    const loadPause = () => {
+      fetch('/api/admin/settings', { cache: 'no-store' })
+        .then((r) => r.json())
+        .then((j) => {
+          if (!cancelled && j?.data) setOrderPause(getOrderPauseState(j.data));
+        })
+        .catch(() => {});
+    };
+    loadPause();
+    const timer = setInterval(loadPause, 30000);
+    return () => {
+      cancelled = true;
+      clearInterval(timer);
+    };
+  }, [isCheckoutModalOpen]);
 
   useEffect(() => {
     if (currentUser) {
@@ -115,6 +137,11 @@ export default function CheckoutModal() {
   const handleSubmitOrder = async (e, sendViaWhatsApp = false) => {
     if (e && e.preventDefault) e.preventDefault();
     if (items.length === 0) return;
+
+    if (orderPause.paused) {
+      setErrorMsg(formatOrderPauseMessage(orderPause));
+      return;
+    }
 
     if ((!currentUser || !currentUser.email) && !isGuestCheckout) {
       setErrorMsg('Sipariş verebilmek için üye girişi yapmanız veya misafir olarak devam etmeniz zorunludur.');
@@ -385,6 +412,16 @@ export default function CheckoutModal() {
           </div>
         )}
 
+        {orderPause.paused && (
+          <div className="bg-amber-50 border-2 border-amber-300 text-amber-900 text-xs sm:text-sm p-3.5 rounded-2xl flex items-start gap-2.5">
+            <i className="fa-solid fa-hourglass-half shrink-0 text-amber-600 mt-0.5"></i>
+            <div>
+              <strong className="block font-extrabold">Şu an geçici olarak sipariş alamıyoruz</strong>
+              <span>{formatOrderPauseMessage(orderPause)}</span>
+            </div>
+          </div>
+        )}
+
         {errorMsg && (
           <div className="bg-rose-50 border border-rose-200 text-rose-700 text-xs sm:text-sm p-3.5 rounded-2xl flex items-center gap-2">
             <i className="fa-solid fa-circle-exclamation shrink-0 text-rose-500"></i>
@@ -553,7 +590,7 @@ export default function CheckoutModal() {
             </button>
             <button
               type="submit"
-              disabled={isSubmitting}
+              disabled={isSubmitting || orderPause.paused}
               className="bg-brand-500 hover:bg-brand-600 text-white font-bold py-3.5 rounded-2xl shadow-lg shadow-brand-500/20 text-xs sm:text-sm transition-all cursor-pointer disabled:opacity-50 flex items-center justify-center gap-2"
             >
               {isSubmitting ? (
@@ -571,9 +608,9 @@ export default function CheckoutModal() {
             {restaurantStatus.isOpen && (
               <button
                 type="button"
-                disabled={isSubmitting}
+                disabled={isSubmitting || orderPause.paused}
                 onClick={(e) => handleSubmitOrder(e, true)}
-                className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3.5 rounded-2xl shadow-md shadow-emerald-600/20 text-xs sm:text-sm transition-all cursor-pointer flex items-center justify-center gap-2 active:scale-98"
+                className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3.5 rounded-2xl shadow-md shadow-emerald-600/20 text-xs sm:text-sm transition-all cursor-pointer disabled:opacity-50 flex items-center justify-center gap-2 active:scale-98"
               >
                 <i className="fa-brands fa-whatsapp text-base"></i>
                 <span>WhatsApp ile Ver</span>
