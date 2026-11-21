@@ -108,7 +108,7 @@ export default function Navbar() {
   return (
     <nav className="sticky top-0 z-40 bg-white/95 backdrop-blur-md shadow-sm border-b border-stone-200">
       <div className="max-w-7xl mx-auto px-3.5 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-14 sm:h-20">
+        <div className="flex justify-between items-center h-14 sm:h-20 gap-2 lg:gap-4">
           {/* Logo (Mobilde Kompakt & Minimal, Masaüstünde Ferah) */}
           <button
             onClick={() => dispatch(setActivePage('home'))}
@@ -129,8 +129,8 @@ export default function Navbar() {
             </div>
           </button>
 
-          {/* Orta Menü Linkleri (Desktop) */}
-          <div className="hidden md:flex items-center gap-8 font-medium text-sm text-stone-600">
+          {/* Orta Menü Linkleri (Desktop - Asla iki satıra bölünmez, esnek boşluklu) */}
+          <div className="hidden md:flex items-center gap-3 lg:gap-5 xl:gap-7 font-medium text-xs lg:text-sm text-stone-600 shrink-0">
             {navItems.map((item) => (
               <button
                 key={item.id}
@@ -141,7 +141,7 @@ export default function Navbar() {
                   }
                   dispatch(setActivePage(item.id));
                 }}
-                className={`transition-colors cursor-pointer ${activePage === item.id
+                className={`whitespace-nowrap transition-colors cursor-pointer py-1 ${activePage === item.id
                   ? 'font-bold text-brand-600'
                   : 'hover:text-brand-600'
                   }`}
@@ -152,12 +152,12 @@ export default function Navbar() {
           </div>
 
           {/* Sağ Bölüm (Bildirimler, Sepet ve Kullanıcı) */}
-          <div className="flex items-center gap-1.5 sm:gap-3">
-            {/* Sipariş Takibi Butonu (Masaüstü) */}
+          <div className="flex items-center gap-1.5 sm:gap-2.5 lg:gap-3 shrink-0">
+            {/* Sipariş Takibi Butonu (Masaüstü - Yalnızca geniş ekranda orta menüyü sıkıştırmayacak şekilde) */}
             <button
               type="button"
               onClick={() => dispatch(openTrackOrderModal())}
-              className="hidden lg:flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold text-stone-700 bg-stone-100/90 hover:bg-amber-50 hover:text-amber-900 border border-stone-200 transition-colors cursor-pointer shrink-0"
+              className="hidden xl:flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold text-stone-700 bg-stone-100/90 hover:bg-amber-50 hover:text-amber-900 border border-stone-200 transition-colors cursor-pointer shrink-0 whitespace-nowrap"
               title="Sipariş No ve Telefon ile Sorgula"
             >
               <i className="fa-solid fa-location-crosshairs text-amber-600"></i>
