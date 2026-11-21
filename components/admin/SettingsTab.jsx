@@ -8,6 +8,7 @@ import { playKitchenBellSound } from './KitchenPosBell';
 import { DEFAULT_CUSTOMER_NOTIFICATION_SETTINGS } from '@/lib/notificationDefaults';
 import { BANNER_THEMES } from '@/components/CustomerAnnouncementBanner';
 import { getOrderPauseState } from '@/lib/orderPause';
+import { printTestThermalReceipt } from '@/lib/thermalReceipt';
 
 export const DEFAULT_ADMIN_SETTINGS = {
   courierModuleEnabled: true,
@@ -27,6 +28,10 @@ export const DEFAULT_ADMIN_SETTINGS = {
   receiptFooter: 'Bizi Tercih Ettiğiniz İçin Teşekkür Ederiz! Afiyet Olsun - sandwichdiyari.com',
   showPricesOnReceipt: true,
   showPhoneOnReceipt: true,
+  autoPrintOnApproval: true,
+  receiptPaperWidth: '80mm',
+  receiptCopies: 1,
+  receiptShowNotes: true,
 };
 
 const SETTINGS_PAGES = {
@@ -2038,11 +2043,119 @@ export default function SettingsTab({
       {/* SEKME 3: FİŞ VE ADİSYON AYARLARI */}
       {activeSubTab === 'receipt' && (
         <div className="space-y-4">
+          {/* Otomatik Fiş Yazdırma & Termal Donanım Ayarları */}
+          <div className="bg-white p-4 sm:p-6 rounded-2xl border border-stone-200 shadow-xs space-y-5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-stone-100">
+              <div>
+                <h3 className="text-sm font-bold text-stone-900 flex items-center gap-2">
+                  <i className="fa-solid fa-print text-brand-600 text-base"></i>
+                  Xprinter 80mm Termal Yazıcı &amp; Otomatik Fiş
+                </h3>
+                <p className="text-xs text-stone-500 mt-0.5">
+                  Sipariş yönetim panelinde sipariş onaylandığında fişin otomatikman Xprinter yazıcıdan çıkmasını yönetin.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  printTestThermalReceipt(settings);
+                  showToast?.('Test fişi Xprinter yazıcıya gönderildi! 🧾', 'success');
+                }}
+                className="self-start sm:self-auto bg-stone-900 hover:bg-stone-800 text-white text-xs font-black py-2.5 px-4 rounded-xl flex items-center gap-2 shadow-xs cursor-pointer active:scale-95 transition-all"
+              >
+                <i className="fa-solid fa-receipt text-amber-400"></i>
+                <span>Test Fişi Yazdır (80mm)</span>
+              </button>
+            </div>
+
+            {/* Otomatik Yazdırma Anahtarı (ÖNE ÇIKAN ÖZELLİK) */}
+            <div className="bg-amber-500/10 border-2 border-amber-500/40 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 rounded-xl bg-amber-500 text-stone-950 flex items-center justify-center font-black text-lg shrink-0 mt-0.5 shadow-xs">
+                  <i className="fa-solid fa-bolt-lightning"></i>
+                </div>
+                <div>
+                  <span className="text-xs font-black text-stone-900 block flex items-center gap-2">
+                    Sipariş Onaylandığında Otomatik Fiş Çıkar
+                    <span className="bg-emerald-100 text-emerald-800 text-[10px] font-extrabold px-2 py-0.5 rounded-full border border-emerald-300">
+                      Önerilen (Restoran Modu)
+                    </span>
+                  </span>
+                  <p className="text-xs text-stone-600 mt-0.5 leading-relaxed">
+                    Sipariş yönetim panelinde (veya bildirim modalında) siparişi <strong>"Onayla ve Hazırla"</strong> yaptığınız anda, sisteme bağlı termal yazıcıdan beklemeden fiş otomatik çıkar.
+                  </p>
+                </div>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer shrink-0 self-end sm:self-center">
+                <input
+                  type="checkbox"
+                  checked={settings.autoPrintOnApproval !== false}
+                  onChange={(e) => handleChange('autoPrintOnApproval', e.target.checked)}
+                  className="sr-only peer"
+                />
+                <div className="w-12 h-6 bg-stone-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-stone-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600"></div>
+              </label>
+            </div>
+
+            {/* Yazıcı Boyut ve Kopya Tercihleri */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-1.5 bg-stone-50 p-3.5 rounded-xl border border-stone-200">
+                <label className="text-xs font-bold text-stone-800 block">Termal Kağıt Genişliği</label>
+                <select
+                  value={settings.receiptPaperWidth || '80mm'}
+                  onChange={(e) => handleChange('receiptPaperWidth', e.target.value)}
+                  className="w-full text-xs bg-white border border-stone-300 rounded-lg px-3 py-2 font-bold text-stone-800 focus:outline-none focus:border-stone-500 cursor-pointer"
+                >
+                  <option value="80mm">80 mm (Standart Xprinter Termal Rulo - Önerilen)</option>
+                  <option value="58mm">58 mm (Kompakt Termal Rulo)</option>
+                </select>
+                <p className="text-[11px] text-stone-500">Fotoğraftaki Xprinter cihazınız standart 80mm genişliktedir.</p>
+              </div>
+
+              <div className="space-y-1.5 bg-stone-50 p-3.5 rounded-xl border border-stone-200">
+                <label className="text-xs font-bold text-stone-800 block">Her Siparişte Çıkacak Kopya Adedi</label>
+                <select
+                  value={settings.receiptCopies || 1}
+                  onChange={(e) => handleChange('receiptCopies', Number(e.target.value))}
+                  className="w-full text-xs bg-white border border-stone-300 rounded-lg px-3 py-2 font-bold text-stone-800 focus:outline-none focus:border-stone-500 cursor-pointer"
+                >
+                  <option value={1}>1 Adet (Mutfak / Hazırlık)</option>
+                  <option value={2}>2 Adet (1 Mutfak Hazırlık + 1 Kurye / Müşteri Teslim)</option>
+                </select>
+                <p className="text-[11px] text-stone-500">2 kopya seçildiğinde arka arkaya 2 nüsha fiş basılır.</p>
+              </div>
+            </div>
+
+            {/* Kiosk Modu Bilgilendirme Kutusu */}
+            <div className="bg-stone-900 text-stone-100 rounded-2xl p-4 border border-stone-800">
+              <div className="flex items-start gap-3">
+                <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center text-amber-400 font-bold shrink-0 mt-0.5">
+                  <i className="fa-brands fa-chrome text-base"></i>
+                </div>
+                <div className="space-y-1 text-xs">
+                  <span className="font-extrabold text-white block">
+                    Windows Chrome İpucu: Onay Penceresi Olmadan Doğrudan Yazdırma (--kiosk-printing)
+                  </span>
+                  <p className="text-stone-300 leading-relaxed">
+                    Yazdırma penceresi (Ctrl+P onay diyaloğu) hiç açılmadan, fişin Xprinter&apos;dan jet hızında fırlaması için Chrome masaüstü kısayoluna sağ tıklayıp <strong>Özellikler &gt; Hedef</strong> alanının sonuna şu parametreyi ekleyin:
+                  </p>
+                  <div className="bg-black/60 text-amber-300 font-mono text-[11px] px-3 py-1.5 rounded-lg border border-white/10 select-all inline-block mt-1">
+                    --kiosk-printing
+                  </div>
+                  <p className="text-[11px] text-stone-400">
+                    Windows varsayılan yazıcısı olarak <strong>Xprinter</strong> seçildiğinde, sipariş onaylandığında sıfır tıklama ile anında otomatik fiş çıkar.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Fiş Metin ve Başlık İçeriği */}
           <div className="bg-white p-4 sm:p-6 rounded-2xl border border-stone-200 shadow-xs space-y-4">
             <div>
               <h3 className="text-sm font-bold text-stone-900 flex items-center gap-2">
                 <i className="fa-solid fa-receipt text-stone-600"></i>
-                Termal Yazıcı &amp; Adisyon Fişi Şablonu
+                Fiş Üzerindeki Bilgiler &amp; Metin Şablonu
               </h3>
               <p className="text-xs text-stone-500 mt-0.5">
                 Müşteri adisyon fişinde ve paket teslim tutanağında yazdırılacak şube başlık ve alt notları.
@@ -2109,6 +2222,15 @@ export default function SettingsTab({
                   className="rounded border-stone-300 text-brand-600 focus:ring-0 cursor-pointer"
                 />
                 <span>Müşteri telefon numarasını fişte göster</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer font-medium text-stone-700">
+                <input
+                  type="checkbox"
+                  checked={settings.receiptShowNotes !== false}
+                  onChange={(e) => handleChange('receiptShowNotes', e.target.checked)}
+                  className="rounded border-stone-300 text-brand-600 focus:ring-0 cursor-pointer"
+                />
+                <span>Müşteri sipariş notunu vurgulu çerçevede bas</span>
               </label>
             </div>
           </div>

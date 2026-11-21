@@ -18,6 +18,7 @@ import OptionsManagementTab from '@/components/admin/OptionsManagementTab';
 import AdminPagination from '@/components/admin/AdminPagination';
 import { buildWhatsAppOrderConfirmUrl } from '@/lib/phoneUtils';
 import { getOrderPauseState } from '@/lib/orderPause';
+import { printThermalReceipt } from '@/lib/thermalReceipt';
 
 // Status styling and Turkish badge helpers
 const STATUS_CONFIG = {
@@ -963,9 +964,22 @@ export default function AdminDashboardPage() {
         ) {
           setDetailOrder(json.data);
         }
+
+        // OTOMATİK TERMAL FİŞ BASKI (Xprinter 80mm)
+        // Sipariş 'Hazırlanıyor' aşamasına (yani Onaylandı) alındığında otomatik yazıcıya gönderilir.
+        let receiptSent = false;
+        if (newStatus === 'Hazırlanıyor' && adminSettings?.autoPrintOnApproval !== false) {
+          try {
+            printThermalReceipt(json.data, adminSettings);
+            receiptSent = true;
+          } catch (pErr) {
+            console.error('Otomatik fiş basma hatası:', pErr);
+          }
+        }
+
         showToast(
           newStatus === 'Hazırlanıyor'
-            ? `Sipariş #${json.data.orderNumber || orderId} onaylandı ve hazırlanıyor! 🍳`
+            ? `Sipariş #${json.data.orderNumber || orderId} onaylandı! ${receiptSent ? '🧾 Fiş Xprinter yazıcıya gönderildi.' : '🍳 Mutfak hazırlığına alındı.'}`
             : newStatus === 'Yolda'
             ? `Sipariş #${json.data.orderNumber || orderId} kuryeye verildi (yolda)! 🛵`
             : `Sipariş durumu güncellendi: ${newStatus}`,
@@ -2734,6 +2748,19 @@ export default function AdminDashboardPage() {
                             >
                               <i className="fa-solid fa-circle-info"></i>
                               <span>Detay & Fiş</span>
+                            </button>
+
+                            {/* Quick Thermal Print Button */}
+                            <button
+                              type="button"
+                              onClick={() => {
+                                printThermalReceipt(order, adminSettings);
+                                showToast(`Sipariş #${order.orderNumber || order.id} fişi Xprinter'a gönderildi 🧾`, 'info');
+                              }}
+                              className="text-stone-600 hover:text-brand-700 text-xs p-2 rounded-xl hover:bg-brand-50 border border-stone-200/80 transition-colors cursor-pointer"
+                              title="Xprinter 80mm Fiş Yazdır"
+                            >
+                              <i className="fa-solid fa-print"></i>
                             </button>
 
                             {/* Cancel Button */}
@@ -4550,8 +4577,11 @@ export default function AdminDashboardPage() {
             <div className="flex flex-col sm:flex-row gap-3 pt-3 border-t border-stone-100">
               <button
                 type="button"
-                onClick={() => window.print()}
-                className="bg-brand-50 hover:bg-brand-100 text-brand-800 border border-brand-200 py-3 px-5 rounded-2xl text-xs sm:text-sm font-bold cursor-pointer flex items-center justify-center gap-2 transition-colors"
+                onClick={() => {
+                  printThermalReceipt(detailOrder, adminSettings);
+                  showToast(`Sipariş #${detailOrder.orderNumber || detailOrder.id} fişi Xprinter yazıcıya gönderildi 🧾`, 'info');
+                }}
+                className="bg-brand-50 hover:bg-brand-100 text-brand-800 border border-brand-200 py-3 px-5 rounded-2xl text-xs sm:text-sm font-bold cursor-pointer flex items-center justify-center gap-2 transition-colors active:scale-95 shadow-xs"
               >
                 <i className="fa-solid fa-print text-brand-600"></i>
                 <span>{isCourierEnabled ? 'Mutfak / Kurye Fişi Yazdır (80mm)' : 'Mutfak / Sipariş Fişi Yazdır (80mm)'}</span>
