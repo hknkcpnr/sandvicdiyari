@@ -226,9 +226,72 @@ export default function SettingsTab({
 
   useEffect(() => {
     if (currentSettings) {
-      setSettings(currentSettings);
+      setSettings((prev) => ({
+        ...DEFAULT_ADMIN_SETTINGS,
+        ...prev,
+        ...currentSettings,
+        customSounds:
+          Array.isArray(currentSettings.customSounds) && currentSettings.customSounds.length > 0
+            ? currentSettings.customSounds
+            : prev.customSounds || [],
+        soundType: currentSettings.soundType || prev.soundType || 'chime'
+      }));
     }
   }, [currentSettings]);
+
+  const syncSoundSettingsEverywhere = async (nextCustomSounds, nextSoundType, nextVolume = settings.soundVolume || 80) => {
+    const nextSettingsObj = {
+      ...settings,
+      customSounds: nextCustomSounds,
+      soundType: nextSoundType,
+      soundVolume: nextVolume
+    };
+    setSettings(nextSettingsObj);
+    setCustNotifSettings((prev) => ({
+      ...prev,
+      customSounds: nextCustomSounds,
+      posSoundType: nextSoundType,
+      posSoundVolume: nextVolume
+    }));
+
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem('sandwich_admin_settings', JSON.stringify(nextSettingsObj));
+        localStorage.setItem('sd_custom_bell_sounds', JSON.stringify(nextCustomSounds));
+        localStorage.setItem('sd_bell_sound', nextSoundType);
+        localStorage.setItem('sd_bell_volume', String(Number(nextVolume) / 100));
+      } catch {}
+    }
+
+    if (onSaveSettings) {
+      onSaveSettings(nextSettingsObj);
+    }
+
+    try {
+      const res = await fetch('/api/notifications', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'save_settings',
+          settings: {
+            ...custNotifSettings,
+            customSounds: nextCustomSounds,
+            posSoundType: nextSoundType,
+            posSoundVolume: nextVolume
+          }
+        })
+      });
+      const json = await res.json();
+      if (json?.success && json?.data?.settings) {
+        setCustNotifSettings(json.data.settings);
+        try {
+          localStorage.setItem('sandwich_notifications_updated', String(Date.now()));
+        } catch {}
+      }
+    } catch (err) {
+      console.error('Ses ayarları sunucuya kaydedilemedi:', err);
+    }
+  };
 
   // Ayar Değişikliği
   const handleChange = (key, value) => {
@@ -354,27 +417,12 @@ export default function SettingsTab({
     const currentList = Array.isArray(settings.customSounds) ? settings.customSounds : [];
     const nextList = [...currentList, newSound];
 
-    setSettings((prev) => ({
-      ...prev,
-      customSounds: nextList,
-      soundType: newSound.id
-    }));
-    setCustNotifSettings((prev) => ({
-      ...prev,
-      customSounds: nextList,
-      posSoundType: newSound.id
-    }));
-
-    try {
-      localStorage.setItem('sd_custom_bell_sounds', JSON.stringify(nextList));
-      localStorage.setItem('sd_bell_sound', newSound.id);
-    } catch {}
-
     setNewSoundLabel('');
     setNewSoundUrl('');
     setNewSoundFileName('');
     if (audioFileInputRef.current) audioFileInputRef.current.value = '';
 
+    syncSoundSettingsEverywhere(nextList, newSound.id);
     handlePlaySoundTest(newSound.id, nextList);
   };
 
@@ -383,23 +431,14 @@ export default function SettingsTab({
     if (e) e.stopPropagation();
     const currentList = Array.isArray(settings.customSounds) ? settings.customSounds : [];
     const nextList = currentList.filter((s) => s.id !== soundId);
-    const nextSoundType = settings.soundType === soundId ? 'chime' : settings.soundType;
+    const nextSoundType =
+      settings.soundType === soundId
+        ? nextList.length > 0
+          ? nextList[nextList.length - 1].id
+          : 'chime'
+        : settings.soundType;
 
-    setSettings((prev) => ({
-      ...prev,
-      customSounds: nextList,
-      soundType: nextSoundType
-    }));
-    setCustNotifSettings((prev) => ({
-      ...prev,
-      customSounds: nextList,
-      posSoundType: nextSoundType
-    }));
-
-    try {
-      localStorage.setItem('sd_custom_bell_sounds', JSON.stringify(nextList));
-      localStorage.setItem('sd_bell_sound', nextSoundType);
-    } catch {}
+    syncSoundSettingsEverywhere(nextList, nextSoundType);
   };
 
   // Yedek İndirme
@@ -1028,8 +1067,9 @@ export default function SettingsTab({
                   <div
                     key={s.id}
                     onClick={() => {
-                      handleChange('soundType', s.id);
-                      handlePlaySoundTest(s.id);
+                      const currentList = Array.isArray(settings.customSounds) ? settings.customSounds : [];
+                      syncSoundSettingsEverywhere(currentList, s.id);
+                      handlePlaySoundTest(s.id, currentList);
                     }}
                     className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex items-center justify-between gap-2 ${
                       settings.soundType === s.id

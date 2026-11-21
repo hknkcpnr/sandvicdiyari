@@ -511,14 +511,7 @@ export default function AdminDashboardPage() {
       const json = await res.json();
       if (json.success && Array.isArray(json.data)) {
         const nextIds = new Set(json.data.map((o) => o.id));
-        if (ordersInitializedRef.current) {
-          const brandNewOrder = json.data.find(
-            (o) => o.status === 'Yeni' && !knownOrderIdsRef.current.has(o.id)
-          );
-          if (brandNewOrder) {
-            playSoundAlert();
-          }
-        } else {
+        if (!ordersInitializedRef.current) {
           ordersInitializedRef.current = true;
         }
         knownOrderIdsRef.current = nextIds;

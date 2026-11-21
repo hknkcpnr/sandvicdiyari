@@ -2,19 +2,38 @@
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 
+let activeCustomAudio = null;
+
 // Web Audio & Custom Audio Kitchen POS Bell Player
 export function playKitchenBellSound(soundType = 'pos_bell', volume = 0.85, customSoundsOpt = null) {
   try {
     const safeVolume = Math.min(1, Math.max(0.05, Number(volume) || 0.85));
 
-    // Check if soundType is a custom uploaded/URL sound
-    let customList = Array.isArray(customSoundsOpt) ? customSoundsOpt : [];
-    if (customList.length === 0 && typeof window !== 'undefined') {
+    // Stop any currently playing custom audio to prevent overlap
+    if (activeCustomAudio) {
       try {
-        const rawCustom = localStorage.getItem('sd_custom_bell_sounds');
-        if (rawCustom) {
-          const parsed = JSON.parse(rawCustom);
-          if (Array.isArray(parsed)) customList = parsed;
+        activeCustomAudio.pause();
+        activeCustomAudio.currentTime = 0;
+      } catch {}
+      activeCustomAudio = null;
+    }
+
+    // Load custom sounds list from argument or localStorage
+    let customList = Array.isArray(customSoundsOpt) && customSoundsOpt.length > 0 ? customSoundsOpt : [];
+    let storedPreferredType = soundType;
+
+    if (typeof window !== 'undefined') {
+      try {
+        const savedBellSound = localStorage.getItem('sd_bell_sound');
+        if (savedBellSound && (!soundType || soundType === 'pos_bell' || soundType === 'chime')) {
+          storedPreferredType = savedBellSound;
+        }
+        if (customList.length === 0) {
+          const rawCustom = localStorage.getItem('sd_custom_bell_sounds');
+          if (rawCustom) {
+            const parsed = JSON.parse(rawCustom);
+            if (Array.isArray(parsed)) customList = parsed;
+          }
         }
         if (customList.length === 0) {
           const rawAdminSettings = localStorage.getItem('sandwich_admin_settings');
@@ -28,23 +47,43 @@ export function playKitchenBellSound(soundType = 'pos_bell', volume = 0.85, cust
       } catch {}
     }
 
-    const matchedCustom = customList.find((s) => s && s.id === soundType && s.audioUrl);
+    const effectiveType = storedPreferredType || soundType || 'pos_bell';
+
+    // Match by ID; if user has added custom sound(s) and effectiveType is still default ('pos_bell' / 'chime') or custom_*, use their custom sound!
+    let matchedCustom = customList.find((s) => s && s.id === effectiveType && s.audioUrl);
+    if (
+      !matchedCustom &&
+      customList.length > 0 &&
+      (String(effectiveType).startsWith('custom_') ||
+        effectiveType === 'pos_bell' ||
+        effectiveType === 'chime')
+    ) {
+      matchedCustom = customList[customList.length - 1];
+    }
+
     const directAudioUrl =
       matchedCustom?.audioUrl ||
-      (typeof soundType === 'string' &&
-      (soundType.startsWith('data:audio/') ||
-        soundType.startsWith('http://') ||
-        soundType.startsWith('https://') ||
-        soundType.startsWith('/'))
-        ? soundType
+      (typeof effectiveType === 'string' &&
+      (effectiveType.startsWith('data:audio/') ||
+        effectiveType.startsWith('data:application/octet-stream') ||
+        effectiveType.startsWith('http://') ||
+        effectiveType.startsWith('https://') ||
+        effectiveType.startsWith('/'))
+        ? effectiveType
         : null);
 
     if (directAudioUrl) {
       const audio = new Audio(directAudioUrl);
       audio.volume = safeVolume;
+      activeCustomAudio = audio;
       audio.play().catch((err) => {
-        console.warn('Custom audio playback fallback to WebAudio:', err);
+        console.warn('Custom audio playback error:', err);
       });
+      return;
+    }
+
+    // If a custom sound ID was requested, never play the old built-in synthesizer
+    if (String(effectiveType).startsWith('custom_')) {
       return;
     }
 
@@ -147,45 +186,77 @@ export default function KitchenPosBell({
   const prevOrderIdsRef = useRef(new Set());
   const initialMountRef = useRef(true);
 
-  // Load preferences from localStorage on mount
+  // Load and sync preferences from localStorage & Supabase on mount and storage events
   useEffect(() => {
-    try {
-      const savedContinuous = localStorage.getItem('sd_continuous_bell');
-      if (savedContinuous !== null) setContinuousBellEnabled(savedContinuous === 'true');
+    const syncSoundFromLocal = () => {
+      try {
+        const savedContinuous = localStorage.getItem('sd_continuous_bell');
+        if (savedContinuous !== null) setContinuousBellEnabled(savedContinuous === 'true');
 
-      const savedSound = localStorage.getItem('sd_bell_sound');
-      if (savedSound) setSoundType(savedSound);
+        const savedSound = localStorage.getItem('sd_bell_sound');
+        if (savedSound) setSoundType(savedSound);
 
-      const savedVol = localStorage.getItem('sd_bell_volume');
-      if (savedVol) setVolume(parseFloat(savedVol));
+        const savedVol = localStorage.getItem('sd_bell_volume');
+        if (savedVol) setVolume(parseFloat(savedVol));
 
-      const savedInt = localStorage.getItem('sd_bell_interval');
-      if (savedInt) setRepeatInterval(parseInt(savedInt, 10));
+        const savedInt = localStorage.getItem('sd_bell_interval');
+        if (savedInt) setRepeatInterval(parseInt(savedInt, 10));
 
-      const rawCustom = localStorage.getItem('sd_custom_bell_sounds');
-      if (rawCustom) {
-        const parsed = JSON.parse(rawCustom);
-        if (Array.isArray(parsed)) setCustomSounds(parsed);
+        const rawCustom = localStorage.getItem('sd_custom_bell_sounds');
+        if (rawCustom) {
+          const parsed = JSON.parse(rawCustom);
+          if (Array.isArray(parsed)) setCustomSounds(parsed);
+        }
+      } catch (e) {}
+    };
+
+    const syncSoundFromApi = () => {
+      fetch('/api/notifications', { cache: 'no-store' })
+        .then((r) => r.json())
+        .then((j) => {
+          const s = j?.data?.settings;
+          if (!s) return;
+          if (Array.isArray(s.customSounds)) {
+            setCustomSounds(s.customSounds);
+            try {
+              localStorage.setItem('sd_custom_bell_sounds', JSON.stringify(s.customSounds));
+            } catch {}
+          }
+          if (s.posSoundType) {
+            setSoundType(s.posSoundType);
+            try {
+              localStorage.setItem('sd_bell_sound', s.posSoundType);
+            } catch {}
+          }
+          if (typeof s.posSoundVolume === 'number') {
+            const normVol = Math.min(1, Math.max(0.1, s.posSoundVolume / 100));
+            setVolume(normVol);
+            try {
+              localStorage.setItem('sd_bell_volume', String(normVol));
+            } catch {}
+          }
+        })
+        .catch(() => {});
+    };
+
+    syncSoundFromLocal();
+    syncSoundFromApi();
+
+    const handleStorage = (e) => {
+      if (
+        !e.key ||
+        e.key === 'sd_bell_sound' ||
+        e.key === 'sd_custom_bell_sounds' ||
+        e.key === 'sandwich_admin_settings' ||
+        e.key === 'sandwich_notifications_updated'
+      ) {
+        syncSoundFromLocal();
+        syncSoundFromApi();
       }
-    } catch (e) {}
+    };
 
-    fetch('/api/notifications', { cache: 'no-store' })
-      .then((r) => r.json())
-      .then((j) => {
-        if (Array.isArray(j?.data?.settings?.customSounds)) {
-          setCustomSounds(j.data.settings.customSounds);
-          try {
-            localStorage.setItem(
-              'sd_custom_bell_sounds',
-              JSON.stringify(j.data.settings.customSounds)
-            );
-          } catch {}
-        }
-        if (j?.data?.settings?.posSoundType && !localStorage.getItem('sd_bell_sound')) {
-          setSoundType(j.data.settings.posSoundType);
-        }
-      })
-      .catch(() => {});
+    window.addEventListener('storage', handleStorage);
+    return () => window.removeEventListener('storage', handleStorage);
   }, []);
 
   // Update clock every second for snooze countdown
@@ -228,21 +299,21 @@ export default function KitchenPosBell({
     if (!isRinging) return;
 
     // Play immediately when ringing starts
-    playKitchenBellSound(soundType, volume);
+    playKitchenBellSound(soundType, volume, customSounds);
     if (typeof navigator !== 'undefined' && navigator.vibrate) {
       navigator.vibrate([250, 100, 250, 100, 400]);
     }
 
     const intervalMs = Math.max(4, repeatInterval) * 1000;
     const intervalTimer = setInterval(() => {
-      playKitchenBellSound(soundType, volume);
+      playKitchenBellSound(soundType, volume, customSounds);
       if (typeof navigator !== 'undefined' && navigator.vibrate) {
         navigator.vibrate([250, 100, 250, 100, 400]);
       }
     }, intervalMs);
 
     return () => clearInterval(intervalTimer);
-  }, [isRinging, soundType, volume, repeatInterval]);
+  }, [isRinging, soundType, volume, repeatInterval, customSounds]);
 
   // Document Title Blinking during Active Alarm
   useEffect(() => {
