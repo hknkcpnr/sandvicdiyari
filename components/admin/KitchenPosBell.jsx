@@ -300,6 +300,9 @@ export default function KitchenPosBell({
         const savedContinuous = localStorage.getItem('sd_continuous_bell');
         if (savedContinuous !== null) setContinuousBellEnabled(savedContinuous === 'true');
 
+        const savedVoiceReadout = localStorage.getItem('sd_voice_readout');
+        if (savedVoiceReadout !== null) setVoiceReadoutEnabled(savedVoiceReadout !== 'false');
+
         const savedSound = localStorage.getItem('sd_bell_sound');
         if (savedSound) setSoundType(savedSound);
 
@@ -318,7 +321,7 @@ export default function KitchenPosBell({
     };
 
     const syncSoundFromApi = () => {
-      fetch('/api/notifications', { cache: 'no-store' })
+      fetch('/api/notifications?includePosSounds=1', { cache: 'no-store' })
         .then((r) => r.json())
         .then((j) => {
           const s = j?.data?.settings;
@@ -362,8 +365,8 @@ export default function KitchenPosBell({
         !e.key ||
         e.key === 'sd_bell_sound' ||
         e.key === 'sd_custom_bell_sounds' ||
-        e.key === 'sandwich_admin_settings' ||
-        e.key === 'sandwich_notifications_updated'
+        e.key === 'sd_pos_bell_updated' ||
+        e.key === 'sandwich_admin_settings'
       ) {
         syncSoundFromLocal();
         syncSoundFromApi();
@@ -469,6 +472,14 @@ export default function KitchenPosBell({
     setContinuousBellEnabled(nextVal);
     try {
       localStorage.setItem('sd_continuous_bell', String(nextVal));
+    } catch (e) {}
+  };
+
+  const handleToggleVoiceReadout = () => {
+    const nextVal = !voiceReadoutEnabled;
+    setVoiceReadoutEnabled(nextVal);
+    try {
+      localStorage.setItem('sd_voice_readout', String(nextVal));
     } catch (e) {}
   };
 
@@ -691,33 +702,64 @@ export default function KitchenPosBell({
               </button>
             </div>
 
-            {/* Toggle Continuous Ringing */}
-            <div className="bg-stone-50 rounded-xl p-4 border border-stone-200/80 flex items-center justify-between gap-4">
-              <div>
-                <div className="font-bold text-xs text-stone-900">
-                  Sürekli Çalan Alarm Modu
+            {/* Toggle Continuous Ringing & Voice Product Readout */}
+            <div className="space-y-2.5">
+              <div className="bg-stone-50 rounded-xl p-3.5 border border-stone-200/80 flex items-center justify-between gap-4">
+                <div>
+                  <div className="font-bold text-xs text-stone-900">
+                    Sürekli Çalan Alarm Modu
+                  </div>
+                  <div className="text-[11px] text-stone-500 leading-tight mt-0.5">
+                    Sipariş ekranda kabul edilene kadar aralıklarla yüksek sesle çalar.
+                  </div>
                 </div>
-                <div className="text-[11px] text-stone-500 leading-tight mt-0.5">
-                  Sipariş ekranda kabul edilene veya incelenene kadar aralıklarla yüksek sesle çalar.
-                </div>
+
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={continuousBellEnabled}
+                  onClick={handleToggleContinuous}
+                  className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-hidden ${
+                    continuousBellEnabled ? 'bg-emerald-600' : 'bg-stone-300'
+                  }`}
+                  aria-label="Sürekli Çalan Alarm Modunu Aç veya Kapat"
+                >
+                  <span
+                    className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out ${
+                      continuousBellEnabled ? 'translate-x-5' : 'translate-x-0'
+                    }`}
+                  />
+                </button>
               </div>
 
-              <button
-                type="button"
-                role="switch"
-                aria-checked={continuousBellEnabled}
-                onClick={handleToggleContinuous}
-                className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-hidden ${
-                  continuousBellEnabled ? 'bg-emerald-600' : 'bg-stone-300'
-                }`}
-                aria-label="Sürekli Çalan Alarm Modunu Aç veya Kapat"
-              >
-                <span
-                  className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out ${
-                    continuousBellEnabled ? 'translate-x-5' : 'translate-x-0'
+              <div className="bg-amber-50/60 rounded-xl p-3.5 border border-amber-200/80 flex items-center justify-between gap-4">
+                <div>
+                  <div className="font-bold text-xs text-stone-900 flex items-center gap-1.5">
+                    <i className="fa-solid fa-microphone-lines text-amber-600"></i>
+                    <span>Sipariş Ürün İsmi Sesli Okuma (Anons)</span>
+                  </div>
+                  <div className="text-[11px] text-stone-500 leading-tight mt-0.5">
+                    Yeni sipariş geldiğinde ürün isimlerini Türkçe seslendirir veya ürüne özel sesi çalar.
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={voiceReadoutEnabled}
+                  onClick={handleToggleVoiceReadout}
+                  className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-hidden ${
+                    voiceReadoutEnabled ? 'bg-amber-600' : 'bg-stone-300'
                   }`}
-                />
-              </button>
+                  aria-label="Sipariş Ürün İsmi Sesli Okumayı Aç veya Kapat"
+                >
+                  <span
+                    className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out ${
+                      voiceReadoutEnabled ? 'translate-x-5' : 'translate-x-0'
+                    }`}
+                  />
+                </button>
+              </div>
             </div>
 
             {/* Sound Choice */}

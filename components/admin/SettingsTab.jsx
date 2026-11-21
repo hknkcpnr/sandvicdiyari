@@ -129,7 +129,7 @@ export default function SettingsTab({
       }
     } catch {}
 
-    fetch('/api/notifications', { cache: 'no-store' })
+    fetch('/api/notifications?includePosSounds=1', { cache: 'no-store' })
       .then((r) => r.json())
       .then((j) => {
         if (j?.success && j?.data?.settings) {
@@ -300,11 +300,47 @@ export default function SettingsTab({
       if (json?.success && json?.data?.settings) {
         setCustNotifSettings(json.data.settings);
         try {
-          localStorage.setItem('sandwich_notifications_updated', String(Date.now()));
+          localStorage.setItem('sd_pos_bell_updated', String(Date.now()));
         } catch {}
       }
     } catch (err) {
       console.error('Ses ayarları sunucuya kaydedilemedi:', err);
+    }
+  };
+
+  // Müşteri Sayfası Bildirim Ayarlarını Bağımsız Kaydet (Panel POS seslerinden tamamen ayrı)
+  const handleSaveCustomerNotifOnly = async () => {
+    setIsSavingCustNotif(true);
+    try {
+      const res = await fetch('/api/notifications', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'save_settings',
+          settings: {
+            ...custNotifSettings,
+            customSounds: Array.isArray(settings.customSounds) ? settings.customSounds : custNotifSettings.customSounds || [],
+            posSoundType: settings.soundType || custNotifSettings.posSoundType || 'chime',
+            posSoundVolume: settings.soundVolume || custNotifSettings.posSoundVolume || 80
+          }
+        })
+      });
+      const json = await res.json();
+      if (json?.success && json?.data?.settings) {
+        setCustNotifSettings(json.data.settings);
+        try {
+          localStorage.setItem('sandwich_notifications_updated', String(Date.now()));
+        } catch {}
+        if (showToast) {
+          showToast('Müşteri sayfası bildirim ayarları güncellendi!', 'success');
+        }
+      }
+      setSavedSuccess(true);
+      setTimeout(() => setSavedSuccess(false), 3000);
+    } catch (err) {
+      console.error('Müşteri bildirim ayarları kaydedilemedi:', err);
+    } finally {
+      setIsSavingCustNotif(false);
     }
   };
 
@@ -682,11 +718,11 @@ export default function SettingsTab({
               <button
                 type="button"
                 disabled={isSavingCustNotif}
-                onClick={handleSave}
+                onClick={handleSaveCustomerNotifOnly}
                 className="bg-brand-600 hover:bg-brand-700 text-white font-bold px-4 py-2 rounded-xl text-xs transition-all cursor-pointer flex items-center justify-center gap-1.5 shadow-xs shrink-0"
               >
                 <i className={`fa-solid ${isSavingCustNotif ? 'fa-spinner animate-spin' : 'fa-check'}`}></i>
-                <span>Bildirim Ayarlarını Uygula</span>
+                <span>Müşteri Bildirim Ayarlarını Uygula</span>
               </button>
             </div>
 

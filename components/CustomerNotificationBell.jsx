@@ -4,7 +4,6 @@ import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { setActivePage, openProfileModal } from '@/store/slices/uiSlice';
 import { DEFAULT_CUSTOMER_NOTIFICATION_SETTINGS } from '@/lib/notificationDefaults';
-import { playKitchenBellSound } from '@/components/admin/KitchenPosBell';
 
 function formatRelativeTime(isoStr) {
   if (!isoStr) return '';
@@ -221,16 +220,7 @@ export default function CustomerNotificationBell() {
         if (brandNew && nextSettings.enabled !== false && nextSettings.toastEnabled !== false) {
           setActiveToast(brandNew);
           if (nextSettings.soundEnabled !== false) {
-            const customList = Array.isArray(nextSettings.customSounds) ? nextSettings.customSounds : [];
-            const preferredType =
-              nextSettings.posSoundType ||
-              (customList.length > 0 ? customList[customList.length - 1].id : null);
-            if (preferredType && (customList.length > 0 || preferredType !== 'chime')) {
-              const vol = Math.min(1, Math.max(0.1, Number(nextSettings.posSoundVolume || 80) / 100));
-              playKitchenBellSound(preferredType, vol, customList);
-            } else {
-              playGentleCustomerChime();
-            }
+            playGentleCustomerChime();
           }
         }
       }

@@ -87,11 +87,14 @@ export async function GET(request) {
     const cleanEmail = String(searchParams.get('email') || '').trim().toLowerCase();
     const cleanId = String(searchParams.get('id') || '').trim();
     const cleanOrderId = String(searchParams.get('orderId') || '').trim();
+    const includePosSounds = searchParams.get('includePosSounds') === '1';
     const isGuestSession = cleanId.startsWith('guest_') || cleanEmail.startsWith('misafir_');
     const guestTsRaw = cleanId.startsWith('guest_') ? Number(cleanId.replace('guest_', '')) : 0;
     const guestStartMs = Number.isFinite(guestTsRaw) && guestTsRaw > 0 ? guestTsRaw : 0;
 
-    const settings = await getNotificationSettings();
+    const fullSettings = await getNotificationSettings();
+    const { customSounds: _posSounds, posSoundType: _posType, posSoundVolume: _posVol, ...customerOnlySettings } = fullSettings;
+    const settings = includePosSounds ? fullSettings : customerOnlySettings;
 
     let personalNotifications = [];
     let orderNotifications = [];
@@ -143,7 +146,7 @@ export async function GET(request) {
             }));
           }
         }
-      } catch (e) {}
+      } catch (e) { }
 
       // 2. Sipariş durumu bildirimleri (Ayarlarda açıksa)
       if (settings.orderStatusNotifications !== false) {
@@ -192,43 +195,43 @@ export async function GET(request) {
                 return true;
               })
               .flatMap((o) => {
-              const items = [
-                {
-                  id: `ord_${o.id}_${o.status}`,
-                  orderId: o.id,
-                  title: `🛵 Sipariş Durumu: ${o.status}`,
-                  message: buildOrderStatusText(o),
-                  type: o.status === 'İptal Edildi' ? 'warning' : 'order',
-                  scope: 'order',
-                  targetPage: 'profile_orders',
-                  createdAt: o.updatedAt || o.createdAt
+                const items = [
+                  {
+                    id: `ord_${o.id}_${o.status}`,
+                    orderId: o.id,
+                    title: `🛵 Sipariş Durumu: ${o.status}`,
+                    message: buildOrderStatusText(o),
+                    type: o.status === 'İptal Edildi' ? 'warning' : 'order',
+                    scope: 'order',
+                    targetPage: 'profile_orders',
+                    createdAt: o.updatedAt || o.createdAt
+                  }
+                ];
+
+                const latestEtaEntry = Array.isArray(o.statusHistory)
+                  ? o.statusHistory.find((h) => h.note && h.note.includes('Tahmini Varış Süresi:'))
+                  : null;
+
+                if (latestEtaEntry && o.status !== 'Teslim Edildi' && o.status !== 'İptal Edildi') {
+                  const match = latestEtaEntry.note.match(/Tahmini Varış Süresi:\s*(.+?)\s*olarak güncellendi/i);
+                  const etaText = match ? match[1].trim() : latestEtaEntry.note;
+                  const no = o.orderNumber || o.id;
+                  items.push({
+                    id: `eta_${o.id}_${latestEtaEntry.id}`,
+                    orderId: o.id,
+                    title: `⏱️ Tahmini Varış: ${etaText}`,
+                    message: `#${no} numaralı siparişiniz için kuryemiz tahmini varış süresini ${etaText} olarak bildirdi.`,
+                    type: 'order',
+                    scope: 'order',
+                    targetPage: 'profile_orders',
+                    createdAt: latestEtaEntry.timestamp || o.updatedAt || o.createdAt
+                  });
                 }
-              ];
 
-              const latestEtaEntry = Array.isArray(o.statusHistory)
-                ? o.statusHistory.find((h) => h.note && h.note.includes('Tahmini Varış Süresi:'))
-                : null;
-
-              if (latestEtaEntry && o.status !== 'Teslim Edildi' && o.status !== 'İptal Edildi') {
-                const match = latestEtaEntry.note.match(/Tahmini Varış Süresi:\s*(.+?)\s*olarak güncellendi/i);
-                const etaText = match ? match[1].trim() : latestEtaEntry.note;
-                const no = o.orderNumber || o.id;
-                items.push({
-                  id: `eta_${o.id}_${latestEtaEntry.id}`,
-                  orderId: o.id,
-                  title: `⏱️ Tahmini Varış: ${etaText}`,
-                  message: `#${no} numaralı siparişiniz için kuryemiz tahmini varış süresini ${etaText} olarak bildirdi.`,
-                  type: 'order',
-                  scope: 'order',
-                  targetPage: 'profile_orders',
-                  createdAt: latestEtaEntry.timestamp || o.updatedAt || o.createdAt
-                });
-              }
-
-              return items;
-            });
+                return items;
+              });
           }
-        } catch (e) {}
+        } catch (e) { }
       }
     }
 
@@ -236,10 +239,10 @@ export async function GET(request) {
     const broadcastNotifications = isGuestSession || (!cleanEmail && cleanOrderId)
       ? []
       : (settings.broadcasts || []).map((b) => ({
-          ...b,
-          scope: 'broadcast',
-          type: b.type || 'campaign'
-        }));
+        ...b,
+        scope: 'broadcast',
+        type: b.type || 'campaign'
+      }));
 
     const combined = [
       ...personalNotifications,
@@ -308,13 +311,13 @@ export async function POST(request) {
         broadcasts: Array.isArray(s.broadcasts) ? s.broadcasts : current.broadcasts,
         customSounds: Array.isArray(s.customSounds)
           ? s.customSounds
-              .filter((cs) => cs && typeof cs.audioUrl === 'string' && cs.audioUrl.trim())
-              .map((cs) => ({
-                id: String(cs.id || `custom_${Date.now()}`).slice(0, 64),
-                label: sanitizeText(cs.label || 'Özel Bildirim Sesi', 80, 'Ses Adı', '/api/notifications'),
-                desc: sanitizeText(cs.desc || 'Özel Bildirim Sesi', 120, 'Ses Açıklaması', '/api/notifications'),
-                audioUrl: String(cs.audioUrl).trim().slice(0, 4000000)
-              }))
+            .filter((cs) => cs && typeof cs.audioUrl === 'string' && cs.audioUrl.trim())
+            .map((cs) => ({
+              id: String(cs.id || `custom_${Date.now()}`).slice(0, 64),
+              label: sanitizeText(cs.label || 'Özel Bildirim Sesi', 80, 'Ses Adı', '/api/notifications'),
+              desc: sanitizeText(cs.desc || 'Özel Bildirim Sesi', 120, 'Ses Açıklaması', '/api/notifications'),
+              audioUrl: String(cs.audioUrl).trim().slice(0, 4000000)
+            }))
           : current.customSounds || [],
         posSoundType:
           typeof s.posSoundType === 'string'
@@ -389,7 +392,7 @@ export async function POST(request) {
               });
             })
           );
-        } catch (e) {}
+        } catch (e) { }
       }
 
       return NextResponse.json({
