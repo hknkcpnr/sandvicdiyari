@@ -29,64 +29,71 @@ const FEATURE_ICON_OPTIONS = [
   { value: 'fa-solid fa-burger', label: '🍔 Zengin Menü Seçeneği' },
 ];
 
-const SECTION_METAS = {
-  hero: {
+const SECTIONS = [
+  {
     id: 'hero',
-    title: 'Manşet & Hero (Ana Giriş)',
+    title: 'Manşet & Hero',
+    shortTitle: 'Giriş Vitrini',
     icon: 'fa-solid fa-panorama',
-    desc: 'Sitenin en üstündeki karşılama görseli, ana sloganlar ve sipariş / arama butonları.',
+    desc: 'Ana karşılama görseli, başlıklar, Google puanı ve sipariş butonları.',
     getVisibility: (c) => c.hero?.visible !== false,
     setVisibility: (c, v) => ({ ...c, hero: { ...c.hero, visible: v } }),
   },
-  campaigns: {
+  {
     id: 'campaigns',
-    title: 'Günün Kampanyaları Vitrini',
+    title: 'Günün Kampanyaları',
+    shortTitle: 'Kampanyalar',
     icon: 'fa-solid fa-fire',
-    desc: 'İndirimli ve avantajlı menülerin listelendiği kampanya bölümü.',
+    desc: 'İndirimli ve avantajlı menülerin listelendiği vitrin alanı.',
     getVisibility: (c) => c.campaignsSection?.visible !== false,
     setVisibility: (c, v) => ({ ...c, campaignsSection: { ...c.campaignsSection, visible: v } }),
   },
-  newMenus: {
+  {
     id: 'newMenus',
-    title: 'En Yeni Menüler Vitrini',
+    title: 'En Yeni Menüler',
+    shortTitle: 'Yeni Menüler',
     icon: 'fa-solid fa-burger',
     desc: 'En son çıkan lezzetlerin ve sandviçlerin vitrin listesi.',
     getVisibility: (c) => c.newMenusSection?.visible !== false,
     setVisibility: (c, v) => ({ ...c, newMenusSection: { ...c.newMenusSection, visible: v } }),
   },
-  features: {
+  {
     id: 'features',
     title: 'Neden Sandviç Diyarı?',
+    shortTitle: 'Neden Biz?',
     icon: 'fa-solid fa-shield-heart',
-    desc: 'Hijyen, hızlı kurye ve taze malzeme gibi kalite özellikleriniz.',
+    desc: 'Hijyen, hızlı kurye ve taze malzeme kalite kartları.',
     getVisibility: (c) => c.featuresSection?.visible !== false,
     setVisibility: (c, v) => ({ ...c, featuresSection: { ...c.featuresSection, visible: v } }),
   },
-  reviews: {
+  {
     id: 'reviews',
-    title: 'Müşteri Yorumları & Puan',
+    title: 'Müşteri Yorumları',
+    shortTitle: 'Yorumlar & Puan',
     icon: 'fa-regular fa-star',
     desc: 'Müşterilerinizin paylaştığı gerçek değerlendirme vitrini.',
     getVisibility: (c) => c.reviewsSection?.visible !== false,
     setVisibility: (c, v) => ({ ...c, reviewsSection: { ...c.reviewsSection, visible: v } }),
   },
-  story: {
+  {
     id: 'story',
-    title: 'Hikayemiz & Görsel Slider',
+    title: 'Hikayemiz & Slider',
+    shortTitle: 'Hikayemiz & Galeri',
     icon: 'fa-solid fa-images',
-    desc: 'Hikayemiz sayfasındaki tanıtım yazıları ve çoklu fotoğraf galerisi (slider).',
+    desc: 'Hakkımızda tanıtım yazıları ve fotoğraf galerisi (slider).',
     getVisibility: (c) => c.storySection?.visible !== false,
     setVisibility: (c, v) => ({ ...c, storySection: { ...c.storySection, visible: v } }),
   },
-  contact: {
+  {
     id: 'contact',
-    title: 'İletişim, Şube Adresi & Saatler',
+    title: 'İletişim & Şube',
+    shortTitle: 'İletişim & Adres',
     icon: 'fa-solid fa-phone',
-    desc: 'Alt bilgi alanındaki şube açık adresi, telefon ve çalışma saatleri.',
+    desc: 'Şube açık adresi, telefon ve paket servis çalışma saatleri.',
     getVisibility: (c) => c.contactBar?.visible !== false,
     setVisibility: (c, v) => ({ ...c, contactBar: { ...c.contactBar, visible: v } }),
   },
-};
+];
 
 export default function SiteContentEditorTab({ initialSubTab = 'hero', onSubTabChange }) {
   const dispatch = useDispatch();
@@ -266,7 +273,7 @@ export default function SiteContentEditorTab({ initialSubTab = 'hero', onSubTabC
     );
   }
 
-  const currentMeta = SECTION_METAS[activeSubTab] || SECTION_METAS.hero;
+  const currentMeta = SECTIONS.find((s) => s.id === activeSubTab) || SECTIONS[0];
   const isCurrentVisible = currentMeta.getVisibility(content);
   const hero = content.hero || DEFAULT_SITE_CONTENT.hero;
 
@@ -276,78 +283,104 @@ export default function SiteContentEditorTab({ initialSubTab = 'hero', onSubTabC
 
   return (
     <div className="space-y-4 w-full min-w-0 font-poppins animate-in fade-in duration-150">
-      {/* 1. SADE VE ANLAŞILIR TEK KONTROL BARI */}
-      <div className="bg-white p-3.5 sm:p-4 rounded-2xl border border-stone-200 shadow-xs flex flex-col lg:flex-row lg:items-center justify-between gap-3">
-        {/* Sol Taraf: Bölüm Seçici ve Görünürlük Düğmesi */}
-        <div className="flex flex-col sm:flex-row sm:items-center gap-3 flex-1 min-w-0">
-          <div className="flex items-center gap-2.5 shrink-0">
-            <span className="w-9 h-9 rounded-xl bg-brand-50 text-brand-600 flex items-center justify-center text-sm font-bold shadow-2xs">
-              <i className={currentMeta.icon}></i>
-            </span>
-            <div className="min-w-0">
-              <span className="text-[10px] font-extrabold text-stone-400 uppercase tracking-wider block">
-                Düzenlenen Bölüm
-              </span>
-              <span className="text-xs font-bold text-stone-900 block truncate">
+      {/* 1. YATAY KATEGORİ SEKMELERİ (MODERN PILLS TAB BAR) */}
+      <div className="bg-white p-2 rounded-2xl border border-stone-200 shadow-2xs overflow-x-auto scrollbar-none">
+        <div className="flex items-center gap-1.5 min-w-max">
+          {SECTIONS.map((sec) => {
+            const isActive = activeSubTab === sec.id;
+            const isVisible = sec.getVisibility(content);
+
+            return (
+              <button
+                key={sec.id}
+                type="button"
+                onClick={() => handleSubTabChange(sec.id)}
+                className={`flex items-center gap-2 px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all duration-150 cursor-pointer ${
+                  isActive
+                    ? 'bg-stone-900 text-white shadow-xs'
+                    : 'text-stone-600 hover:text-stone-950 hover:bg-stone-100'
+                }`}
+              >
+                <i className={`${sec.icon} ${isActive ? 'text-amber-400' : 'text-stone-400'}`}></i>
+                <span>{sec.shortTitle}</span>
+                <span
+                  className={`w-2 h-2 rounded-full shrink-0 ${
+                    isVisible ? 'bg-emerald-500' : 'bg-stone-300'
+                  }`}
+                  title={isVisible ? 'Sitede Açık' : 'Sitede Gizli'}
+                ></span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* 2. EYLEM & DURUM KONTROL ŞERİDİ */}
+      <div className="bg-white p-4 rounded-2xl border border-stone-200 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-3">
+        {/* Sol: Başlık ve Açıklama */}
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-700 border border-amber-200/60 flex items-center justify-center text-base shrink-0 shadow-2xs">
+            <i className={currentMeta.icon}></i>
+          </div>
+          <div className="min-w-0">
+            <div className="flex items-center gap-2">
+              <h3 className="text-sm font-extrabold text-stone-900 truncate">
                 {currentMeta.title}
-              </span>
+              </h3>
+              {hasUnsavedChanges && (
+                <span className="text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-300 px-2 py-0.5 rounded-full shrink-0 animate-pulse">
+                  Değişiklik Var
+                </span>
+              )}
             </div>
+            <p className="text-xs text-stone-500 truncate mt-0.5">{currentMeta.desc}</p>
           </div>
+        </div>
 
-          <div className="relative w-full sm:w-80">
-            <select
-              value={activeSubTab}
-              onChange={(e) => handleSubTabChange(e.target.value)}
-              className="app-select w-full bg-stone-50 hover:bg-white border border-stone-300 hover:border-brand-500 text-stone-900 text-xs font-bold rounded-2xl px-4 py-2.5 cursor-pointer focus:outline-none focus:ring-3 focus:ring-brand-500/15 transition-all shadow-xs"
-            >
-              <option value="hero">🌟 Manşet &amp; Hero (Ana Karşılama)</option>
-              <option value="campaigns">🔥 Günün Kampanyaları Vitrini</option>
-              <option value="newMenus">🍔 En Yeni Menüler Vitrini</option>
-              <option value="features">🛡️ Neden Sandviç Diyarı?</option>
-              <option value="reviews">⭐ Müşteri Yorumları Vitrini</option>
-              <option value="story">📸 Hikayemiz &amp; Görsel Slider</option>
-              <option value="contact">📞 İletişim, Şube Adresi &amp; Saatler</option>
-            </select>
-          </div>
-
-          {/* Tek Tıkla Bölüm Görünürlük Switch Butonu */}
+        {/* Sağ: Görünürlük Switch + Aksiyonlar */}
+        <div className="flex flex-wrap items-center gap-2 shrink-0 pt-2 md:pt-0 border-t md:border-t-0 border-stone-100">
+          {/* Bölüm Açık / Kapalı Toggle */}
           <button
             type="button"
             onClick={toggleCurrentVisibility}
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer border shrink-0 ${
+            className={`px-3 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer border shadow-2xs ${
               isCurrentVisible
                 ? 'bg-emerald-50 text-emerald-800 border-emerald-300 hover:bg-emerald-100'
                 : 'bg-stone-100 text-stone-500 border-stone-300 hover:bg-stone-200'
             }`}
-            title="Bölümü sitede aç veya gizle"
+            title="Bölümü ana sayfada göster veya gizle"
           >
-            <span className={`w-2 h-2 rounded-full ${isCurrentVisible ? 'bg-emerald-500 animate-pulse' : 'bg-stone-400'}`}></span>
-            <span>{isCurrentVisible ? 'Bölüm Açık (Sitede Yayında)' : 'Bölüm Kapalı (Gizli)'}</span>
+            <span
+              className={`w-2 h-2 rounded-full ${
+                isCurrentVisible ? 'bg-emerald-500 animate-pulse' : 'bg-stone-400'
+              }`}
+            ></span>
+            <span>{isCurrentVisible ? 'Bölüm Yayında' : 'Bölüm Gizli'}</span>
           </button>
-        </div>
 
-        {/* Sağ Taraf: Eylem Butonları */}
-        <div className="flex items-center gap-2 shrink-0 justify-end pt-2 sm:pt-0 border-t sm:border-t-0 border-stone-100">
+          {/* Siteyi Aç */}
           <button
             type="button"
             onClick={() => window.open('/', '_blank')}
             className="bg-stone-100 hover:bg-stone-200 text-stone-700 font-bold px-3 py-2 rounded-xl text-xs flex items-center gap-1.5 transition-colors cursor-pointer"
-            title="Müşteri Arayüzünü Yeni Sekmede Aç"
+            title="Müşteri Sitesini Yeni Sekmede Gör"
           >
-            <i className="fa-solid fa-arrow-up-right-from-square text-[10px]"></i>
-            <span>Siteyi Aç</span>
+            <i className="fa-solid fa-arrow-up-right-from-square text-[11px]"></i>
+            <span className="hidden sm:inline">Siteyi Aç</span>
           </button>
 
+          {/* Sıfırla */}
           <button
             type="button"
             onClick={handleResetToDefaults}
             className="text-stone-500 hover:text-rose-600 hover:bg-rose-50 px-2.5 py-2 rounded-xl text-xs font-semibold transition-colors cursor-pointer"
-            title="Varsayılan Fabrika Ayarlarına Dön"
+            title="Varsayılan Fabrika İçeriklerine Sıfırla"
           >
             <i className="fa-solid fa-rotate-left mr-1"></i>
-            <span>Sıfırla</span>
+            <span className="hidden sm:inline">Sıfırla</span>
           </button>
 
+          {/* Kaydet */}
           <button
             type="button"
             disabled={saving}
@@ -355,18 +388,18 @@ export default function SiteContentEditorTab({ initialSubTab = 'hero', onSubTabC
             className="bg-stone-900 hover:bg-black disabled:opacity-50 text-white font-extrabold px-4 sm:px-5 py-2 rounded-xl text-xs flex items-center gap-2 transition-all cursor-pointer shadow-xs active:scale-95"
           >
             <i className={`fa-solid ${saving ? 'fa-spinner fa-spin' : 'fa-check text-emerald-400'}`}></i>
-            <span>{saving ? 'Kaydediliyor...' : hasUnsavedChanges ? 'Değişiklikleri Kaydet' : 'Kaydet'}</span>
+            <span>{saving ? 'Kaydediliyor...' : hasUnsavedChanges ? 'Değişiklikleri Kaydet ✨' : 'Kaydet'}</span>
           </button>
         </div>
       </div>
 
-      {/* Bölüm Kapalı İse Bilgilendirme Kutusu */}
+      {/* Bölüm Gizli İse Bilgilendirme Uyarısı */}
       {!isCurrentVisible && (
-        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex items-center justify-between gap-3 text-amber-900 text-xs">
+        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-3.5 flex items-center justify-between gap-3 text-amber-900 text-xs">
           <div className="flex items-center gap-2.5">
-            <i className="fa-solid fa-eye-slash text-amber-600 text-base"></i>
+            <i className="fa-solid fa-eye-slash text-amber-600 text-base shrink-0"></i>
             <span>
-              <strong>{currentMeta.title}</strong> şu anda müşteri ana sayfasında gizlenmiştir. Ziyaretçiler bu bölümü görmeyecektir.
+              <strong>{currentMeta.title}</strong> şu anda müşteri ana sayfasında gizlenmiştir. Ziyaretçiler bu bölümü görmez.
             </span>
           </div>
           <button
@@ -379,7 +412,7 @@ export default function SiteContentEditorTab({ initialSubTab = 'hero', onSubTabC
         </div>
       )}
 
-      {/* 2. SEÇİLİ BÖLÜM FORMU */}
+      {/* 3. SEÇİLİ BÖLÜM FORMU */}
 
       {/* ========================================================================= */}
       {/* 1. HERO BÖLÜMÜ */}
@@ -387,16 +420,19 @@ export default function SiteContentEditorTab({ initialSubTab = 'hero', onSubTabC
       {activeSubTab === 'hero' && (
         <div className="space-y-4">
           {/* Kart A: Başlıklar ve Sloganlar */}
-          <div className="bg-white p-4 sm:p-6 rounded-2xl border border-stone-200 shadow-xs space-y-4">
-            <h3 className="text-xs font-bold text-stone-900 flex items-center gap-2 border-b border-stone-100 pb-2">
-              <i className="fa-solid fa-heading text-brand-600"></i>
-              <span>Ana Başlıklar ve Slogan</span>
-            </h3>
+          <div className="bg-white p-4 sm:p-5 rounded-2xl border border-stone-200 shadow-xs space-y-4">
+            <div className="flex items-center justify-between border-b border-stone-100 pb-2.5">
+              <span className="text-xs font-extrabold text-stone-900 flex items-center gap-2">
+                <i className="fa-solid fa-heading text-brand-600"></i>
+                <span>Başlıklar, Slogan ve Değerlendirme Puanı</span>
+              </span>
+              <span className="text-[11px] text-stone-400">Sitenin en üst karşılama metinleri</span>
+            </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="text-xs font-bold text-stone-700 block mb-1">
-                  Birinci Başlık (Beyaz Metin)
+                  Birinci Başlık (Beyaz Vurgulu)
                 </label>
                 <input
                   type="text"
@@ -414,7 +450,7 @@ export default function SiteContentEditorTab({ initialSubTab = 'hero', onSubTabC
 
               <div>
                 <label className="text-xs font-bold text-stone-700 block mb-1">
-                  İkinci Başlık (Renkli &amp; Vurgulu Metin)
+                  İkinci Başlık (Renkli &amp; Güçlü Vurgu)
                 </label>
                 <input
                   type="text"
@@ -432,7 +468,7 @@ export default function SiteContentEditorTab({ initialSubTab = 'hero', onSubTabC
 
               <div className="sm:col-span-2">
                 <label className="text-xs font-bold text-stone-700 block mb-1">
-                  Açıklama Cümlesi
+                  Tanıtım Açıklaması
                 </label>
                 <textarea
                   rows={2}
@@ -444,7 +480,7 @@ export default function SiteContentEditorTab({ initialSubTab = 'hero', onSubTabC
                     }))
                   }
                   placeholder="Özel ekmeklerle hazırlanan sandviçlerimizle lezzet kapınızda..."
-                  className="w-full text-xs bg-stone-50 border border-stone-300 rounded-xl p-3 text-stone-800 focus:outline-none focus:border-stone-900"
+                  className="w-full text-xs bg-stone-50 border border-stone-300 rounded-xl p-3 text-stone-800 focus:outline-none focus:border-stone-900 resize-none"
                 />
               </div>
 
@@ -468,7 +504,7 @@ export default function SiteContentEditorTab({ initialSubTab = 'hero', onSubTabC
 
               <div>
                 <label className="text-xs font-bold text-stone-700 block mb-1">
-                  Google Puanı ve Yorum Sayısı
+                  Google Puanı &amp; Yorum Sayısı
                 </label>
                 <div className="grid grid-cols-2 gap-2">
                   <input
@@ -481,7 +517,7 @@ export default function SiteContentEditorTab({ initialSubTab = 'hero', onSubTabC
                       }))
                     }
                     placeholder="4.9 / 5.0"
-                    className="w-full text-xs bg-stone-50 border border-stone-300 rounded-xl px-3 py-2 font-bold text-amber-700"
+                    className="w-full text-xs bg-stone-50 border border-stone-300 rounded-xl px-3 py-2.5 font-bold text-amber-700"
                   />
                   <input
                     type="text"
@@ -493,34 +529,36 @@ export default function SiteContentEditorTab({ initialSubTab = 'hero', onSubTabC
                       }))
                     }
                     placeholder="(2,400+ Yorum)"
-                    className="w-full text-xs bg-stone-50 border border-stone-300 rounded-xl px-3 py-2 text-stone-600"
+                    className="w-full text-xs bg-stone-50 border border-stone-300 rounded-xl px-3 py-2.5 text-stone-600 font-medium"
                   />
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Kart B: Arka Plan Fotoğrafı */}
-          <div className="bg-white p-4 sm:p-6 rounded-2xl border border-stone-200 shadow-xs space-y-4">
-            <h3 className="text-xs font-bold text-stone-900 flex items-center gap-2 border-b border-stone-100 pb-2">
-              <i className="fa-solid fa-image text-brand-600"></i>
-              <span>Manşet Arka Plan Fotoğrafı</span>
-            </h3>
+          {/* Kart B: Manşet Görseli */}
+          <div className="bg-white p-4 sm:p-5 rounded-2xl border border-stone-200 shadow-xs space-y-4">
+            <div className="flex items-center justify-between border-b border-stone-100 pb-2.5">
+              <span className="text-xs font-extrabold text-stone-900 flex items-center gap-2">
+                <i className="fa-solid fa-image text-brand-600"></i>
+                <span>Manşet Arka Plan Görseli</span>
+              </span>
+              <span className="text-[11px] text-stone-400">1920x1080 yatay görsel önerilir</span>
+            </div>
 
-            {/* Seçili Fotoğraf ve Yükleme Butonu */}
-            <div className="flex flex-col sm:flex-row items-center gap-4 bg-stone-50 p-3 rounded-xl border border-stone-200">
-              <div className="w-full sm:w-44 h-24 rounded-xl overflow-hidden bg-stone-900 border border-stone-300 shrink-0 relative">
+            <div className="flex flex-col sm:flex-row items-center gap-4 bg-stone-50 p-3 rounded-2xl border border-stone-200/80">
+              <div className="w-full sm:w-44 h-28 rounded-xl overflow-hidden bg-stone-900 border border-stone-300 shrink-0 relative">
                 <img
                   src={hero.image || '/images/hero_sandwich_banner.jpg'}
                   alt="Aktif Görsel"
                   className="w-full h-full object-cover"
                 />
                 <span className="absolute bottom-1 right-1 bg-black/70 text-white text-[9px] px-1.5 py-0.5 rounded font-mono">
-                  Aktif
+                  Aktif Görsel
                 </span>
               </div>
 
-              <div className="flex-1 w-full space-y-2">
+              <div className="flex-1 w-full space-y-2.5">
                 <input
                   type="text"
                   value={hero.image || ''}
@@ -530,7 +568,7 @@ export default function SiteContentEditorTab({ initialSubTab = 'hero', onSubTabC
                       hero: { ...prev.hero, image: e.target.value },
                     }))
                   }
-                  placeholder="Görsel dosya yolu (/images/...) veya bağlantı (https://...)"
+                  placeholder="Görsel dosya yolu (/images/...) veya URL (https://...)"
                   className="w-full text-xs bg-white border border-stone-300 rounded-xl px-3 py-2 font-mono text-stone-900"
                 />
 
@@ -539,7 +577,7 @@ export default function SiteContentEditorTab({ initialSubTab = 'hero', onSubTabC
                     type="button"
                     onClick={() => heroFileInputRef.current?.click()}
                     disabled={uploadingTarget === 'heroImage'}
-                    className="bg-stone-900 hover:bg-black text-white font-bold px-3.5 py-1.5 rounded-xl text-xs flex items-center gap-1.5 cursor-pointer shadow-2xs"
+                    className="bg-stone-900 hover:bg-black text-white font-bold px-3.5 py-2 rounded-xl text-xs flex items-center gap-1.5 cursor-pointer shadow-2xs transition-all"
                   >
                     <i className={`fa-solid ${uploadingTarget === 'heroImage' ? 'fa-spinner fa-spin' : 'fa-arrow-up-from-bracket'}`}></i>
                     <span>{uploadingTarget === 'heroImage' ? 'Yükleniyor...' : 'Bilgisayardan Yeni Fotoğraf Yükle'}</span>
@@ -555,10 +593,10 @@ export default function SiteContentEditorTab({ initialSubTab = 'hero', onSubTabC
               </div>
             </div>
 
-            {/* Hazır Fotoğraf Seçenekleri */}
+            {/* Hazır Fotoğraflardan Seç */}
             <div>
-              <span className="text-[11px] font-bold text-stone-500 uppercase tracking-wider block mb-2">
-                Veya Hazır Gurme Fotoğraflardan Seçin:
+              <span className="text-[11px] font-extrabold text-stone-500 uppercase tracking-wider block mb-2">
+                Veya Hazır Gurme Fotoğraflardan Tek Tıkla Seçin:
               </span>
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
                 {HERO_IMAGE_PRESETS.map((p) => {
@@ -574,13 +612,15 @@ export default function SiteContentEditorTab({ initialSubTab = 'hero', onSubTabC
                         }))
                       }
                       className={`text-left rounded-xl overflow-hidden border-2 transition-all cursor-pointer ${
-                        isCur ? 'border-brand-600 ring-2 ring-brand-500/20' : 'border-stone-200 hover:border-stone-300'
+                        isCur
+                          ? 'border-brand-600 ring-2 ring-brand-500/20 shadow-xs'
+                          : 'border-stone-200 hover:border-stone-300'
                       }`}
                     >
                       <div className="h-14 w-full bg-stone-100 overflow-hidden">
                         <img src={p.url} alt={p.label} className="w-full h-full object-cover" />
                       </div>
-                      <div className="p-1 bg-white text-center">
+                      <div className="p-1.5 bg-white text-center">
                         <span className="text-[10px] font-bold text-stone-800 block truncate">{p.label}</span>
                       </div>
                     </button>
@@ -591,14 +631,17 @@ export default function SiteContentEditorTab({ initialSubTab = 'hero', onSubTabC
           </div>
 
           {/* Kart C: Hızlı Butonlar */}
-          <div className="bg-white p-4 sm:p-6 rounded-2xl border border-stone-200 shadow-xs space-y-4">
-            <h3 className="text-xs font-bold text-stone-900 flex items-center gap-2 border-b border-stone-100 pb-2">
-              <i className="fa-solid fa-arrow-pointer text-brand-600"></i>
-              <span>Manşet Üstü Aksiyon Butonları</span>
-            </h3>
+          <div className="bg-white p-4 sm:p-5 rounded-2xl border border-stone-200 shadow-xs space-y-4">
+            <div className="flex items-center justify-between border-b border-stone-100 pb-2.5">
+              <span className="text-xs font-extrabold text-stone-900 flex items-center gap-2">
+                <i className="fa-solid fa-arrow-pointer text-brand-600"></i>
+                <span>Manşet Üstü Aksiyon Butonları</span>
+              </span>
+              <span className="text-[11px] text-stone-400">Buton metinleri ve aktiflik durumları</span>
+            </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="p-3 bg-stone-50 rounded-xl border border-stone-200 space-y-2">
+              <div className="p-3.5 bg-stone-50 rounded-2xl border border-stone-200 space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-bold text-stone-800">Menüye Git Butonu (Birincil)</span>
                   <label className="flex items-center gap-1.5 cursor-pointer text-xs font-bold text-stone-700">
@@ -630,7 +673,7 @@ export default function SiteContentEditorTab({ initialSubTab = 'hero', onSubTabC
                 />
               </div>
 
-              <div className="p-3 bg-stone-50 rounded-xl border border-stone-200 space-y-2">
+              <div className="p-3.5 bg-stone-50 rounded-2xl border border-stone-200 space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-bold text-stone-800">Telefon / Sipariş Butonu (İkincil)</span>
                   <label className="flex items-center gap-1.5 cursor-pointer text-xs font-bold text-stone-700">
@@ -670,11 +713,14 @@ export default function SiteContentEditorTab({ initialSubTab = 'hero', onSubTabC
       {/* 2. GÜNÜN KAMPANYALARI BÖLÜMÜ */}
       {/* ========================================================================= */}
       {activeSubTab === 'campaigns' && (
-        <div className="bg-white p-4 sm:p-6 rounded-2xl border border-stone-200 shadow-xs space-y-4">
-          <h3 className="text-xs font-bold text-stone-900 flex items-center gap-2 border-b border-stone-100 pb-2">
-            <i className="fa-solid fa-fire text-rose-500"></i>
-            <span>Günün Kampanyaları Vitrini Metinleri</span>
-          </h3>
+        <div className="bg-white p-4 sm:p-5 rounded-2xl border border-stone-200 shadow-xs space-y-4">
+          <div className="flex items-center justify-between border-b border-stone-100 pb-2.5">
+            <span className="text-xs font-extrabold text-stone-900 flex items-center gap-2">
+              <i className="fa-solid fa-fire text-rose-500"></i>
+              <span>Günün Kampanyaları Vitrini Metinleri</span>
+            </span>
+            <span className="text-[11px] text-stone-400">Ana sayfadaki fırsat alanı</span>
+          </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
@@ -710,7 +756,7 @@ export default function SiteContentEditorTab({ initialSubTab = 'hero', onSubTabC
             </div>
           </div>
 
-          <div className="p-3 bg-stone-50 rounded-xl border border-stone-200 flex items-center justify-between">
+          <div className="p-3.5 bg-stone-50 rounded-2xl border border-stone-200 flex items-center justify-between">
             <span className="text-xs font-bold text-stone-800">&quot;Tümünü Gör&quot; Yönlendirme Butonu</span>
             <div className="flex items-center gap-3">
               <input
@@ -747,11 +793,14 @@ export default function SiteContentEditorTab({ initialSubTab = 'hero', onSubTabC
       {/* 3. EN YENİ MENÜLER BÖLÜMÜ */}
       {/* ========================================================================= */}
       {activeSubTab === 'newMenus' && (
-        <div className="bg-white p-4 sm:p-6 rounded-2xl border border-stone-200 shadow-xs space-y-4">
-          <h3 className="text-xs font-bold text-stone-900 flex items-center gap-2 border-b border-stone-100 pb-2">
-            <i className="fa-solid fa-burger text-amber-500"></i>
-            <span>En İyi Menüler Vitrini Ayarları</span>
-          </h3>
+        <div className="bg-white p-4 sm:p-5 rounded-2xl border border-stone-200 shadow-xs space-y-4">
+          <div className="flex items-center justify-between border-b border-stone-100 pb-2.5">
+            <span className="text-xs font-extrabold text-stone-900 flex items-center gap-2">
+              <i className="fa-solid fa-burger text-amber-500"></i>
+              <span>En İyi Menüler Vitrini Ayarları</span>
+            </span>
+            <span className="text-[11px] text-stone-400">Yeni çıkan ve popüler lezzetler</span>
+          </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
@@ -805,7 +854,7 @@ export default function SiteContentEditorTab({ initialSubTab = 'hero', onSubTabC
             </div>
           </div>
 
-          <div className="p-3 bg-stone-50 rounded-xl border border-stone-200 flex items-center justify-between">
+          <div className="p-3.5 bg-stone-50 rounded-2xl border border-stone-200 flex items-center justify-between">
             <span className="text-xs font-bold text-stone-800">&quot;Tümünü Gör&quot; Yönlendirme Butonu</span>
             <div className="flex items-center gap-3">
               <input
@@ -843,11 +892,14 @@ export default function SiteContentEditorTab({ initialSubTab = 'hero', onSubTabC
       {/* ========================================================================= */}
       {activeSubTab === 'features' && (
         <div className="space-y-4">
-          <div className="bg-white p-4 sm:p-6 rounded-2xl border border-stone-200 shadow-xs space-y-4">
-            <h3 className="text-xs font-bold text-stone-900 flex items-center gap-2 border-b border-stone-100 pb-2">
-              <i className="fa-solid fa-shield-heart text-brand-600"></i>
-              <span>Bölüm Başlığı ve Arka Plan</span>
-            </h3>
+          <div className="bg-white p-4 sm:p-5 rounded-2xl border border-stone-200 shadow-xs space-y-4">
+            <div className="flex items-center justify-between border-b border-stone-100 pb-2.5">
+              <span className="text-xs font-extrabold text-stone-900 flex items-center gap-2">
+                <i className="fa-solid fa-shield-heart text-brand-600"></i>
+                <span>Bölüm Başlığı ve Arka Plan</span>
+              </span>
+              <span className="text-[11px] text-stone-400">Kalite ve hijyen güven alanı</span>
+            </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
@@ -922,11 +974,11 @@ export default function SiteContentEditorTab({ initialSubTab = 'hero', onSubTabC
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             {(content.featuresSection?.items || []).map((feat, idx) => (
               <div key={feat.id || idx} className="bg-white p-4 rounded-2xl border border-stone-200 shadow-xs space-y-3">
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between border-b border-stone-100 pb-2">
                   <span className="text-[11px] font-bold text-stone-500 uppercase tracking-wider">
                     Özellik #{idx + 1}
                   </span>
-                  <i className={`${feat.icon || 'fa-solid fa-star'} text-brand-600 text-lg`}></i>
+                  <i className={`${feat.icon || 'fa-solid fa-star'} text-brand-600 text-base`}></i>
                 </div>
 
                 <div>
@@ -960,7 +1012,7 @@ export default function SiteContentEditorTab({ initialSubTab = 'hero', onSubTabC
                     rows={2}
                     value={feat.desc || ''}
                     onChange={(e) => updateFeatureItem(idx, 'desc', e.target.value)}
-                    className="w-full text-xs bg-stone-50 border border-stone-300 rounded-xl p-2.5"
+                    className="w-full text-xs bg-stone-50 border border-stone-300 rounded-xl p-2.5 resize-none"
                   />
                 </div>
               </div>
@@ -973,11 +1025,14 @@ export default function SiteContentEditorTab({ initialSubTab = 'hero', onSubTabC
       {/* 5. MÜŞTERİ YORUMLARI BÖLÜMÜ */}
       {/* ========================================================================= */}
       {activeSubTab === 'reviews' && (
-        <div className="bg-white p-4 sm:p-6 rounded-2xl border border-stone-200 shadow-xs space-y-4">
-          <h3 className="text-xs font-bold text-stone-900 flex items-center gap-2 border-b border-stone-100 pb-2">
-            <i className="fa-regular fa-star text-amber-500"></i>
-            <span>Müşteri Değerlendirmeleri Vitrin Başlıkları</span>
-          </h3>
+        <div className="bg-white p-4 sm:p-5 rounded-2xl border border-stone-200 shadow-xs space-y-4">
+          <div className="flex items-center justify-between border-b border-stone-100 pb-2.5">
+            <span className="text-xs font-extrabold text-stone-900 flex items-center gap-2">
+              <i className="fa-regular fa-star text-amber-500"></i>
+              <span>Müşteri Değerlendirmeleri Vitrin Başlıkları</span>
+            </span>
+            <span className="text-[11px] text-stone-400">Onaylı müşteri yorumları vitrini</span>
+          </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
@@ -1032,15 +1087,18 @@ export default function SiteContentEditorTab({ initialSubTab = 'hero', onSubTabC
       )}
 
       {/* ========================================================================= */}
-      {/* 5B. HİKAYEMİZ & GÖRSEL SLIDER YÖNETİMİ */}
+      {/* 6. HİKAYEMİZ & GÖRSEL SLIDER YÖNETİMİ */}
       {/* ========================================================================= */}
       {activeSubTab === 'story' && (
-        <div className="bg-white p-4 sm:p-6 rounded-2xl border border-stone-200 shadow-xs space-y-5">
+        <div className="bg-white p-4 sm:p-5 rounded-2xl border border-stone-200 shadow-xs space-y-5">
           <div className="flex flex-wrap items-center justify-between gap-2 border-b border-stone-100 pb-3">
-            <h3 className="text-xs font-bold text-stone-900 flex items-center gap-2">
-              <i className="fa-solid fa-images text-brand-600"></i>
-              <span>Hikayemiz Sayfası &amp; Fotoğraf Slider Yönetimi</span>
-            </h3>
+            <div>
+              <span className="text-xs font-extrabold text-stone-900 flex items-center gap-2">
+                <i className="fa-solid fa-images text-brand-600"></i>
+                <span>Hikayemiz Sayfası &amp; Fotoğraf Galerisi Sliderı</span>
+              </span>
+              <span className="text-[11px] text-stone-400">Hakkımızda yazısı ve kayan fotoğraflar</span>
+            </div>
 
             <div className="flex flex-wrap items-center gap-2">
               <input
@@ -1094,7 +1152,7 @@ export default function SiteContentEditorTab({ initialSubTab = 'hero', onSubTabC
                 className="bg-stone-100 hover:bg-stone-200 text-stone-800 font-bold px-3.5 py-2 rounded-xl text-xs flex items-center gap-1.5 cursor-pointer transition-colors"
               >
                 <i className="fa-solid fa-plus text-brand-600"></i>
-                <span>+ URL ile Slayt Ekle</span>
+                <span>+ URL ile Ekle</span>
               </button>
             </div>
           </div>
@@ -1159,7 +1217,7 @@ export default function SiteContentEditorTab({ initialSubTab = 'hero', onSubTabC
           {/* Hızlı Hazır Şablonlardan Slider'a Tek Tıkla Ekleme */}
           <div className="bg-stone-50 p-3.5 rounded-2xl border border-stone-200/80 space-y-2">
             <span className="text-[11px] font-extrabold text-stone-700 uppercase block">
-              Hazır Görsellerden Slider&apos;a Hızlı Ekle:
+              Hazır Lezzet Görsellerinden Slider&apos;a Hızlı Ekle:
             </span>
             <div className="flex flex-wrap gap-2">
               {HERO_IMAGE_PRESETS.map((preset) => (
@@ -1317,14 +1375,17 @@ export default function SiteContentEditorTab({ initialSubTab = 'hero', onSubTabC
       )}
 
       {/* ========================================================================= */}
-      {/* 6. İLETİŞİM, ŞUBE VE ÇALIŞMA SAATLERİ */}
+      {/* 7. İLETİŞİM, ŞUBE VE ÇALIŞMA SAATLERİ */}
       {/* ========================================================================= */}
       {activeSubTab === 'contact' && (
-        <div className="bg-white p-4 sm:p-6 rounded-2xl border border-stone-200 shadow-xs space-y-4">
-          <h3 className="text-xs font-bold text-stone-900 flex items-center gap-2 border-b border-stone-100 pb-2">
-            <i className="fa-solid fa-phone text-emerald-600"></i>
-            <span>İletişim, Şube Adresi &amp; Çalışma Saatleri</span>
-          </h3>
+        <div className="bg-white p-4 sm:p-5 rounded-2xl border border-stone-200 shadow-xs space-y-4">
+          <div className="flex items-center justify-between border-b border-stone-100 pb-2.5">
+            <span className="text-xs font-extrabold text-stone-900 flex items-center gap-2">
+              <i className="fa-solid fa-phone text-emerald-600"></i>
+              <span>İletişim, Şube Adresi &amp; Çalışma Saatleri</span>
+            </span>
+            <span className="text-[11px] text-stone-400">Müşteri alt bilgi (Footer) ve iletişim alanı</span>
+          </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="sm:col-span-2">

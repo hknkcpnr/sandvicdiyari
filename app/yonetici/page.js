@@ -644,155 +644,172 @@ export default function YoneticiPage() {
             </button>
           </div>
 
-          {/* Navigation Items */}
-          <nav className={`p-3 space-y-1 ${sidebarCollapsed ? 'md:px-2' : ''}`}>
-            <button
-              type="button"
-              onClick={() => {
-                setActiveTab('overview');
-                setMobileSidebarOpen(false);
-              }}
-              className={`w-full flex items-center ${
-                sidebarCollapsed ? 'md:justify-center md:h-11 md:px-0 justify-between px-3 py-2.5' : 'justify-between px-3 py-2.5'
-              } rounded-xl font-medium transition-colors cursor-pointer ${
-                activeTab === 'overview'
-                  ? 'bg-stone-900 text-white font-semibold shadow-xs'
-                  : 'text-stone-600 hover:text-stone-900 hover:bg-stone-100'
-              }`}
-            >
-              <div className={`flex items-center ${sidebarCollapsed ? 'md:justify-center gap-2.5' : 'gap-2.5 min-w-0'}`}>
-                <i className="fa-solid fa-chart-pie text-sm w-4 text-center"></i>
-                <span className={`truncate text-xs ${sidebarCollapsed ? 'md:hidden inline' : ''}`}>Genel Bakış</span>
-              </div>
-              {overviewData.onRoadOrdersCount > 0 && (
-                <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold shrink-0 bg-amber-100 text-amber-800 ${sidebarCollapsed ? 'md:hidden inline' : ''}`}>
-                  {overviewData.onRoadOrdersCount} Yolda
-                </span>
-              )}
-            </button>
-
-            <button
-              type="button"
-              onClick={() => {
-                setActiveTab('finance');
-                setMobileSidebarOpen(false);
-              }}
-              className={`w-full flex items-center ${
-                sidebarCollapsed ? 'md:justify-center md:h-11 md:px-0 justify-between px-3 py-2.5' : 'justify-between px-3 py-2.5'
-              } rounded-xl font-medium transition-colors cursor-pointer ${
-                activeTab === 'finance'
-                  ? 'bg-stone-900 text-white font-semibold shadow-xs'
-                  : 'text-stone-600 hover:text-stone-900 hover:bg-stone-100'
-              }`}
-            >
-              <div className={`flex items-center ${sidebarCollapsed ? 'md:justify-center gap-2.5' : 'gap-2.5 min-w-0'}`}>
-                <i className="fa-solid fa-wallet text-sm w-4 text-center"></i>
-                <span className={`truncate text-xs ${sidebarCollapsed ? 'md:hidden inline' : ''}`}>Kasa &amp; Giren-Çıkan</span>
-              </div>
-              <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold shrink-0 bg-emerald-50 text-emerald-700 ${sidebarCollapsed ? 'md:hidden inline' : ''}`}>
-                Finans
-              </span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => {
-                setActiveTab('users');
-                setMobileSidebarOpen(false);
-              }}
-              className={`w-full flex items-center ${
-                sidebarCollapsed ? 'md:justify-center md:h-11 md:px-0 justify-between px-3 py-2.5' : 'justify-between px-3 py-2.5'
-              } rounded-xl font-medium transition-colors cursor-pointer ${
-                activeTab === 'users'
-                  ? 'bg-stone-900 text-white font-semibold shadow-xs'
-                  : 'text-stone-600 hover:text-stone-900 hover:bg-stone-100'
-              }`}
-            >
-              <div className={`flex items-center ${sidebarCollapsed ? 'md:justify-center gap-2.5' : 'gap-2.5 min-w-0'}`}>
-                <i className="fa-solid fa-user-shield text-sm w-4 text-center"></i>
-                <span className={`truncate text-xs ${sidebarCollapsed ? 'md:hidden inline' : ''}`}>Kullanıcılar &amp; Roller</span>
-              </div>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => {
-                setActiveTab('site_content');
-                setMobileSidebarOpen(false);
-              }}
-              className={`w-full flex items-center ${
-                sidebarCollapsed ? 'md:justify-center md:h-11 md:px-0 justify-between px-3 py-2.5' : 'justify-between px-3 py-2.5'
-              } rounded-xl font-medium transition-colors cursor-pointer ${
-                activeTab === 'site_content'
-                  ? 'bg-stone-900 text-white font-semibold shadow-xs'
-                  : 'text-stone-600 hover:text-stone-900 hover:bg-stone-100'
-              }`}
-            >
-              <div className={`flex items-center ${sidebarCollapsed ? 'md:justify-center gap-2.5' : 'gap-2.5 min-w-0'}`}>
-                <i className="fa-solid fa-paintbrush text-sm w-4 text-center"></i>
-                <span className={`truncate text-xs ${sidebarCollapsed ? 'md:hidden inline' : ''}`}>Sayfa Düzenleri</span>
-              </div>
-            </button>
-
-            {/* Sistem Ayarları (Alt Menülü - /panel'den taşındı) */}
-            <div className="space-y-1">
-              <button
-                type="button"
-                onClick={() => {
-                  setActiveTab('settings');
-                  setSettingsExpanded((prev) => !prev);
-                  if (sidebarCollapsed) setSidebarCollapsed(false);
-                }}
-                className={`w-full flex items-center ${
-                  sidebarCollapsed ? 'md:justify-center md:h-11 md:px-0 justify-between px-3 py-2.5' : 'justify-between px-3 py-2.5'
-                } rounded-xl font-medium transition-colors cursor-pointer ${
-                  activeTab === 'settings'
-                    ? 'bg-stone-900 text-white font-semibold shadow-xs'
-                    : 'text-stone-600 hover:text-stone-900 hover:bg-stone-100'
-                }`}
-              >
-                <div className={`flex items-center ${sidebarCollapsed ? 'md:justify-center gap-2.5' : 'gap-2.5 min-w-0'}`}>
-                  <i className="fa-solid fa-sliders text-sm w-4 text-center"></i>
-                  <span className={`truncate text-xs ${sidebarCollapsed ? 'md:hidden inline' : ''}`}>Sistem Ayarları</span>
+          {/* Navigation Items (Mantıksal İlişkili Gruplar Altında) */}
+          <nav className={`p-3 space-y-3 ${sidebarCollapsed ? 'md:px-2' : ''}`}>
+            {[
+              {
+                category: 'İşletme & Finans',
+                items: [
+                  {
+                    id: 'overview',
+                    label: 'Genel Bakış & Ciro',
+                    icon: 'fa-solid fa-chart-pie',
+                    badge: overviewData.onRoadOrdersCount > 0 ? `${overviewData.onRoadOrdersCount} Yolda` : null,
+                    badgeColor: 'bg-amber-100 text-amber-800',
+                  },
+                  {
+                    id: 'finance',
+                    label: 'Kasa & Giren-Çıkan',
+                    icon: 'fa-solid fa-wallet',
+                    badge: 'Nakit Akışı',
+                    badgeColor: 'bg-emerald-50 text-emerald-700',
+                  },
+                ],
+              },
+              {
+                category: 'Pazarlama & Vitrin',
+                items: [
+                  {
+                    id: 'site_content',
+                    label: 'Vitrin & Sayfa Düzeni',
+                    icon: 'fa-solid fa-paintbrush',
+                    badge: 'Stüdyo',
+                    badgeColor: 'bg-brand-50 text-brand-700',
+                  },
+                ],
+              },
+              {
+                category: 'Yönetim & Sistem',
+                items: [
+                  {
+                    id: 'users',
+                    label: 'Kullanıcılar & Roller',
+                    icon: 'fa-solid fa-user-shield',
+                    badge: staffUsers.length > 0 ? `${staffUsers.length} Personel` : null,
+                    badgeColor: 'bg-stone-100 text-stone-600',
+                  },
+                  {
+                    id: 'settings',
+                    label: 'Sistem Ayarları',
+                    icon: 'fa-solid fa-sliders',
+                    hasSubmenu: true,
+                  },
+                ],
+              },
+            ].map((section, sIdx) => (
+              <div key={section.category || sIdx} className="space-y-1">
+                {/* Kategori Başlığı */}
+                <div className={`px-2.5 pt-1.5 pb-1 flex items-center justify-between ${sidebarCollapsed ? 'md:hidden' : ''}`}>
+                  <span className="text-[10px] font-extrabold uppercase tracking-wider text-stone-400 select-none">
+                    {section.category}
+                  </span>
                 </div>
-                <i
-                  className={`fa-solid fa-chevron-down text-[10px] transition-transform duration-300 ${
-                    settingsExpanded ? 'rotate-180' : ''
-                  } ${sidebarCollapsed ? 'md:hidden inline' : ''}`}
-                ></i>
-              </button>
 
-              {settingsExpanded && !sidebarCollapsed && (
-                <div className="pl-2 pr-1">
-                  <div className="bg-stone-100/90 border border-stone-200/80 rounded-2xl p-1.5 space-y-0.5">
-                    {settingsSubItems.map((sub) => {
-                      const isSubActive = activeTab === 'settings' && selectedSettingsSubTab === sub.id;
+                {/* Daraltılmış Sidebar İnce Ayrım Çizgisi */}
+                {sIdx > 0 && sidebarCollapsed && (
+                  <div className="hidden md:block my-1.5 mx-2 border-t border-stone-200/70" />
+                )}
+
+                <div className="space-y-1">
+                  {section.items.map((item) => {
+                    const active = activeTab === item.id;
+
+                    // Ayarlar Alt Menülü Buton
+                    if (item.hasSubmenu) {
                       return (
-                        <button
-                          key={sub.id}
-                          type="button"
-                          onClick={() => {
-                            setActiveTab('settings');
-                            setSelectedSettingsSubTab(sub.id);
-                            setMobileSidebarOpen(false);
-                          }}
-                          className={`w-full flex items-center justify-between px-2.5 py-2 rounded-xl text-left transition-all cursor-pointer ${
-                            isSubActive
-                              ? 'bg-amber-400 text-stone-950 font-bold shadow-xs'
-                              : 'text-stone-600 hover:text-stone-950 hover:bg-white'
-                          }`}
-                        >
-                          <span className="flex items-center gap-2 min-w-0">
-                            <i className={`${sub.icon} text-xs w-4 text-center shrink-0`}></i>
-                            <span className="truncate font-medium text-[11px]">{sub.label}</span>
-                          </span>
-                        </button>
+                        <div key={item.id} className="space-y-1">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setActiveTab('settings');
+                              setSettingsExpanded((prev) => !prev);
+                              if (sidebarCollapsed) setSidebarCollapsed(false);
+                            }}
+                            className={`w-full flex items-center ${
+                              sidebarCollapsed ? 'md:justify-center md:h-11 md:px-0 justify-between px-3 py-2.5' : 'justify-between px-3 py-2.5'
+                            } rounded-xl font-medium transition-all duration-150 cursor-pointer ${
+                              active
+                                ? 'bg-stone-900 text-white font-semibold shadow-xs'
+                                : 'text-stone-600 hover:text-stone-900 hover:bg-stone-100'
+                            }`}
+                          >
+                            <div className={`flex items-center ${sidebarCollapsed ? 'md:justify-center gap-2.5' : 'gap-2.5 min-w-0'}`}>
+                              <i className={`${item.icon} text-sm w-4 text-center ${active ? 'text-amber-400' : 'text-stone-500'}`}></i>
+                              <span className={`truncate text-xs ${sidebarCollapsed ? 'md:hidden inline' : ''}`}>{item.label}</span>
+                            </div>
+                            <i
+                              className={`fa-solid fa-chevron-down text-[10px] transition-transform duration-300 ${
+                                settingsExpanded ? 'rotate-180' : ''
+                              } ${sidebarCollapsed ? 'md:hidden inline' : ''}`}
+                            ></i>
+                          </button>
+
+                          {settingsExpanded && !sidebarCollapsed && (
+                            <div className="pl-2 pr-1">
+                              <div className="bg-stone-100/90 border border-stone-200/80 rounded-2xl p-1.5 space-y-0.5">
+                                {settingsSubItems.map((sub) => {
+                                  const isSubActive = activeTab === 'settings' && selectedSettingsSubTab === sub.id;
+                                  return (
+                                    <button
+                                      key={sub.id}
+                                      type="button"
+                                      onClick={() => {
+                                        setActiveTab('settings');
+                                        setSelectedSettingsSubTab(sub.id);
+                                        setMobileSidebarOpen(false);
+                                      }}
+                                      className={`w-full flex items-center justify-between px-2.5 py-2 rounded-xl text-left transition-all cursor-pointer ${
+                                        isSubActive
+                                          ? 'bg-amber-400 text-stone-950 font-bold shadow-xs'
+                                          : 'text-stone-600 hover:text-stone-950 hover:bg-white'
+                                      }`}
+                                    >
+                                      <span className="flex items-center gap-2 min-w-0">
+                                        <i className={`${sub.icon} text-xs w-4 text-center shrink-0`}></i>
+                                        <span className="truncate font-medium text-[11px]">{sub.label}</span>
+                                      </span>
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          )}
+                        </div>
                       );
-                    })}
-                  </div>
+                    }
+
+                    // Normal Buton
+                    return (
+                      <button
+                        key={item.id}
+                        type="button"
+                        onClick={() => {
+                          setActiveTab(item.id);
+                          setMobileSidebarOpen(false);
+                        }}
+                        className={`w-full flex items-center ${
+                          sidebarCollapsed ? 'md:justify-center md:h-11 md:px-0 justify-between px-3 py-2.5' : 'justify-between px-3 py-2.5'
+                        } rounded-xl font-medium transition-all duration-150 cursor-pointer ${
+                          active
+                            ? 'bg-stone-900 text-white font-semibold shadow-xs'
+                            : 'text-stone-600 hover:text-stone-900 hover:bg-stone-100'
+                        }`}
+                      >
+                        <div className={`flex items-center ${sidebarCollapsed ? 'md:justify-center gap-2.5' : 'gap-2.5 min-w-0'}`}>
+                          <i className={`${item.icon} text-sm w-4 text-center ${active ? 'text-amber-400' : 'text-stone-500'}`}></i>
+                          <span className={`truncate text-xs ${sidebarCollapsed ? 'md:hidden inline' : ''}`}>{item.label}</span>
+                        </div>
+                        {item.badge && (
+                          <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold shrink-0 ${sidebarCollapsed ? 'md:hidden inline' : ''} ${item.badgeColor}`}>
+                            {item.badge}
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
                 </div>
-              )}
-            </div>
+              </div>
+            ))}
           </nav>
         </div>
 

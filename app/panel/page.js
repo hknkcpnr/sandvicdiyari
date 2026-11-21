@@ -1773,224 +1773,153 @@ export default function AdminDashboardPage() {
             </button>
           </div>
 
-          {/* Navigation Items */}
-          <nav className={`p-3 space-y-1 ${sidebarCollapsed ? 'md:px-2' : ''}`}>
+          {/* Navigation Items (Kategorize Edilmiş Mantıksal Gruplar) */}
+          <nav className={`p-3 space-y-3 ${sidebarCollapsed ? 'md:px-2' : ''}`}>
             {[
               {
-                id: 'overview',
-                label: 'Genel Bakış',
-                icon: 'fa-solid fa-chart-pie',
-                badge: 'Canlı',
-                badgeColor: 'bg-emerald-50 text-emerald-700 font-bold',
+                category: 'Canlı Operasyon',
+                items: [
+                  {
+                    id: 'overview',
+                    label: 'Genel Bakış',
+                    icon: 'fa-solid fa-chart-pie',
+                    badge: 'Canlı',
+                    badgeColor: 'bg-emerald-50 text-emerald-700 font-bold',
+                  },
+                  {
+                    id: 'orders',
+                    label: 'Sipariş Yönetimi',
+                    icon: 'fa-solid fa-list-check',
+                    badge: newOrdersCount > 0 ? `${newOrdersCount} Yeni` : orders.length,
+                    badgeColor: newOrdersCount > 0 ? 'bg-red-500 text-white animate-pulse' : 'bg-stone-100 text-stone-600',
+                  },
+                ],
               },
               {
-                id: 'orders',
-                label: 'Sipariş Yönetimi',
-                icon: 'fa-solid fa-list-check',
-                badge: newOrdersCount > 0 ? `${newOrdersCount} Yeni` : orders.length,
-                badgeColor: newOrdersCount > 0 ? 'bg-red-500 text-white animate-pulse' : 'bg-stone-100 text-stone-600',
+                category: 'Menü & Mutfak',
+                items: [
+                  {
+                    id: 'products',
+                    label: 'Menü & Ürünler',
+                    icon: 'fa-solid fa-burger',
+                    badge: products.length,
+                    badgeColor: 'bg-stone-100 text-stone-600',
+                  },
+                  {
+                    id: 'options',
+                    label: 'Soslar & Ekstralar',
+                    icon: 'fa-solid fa-bottle-droplet',
+                    badge: 'Özelleştirme',
+                    badgeColor: 'bg-amber-50 text-amber-700 font-bold',
+                  },
+                  {
+                    id: 'inventory',
+                    label: 'Stok Yönetimi',
+                    icon: 'fa-solid fa-boxes-stacked',
+                    badge: products.filter(p => p.isAvailable === false).length > 0
+                      ? `${products.filter(p => p.isAvailable === false).length} Kapalı`
+                      : null,
+                    badgeColor: 'bg-rose-500 text-white font-bold animate-pulse',
+                  },
+                ],
               },
               {
-                id: 'members',
-                label: 'Üye Yönetimi',
-                icon: 'fa-solid fa-users',
-                badge: 'Müşteriler',
-                badgeColor: 'bg-indigo-50 text-indigo-700 font-bold',
+                category: 'Müşteri & İletişim',
+                items: [
+                  {
+                    id: 'members',
+                    label: 'Üye Yönetimi',
+                    icon: 'fa-solid fa-users',
+                    badge: 'Müşteriler',
+                    badgeColor: 'bg-indigo-50 text-indigo-700 font-bold',
+                  },
+                  {
+                    id: 'reviews',
+                    label: 'Geri Bildirimler',
+                    icon: 'fa-regular fa-star',
+                    badge: adminReviews.filter(r => r.isApproved !== true).length > 0
+                      ? `${adminReviews.filter(r => r.isApproved !== true).length} Yeni`
+                      : adminFeedbacks.length > 0
+                      ? `${adminFeedbacks.length} Mesaj`
+                      : adminReviews.length > 0
+                      ? adminReviews.length
+                      : null,
+                    badgeColor: adminReviews.filter(r => r.isApproved !== true).length > 0
+                      ? 'bg-amber-500 text-white font-bold animate-pulse'
+                      : 'bg-stone-100 text-stone-600',
+                  },
+                ],
               },
-              {
-                id: 'products',
-                label: 'Menü & Ürünler',
-                icon: 'fa-solid fa-burger',
-                badge: products.length,
-                badgeColor: 'bg-stone-100 text-stone-600',
-              },
-              {
-                id: 'options',
-                label: 'Soslar & Ekstralar',
-                icon: 'fa-solid fa-bottle-droplet',
-                badge: 'Özelleştirme',
-                badgeColor: 'bg-amber-50 text-amber-700 font-bold',
-              },
-              {
-                id: 'inventory',
-                label: 'Stok Yönetimi',
-                icon: 'fa-solid fa-boxes-stacked',
-                badge: products.filter(p => p.isAvailable === false).length > 0
-                  ? `${products.filter(p => p.isAvailable === false).length} Kapalı`
-                  : null,
-                badgeColor: 'bg-rose-500 text-white font-bold animate-pulse',
-              },
-              {
-                id: 'reviews',
-                label: 'Geri Bildirimler',
-                icon: 'fa-regular fa-star',
-                badge: adminReviews.filter(r => r.isApproved !== true).length > 0
-                  ? `${adminReviews.filter(r => r.isApproved !== true).length} Yeni`
-                  : adminFeedbacks.length > 0
-                  ? `${adminFeedbacks.length} Mesaj`
-                  : adminReviews.length > 0
-                  ? adminReviews.length
-                  : null,
-                badgeColor: adminReviews.filter(r => r.isApproved !== true).length > 0
-                  ? 'bg-amber-500 text-white font-bold animate-pulse'
-                  : 'bg-stone-100 text-stone-600',
-              },
-            ]
-              .filter((item) => {
+            ].map((section, sIdx) => {
+              // Kullanıcı yetki filtreleme
+              const filteredItems = section.items.filter((item) => {
                 if (isSuperAdmin) return true;
                 if (!adminUser?.permissions || !Array.isArray(adminUser.permissions)) return true;
                 return adminUser.permissions.includes(item.id);
-              })
-              .map((item) => {
-              const active = currentTab === item.id;
-              if (item.hasSubmenu) {
-                const isExpanded = item.id === 'settings' ? settingsExpanded : false;
+              });
 
-                const toggleExpanded = () => {
-                  setCurrentTab(item.id);
-                  if (item.id === 'settings') {
-                    setSettingsExpanded((prev) => !prev);
-                  }
-                  if (sidebarCollapsed) {
-                    setSidebarCollapsed(false);
-                  }
-                };
+              if (filteredItems.length === 0) return null;
 
-                return (
-                  <div key={item.id} className="space-y-1">
-                    <button
-                      type="button"
-                      onClick={toggleExpanded}
-                      title={item.label}
-                      className={`w-full flex items-center ${
-                        sidebarCollapsed
-                          ? 'md:justify-center md:h-11 md:px-0 justify-between px-3 py-2.5'
-                          : 'justify-between px-3.5 py-2.5'
-                      } rounded-xl font-semibold text-xs sm:text-sm transition-all duration-200 cursor-pointer relative group ${
-                        active
-                          ? 'bg-stone-900 text-white shadow-sm'
-                          : 'text-stone-600 hover:text-stone-950 hover:bg-stone-100'
-                      }`}
-                    >
-                      <div className={`flex items-center ${sidebarCollapsed ? 'md:justify-center gap-2.5' : 'gap-3 min-w-0'}`}>
-                        <div className={`w-7 h-7 rounded-lg flex items-center justify-center transition-colors shrink-0 ${
-                          active
-                            ? 'bg-white/15 text-white'
-                            : 'bg-stone-100 text-stone-500 group-hover:bg-amber-100 group-hover:text-amber-800'
-                        }`}>
-                          <i className={`${item.icon} text-xs`}></i>
-                        </div>
-                        <span className={`font-semibold tracking-tight whitespace-nowrap ${sidebarCollapsed ? 'md:hidden inline' : ''}`}>
-                          {item.label}
-                        </span>
-                      </div>
-
-                      <div className={`flex items-center gap-2 shrink-0 ${sidebarCollapsed ? 'md:hidden' : ''}`}>
-                        {item.badge && (
-                          <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider shrink-0 ${
-                            active
-                              ? 'bg-amber-400 text-stone-950'
-                              : 'bg-stone-100 text-stone-600'
-                          }`}>
-                            {item.badge}
-                          </span>
-                        )}
-                        <div className={`w-5 h-5 rounded-md flex items-center justify-center transition-transform duration-200 ${
-                          isExpanded ? 'rotate-180 text-white' : 'text-stone-400 group-hover:text-stone-700'
-                        }`}>
-                          <i className="fa-solid fa-chevron-down text-[10px]"></i>
-                        </div>
-                      </div>
-
-                      {sidebarCollapsed && item.badge && (
-                        <span
-                          className="hidden md:block absolute top-2 right-3 w-2.5 h-2.5 rounded-full bg-amber-500 ring-2 ring-white"
-                          title={String(item.badge)}
-                        ></span>
-                      )}
-                    </button>
-
-                    {/* AÇILIR ALT MENÜ (MODERN KART AKORDEON DROPDOWN) */}
-                    <div
-                      className={`grid transition-all duration-200 ease-in-out ${
-                        isExpanded && !sidebarCollapsed
-                          ? 'grid-rows-[1fr] opacity-100 mt-1.5'
-                          : 'grid-rows-[0fr] opacity-0 pointer-events-none'
-                      }`}
-                    >
-                      <div className="overflow-hidden">
-                        <div className="p-1.5 space-y-1 bg-stone-50/95 border border-stone-200/80 rounded-2xl shadow-2xs">
-                          {item.subItems.map((sub) => {
-                            const isSubActive =
-                              (item.id === 'site_content' && currentTab === 'site_content' && selectedSiteContentSubTab === sub.id) ||
-                              (item.id === 'settings' && currentTab === 'settings' && selectedSettingsSubTab === sub.id);
-
-                            return (
-                              <button
-                                key={sub.id}
-                                type="button"
-                                onClick={() => {
-                                  setCurrentTab(item.id);
-                                  if (item.id === 'site_content') setSelectedSiteContentSubTab(sub.id);
-                                  if (item.id === 'settings') setSelectedSettingsSubTab(sub.id);
-                                  setMobileSidebarOpen(false);
-                                }}
-                                className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-semibold transition-all duration-150 cursor-pointer ${
-                                  isSubActive
-                                    ? 'bg-amber-400 text-stone-950 font-bold shadow-xs'
-                                    : 'text-stone-600 hover:text-stone-950 hover:bg-white'
-                                }`}
-                              >
-                                <span className="flex items-center gap-2.5 min-w-0">
-                                  <i className={`${sub.icon} text-xs w-4 text-center shrink-0 ${
-                                    isSubActive ? 'text-stone-950' : 'text-stone-400'
-                                  }`}></i>
-                                  <span className="whitespace-nowrap font-medium text-xs">{sub.label}</span>
-                                </span>
-                                {isSubActive && (
-                                  <span className="w-1.5 h-1.5 rounded-full bg-stone-950 shrink-0 ml-1.5"></span>
-                                )}
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                );
-              }
               return (
-                <button
-                  key={item.id}
-                  onClick={() => {
-                    setCurrentTab(item.id);
-                    setMobileSidebarOpen(false);
-                  }}
-                  title={item.label}
-                  className={`w-full flex items-center ${
-                    sidebarCollapsed ? 'md:justify-center md:h-11 md:px-0 justify-between px-3 py-2.5' : 'justify-between px-3 py-2.5'
-                  } rounded-xl font-medium transition-colors cursor-pointer relative group ${
-                    active
-                      ? 'bg-stone-900 text-white font-semibold shadow-xs'
-                      : 'text-stone-600 hover:text-stone-900 hover:bg-stone-100'
-                  }`}
-                >
-                  <div className={`flex items-center ${sidebarCollapsed ? 'md:justify-center gap-2.5' : 'gap-2.5 min-w-0'}`}>
-                    <i className={`${item.icon} ${sidebarCollapsed ? 'md:text-base text-sm w-4 text-center' : 'text-sm w-4 text-center'}`}></i>
-                    <span className={`truncate ${sidebarCollapsed ? 'md:hidden inline' : ''}`}>{item.label}</span>
-                  </div>
-                  {item.badge && (
-                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold shrink-0 ${sidebarCollapsed ? 'md:hidden inline' : ''} ${item.badgeColor}`}>
-                      {item.badge}
+                <div key={section.category || sIdx} className="space-y-1">
+                  {/* Kategori Başlığı */}
+                  <div className={`px-2.5 pt-1.5 pb-1 flex items-center justify-between ${sidebarCollapsed ? 'md:hidden' : ''}`}>
+                    <span className="text-[10px] font-extrabold uppercase tracking-wider text-stone-400 select-none">
+                      {section.category}
                     </span>
+                  </div>
+
+                  {/* Daraltılmış Sidebar İnce Ayrım Çizgisi */}
+                  {sIdx > 0 && sidebarCollapsed && (
+                    <div className="hidden md:block my-1.5 mx-2 border-t border-stone-200/70" />
                   )}
-                  {sidebarCollapsed && item.badge && (
-                    <span
-                      className="hidden md:block absolute top-2 right-3 w-2.5 h-2.5 rounded-full bg-rose-500 ring-2 ring-white"
-                      title={String(item.badge)}
-                    ></span>
-                  )}
-                </button>
+
+                  {/* Menü Elemanları */}
+                  <div className="space-y-1">
+                    {filteredItems.map((item) => {
+                      const active = currentTab === item.id;
+                      return (
+                        <button
+                          key={item.id}
+                          onClick={() => {
+                            setCurrentTab(item.id);
+                            setMobileSidebarOpen(false);
+                          }}
+                          title={item.label}
+                          className={`w-full flex items-center ${
+                            sidebarCollapsed
+                              ? 'md:justify-center md:h-11 md:px-0 justify-between px-3 py-2.5'
+                              : 'justify-between px-3 py-2.5'
+                          } rounded-xl font-medium transition-all duration-150 cursor-pointer relative group ${
+                            active
+                              ? 'bg-stone-900 text-white font-semibold shadow-xs'
+                              : 'text-stone-600 hover:text-stone-900 hover:bg-stone-100'
+                          }`}
+                        >
+                          <div className={`flex items-center ${sidebarCollapsed ? 'md:justify-center gap-2.5' : 'gap-2.5 min-w-0'}`}>
+                            <i className={`${item.icon} ${sidebarCollapsed ? 'md:text-base text-sm w-4 text-center' : 'text-sm w-4 text-center'} ${
+                              active ? 'text-amber-400' : 'text-stone-500 group-hover:text-stone-800'
+                            }`}></i>
+                            <span className={`truncate text-xs ${sidebarCollapsed ? 'md:hidden inline' : ''}`}>{item.label}</span>
+                          </div>
+
+                          {item.badge && (
+                            <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold shrink-0 ${sidebarCollapsed ? 'md:hidden inline' : ''} ${item.badgeColor}`}>
+                              {item.badge}
+                            </span>
+                          )}
+
+                          {sidebarCollapsed && item.badge && (
+                            <span
+                              className="hidden md:block absolute top-2 right-3 w-2.5 h-2.5 rounded-full bg-rose-500 ring-2 ring-white"
+                              title={String(item.badge)}
+                            ></span>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
               );
             })}
           </nav>
