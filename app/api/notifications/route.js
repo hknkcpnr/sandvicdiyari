@@ -3,6 +3,8 @@ import { db } from '@/lib/db';
 import { rawPrisma } from '@/lib/prisma';
 import { DEFAULT_CUSTOMER_NOTIFICATION_SETTINGS } from '@/lib/notificationDefaults';
 import { sanitizeText } from '@/lib/security/validation';
+import { assertProtectedApiAccess } from '@/lib/security/auth';
+import { handleApiError } from '@/lib/security/errors';
 
 export const dynamic = 'force-dynamic';
 
@@ -305,6 +307,13 @@ export async function POST(request) {
     const body = await request.json();
     const action = sanitizeText(body?.action || 'save_settings', 40, 'action', '/api/notifications');
 
+    // Sistem veya bildirim ayarları değişikliği admin yetkisi gerektirir
+    if (['save_settings', 'add_broadcast', 'delete_broadcast', 'update_broadcast'].includes(action)) {
+      assertProtectedApiAccess(request, { endpoint: '/api/notifications' });
+    } else {
+      assertProtectedApiAccess(request, { allowCustomerScoped: true, endpoint: '/api/notifications' });
+    }
+
     // 1. ADMİN: MÜŞTERİ BİLDİRİM AYARLARINI KAYDET
     if (action === 'save_settings') {
       const current = await getNotificationSettings();
@@ -510,11 +519,7 @@ export async function POST(request) {
 
     return NextResponse.json({ success: false, error: 'Geçersiz işlem.' }, { status: 400 });
   } catch (error) {
-    console.error('POST /api/notifications error:', error);
-    return NextResponse.json(
-      { success: false, error: error.message || 'Bildirim işlemi başarısız.' },
-      { status: 500 }
-    );
+    return handleApiError(error, '/api/notifications', request);
   }
 }
 

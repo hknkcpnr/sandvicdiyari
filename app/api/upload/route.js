@@ -7,11 +7,13 @@ import {
   jsonSuccess,
   logSecurityEvent
 } from '@/lib/security/errors';
-import { checkRateLimit } from '@/lib/security/auth';
+import { checkRateLimit, assertProtectedApiAccess } from '@/lib/security/auth';
 import { validateImageMagicBytes } from '@/lib/security/validation';
 
 export async function POST(request) {
   try {
+    assertProtectedApiAccess(request, { endpoint: '/api/upload' });
+
     checkRateLimit(request, {
       keyPrefix: 'POST:/api/upload',
       maxRequests: 15,

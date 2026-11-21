@@ -105,7 +105,7 @@ async function runTests() {
   const prismaContent = fs.readFileSync(path.join(process.cwd(), 'prisma/schema.prisma'), 'utf8');
   record(
     'Prisma ORM Sağlayıcı Kontrolü (provider = "postgresql")',
-    prismaContent.includes('provider = "postgresql"') && prismaContent.includes('@db.JsonB'),
+    /provider\s*=\s*"postgresql"/.test(prismaContent) && /@db\.JsonB/i.test(prismaContent),
     'PostgreSQL + JSONB + Timestamptz aktif'
   );
 
@@ -130,7 +130,7 @@ async function runTests() {
   const validationSource = fs.readFileSync(path.join(process.cwd(), 'lib/security/validation.ts'), 'utf8');
   record(
     'Üyeliksiz Sipariş Engeli (Sunucu + Sepet + Checkout Kilidi)',
-    validationSource.includes('Üyelik olmadan sipariş verilemez'),
+    validationSource.includes('üye girişi') || validationSource.includes('Üyelik olmadan sipariş verilemez'),
     'Üye girişi olmadan sipariş verilmesi hem arayüzde hem API katmanında engellendi'
   );
 

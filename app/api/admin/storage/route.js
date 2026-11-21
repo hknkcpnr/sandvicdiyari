@@ -3,6 +3,8 @@ import fs from 'fs';
 import path from 'path';
 import os from 'os';
 import { rawPrisma } from '@/lib/prisma';
+import { assertProtectedApiAccess } from '@/lib/security/auth';
+import { handleApiError } from '@/lib/security/errors';
 
 export const dynamic = 'force-dynamic';
 
@@ -24,8 +26,9 @@ function getFolderSize(dirPath) {
   return size;
 }
 
-export async function GET() {
+export async function GET(request) {
   try {
+    assertProtectedApiAccess(request, { endpoint: '/api/admin/storage' });
     const cwd = process.cwd();
 
     // 1. Disk usage via statfs
@@ -136,6 +139,6 @@ export async function GET() {
       }
     });
   } catch (error) {
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    return handleApiError(error, '/api/admin/storage', request);
   }
 }

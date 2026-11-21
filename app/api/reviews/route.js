@@ -6,7 +6,7 @@ import {
   jsonSuccess,
   parseJsonBody
 } from '@/lib/security/errors';
-import { checkRateLimit } from '@/lib/security/auth';
+import { checkRateLimit, assertProtectedApiAccess } from '@/lib/security/auth';
 import { sanitizeText } from '@/lib/security/validation';
 
 export const dynamic = 'force-dynamic';
@@ -114,6 +114,7 @@ export async function POST(request) {
 
 export async function PATCH(request) {
   try {
+    assertProtectedApiAccess(request, { endpoint: '/api/reviews' });
     checkRateLimit(request, {
       keyPrefix: 'PATCH:/api/reviews',
       maxRequests: 30,
@@ -143,6 +144,7 @@ export async function PATCH(request) {
 
 export async function DELETE(request) {
   try {
+    assertProtectedApiAccess(request, { endpoint: '/api/reviews' });
     checkRateLimit(request, {
       keyPrefix: 'DELETE:/api/reviews',
       maxRequests: 20,

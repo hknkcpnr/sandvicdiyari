@@ -6,13 +6,14 @@ import {
   jsonSuccess,
   parseJsonBody
 } from '@/lib/security/errors';
-import { checkRateLimit } from '@/lib/security/auth';
+import { checkRateLimit, assertProtectedApiAccess } from '@/lib/security/auth';
 import { sanitizeEmailOrUsername, sanitizeText } from '@/lib/security/validation';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(request) {
   try {
+    assertProtectedApiAccess(request, { endpoint: '/api/feedback' });
     checkRateLimit(request, {
       keyPrefix: 'GET:/api/feedback',
       maxRequests: 30,
@@ -34,6 +35,7 @@ export async function GET(request) {
 
 export async function DELETE(request) {
   try {
+    assertProtectedApiAccess(request, { endpoint: '/api/feedback' });
     checkRateLimit(request, {
       keyPrefix: 'DELETE:/api/feedback',
       maxRequests: 10,

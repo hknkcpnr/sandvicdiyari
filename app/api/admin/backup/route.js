@@ -3,6 +3,8 @@ import fs from 'fs';
 import path from 'path';
 import * as XLSX from 'xlsx';
 import { rawPrisma } from '@/lib/prisma';
+import { assertProtectedApiAccess } from '@/lib/security/auth';
+import { handleApiError } from '@/lib/security/errors';
 
 export const dynamic = 'force-dynamic';
 
@@ -37,6 +39,7 @@ function readFallbackDb() {
 
 export async function GET(request) {
   try {
+    assertProtectedApiAccess(request, { endpoint: '/api/admin/backup' });
     const { searchParams } = new URL(request.url);
     const format = (searchParams.get('format') || 'excel').toLowerCase();
 
@@ -418,10 +421,6 @@ export async function GET(request) {
       }
     });
   } catch (error) {
-    console.error('Backup route error:', error);
-    return NextResponse.json(
-      { success: false, error: error.message || 'Yedekleme oluşturulamadı' },
-      { status: 500 }
-    );
+    return handleApiError(error, '/api/admin/backup', request);
   }
 }

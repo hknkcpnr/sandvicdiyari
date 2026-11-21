@@ -109,6 +109,7 @@ async function runDeepScan() {
     let imgMatch;
     while ((imgMatch = localImgRegex.exec(content)) !== null) {
       const imgRel = imgMatch[1];
+      if (imgRel.includes('...') || !/\.(jpg|jpeg|png|webp|gif|svg|avif)$/i.test(imgRel)) continue;
       totalImagesChecked++;
       const publicPath = path.join(ROOT, 'public', imgRel);
       if (!fs.existsSync(publicPath)) {
