@@ -1731,12 +1731,12 @@ export default function AdminDashboardPage() {
 
       {/* COLLAPSIBLE SIDEBAR & MOBILE SLIDE-OVER DRAWER */}
       <aside
-        className={`fixed inset-y-0 left-0 z-50 bg-white border-r border-stone-200 flex flex-col justify-between transition-all duration-300 ease-in-out
+        className={`fixed inset-y-0 left-0 z-50 bg-white border-r border-stone-200 flex flex-col justify-between transition-all duration-300 ease-in-out overflow-hidden no-scrollbar [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden
           ${mobileSidebarOpen ? 'translate-x-0 w-80 max-w-[90vw] shadow-2xl' : '-translate-x-full md:translate-x-0'}
           ${sidebarCollapsed ? 'md:w-20' : 'md:w-80'}
         `}
       >
-        <div>
+        <div className="flex-1 overflow-y-auto overflow-x-hidden no-scrollbar [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
           {/* Logo Header */}
           <div className="h-16 px-4 flex items-center justify-between border-b border-stone-100 bg-stone-50/50">
             <div className={`flex items-center gap-2.5 min-w-0 ${sidebarCollapsed ? 'md:justify-center md:w-full' : ''}`}>
@@ -1926,9 +1926,9 @@ export default function AdminDashboardPage() {
         </div>
 
         {/* Footer controls */}
-        <div className={`p-3 pb-8 border-t border-stone-100 space-y-1.5 ${sidebarCollapsed ? 'md:px-2 md:flex md:flex-col md:items-center' : ''}`}>
-          <div className="space-y-1.5 w-full">
-            <div className={`px-3 py-1.5 text-[11px] text-stone-400 truncate ${sidebarCollapsed ? 'md:hidden' : ''}`}>
+        <div className={`p-2.5 pb-4 border-t border-stone-100 space-y-1 ${sidebarCollapsed ? 'md:px-2 md:flex md:flex-col md:items-center' : ''}`}>
+          <div className="space-y-1 w-full">
+            <div className={`px-2.5 py-1 text-[11px] text-stone-400 truncate ${sidebarCollapsed ? 'md:hidden' : ''}`}>
               <div>
                 Yetkili: <strong className="text-stone-700">{adminUser?.name || 'Yönetici'}</strong>
               </div>

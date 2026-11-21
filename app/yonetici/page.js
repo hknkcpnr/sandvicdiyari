@@ -33,7 +33,7 @@ export default function YoneticiPage() {
 
   const [activeTab, setActiveTab] = useState('overview'); // 'overview' | 'finance' | 'users' | 'site_content' | 'settings'
   const [selectedSettingsSubTab, setSelectedSettingsSubTab] = useState('appearance');
-  const [settingsExpanded, setSettingsExpanded] = useState(true);
+  const [settingsExpanded, setSettingsExpanded] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [toast, setToast] = useState(null);
@@ -819,22 +819,22 @@ export default function YoneticiPage() {
 
       {/* SIDEBAR (/panel ile birebir aynı beyaz/taş arayüz) */}
       <aside
-        className={`fixed inset-y-0 left-0 z-50 bg-white border-r border-stone-200 flex flex-col justify-between shrink-0 transition-all duration-300 ease-in-out md:sticky md:top-0 md:h-screen md:translate-x-0 md:z-auto ${
+        className={`fixed inset-y-0 left-0 z-50 bg-white border-r border-stone-200 flex flex-col justify-between shrink-0 transition-all duration-300 ease-in-out md:sticky md:top-0 md:h-screen md:translate-x-0 md:z-auto overflow-hidden no-scrollbar [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden ${
           mobileSidebarOpen ? 'translate-x-0 w-72 shadow-2xl' : '-translate-x-full'
         } ${sidebarCollapsed ? 'md:w-20' : 'md:w-64'}`}
       >
-        <div className="flex-1 overflow-y-auto overflow-x-hidden">
+        <div className="flex-1 overflow-y-auto overflow-x-hidden no-scrollbar [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
           {/* Brand Header */}
-          <div className={`p-5 border-b border-stone-100 flex items-center ${sidebarCollapsed ? 'md:justify-center md:px-3 justify-between' : 'justify-between'}`}>
+          <div className={`p-3.5 sm:p-4 border-b border-stone-100 flex items-center ${sidebarCollapsed ? 'md:justify-center md:px-2 justify-between' : 'justify-between'}`}>
             <div className={`flex items-center gap-2.5 min-w-0 ${sidebarCollapsed ? 'md:justify-center' : ''}`}>
               <img
                 src="/logo.png?v=2"
                 alt="Sandviç Diyarı Logo"
-                className="h-9 w-auto object-contain drop-shadow-sm shrink-0"
+                className="h-8 w-auto object-contain drop-shadow-sm shrink-0"
               />
               <div className={`min-w-0 ${sidebarCollapsed ? 'md:hidden block' : 'block'}`}>
                 <h1 className="font-extrabold text-stone-900 text-sm leading-tight truncate">Sandviç Diyarı</h1>
-                <span className="text-[11px] text-indigo-600 font-bold block truncate">Yönetici Merkezi</span>
+                <span className="text-[10px] text-indigo-600 font-bold block truncate">Yönetici Merkezi</span>
               </div>
             </div>
 
@@ -857,7 +857,7 @@ export default function YoneticiPage() {
           </div>
 
           {/* Navigation Items (Mantıksal İlişkili Gruplar Altında) */}
-          <nav className={`p-3 space-y-3 ${sidebarCollapsed ? 'md:px-2' : ''}`}>
+          <nav className={`p-2.5 space-y-2 ${sidebarCollapsed ? 'md:px-2' : ''}`}>
             {[
               {
                 category: 'İşletme & Finans',
@@ -909,9 +909,9 @@ export default function YoneticiPage() {
                 ],
               },
             ].map((section, sIdx) => (
-              <div key={section.category || sIdx} className="space-y-1">
+              <div key={section.category || sIdx} className="space-y-0.5">
                 {/* Kategori Başlığı */}
-                <div className={`px-2.5 pt-1.5 pb-1 flex items-center justify-between ${sidebarCollapsed ? 'md:hidden' : ''}`}>
+                <div className={`px-2.5 pt-1 pb-0.5 flex items-center justify-between ${sidebarCollapsed ? 'md:hidden' : ''}`}>
                   <span className="text-[10px] font-extrabold uppercase tracking-wider text-stone-400 select-none">
                     {section.category}
                   </span>
@@ -922,14 +922,14 @@ export default function YoneticiPage() {
                   <div className="hidden md:block my-1.5 mx-2 border-t border-stone-200/70" />
                 )}
 
-                <div className="space-y-1">
+                <div className="space-y-0.5">
                   {section.items.map((item) => {
                     const active = activeTab === item.id;
 
                     // Ayarlar Alt Menülü Buton
                     if (item.hasSubmenu) {
                       return (
-                        <div key={item.id} className="space-y-1">
+                        <div key={item.id} className="space-y-0.5">
                           <button
                             type="button"
                             onClick={() => {
@@ -938,7 +938,7 @@ export default function YoneticiPage() {
                               if (sidebarCollapsed) setSidebarCollapsed(false);
                             }}
                             className={`w-full flex items-center ${
-                              sidebarCollapsed ? 'md:justify-center md:h-11 md:px-0 justify-between px-3 py-2.5' : 'justify-between px-3 py-2.5'
+                              sidebarCollapsed ? 'md:justify-center md:h-10 md:px-0 justify-between px-3 py-2' : 'justify-between px-3 py-2'
                             } rounded-xl font-medium transition-all duration-150 cursor-pointer ${
                               active
                                 ? 'bg-stone-900 text-white font-semibold shadow-xs'
@@ -958,7 +958,7 @@ export default function YoneticiPage() {
 
                           {settingsExpanded && !sidebarCollapsed && (
                             <div className="pl-2 pr-1">
-                              <div className="bg-stone-100/90 border border-stone-200/80 rounded-2xl p-1.5 space-y-0.5">
+                              <div className="bg-stone-100/90 border border-stone-200/80 rounded-2xl p-1 space-y-0.5">
                                 {settingsSubItems.map((sub) => {
                                   const isSubActive = activeTab === 'settings' && selectedSettingsSubTab === sub.id;
                                   return (
@@ -970,7 +970,7 @@ export default function YoneticiPage() {
                                         setSelectedSettingsSubTab(sub.id);
                                         setMobileSidebarOpen(false);
                                       }}
-                                      className={`w-full flex items-center justify-between px-2.5 py-2 rounded-xl text-left transition-all cursor-pointer ${
+                                      className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-xl text-left transition-all cursor-pointer ${
                                         isSubActive
                                           ? 'bg-amber-400 text-stone-950 font-bold shadow-xs'
                                           : 'text-stone-600 hover:text-stone-950 hover:bg-white'
@@ -1000,7 +1000,7 @@ export default function YoneticiPage() {
                           setMobileSidebarOpen(false);
                         }}
                         className={`w-full flex items-center ${
-                          sidebarCollapsed ? 'md:justify-center md:h-11 md:px-0 justify-between px-3 py-2.5' : 'justify-between px-3 py-2.5'
+                          sidebarCollapsed ? 'md:justify-center md:h-10 md:px-0 justify-between px-3 py-2' : 'justify-between px-3 py-2'
                         } rounded-xl font-medium transition-all duration-150 cursor-pointer ${
                           active
                             ? 'bg-stone-900 text-white font-semibold shadow-xs'
@@ -1026,9 +1026,9 @@ export default function YoneticiPage() {
         </div>
 
         {/* Footer Controls */}
-        <div className={`p-3 pb-8 border-t border-stone-100 space-y-1.5 ${sidebarCollapsed ? 'md:px-2 md:flex md:flex-col md:items-center' : ''}`}>
-          <div className="space-y-1.5 w-full">
-            <div className={`px-3 py-1.5 text-[11px] text-stone-400 truncate ${sidebarCollapsed ? 'md:hidden' : ''}`}>
+        <div className={`p-2.5 pb-4 border-t border-stone-100 space-y-1 ${sidebarCollapsed ? 'md:px-2 md:flex md:flex-col md:items-center' : ''}`}>
+          <div className="space-y-1 w-full">
+            <div className={`px-2.5 py-1 text-[11px] text-stone-400 truncate ${sidebarCollapsed ? 'md:hidden' : ''}`}>
               <div>
                 Yetkili: <strong className="text-stone-700">{adminUser?.name || 'Yönetici'}</strong>
               </div>
@@ -1040,8 +1040,8 @@ export default function YoneticiPage() {
             <a
               href="/panel"
               onClick={() => setMobileSidebarOpen(false)}
-              className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-stone-700 bg-stone-100 hover:bg-stone-200 font-bold transition-colors text-xs ${
-                sidebarCollapsed ? 'md:w-10 md:h-10 md:justify-center md:px-0' : ''
+              className={`flex items-center gap-2.5 px-3 py-1.5 rounded-xl text-stone-700 bg-stone-100 hover:bg-stone-200 font-bold transition-colors text-xs ${
+                sidebarCollapsed ? 'md:w-9 md:h-9 md:justify-center md:px-0' : ''
               }`}
               title="Operasyon Paneline Geç (/panel)"
             >
@@ -1055,8 +1055,8 @@ export default function YoneticiPage() {
                 target="_blank"
                 rel="noreferrer"
                 onClick={() => setMobileSidebarOpen(false)}
-                className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-amber-700 bg-amber-50/70 hover:bg-amber-100/80 font-bold transition-colors text-xs ${
-                  sidebarCollapsed ? 'md:w-10 md:h-10 md:justify-center md:px-0' : ''
+                className={`flex items-center gap-2.5 px-3 py-1.5 rounded-xl text-amber-700 bg-amber-50/70 hover:bg-amber-100/80 font-bold transition-colors text-xs ${
+                  sidebarCollapsed ? 'md:w-9 md:h-9 md:justify-center md:px-0' : ''
                 }`}
                 title="Kurye Panelini Aç"
               >
@@ -1070,8 +1070,8 @@ export default function YoneticiPage() {
               target="_blank"
               rel="noreferrer"
               onClick={() => setMobileSidebarOpen(false)}
-              className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-stone-600 hover:text-stone-900 hover:bg-stone-100 transition-colors text-xs ${
-                sidebarCollapsed ? 'md:w-10 md:h-10 md:justify-center md:px-0' : ''
+              className={`flex items-center gap-2.5 px-3 py-1.5 rounded-xl text-stone-600 hover:text-stone-900 hover:bg-stone-100 transition-colors text-xs ${
+                sidebarCollapsed ? 'md:w-9 md:h-9 md:justify-center md:px-0' : ''
               }`}
               title="Müşteri Sitesi"
             >
@@ -1082,8 +1082,8 @@ export default function YoneticiPage() {
             <button
               type="button"
               onClick={handleLogout}
-              className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-rose-600 hover:bg-rose-50 font-semibold transition-colors text-xs cursor-pointer ${
-                sidebarCollapsed ? 'md:w-10 md:h-10 md:justify-center md:px-0' : ''
+              className={`w-full flex items-center gap-2.5 px-3 py-1.5 rounded-xl text-rose-600 hover:bg-rose-50 font-semibold transition-colors text-xs cursor-pointer ${
+                sidebarCollapsed ? 'md:w-9 md:h-9 md:justify-center md:px-0' : ''
               }`}
               title="Çıkış Yap"
             >
