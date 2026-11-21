@@ -89,6 +89,7 @@ async function getSyncedCustomers() {
  * Supabase / PostgreSQL'den güncel rol ve yönetici/personel listesini çeker.
  */
 async function getSyncedRolesAndAdmins() {
+  const defaultSystemRoles = db.getRoles();
   let roles = null;
   let adminUsers = null;
 
@@ -104,11 +105,19 @@ async function getSyncedRolesAndAdmins() {
           'options_manage', 'manage_prices', 'members', 'users', 'reviews',
           'view_revenue', 'settings', 'site_content', 'courier_delivery'
         ];
-        roles = pgRoles.map((r) =>
+        const normalizedPgRoles = pgRoles.map((r) =>
           r.id === 'role_super_admin' || r.code === 'super_admin'
             ? { ...r, permissions: allSuperPerms }
             : r
         );
+        // Ensure all default system roles (Restoran Müdürü, Kasiyer, Mutfak Şefi, Paket Kuryesi) exist
+        const mergedRoles = [...normalizedPgRoles];
+        for (const sysRole of defaultSystemRoles) {
+          if (!mergedRoles.some((r) => r.id === sysRole.id || r.code === sysRole.code)) {
+            mergedRoles.push(sysRole);
+          }
+        }
+        roles = mergedRoles;
       }
     }
 

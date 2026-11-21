@@ -83,8 +83,17 @@ export default function YoneticiPage() {
       const saved = localStorage.getItem(ADMIN_SESSION_KEY);
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (parsed && parsed.name) {
+        const isSuperAdmin =
+          parsed &&
+          (parsed.roleId === 'role_super_admin' ||
+            parsed.role === 'Süper Yönetici' ||
+            String(parsed.email || '').toLowerCase() === 'admin' ||
+            String(parsed.email || '').toLowerCase() === 'admin@sandwichdiyari.com' ||
+            String(parsed.email || '').toLowerCase().includes('hknkcpnr'));
+        if (parsed && parsed.name && isSuperAdmin) {
           setAdminUser(parsed);
+        } else {
+          localStorage.removeItem(ADMIN_SESSION_KEY);
         }
       }
       const savedSettings = localStorage.getItem(ADMIN_SETTINGS_KEY);
@@ -141,7 +150,11 @@ export default function YoneticiPage() {
       const res = await fetch('/api/admin/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username: loginUsername.trim(), password: loginPassword })
+        body: JSON.stringify({
+          username: loginUsername.trim(),
+          password: loginPassword,
+          portal: 'yonetici'
+        })
       });
       const json = await res.json();
       if (!res.ok || !json.success) {
@@ -149,15 +162,15 @@ export default function YoneticiPage() {
         return;
       }
       const userObj = json.data?.admin || json.data?.user || json.data || json.user;
-      const perms = Array.isArray(userObj?.permissions) ? userObj.permissions : [];
-      const isAllowed =
+      const isSuperAdmin =
+        userObj?.roleId === 'role_super_admin' ||
         userObj?.role === 'Süper Yönetici' ||
-        perms.includes('users') ||
-        perms.includes('settings') ||
-        perms.includes('view_revenue');
+        String(userObj?.email || '').toLowerCase() === 'admin' ||
+        String(userObj?.email || '').toLowerCase() === 'admin@sandwichdiyari.com' ||
+        String(userObj?.email || '').toLowerCase().includes('hknkcpnr');
 
-      if (!isAllowed) {
-        setLoginError('Bu alana erişim için Yönetici yetkisi gereklidir.');
+      if (!isSuperAdmin) {
+        setLoginError('Bu panel yalnızca Süper Yönetici (/yonetici) hesapları içindir. Restoran paneli için /panel adresini kullanın.');
         return;
       }
 

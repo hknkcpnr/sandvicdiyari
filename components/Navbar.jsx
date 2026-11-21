@@ -298,20 +298,6 @@ export default function Navbar() {
                             </div>
                             <span>Favori Sandviçlerim</span>
                           </button>
-
-                          {/* Admin Portalı Linki (Yetkili İse) */}
-                          {isAdminUser && (
-                            <a
-                              href="/admin"
-                              className="w-full flex items-center gap-3 px-3 py-2.5 text-xs font-bold text-amber-900 bg-amber-50/80 hover:bg-amber-100 rounded-xl transition-all cursor-pointer group border border-amber-200 my-1.5"
-                            >
-                              <div className="w-7 h-7 rounded-lg bg-amber-500 text-white flex items-center justify-center shadow-sm shrink-0">
-                                <i className="fa-solid fa-shield-halved text-xs"></i>
-                              </div>
-                              <span className="flex-1 truncate">Yönetici Paneline Git</span>
-                              <i className="fa-solid fa-arrow-up-right-from-square text-[10px] text-amber-600"></i>
-                            </a>
-                          )}
                         </div>
                       )}
 

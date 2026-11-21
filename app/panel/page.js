@@ -752,12 +752,26 @@ export default function AdminDashboardPage() {
       const res = await fetch('/api/admin/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username: loginEmail, email: loginEmail, pass: loginPass }),
+        body: JSON.stringify({
+          username: loginEmail,
+          email: loginEmail,
+          pass: loginPass,
+          portal: 'panel'
+        }),
       });
       const json = await res.json();
 
       if (json.success) {
         const loggedAdmin = json.data.admin;
+        const isCourierOnly =
+          loggedAdmin?.roleId === 'role_courier' ||
+          (loggedAdmin?.roleId !== 'role_super_admin' &&
+            String(loggedAdmin?.role || '').toLowerCase().includes('kurye') &&
+            !(Array.isArray(loggedAdmin?.permissions) && loggedAdmin.permissions.includes('orders')));
+        if (isCourierOnly) {
+          setLoginError('Bu hesap Kurye Paneli (/kurye) kullanıcısıdır. Restoran Paneline (/panel) giriş yetkisi yoktur.');
+          return;
+        }
         setAdminUser(loggedAdmin);
         sessionStorage.setItem('sd_admin_session', JSON.stringify(loggedAdmin));
         localStorage.removeItem('sd_admin_session');
@@ -1490,9 +1504,12 @@ export default function AdminDashboardPage() {
               />
               <div>
                 <h1 className="font-extrabold text-stone-900 text-base leading-tight">Sandviç Diyarı</h1>
-                <span className="text-[11px] text-stone-500 font-medium block">Restoran Yönetim Portalı</span>
+                <span className="text-[11px] text-amber-700 font-bold block">Restoran Operasyon Paneli (/panel)</span>
               </div>
             </div>
+            <p className="text-[11px] text-stone-500 pt-1">
+              Mutfak, kasa, sipariş ve stok personeli giriş ekranı
+            </p>
           </div>
 
           {loginError && (

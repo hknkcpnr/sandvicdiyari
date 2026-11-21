@@ -44,7 +44,7 @@ const ROLE_COLORS = {
  */
 export default function UsersRolesTab({ currentAdmin, onRolesOrUsersUpdated }) {
   const dispatch = useDispatch();
-  const [subTab, setSubTab] = useState('staff'); // 'staff' | 'roles' | 'customers'
+  const [subTab, setSubTab] = useState('panel'); // 'panel' | 'kurye' | 'yonetici' | 'customers' | 'roles'
   const [adminUsers, setAdminUsers] = useState([]);
   const [roles, setRoles] = useState([]);
   const [customers, setCustomers] = useState([]);
@@ -54,6 +54,7 @@ export default function UsersRolesTab({ currentAdmin, onRolesOrUsersUpdated }) {
   // Kullanıcı Modal Durumları
   const [isUserModalOpen, setIsUserModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
+  const [userPortalTarget, setUserPortalTarget] = useState('panel'); // 'panel' | 'kurye' | 'yonetici'
   const [userName, setUserName] = useState('');
   const [userEmail, setUserEmail] = useState('');
   const [userPhone, setUserPhone] = useState('');
@@ -116,26 +117,52 @@ export default function UsersRolesTab({ currentAdmin, onRolesOrUsersUpdated }) {
     fetchData();
   }, []);
 
-  // Kullanıcı Modalı Açma
-  const handleOpenAddUser = () => {
+  // Helper: Bir personelin veya rolün hangi panele (/yonetici, /panel, /kurye) ait olduğunu belirle
+  const getPortalForRoleOrUser = (roleId, roleName = '') => {
+    const rId = String(roleId || '');
+    const rName = String(roleName || '').toLowerCase();
+    if (rId === 'role_super_admin' || rName === 'süper yönetici') return 'yonetici';
+    if (rId === 'role_courier' || rName.includes('kurye')) return 'kurye';
+    return 'panel';
+  };
+
+  const getDefaultRoleIdForPortal = (portalKey, rolesList = roles) => {
+    if (portalKey === 'yonetici') {
+      return rolesList.find((r) => r.id === 'role_super_admin' || r.code === 'super_admin')?.id || 'role_super_admin';
+    }
+    if (portalKey === 'kurye') {
+      return rolesList.find((r) => r.id === 'role_courier' || r.code === 'courier')?.id || 'role_courier';
+    }
+    const panelRole = rolesList.find(
+      (r) => r.id !== 'role_super_admin' && r.code !== 'super_admin' && r.id !== 'role_courier' && r.code !== 'courier'
+    );
+    return panelRole?.id || 'role_cashier';
+  };
+
+  // Kullanıcı Modalı Açma (Seçili panele göre otomatik rol atar)
+  const handleOpenAddUser = (targetPortal = 'panel') => {
+    const portalKey = ['panel', 'kurye', 'yonetici'].includes(targetPortal) ? targetPortal : 'panel';
     setEditingUser(null);
+    setUserPortalTarget(portalKey);
     setUserName('');
     setUserEmail('');
     setUserPhone('');
     setUserPass('');
-    setUserRoleId(roles[0]?.id || 'role_super_admin');
+    setUserRoleId(getDefaultRoleIdForPortal(portalKey));
     setUserIsActive(true);
     setUserFormError('');
     setIsUserModalOpen(true);
   };
 
   const handleOpenEditUser = (user) => {
+    const detectedPortal = getPortalForRoleOrUser(user.roleId, user.roleName || user.role);
     setEditingUser(user);
+    setUserPortalTarget(detectedPortal);
     setUserName(user.name || '');
     setUserEmail(user.email || '');
     setUserPhone(user.phone || '');
     setUserPass('');
-    setUserRoleId(user.roleId || roles[0]?.id || '');
+    setUserRoleId(user.roleId || getDefaultRoleIdForPortal(detectedPortal));
     setUserIsActive(user.isActive !== false);
     setUserFormError('');
     setIsUserModalOpen(true);
@@ -541,7 +568,24 @@ export default function UsersRolesTab({ currentAdmin, onRolesOrUsersUpdated }) {
 
   const q = searchQuery.toLowerCase().trim();
 
-  const filteredStaff = adminUsers.filter(
+  const panelUsers = adminUsers.filter(
+    (u) => getPortalForRoleOrUser(u.roleId, u.roleName || u.role) === 'panel'
+  );
+  const courierUsers = adminUsers.filter(
+    (u) => getPortalForRoleOrUser(u.roleId, u.roleName || u.role) === 'kurye'
+  );
+  const superAdminUsers = adminUsers.filter(
+    (u) => getPortalForRoleOrUser(u.roleId, u.roleName || u.role) === 'yonetici'
+  );
+
+  const activePortalStaffList =
+    subTab === 'kurye'
+      ? courierUsers
+      : subTab === 'yonetici'
+      ? superAdminUsers
+      : panelUsers;
+
+  const filteredStaff = activePortalStaffList.filter(
     (u) =>
       !q ||
       (u.name || '').toLowerCase().includes(q) ||
@@ -565,61 +609,117 @@ export default function UsersRolesTab({ currentAdmin, onRolesOrUsersUpdated }) {
       (c.phone || '').toLowerCase().includes(q)
   );
 
+  const PORTAL_META = {
+    panel: {
+      badge: '🍽️ /panel • Restoran Paneli',
+      badgeClass: 'bg-amber-50 text-amber-800 border-amber-200',
+      title: 'Restoran Paneli (/panel) Kullanıcıları',
+      desc: 'Mutfak, kasa, sipariş onayı, menü ve stok ekranlarını kullanan restoran personeli.',
+      addBtnLabel: '+ Restoran Kullanıcısı Ekle'
+    },
+    kurye: {
+      badge: '🛵 /kurye • Kurye Paneli',
+      badgeClass: 'bg-sky-50 text-sky-800 border-sky-200',
+      title: 'Kurye Paneli (/kurye) Kullanıcıları',
+      desc: 'Yalnızca kurye teslimat ekranına (/kurye) giriş yapabilen paket servis kuryeleri.',
+      addBtnLabel: '+ Kurye Ekle'
+    },
+    yonetici: {
+      badge: '👑 /yonetici • Süper Yönetici',
+      badgeClass: 'bg-rose-50 text-rose-700 border-rose-200',
+      title: 'Süper Yönetici (/yonetici) Kullanıcıları',
+      desc: 'Kasa/finans, kullanıcı & rol yönetimi, vitrin tasarımı ve sistem ayarlarına tam yetkili yöneticiler.',
+      addBtnLabel: '+ Süper Yönetici Ekle'
+    }
+  };
+
   return (
     <div className="space-y-4 w-full min-w-0">
-      {/* SEKME, ARAMA ÇUBUĞU VE HIZLI İŞLEM BUTONLARI */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-2.5 rounded-2xl border border-stone-200/90 shadow-2xs">
-        <div className="grid grid-cols-3 gap-1 sm:flex sm:items-center w-full sm:w-auto">
+      {/* 4 PORTAL MİMARİSİ & ROL SEKMELERİ */}
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 bg-white p-2.5 rounded-2xl border border-stone-200/90 shadow-2xs">
+        <div className="flex flex-wrap items-center gap-1.5 w-full lg:w-auto">
           <button
             type="button"
-            onClick={() => setSubTab('staff')}
-            className={`px-2.5 sm:px-3.5 py-2 rounded-xl font-bold text-[11px] sm:text-xs flex items-center justify-center gap-1 sm:gap-1.5 whitespace-nowrap cursor-pointer transition-colors ${
-              subTab === 'staff' ? 'bg-stone-900 text-white' : 'text-stone-600 hover:bg-stone-100'
+            onClick={() => setSubTab('panel')}
+            className={`px-3 py-2 rounded-xl font-bold text-[11px] sm:text-xs flex items-center gap-1.5 whitespace-nowrap cursor-pointer transition-colors ${
+              subTab === 'panel' ? 'bg-amber-500 text-stone-950 shadow-2xs' : 'text-stone-600 hover:bg-stone-100'
             }`}
           >
-            <i className="fa-solid fa-users-gear text-[10px] sm:text-[11px]"></i>
-            <span className="truncate">Personel</span>
-            <span className={`px-1.5 py-0.2 rounded-full text-[9px] sm:text-[10px] font-bold ${
-              subTab === 'staff' ? 'bg-white/20 text-white' : 'bg-stone-100 text-stone-700'
+            <i className="fa-solid fa-kitchen-set text-[11px]"></i>
+            <span>Restoran Paneli (/panel)</span>
+            <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-extrabold ${
+              subTab === 'panel' ? 'bg-stone-950/15 text-stone-950' : 'bg-stone-100 text-stone-700'
             }`}>
-              {adminUsers.length}
+              {panelUsers.length}
             </span>
           </button>
 
           <button
             type="button"
-            onClick={() => setSubTab('roles')}
-            className={`px-2.5 sm:px-3.5 py-2 rounded-xl font-bold text-[11px] sm:text-xs flex items-center justify-center gap-1 sm:gap-1.5 whitespace-nowrap cursor-pointer transition-colors ${
-              subTab === 'roles' ? 'bg-stone-900 text-white' : 'text-stone-600 hover:bg-stone-100'
+            onClick={() => setSubTab('kurye')}
+            className={`px-3 py-2 rounded-xl font-bold text-[11px] sm:text-xs flex items-center gap-1.5 whitespace-nowrap cursor-pointer transition-colors ${
+              subTab === 'kurye' ? 'bg-sky-600 text-white shadow-2xs' : 'text-stone-600 hover:bg-stone-100'
             }`}
           >
-            <i className="fa-solid fa-shield-halved text-[10px] sm:text-[11px]"></i>
-            <span className="truncate">Roller</span>
-            <span className={`px-1.5 py-0.2 rounded-full text-[9px] sm:text-[10px] font-bold ${
-              subTab === 'roles' ? 'bg-white/20 text-white' : 'bg-stone-100 text-stone-700'
+            <i className="fa-solid fa-motorcycle text-[11px]"></i>
+            <span>Kurye Paneli (/kurye)</span>
+            <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-extrabold ${
+              subTab === 'kurye' ? 'bg-white/20 text-white' : 'bg-stone-100 text-stone-700'
             }`}>
-              {roles.length}
+              {courierUsers.length}
+            </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setSubTab('yonetici')}
+            className={`px-3 py-2 rounded-xl font-bold text-[11px] sm:text-xs flex items-center gap-1.5 whitespace-nowrap cursor-pointer transition-colors ${
+              subTab === 'yonetici' ? 'bg-rose-600 text-white shadow-2xs' : 'text-stone-600 hover:bg-stone-100'
+            }`}
+          >
+            <i className="fa-solid fa-crown text-[11px]"></i>
+            <span>Süper Yönetici (/yonetici)</span>
+            <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-extrabold ${
+              subTab === 'yonetici' ? 'bg-white/20 text-white' : 'bg-stone-100 text-stone-700'
+            }`}>
+              {superAdminUsers.length}
             </span>
           </button>
 
           <button
             type="button"
             onClick={() => setSubTab('customers')}
-            className={`px-2.5 sm:px-3.5 py-2 rounded-xl font-bold text-[11px] sm:text-xs flex items-center justify-center gap-1 sm:gap-1.5 whitespace-nowrap cursor-pointer transition-colors ${
-              subTab === 'customers' ? 'bg-stone-900 text-white' : 'text-stone-600 hover:bg-stone-100'
+            className={`px-3 py-2 rounded-xl font-bold text-[11px] sm:text-xs flex items-center gap-1.5 whitespace-nowrap cursor-pointer transition-colors ${
+              subTab === 'customers' ? 'bg-emerald-600 text-white shadow-2xs' : 'text-stone-600 hover:bg-stone-100'
             }`}
           >
-            <i className="fa-solid fa-address-book text-[10px] sm:text-[11px]"></i>
-            <span className="truncate">Müşteriler</span>
-            <span className={`px-1.5 py-0.2 rounded-full text-[9px] sm:text-[10px] font-bold ${
+            <i className="fa-solid fa-store text-[11px]"></i>
+            <span>Müşteri Sitesi (/)</span>
+            <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-extrabold ${
               subTab === 'customers' ? 'bg-white/20 text-white' : 'bg-stone-100 text-stone-700'
             }`}>
               {customers.length}
             </span>
           </button>
+
+          <button
+            type="button"
+            onClick={() => setSubTab('roles')}
+            className={`px-3 py-2 rounded-xl font-bold text-[11px] sm:text-xs flex items-center gap-1.5 whitespace-nowrap cursor-pointer transition-colors ${
+              subTab === 'roles' ? 'bg-stone-900 text-white shadow-2xs' : 'text-stone-600 hover:bg-stone-100'
+            }`}
+          >
+            <i className="fa-solid fa-shield-halved text-[11px]"></i>
+            <span>Rol Modelleri</span>
+            <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-extrabold ${
+              subTab === 'roles' ? 'bg-white/20 text-white' : 'bg-stone-100 text-stone-700'
+            }`}>
+              {roles.length}
+            </span>
+          </button>
         </div>
 
-        <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+        <div className="flex items-center gap-2 w-full lg:w-auto justify-end">
           <button
             type="button"
             onClick={fetchData}
@@ -629,17 +729,17 @@ export default function UsersRolesTab({ currentAdmin, onRolesOrUsersUpdated }) {
             <i className={`fa-solid fa-arrows-rotate text-xs ${loading ? 'fa-spin' : ''}`}></i>
           </button>
 
-          <div className="relative w-full sm:w-56">
+          <div className="relative w-full sm:w-52">
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder={
-                subTab === 'staff'
-                  ? 'Personel ara...'
-                  : subTab === 'roles'
+                subTab === 'roles'
                   ? 'Rol modellerinde ara...'
-                  : 'Müşteri ara...'
+                  : subTab === 'customers'
+                  ? 'Müşteri ara...'
+                  : 'Kullanıcı ara...'
               }
               className="w-full bg-stone-50 border border-stone-200 rounded-xl pl-8 pr-3 py-1.5 text-xs focus:outline-none focus:border-stone-400 font-medium"
             />
@@ -655,38 +755,66 @@ export default function UsersRolesTab({ currentAdmin, onRolesOrUsersUpdated }) {
               <i className="fa-solid fa-shield-halved text-indigo-400"></i>
               <span>+ Rol Ekle</span>
             </button>
-          ) : subTab === 'staff' ? (
+          ) : subTab === 'customers' ? (
             <button
               type="button"
-              onClick={handleOpenAddUser}
-              className="bg-stone-900 hover:bg-black text-white font-bold px-3 py-1.5 rounded-xl text-xs flex items-center gap-1.5 transition-colors cursor-pointer shrink-0 shadow-2xs"
+              onClick={handleOpenAddCustomer}
+              className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-3 py-1.5 rounded-xl text-xs flex items-center gap-1.5 transition-colors cursor-pointer shrink-0 shadow-2xs"
             >
-              <i className="fa-solid fa-user-plus text-amber-300"></i>
-              <span>+ Kullanıcı Ekle</span>
+              <i className="fa-solid fa-user-plus text-white"></i>
+              <span>+ Müşteri Ekle</span>
             </button>
           ) : (
             <button
               type="button"
-              onClick={handleOpenAddCustomer}
-              className="bg-stone-900 hover:bg-black text-white font-bold px-3 py-1.5 rounded-xl text-xs flex items-center gap-1.5 transition-colors cursor-pointer shrink-0 shadow-2xs"
+              onClick={() => handleOpenAddUser(subTab)}
+              className="bg-stone-900 hover:bg-black text-white font-bold px-3.5 py-1.5 rounded-xl text-xs flex items-center gap-1.5 transition-colors cursor-pointer shrink-0 shadow-2xs"
             >
-              <i className="fa-solid fa-user-plus text-emerald-400"></i>
-              <span>+ Müşteri Ekle</span>
+              <i className="fa-solid fa-user-plus text-amber-300"></i>
+              <span>{PORTAL_META[subTab]?.addBtnLabel || '+ Kullanıcı Ekle'}</span>
             </button>
           )}
         </div>
       </div>
 
-      {/* 3. İÇERİK: PERSONEL LİSTESİ */}
-      {subTab === 'staff' && (
+      {/* 3. İÇERİK: PORTAL BAZLI PERSONEL LİSTESİ (/panel, /kurye, /yonetici) */}
+      {(subTab === 'panel' || subTab === 'kurye' || subTab === 'yonetici') && (
         <div className="bg-white rounded-2xl border border-stone-200/90 shadow-2xs overflow-hidden">
+          <div className="px-4 sm:px-5 py-3.5 bg-stone-50/80 border-b border-stone-100 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="text-xs sm:text-sm font-extrabold text-stone-900">
+                  {PORTAL_META[subTab]?.title}
+                </h3>
+                <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full border ${PORTAL_META[subTab]?.badgeClass}`}>
+                  {PORTAL_META[subTab]?.badge}
+                </span>
+              </div>
+              <p className="text-[11px] text-stone-500 mt-0.5">
+                {PORTAL_META[subTab]?.desc}
+              </p>
+            </div>
+          </div>
+
           {filteredStaff.length === 0 ? (
-            <div className="p-8 text-center text-stone-400 text-xs">Kayıtlı personel bulunamadı.</div>
+            <div className="p-8 text-center text-stone-400 text-xs space-y-3">
+              <p>Bu panel için henüz kayıtlı kullanıcı bulunmuyor.</p>
+              <button
+                type="button"
+                onClick={() => handleOpenAddUser(subTab)}
+                className="inline-flex items-center gap-1.5 bg-stone-900 hover:bg-black text-white font-bold text-xs px-3.5 py-2 rounded-xl cursor-pointer transition-colors"
+              >
+                <i className="fa-solid fa-user-plus text-amber-300"></i>
+                <span>{PORTAL_META[subTab]?.addBtnLabel || '+ Kullanıcı Ekle'}</span>
+              </button>
+            </div>
           ) : (
             <div className="divide-y divide-stone-100">
               {filteredStaff.map((user) => {
                 const roleObj = roles.find((r) => String(r.id) === String(user.roleId)) || roles[0];
                 const colorTheme = ROLE_COLORS[roleObj?.color] || ROLE_COLORS.blue;
+                const userPortal = getPortalForRoleOrUser(user.roleId, roleObj?.name || user.roleName);
+                const portalMeta = PORTAL_META[userPortal] || PORTAL_META.panel;
                 const initials = (user.name || 'P')
                   .split(' ')
                   .filter(Boolean)
@@ -709,13 +837,18 @@ export default function UsersRolesTab({ currentAdmin, onRolesOrUsersUpdated }) {
                         {initials}
                       </div>
                       <div className="min-w-0">
-                        <div className="flex items-center gap-2">
+                        <div className="flex flex-wrap items-center gap-2">
                           <h4 className="font-bold text-sm text-stone-900 truncate">{user.name}</h4>
                           <span
                             className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold border ${colorTheme.bg} ${colorTheme.text} ${colorTheme.border}`}
                           >
                             <span className={`w-1.5 h-1.5 rounded-full ${colorTheme.dot}`}></span>
                             {roleObj?.name || user.roleName}
+                          </span>
+                          <span
+                            className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-extrabold border ${portalMeta.badgeClass}`}
+                          >
+                            {portalMeta.badge}
                           </span>
                         </div>
                         <div className="flex items-center gap-2 text-xs text-stone-500 mt-0.5">
@@ -965,11 +1098,22 @@ export default function UsersRolesTab({ currentAdmin, onRolesOrUsersUpdated }) {
       {/* MODAL 1: KULLANICI EKLE / DÜZENLE */}
       {isUserModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-900/60 backdrop-blur-xs">
-          <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-5">
+          <div className="bg-white rounded-2xl max-w-xl w-full p-6 shadow-2xl space-y-4">
             <div className="flex items-center justify-between border-b border-stone-100 pb-3">
-              <h3 className="font-bold text-base text-stone-900">
-                {editingUser ? 'Personeli Düzenle' : 'Yeni Personel Ekle'}
-              </h3>
+              <div>
+                <h3 className="font-bold text-base text-stone-900">
+                  {editingUser
+                    ? 'Kullanıcıyı Düzenle'
+                    : userPortalTarget === 'kurye'
+                    ? 'Yeni Kurye Paneli (/kurye) Kullanıcısı Ekle'
+                    : userPortalTarget === 'yonetici'
+                    ? 'Yeni Süper Yönetici (/yonetici) Ekle'
+                    : 'Yeni Restoran Paneli (/panel) Kullanıcısı Ekle'}
+                </h3>
+                <p className="text-[11px] text-stone-500 mt-0.5">
+                  Kullanıcının hangi panele giriş yapacağını ve yetki rolünü seçin
+                </p>
+              </div>
               <button
                 type="button"
                 onClick={() => setIsUserModalOpen(false)}
@@ -979,7 +1123,64 @@ export default function UsersRolesTab({ currentAdmin, onRolesOrUsersUpdated }) {
               </button>
             </div>
 
-            <form onSubmit={handleSaveUser} className="space-y-4">
+            <form onSubmit={handleSaveUser} className="space-y-3.5">
+              {/* GİRİŞ YAPACAĞI PANEL SEÇİMİ (/panel vs /kurye vs /yonetici) */}
+              <div>
+                <label className="block text-xs font-bold text-stone-700 mb-1.5">
+                  Giriş Yapacağı Panel / Sistem Bölümü
+                </label>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                  {[
+                    {
+                      key: 'panel',
+                      title: 'Restoran Paneli',
+                      url: '/panel',
+                      icon: 'fa-solid fa-kitchen-set',
+                      activeClass: 'border-amber-500 bg-amber-50/70 text-amber-950 ring-1 ring-amber-500/40'
+                    },
+                    {
+                      key: 'kurye',
+                      title: 'Kurye Paneli',
+                      url: '/kurye',
+                      icon: 'fa-solid fa-motorcycle',
+                      activeClass: 'border-sky-500 bg-sky-50/70 text-sky-950 ring-1 ring-sky-500/40'
+                    },
+                    {
+                      key: 'yonetici',
+                      title: 'Süper Yönetici',
+                      url: '/yonetici',
+                      icon: 'fa-solid fa-crown',
+                      activeClass: 'border-rose-500 bg-rose-50/70 text-rose-950 ring-1 ring-rose-500/40'
+                    }
+                  ].map((p) => {
+                    const isSelected = userPortalTarget === p.key;
+                    return (
+                      <button
+                        key={p.key}
+                        type="button"
+                        onClick={() => {
+                          setUserPortalTarget(p.key);
+                          setUserRoleId(getDefaultRoleIdForPortal(p.key));
+                        }}
+                        className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer flex items-center gap-2.5 ${
+                          isSelected
+                            ? p.activeClass
+                            : 'border-stone-200 hover:border-stone-300 bg-stone-50/60 text-stone-700'
+                        }`}
+                      >
+                        <span className="w-8 h-8 rounded-lg bg-white border border-stone-200/80 flex items-center justify-center text-xs shrink-0 shadow-2xs">
+                          <i className={p.icon}></i>
+                        </span>
+                        <div className="min-w-0">
+                          <span className="text-xs font-extrabold block truncate">{p.title}</span>
+                          <span className="text-[10px] font-mono opacity-75 block">{p.url}</span>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
               <div>
                 <label className="block text-xs font-bold text-stone-700 mb-1">Ad Soyad</label>
                 <input
@@ -1032,17 +1233,25 @@ export default function UsersRolesTab({ currentAdmin, onRolesOrUsersUpdated }) {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-stone-700 mb-1">Rol Modeli</label>
+                  <label className="block text-xs font-bold text-stone-700 mb-1">
+                    {userPortalTarget === 'panel'
+                      ? 'Restoran Paneli Rolü (/panel)'
+                      : userPortalTarget === 'kurye'
+                      ? 'Kurye Paneli Rolü (/kurye)'
+                      : 'Süper Yönetici Rolü (/yonetici)'}
+                  </label>
                   <select
                     value={userRoleId}
                     onChange={(e) => setUserRoleId(e.target.value)}
-                    className="app-select w-full bg-stone-50 hover:bg-stone-100/60 border border-stone-200 hover:border-brand-400 rounded-2xl px-4 py-3 text-xs sm:text-sm font-bold text-stone-900 focus:outline-none focus:border-brand-500 cursor-pointer shadow-2xs transition-all"
+                    className="app-select w-full bg-stone-50 hover:bg-stone-100/60 border border-stone-200 hover:border-brand-400 rounded-2xl px-4 py-2.5 text-xs sm:text-sm font-bold text-stone-900 focus:outline-none focus:border-brand-500 cursor-pointer shadow-2xs transition-all"
                   >
-                    {roles.map((r) => (
-                      <option key={r.id} value={r.id}>
-                        {r.name}
-                      </option>
-                    ))}
+                    {roles
+                      .filter((r) => getPortalForRoleOrUser(r.id, r.name) === userPortalTarget)
+                      .map((r) => (
+                        <option key={r.id} value={r.id}>
+                          {r.name}
+                        </option>
+                      ))}
                   </select>
                 </div>
               </div>

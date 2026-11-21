@@ -23,6 +23,7 @@ export async function POST(request) {
     const body = await parseJsonBody(request);
     const rawIdentifier = String(body.username || body.email || '').trim();
     const pass = String(body.pass || body.password || '');
+    const portal = String(body.portal || '').trim().toLowerCase(); // 'yonetici' | 'panel' | 'kurye'
 
     if (!rawIdentifier || !pass) {
       throw new ValidationError('Kullanıcı adı / e-posta ve şifre zorunludur.');
@@ -36,12 +37,15 @@ export async function POST(request) {
     try {
       if (rawPrisma && rawPrisma.adminUser) {
         const cleanInput = rawIdentifier.toLowerCase();
+        const cleanWithDomain = cleanInput.includes('@')
+          ? cleanInput
+          : `${cleanInput}@sandwichdiyari.com`;
         const cleanDigits = rawIdentifier.replace(/\D/g, '');
         const pgUser = await rawPrisma.adminUser.findFirst({
           where: {
             OR: [
               { email: { equals: cleanInput, mode: 'insensitive' } },
-              { email: { startsWith: cleanInput, mode: 'insensitive' } },
+              { email: { equals: cleanWithDomain, mode: 'insensitive' } },
               { name: { equals: rawIdentifier, mode: 'insensitive' } },
               ...(cleanDigits.length >= 10 ? [{ phone: { contains: cleanDigits.slice(-10) } }] : [])
             ]
@@ -50,9 +54,11 @@ export async function POST(request) {
         });
 
         if (pgUser) {
+          const lowerEmail = String(pgUser.email || '').toLowerCase();
           const isOwner =
-            pgUser.email?.toLowerCase().includes('hknkcpnr') ||
-            pgUser.email?.toLowerCase().startsWith('admin') ||
+            lowerEmail.includes('hknkcpnr') ||
+            lowerEmail === 'admin' ||
+            lowerEmail === 'admin@sandwichdiyari.com' ||
             pgUser.roleId === 'role_super_admin' ||
             pgUser.role?.code === 'super_admin';
 
@@ -100,6 +106,40 @@ export async function POST(request) {
     if (!authenticatedAdmin) {
       throw new AuthenticationError(
         'Geçersiz kullanıcı adı veya şifre!'
+      );
+    }
+
+    // 3. PORTAL BAZLI YETKİ AYRIMI (/yonetici vs /panel vs /kurye)
+    const perms = Array.isArray(authenticatedAdmin.permissions) ? authenticatedAdmin.permissions : [];
+    const isSuperAdmin =
+      authenticatedAdmin.roleId === 'role_super_admin' ||
+      authenticatedAdmin.role === 'Süper Yönetici';
+    const isCourierAccount =
+      authenticatedAdmin.roleId === 'role_courier' ||
+      (!isSuperAdmin &&
+        (String(authenticatedAdmin.role || '').toLowerCase().includes('kurye') ||
+          (perms.includes('courier_delivery') && !perms.includes('orders'))));
+
+    if (portal === 'yonetici' && !isSuperAdmin) {
+      throw new AuthorizationError(
+        'Bu panel yalnızca Süper Yönetici (/yonetici) hesapları içindir. Restoran paneli için /panel, kurye paneli için /kurye adresini kullanınız.'
+      );
+    }
+
+    if (portal === 'panel' && isCourierAccount) {
+      throw new AuthorizationError(
+        'Bu hesap Kurye Paneli (/kurye) kullanıcısıdır. Restoran Paneline (/panel) giriş yetkisi bulunmamaktadır.'
+      );
+    }
+
+    if (
+      portal === 'kurye' &&
+      !isSuperAdmin &&
+      !isCourierAccount &&
+      !perms.includes('courier_delivery')
+    ) {
+      throw new AuthorizationError(
+        'Bu hesap Restoran Paneli (/panel) kullanıcısıdır. Kurye Paneline (/kurye) giriş yetkisi bulunmamaktadır.'
       );
     }
 

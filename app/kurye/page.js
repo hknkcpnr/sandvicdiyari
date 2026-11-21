@@ -179,7 +179,7 @@ export default function CourierPortalPage() {
       const res = await fetch('/api/admin/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username: id, pass }),
+        body: JSON.stringify({ username: id, pass, portal: 'kurye' }),
       });
       const json = await res.json();
 
@@ -190,16 +190,15 @@ export default function CourierPortalPage() {
 
       const admin = json.data.admin;
 
-      // Check if user has courier permission or is staff/admin
+      // Yalnızca Kurye (/kurye) veya Süper Yönetici yetkisine sahip hesaplar giriş yapabilir
       const isCourier =
         admin.roleId === 'role_courier' ||
         (admin.role && admin.role.toLowerCase().includes('kurye')) ||
         (admin.permissions && Array.isArray(admin.permissions) && admin.permissions.includes('courier_delivery')) ||
-        admin.roleId === 'role_super_admin' ||
-        (admin.permissions && admin.permissions.includes('orders'));
+        admin.roleId === 'role_super_admin';
 
       if (!isCourier) {
-        setLoginError('Bu hesap kurye yetkisine sahip değil. Lütfen şube yöneticinize başvurun.');
+        setLoginError('Bu hesap Kurye Paneli (/kurye) yetkisine sahip değil. Restoran personeli girişi için /panel adresini kullanın.');
         return;
       }
 
