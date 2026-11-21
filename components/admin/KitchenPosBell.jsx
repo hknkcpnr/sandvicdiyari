@@ -480,9 +480,11 @@ export default function KitchenPosBell({
   const isSnoozed = snoozeUntil && now < snoozeUntil;
   const isRinging = hasNewOrders && continuousBellEnabled && !isSnoozed;
 
-  // Helper: Play notification sound for active food orders DIRECTLY from inside the Menu (never plays /yonetici sound!)
+  // Helper:
+  // - 1 adet (tekli) siparişte: Doğrudan menü/ürün içindeki özel ses çalar.
+  // - 1'in üzerinde (birden fazla ürün veya birden fazla bekleyen) siparişte: Yönetici panelinde (/yonetici) ayarlanan özel bildirim sesi çalar!
   const triggerOrderPriorityNotification = (targetOrders = newOrders, isPeriodicRepeat = false) => {
-    // If a periodic repeat fires while a custom menu audio clip is still actively playing, let it finish
+    // If a periodic repeat fires while a custom audio clip is still actively playing, let it finish
     if (
       isPeriodicRepeat &&
       activeCustomAudio &&
@@ -492,31 +494,41 @@ export default function KitchenPosBell({
       return;
     }
 
-    // 1. Play custom audio attached directly inside the ordered menu products
-    const orderedProductAudios = extractOrderCustomAudios(targetOrders, effectiveProducts);
+    const orderArray = Array.isArray(targetOrders)
+      ? targetOrders
+      : targetOrders
+      ? [targetOrders]
+      : [];
+
+    const totalOrdersCount = orderArray.length;
+    const totalOrderedItemQty = orderArray.reduce((sum, ord) => {
+      const items = Array.isArray(ord?.items) ? ord.items : [];
+      return sum + items.reduce((acc, it) => acc + Math.max(1, Number(it?.quantity || 1)), 0);
+    }, 0);
+
+    // 1. 1'İN ÜZERİNDE SİPARİŞ (Çoklu ürün adedi > 1 veya bekleyen sipariş sayısı > 1):
+    // Yönetici panelinde (/yonetici) eklenen / seçilen özel bildirim sesi çalar!
+    if (totalOrdersCount > 1 || totalOrderedItemQty > 1) {
+      playKitchenBellSound(soundType, volume, customSounds);
+      return;
+    }
+
+    // 2. TEKLİ SİPARİŞ (1 Adet Menü/Ürün):
+    // Doğrudan sipariş edilen menünün kendi içindeki özel ses çalar!
+    const orderedProductAudios = extractOrderCustomAudios(orderArray, effectiveProducts);
     if (orderedProductAudios.length > 0) {
       playSequentialProductAudios(orderedProductAudios, volume);
       return;
     }
 
-    // 2. If the specific ordered item has no custom audio file, check if any menu product has a custom audio file or read the menu item name in Turkish
-    const anyMenuAudios = (Array.isArray(effectiveProducts) ? effectiveProducts : [])
-      .map((p) => (typeof p?.audioUrl === 'string' ? p.audioUrl.trim() : ''))
-      .filter(Boolean);
-
-    if (anyMenuAudios.length > 0 && !voiceReadoutEnabled) {
-      playSequentialProductAudios([anyMenuAudios[0]], volume);
-      return;
-    }
-
-    // 3. Direct menu item name voice announcement (never plays the general /yonetici notification sound)
-    const primaryOrder = Array.isArray(targetOrders) ? targetOrders[0] : targetOrders;
+    // Menüye özel ses dosyası yüklenmemişse doğrudan menü ismini Türkçe seslendir
+    const primaryOrder = orderArray[0];
     if (primaryOrder) {
       announceOrderItems(primaryOrder, effectiveProducts, volume);
     }
   };
 
-  // If a BRAND NEW order arrives while snoozed, cancel snooze and immediately play menu audio!
+  // If a BRAND NEW order arrives while snoozed, cancel snooze and immediately play appropriate audio!
   useEffect(() => {
     const currentIds = new Set(orders.map((o) => o.id));
     if (!initialMountRef.current) {
@@ -531,19 +543,20 @@ export default function KitchenPosBell({
         if (snoozeUntil) {
           setSnoozeUntil(null); // Cancel snooze for new order
         }
-        triggerOrderPriorityNotification([brandNewOrder], false);
+        // Pass newOrders if >1 pending orders, otherwise [brandNewOrder]
+        triggerOrderPriorityNotification(newOrders.length > 1 ? newOrders : [brandNewOrder], false);
       }
     } else {
       initialMountRef.current = false;
     }
     prevOrderIdsRef.current = currentIds;
-  }, [orders, newOrders, snoozeUntil, effectiveProducts]);
+  }, [orders, newOrders, snoozeUntil, effectiveProducts, soundType, customSounds]);
 
-  // Continuous Sound Interval Timer (Plays directly from inside the ordered menu items)
+  // Continuous Sound Interval Timer (1 item -> Menu sound, >1 items/orders -> /yonetici sound)
   useEffect(() => {
     if (!isRinging) return;
 
-    // Play immediately when ringing starts (or when menu products load with custom audio)
+    // Play immediately when ringing starts
     triggerOrderPriorityNotification(newOrders, false);
     if (typeof navigator !== 'undefined' && navigator.vibrate) {
       navigator.vibrate([250, 100, 250, 100, 400]);
@@ -558,7 +571,7 @@ export default function KitchenPosBell({
     }, intervalMs);
 
     return () => clearInterval(intervalTimer);
-  }, [isRinging, volume, repeatInterval, newOrders, effectiveProducts, voiceReadoutEnabled]);
+  }, [isRinging, soundType, volume, repeatInterval, customSounds, newOrders, effectiveProducts, voiceReadoutEnabled]);
 
   // Document Title Blinking during Active Alarm
   useEffect(() => {

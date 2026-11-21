@@ -1056,13 +1056,20 @@ export default function SettingsTab({
             )}
           </div>
 
-          {/* KART 3: MUTFAK & KASA POS SİPARİŞ SESLİ UYARISI */}
+          {/* KART 3: ÇOKLU SİPARİŞ (1'İN ÜZERİNDE SİPARİŞ) ÖZEL BİLDİRİM SESİ */}
           <div className="bg-white p-4 sm:p-6 rounded-2xl border border-stone-200 shadow-xs space-y-5">
             <div className="flex items-center justify-between pb-3 border-b border-stone-100">
               <div>
-                <h3 className="text-sm font-bold text-stone-900">Mutfak &amp; Kasa Yeni Sipariş Sesli Uyarısı</h3>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h3 className="text-sm font-bold text-stone-900">
+                    Çoklu Sipariş (1&apos;in Üzerinde Sipariş) Özel Bildirim Sesi
+                  </h3>
+                  <span className="text-[10px] font-extrabold bg-amber-100 text-amber-800 border border-amber-200 px-2 py-0.5 rounded-full">
+                    1+ Siparişte Aktif
+                  </span>
+                </div>
                 <p className="text-xs text-stone-500 mt-0.5">
-                  Müşteri yeni sipariş oluşturduğunda mutfak/kasa terminalinde sesli alarm çalar.
+                  Tek ürünlü (1 adet) siparişlerde doğrudan menünün içindeki kendi sesi çalar. <strong>1&apos;in üzerinde (çoklu ürün veya birden fazla bekleyen)</strong> sipariş geldiğinde ise buradan seçtiğiniz / yüklediğiniz özel ses çalar.
                 </p>
               </div>
               <button
