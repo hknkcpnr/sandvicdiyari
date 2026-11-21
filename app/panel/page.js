@@ -112,14 +112,17 @@ const STATUS_CONFIG = {
   },
 };
 
-// Next allowed operational step (Sadeleştirilmiş 3 adımlı akış: Yeni -> Hazırlanıyor -> Yolda -> Teslim Edildi)
-function getNextStep(status) {
+// Next allowed operational step (Sadeleştirilmiş 3 adımlı akış: Yeni -> Hazırlanıyor -> Yolda / Teslim Edildi)
+function getNextStep(status, isCourierEnabled = true) {
   switch (status) {
     case 'Yeni':
     case 'Görüntülendi':
       return { nextStatus: 'Hazırlanıyor', label: 'Onayla ve Hazırla', icon: 'fa-solid fa-fire-burner', color: 'bg-orange-600 hover:bg-orange-700 text-white' };
     case 'Onaylandı':
     case 'Hazırlanıyor':
+      if (!isCourierEnabled) {
+        return { nextStatus: 'Teslim Edildi', label: 'Teslim Edildi Olarak İşaretle', icon: 'fa-solid fa-circle-check', color: 'bg-green-600 hover:bg-green-700 text-white' };
+      }
       return { nextStatus: 'Yolda', label: 'Kuryeye Ver (Yolda)', icon: 'fa-solid fa-person-biking', color: 'bg-indigo-600 hover:bg-indigo-700 text-white' };
     case 'Hazır':
     case 'Kurye Teslim Aldı':
@@ -218,6 +221,7 @@ export default function AdminDashboardPage() {
 
   // Sistem & Panel Ayarları (Yazı Boyutu, Ses, Fiş, Otomatik Yenileme)
   const [adminSettings, setAdminSettings] = useState(DEFAULT_ADMIN_SETTINGS);
+  const isCourierEnabled = adminSettings?.courierModuleEnabled !== false;
 
   useEffect(() => {
     try {
@@ -229,7 +233,40 @@ export default function AdminDashboardPage() {
       if (savedSettings) {
         setAdminSettings({ ...DEFAULT_ADMIN_SETTINGS, ...JSON.parse(savedSettings) });
       }
+      const sdCourier = localStorage.getItem('sd_courier_module_enabled');
+      if (sdCourier !== null) {
+        setAdminSettings((prev) => ({ ...prev, courierModuleEnabled: sdCourier !== 'false' }));
+      }
     } catch (e) {}
+
+    const handleStorageChange = () => {
+      try {
+        const fresh = localStorage.getItem('sandwich_admin_settings');
+        if (fresh) {
+          setAdminSettings({ ...DEFAULT_ADMIN_SETTINGS, ...JSON.parse(fresh) });
+        }
+        const sdCourier = localStorage.getItem('sd_courier_module_enabled');
+        if (sdCourier !== null) {
+          setAdminSettings((prev) => ({ ...prev, courierModuleEnabled: sdCourier !== 'false' }));
+        }
+      } catch (e) {}
+    };
+    window.addEventListener('storage', handleStorageChange);
+    window.addEventListener('sd_courier_module_updated', handleStorageChange);
+
+    fetch('/api/admin/settings', { cache: 'no-store' })
+      .then((r) => r.json())
+      .then((j) => {
+        if (j?.success && j?.data) {
+          setAdminSettings((prev) => ({ ...prev, courierModuleEnabled: j.data.courierModuleEnabled !== false }));
+        }
+      })
+      .catch(() => {});
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('sd_courier_module_updated', handleStorageChange);
+    };
   }, []);
 
   const toggleSidebar = () => {
@@ -331,6 +368,12 @@ export default function AdminDashboardPage() {
   const [orderSearch, setOrderSearch] = useState('');
   const [paymentMethodFilter, setPaymentMethodFilter] = useState('all');
   const [paymentStatusFilter, setPaymentStatusFilter] = useState('all');
+
+  useEffect(() => {
+    if (!isCourierEnabled && orderStageFilter === 'courier') {
+      setOrderStageFilter('all');
+    }
+  }, [isCourierEnabled, orderStageFilter]);
 
   // Modals
   const [detailOrder, setDetailOrder] = useState(null);
@@ -1918,19 +1961,21 @@ export default function AdminDashboardPage() {
                 <span className={`truncate ${sidebarCollapsed ? 'md:hidden' : ''}`}>Yönetici Merkezi (/yonetici)</span>
               </a>
             )}
-            <a
-              href="/kurye"
-              target="_blank"
-              rel="noreferrer"
-              onClick={() => setMobileSidebarOpen(false)}
-              className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-amber-700 bg-amber-50/70 hover:bg-amber-100/80 font-bold transition-colors ${
-                sidebarCollapsed ? 'md:w-10 md:h-10 md:justify-center md:px-0' : ''
-              }`}
-              title="Kurye Teslimat Panelini Aç"
-            >
-              <i className="fa-solid fa-motorcycle text-xs w-4 text-center text-amber-600"></i>
-              <span className={`truncate ${sidebarCollapsed ? 'md:hidden' : ''}`}>Kurye Paneli (/kurye)</span>
-            </a>
+            {isCourierEnabled && (
+              <a
+                href="/kurye"
+                target="_blank"
+                rel="noreferrer"
+                onClick={() => setMobileSidebarOpen(false)}
+                className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-amber-700 bg-amber-50/70 hover:bg-amber-100/80 font-bold transition-colors ${
+                  sidebarCollapsed ? 'md:w-10 md:h-10 md:justify-center md:px-0' : ''
+                }`}
+                title="Kurye Teslimat Panelini Aç"
+              >
+                <i className="fa-solid fa-motorcycle text-xs w-4 text-center text-amber-600"></i>
+                <span className={`truncate ${sidebarCollapsed ? 'md:hidden' : ''}`}>Kurye Paneli (/kurye)</span>
+              </a>
+            )}
             <a
               href="/"
               target="_blank"
@@ -2037,8 +2082,8 @@ export default function AdminDashboardPage() {
                 <span className="font-bold text-red-600">{newOrdersCount} Sipariş</span>
               </div>
               <div>
-                <span className="text-stone-400 block text-[10px]">Mutfak / Kurye</span>
-                <span className="font-bold text-amber-600">{kitchenCount} / {courierCount}</span>
+                <span className="text-stone-400 block text-[10px]">{isCourierEnabled ? 'Mutfak / Kurye' : 'Mutfakta'}</span>
+                <span className="font-bold text-amber-600">{isCourierEnabled ? `${kitchenCount} / ${courierCount}` : `${kitchenCount} Sipariş`}</span>
               </div>
               <div>
                 <span className="text-stone-400 block text-[10px]">Teslim Edilen</span>
@@ -2097,8 +2142,8 @@ export default function AdminDashboardPage() {
             <span className="font-bold text-red-600 text-[11px] sm:text-xs block truncate">{newOrdersCount} Sipariş</span>
           </div>
           <div className="bg-stone-50 rounded-lg py-1 px-2 border border-stone-100 min-w-0">
-            <span className="text-stone-400 block text-[9px] uppercase font-semibold truncate">Mutfak / Kurye</span>
-            <span className="font-bold text-amber-600 text-[11px] sm:text-xs block truncate">{kitchenCount} / {courierCount}</span>
+            <span className="text-stone-400 block text-[9px] uppercase font-semibold truncate">{isCourierEnabled ? 'Mutfak / Kurye' : 'Mutfakta'}</span>
+            <span className="font-bold text-amber-600 text-[11px] sm:text-xs block truncate">{isCourierEnabled ? `${kitchenCount} / ${courierCount}` : `${kitchenCount} Adet`}</span>
           </div>
           <div className="bg-stone-50 rounded-lg py-1 px-2 border border-stone-100 min-w-0">
             <span className="text-stone-400 block text-[9px] uppercase font-semibold truncate">Teslim Edilen</span>
@@ -2150,7 +2195,7 @@ export default function AdminDashboardPage() {
                   <option value="all">📦 Tüm Siparişler ({orders.length})</option>
                   <option value="new">🔔 Yeni ({newOrdersCount})</option>
                   <option value="kitchen">🍳 Hazırlanıyor ({kitchenCount})</option>
-                  <option value="courier">🛵 Kuryede ({courierCount})</option>
+                  {isCourierEnabled && <option value="courier">🛵 Kuryede ({courierCount})</option>}
                   <option value="completed">✅ Teslim Edilen ({completedCount})</option>
                   <option value="cancelled">❌ İptal Edilen ({cancelledCount})</option>
                 </select>
@@ -2162,7 +2207,7 @@ export default function AdminDashboardPage() {
                   { id: 'all', label: 'Tüm Siparişler', count: orders.length },
                   { id: 'new', label: '🔔 Yeni', count: newOrdersCount, alert: newOrdersCount > 0 },
                   { id: 'kitchen', label: '🍳 Hazırlanıyor', count: kitchenCount },
-                  { id: 'courier', label: '🛵 Kuryede', count: courierCount },
+                  ...(isCourierEnabled ? [{ id: 'courier', label: '🛵 Kuryede', count: courierCount }] : []),
                   { id: 'completed', label: '✅ Teslim Edilen', count: completedCount },
                   { id: 'cancelled', label: '❌ İptal Edilen', count: cancelledCount },
                 ].map((st) => (
@@ -2263,7 +2308,7 @@ export default function AdminDashboardPage() {
               ) : (
                 paginatedOrders.map((order, idx) => {
                   const statusConf = STATUS_CONFIG[order.status] || STATUS_CONFIG['Yeni'];
-                  const nextAction = getNextStep(order.status);
+                  const nextAction = getNextStep(order.status, isCourierEnabled);
                   const isTerminal = order.status === 'Teslim Edildi' || order.status === 'İptal Edildi';
                   const isNewUnviewed = order.status === 'Yeni' && !order.isViewed;
 
@@ -2471,7 +2516,7 @@ export default function AdminDashboardPage() {
                           </div>
 
                           {/* Orta: Teslimat Adresi & Harita Butonu */}
-                          <div className="md:col-span-4 flex items-center justify-between gap-2 md:border-l md:border-r border-stone-100 md:px-3">
+                          <div className={`${isCourierEnabled ? 'md:col-span-4 md:border-r' : 'md:col-span-7'} flex items-center justify-between gap-2 md:border-l border-stone-100 md:px-3`}>
                             <div className="space-y-0.5 min-w-0">
                               <span className="text-[10px] font-bold uppercase tracking-wider text-stone-400 block">
                                 Teslimat Adresi
@@ -2493,37 +2538,39 @@ export default function AdminDashboardPage() {
                             )}
                           </div>
 
-                          {/* Sağ: Kurye Seçimi (Sadece Kurye aşamasına geçince aktif) */}
-                          <div className="md:col-span-3 flex flex-col justify-center gap-1">
-                            <span className="text-[10px] font-bold uppercase tracking-wider text-stone-400 block">
-                              <i className="fa-solid fa-motorcycle text-brand-600 mr-1"></i>Atanan Kurye
-                            </span>
-                            {['Hazır', 'Kurye Teslim Aldı', 'Yolda', 'Teslim Edildi'].includes(order.status) ? (
-                              <select
-                                value={order.courierName || ''}
-                                onChange={(e) => handleAssignCourier(order.id, e.target.value)}
-                                className={`app-select border rounded-xl px-3 py-2 text-xs font-extrabold focus:outline-none focus:ring-2 focus:ring-brand-500/20 cursor-pointer w-full transition-all shadow-2xs ${
-                                  order.courierName
-                                    ? 'bg-emerald-50/90 border-emerald-300 text-emerald-950'
-                                    : 'bg-stone-50 hover:bg-stone-100/80 border-stone-200 text-stone-700'
-                                }`}
-                              >
-                                <option value="">Kurye Seçilmedi</option>
-                                {courierOptions.map((cName) => (
-                                  <option key={cName} value={cName}>
-                                    🛵 {cName}
-                                  </option>
-                                ))}
-                                {order.courierName && !courierOptions.includes(order.courierName) && (
-                                  <option value={order.courierName}>🛵 {order.courierName}</option>
-                                )}
-                              </select>
-                            ) : (
-                              <div className="bg-stone-50 border border-dashed border-stone-200 rounded-xl px-3 py-2 text-[11px] font-semibold text-stone-400 text-center">
-                                Kuryeye verilince atanır
-                              </div>
-                            )}
-                          </div>
+                          {/* Sağ: Kurye Seçimi (Yalnızca Kurye Modülü Açıkken Aktiftir) */}
+                          {isCourierEnabled && (
+                            <div className="md:col-span-3 flex flex-col justify-center gap-1">
+                              <span className="text-[10px] font-bold uppercase tracking-wider text-stone-400 block">
+                                <i className="fa-solid fa-motorcycle text-brand-600 mr-1"></i>Atanan Kurye
+                              </span>
+                              {['Hazır', 'Kurye Teslim Aldı', 'Yolda', 'Teslim Edildi'].includes(order.status) ? (
+                                <select
+                                  value={order.courierName || ''}
+                                  onChange={(e) => handleAssignCourier(order.id, e.target.value)}
+                                  className={`app-select border rounded-xl px-3 py-2 text-xs font-extrabold focus:outline-none focus:ring-2 focus:ring-brand-500/20 cursor-pointer w-full transition-all shadow-2xs ${
+                                    order.courierName
+                                      ? 'bg-emerald-50/90 border-emerald-300 text-emerald-950'
+                                      : 'bg-stone-50 hover:bg-stone-100/80 border-stone-200 text-stone-700'
+                                  }`}
+                                >
+                                  <option value="">Kurye Seçilmedi</option>
+                                  {courierOptions.map((cName) => (
+                                    <option key={cName} value={cName}>
+                                      🛵 {cName}
+                                    </option>
+                                  ))}
+                                  {order.courierName && !courierOptions.includes(order.courierName) && (
+                                    <option value={order.courierName}>🛵 {order.courierName}</option>
+                                  )}
+                                </select>
+                              ) : (
+                                <div className="bg-stone-50 border border-dashed border-stone-200 rounded-xl px-3 py-2 text-[11px] font-semibold text-stone-400 text-center">
+                                  Kuryeye verilince atanır
+                                </div>
+                              )}
+                            </div>
+                          )}
 
                           {order.notes && (
                             <div className="md:col-span-12 pt-2 border-t border-amber-200/60 bg-amber-50/70 -mx-3.5 -mb-3.5 px-3.5 py-2 rounded-b-xl text-amber-900 text-[11px] font-bold flex flex-wrap items-center justify-between gap-2">
@@ -4274,56 +4321,58 @@ export default function AdminDashboardPage() {
             </div>
 
             {/* Courier Assignment & Quick Routing Bar in Detail Modal */}
-            <div className="bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent border border-amber-300/80 p-3.5 sm:p-4 rounded-2xl flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 shadow-2xs">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-amber-500 text-stone-950 flex items-center justify-center font-bold shrink-0 shadow-xs">
-                  <i className="fa-solid fa-motorcycle text-base"></i>
-                </div>
-                <div>
-                  <span className="text-[10px] font-black uppercase tracking-wider text-amber-900 block">
-                    Atanan Paket Kuryesi
-                  </span>
-                  <span className="text-xs sm:text-sm font-extrabold text-stone-900">
-                    {detailOrder.courierName ? (
-                      <span className="text-emerald-700 flex items-center gap-1.5">
-                        <i className="fa-solid fa-circle-check text-xs"></i>
-                        {detailOrder.courierName}
-                      </span>
-                    ) : (
-                      <span className="text-stone-500">Henüz Kurye Atanmadı</span>
-                    )}
-                  </span>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-2 sm:w-72">
-                {['Hazır', 'Kurye Teslim Aldı', 'Yolda', 'Teslim Edildi'].includes(detailOrder.status) ? (
-                  <select
-                    value={detailOrder.courierName || ''}
-                    onChange={(e) => handleAssignCourier(detailOrder.id, e.target.value)}
-                    className={`app-select border rounded-xl px-3.5 py-2.5 text-xs font-black focus:outline-none focus:ring-2 focus:ring-amber-500/25 cursor-pointer w-full transition-all shadow-xs ${
-                      detailOrder.courierName
-                        ? 'bg-emerald-600 text-white border-emerald-700'
-                        : 'bg-white border-amber-300 text-stone-800'
-                    }`}
-                  >
-                    <option value="">🛵 Kurye Seçiniz...</option>
-                    {courierOptions.map((cName) => (
-                      <option key={cName} value={cName}>
-                        🛵 {cName}
-                      </option>
-                    ))}
-                    {detailOrder.courierName && !courierOptions.includes(detailOrder.courierName) && (
-                      <option value={detailOrder.courierName}>🛵 {detailOrder.courierName}</option>
-                    )}
-                  </select>
-                ) : (
-                  <div className="w-full bg-white/80 border border-dashed border-amber-300 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-amber-800 text-center">
-                    Kuryeye verildiğinde atama açılır
+            {isCourierEnabled && (
+              <div className="bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent border border-amber-300/80 p-3.5 sm:p-4 rounded-2xl flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 shadow-2xs">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-amber-500 text-stone-950 flex items-center justify-center font-bold shrink-0 shadow-xs">
+                    <i className="fa-solid fa-motorcycle text-base"></i>
                   </div>
-                )}
+                  <div>
+                    <span className="text-[10px] font-black uppercase tracking-wider text-amber-900 block">
+                      Atanan Paket Kuryesi
+                    </span>
+                    <span className="text-xs sm:text-sm font-extrabold text-stone-900">
+                      {detailOrder.courierName ? (
+                        <span className="text-emerald-700 flex items-center gap-1.5">
+                          <i className="fa-solid fa-circle-check text-xs"></i>
+                          {detailOrder.courierName}
+                        </span>
+                      ) : (
+                        <span className="text-stone-500">Henüz Kurye Atanmadı</span>
+                      )}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 sm:w-72">
+                  {['Hazır', 'Kurye Teslim Aldı', 'Yolda', 'Teslim Edildi'].includes(detailOrder.status) ? (
+                    <select
+                      value={detailOrder.courierName || ''}
+                      onChange={(e) => handleAssignCourier(detailOrder.id, e.target.value)}
+                      className={`app-select border rounded-xl px-3.5 py-2.5 text-xs font-black focus:outline-none focus:ring-2 focus:ring-amber-500/25 cursor-pointer w-full transition-all shadow-xs ${
+                        detailOrder.courierName
+                          ? 'bg-emerald-600 text-white border-emerald-700'
+                          : 'bg-white border-amber-300 text-stone-800'
+                      }`}
+                    >
+                      <option value="">🛵 Kurye Seçiniz...</option>
+                      {courierOptions.map((cName) => (
+                        <option key={cName} value={cName}>
+                          🛵 {cName}
+                        </option>
+                      ))}
+                      {detailOrder.courierName && !courierOptions.includes(detailOrder.courierName) && (
+                        <option value={detailOrder.courierName}>🛵 {detailOrder.courierName}</option>
+                      )}
+                    </select>
+                  ) : (
+                    <div className="w-full bg-white/80 border border-dashed border-amber-300 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-amber-800 text-center">
+                      Kuryeye verildiğinde atama açılır
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
+            )}
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Products Breakdown */}
@@ -4380,7 +4429,7 @@ export default function AdminDashboardPage() {
 
             {/* Modal Primary Status Action Bar (Onayla / Hazırlamaya Başla / Kuryeye Ver / İptal Et) */}
             {(() => {
-              const modalNextAction = getNextStep(detailOrder.status);
+              const modalNextAction = getNextStep(detailOrder.status, isCourierEnabled);
               const modalIsTerminal =
                 detailOrder.status === 'Teslim Edildi' || detailOrder.status === 'İptal Edildi';
               if (!modalNextAction && modalIsTerminal) return null;
@@ -4428,7 +4477,7 @@ export default function AdminDashboardPage() {
                 className="bg-brand-50 hover:bg-brand-100 text-brand-800 border border-brand-200 py-3 px-5 rounded-2xl text-xs sm:text-sm font-bold cursor-pointer flex items-center justify-center gap-2 transition-colors"
               >
                 <i className="fa-solid fa-print text-brand-600"></i>
-                <span>Mutfak / Kurye Fişi Yazdır (80mm)</span>
+                <span>{isCourierEnabled ? 'Mutfak / Kurye Fişi Yazdır (80mm)' : 'Mutfak / Sipariş Fişi Yazdır (80mm)'}</span>
               </button>
 
               <button

@@ -9,6 +9,7 @@ import { DEFAULT_CUSTOMER_NOTIFICATION_SETTINGS } from '@/lib/notificationDefaul
 import { BANNER_THEMES } from '@/components/CustomerAnnouncementBanner';
 
 export const DEFAULT_ADMIN_SETTINGS = {
+  courierModuleEnabled: true,
   fontSize: 'medium', // 'small' | 'medium' | 'large'
   density: 'comfortable', // 'comfortable' | 'compact'
   soundEnabled: true,
@@ -137,8 +138,24 @@ export default function SettingsTab({
       const savedSuffixName = localStorage.getItem('sd_suffix_audio_name');
       if (savedSuffixName) setSuffixAudioName(savedSuffixName);
 
+      let savedCourier = null;
+      try {
+        const rawAdmin = localStorage.getItem('sandwich_admin_settings');
+        if (rawAdmin) {
+          const parsedAdmin = JSON.parse(rawAdmin);
+          if (typeof parsedAdmin?.courierModuleEnabled === 'boolean') {
+            savedCourier = parsedAdmin.courierModuleEnabled;
+          }
+        }
+        const sdCourier = localStorage.getItem('sd_courier_module_enabled');
+        if (sdCourier !== null) {
+          savedCourier = sdCourier !== 'false';
+        }
+      } catch {}
+
       setSettings((prev) => ({
         ...prev,
+        ...(savedCourier !== null ? { courierModuleEnabled: savedCourier } : {}),
         ...(Array.isArray(parsedCustom) && parsedCustom.length > 0 && (!Array.isArray(prev.customSounds) || prev.customSounds.length === 0)
           ? { customSounds: parsedCustom }
           : {}),
@@ -147,6 +164,23 @@ export default function SettingsTab({
           : {})
       }));
     } catch {}
+
+    // Load admin settings from server (courierModuleEnabled etc.)
+    fetch('/api/admin/settings', { cache: 'no-store' })
+      .then((r) => r.json())
+      .then((j) => {
+        if (j?.success && j?.data) {
+          const courierVal = j.data.courierModuleEnabled !== false;
+          setSettings((prev) => ({ ...prev, courierModuleEnabled: courierVal }));
+          try {
+            const raw = localStorage.getItem('sandwich_admin_settings');
+            const parsed = raw ? JSON.parse(raw) : {};
+            localStorage.setItem('sandwich_admin_settings', JSON.stringify({ ...parsed, courierModuleEnabled: courierVal }));
+            localStorage.setItem('sd_courier_module_enabled', String(courierVal));
+          } catch {}
+        }
+      })
+      .catch(() => {});
 
     fetch('/api/notifications?includePosSounds=1', { cache: 'no-store' })
       .then((r) => r.json())
@@ -682,6 +716,41 @@ export default function SettingsTab({
     }
   };
 
+  // Kurye İşlemleri & Kurye Portalı Aç / Kapat
+  const handleCourierModuleToggle = async (enabled) => {
+    const nextSettings = { ...settings, courierModuleEnabled: enabled };
+    setSettings(nextSettings);
+
+    try {
+      localStorage.setItem('sandwich_admin_settings', JSON.stringify(nextSettings));
+      localStorage.setItem('sd_courier_module_enabled', String(enabled));
+      window.dispatchEvent(new Event('storage'));
+      window.dispatchEvent(new CustomEvent('sd_courier_module_updated', { detail: { enabled } }));
+    } catch {}
+
+    if (onSaveSettings) {
+      onSaveSettings(nextSettings);
+    }
+
+    try {
+      await fetch('/api/admin/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ courierModuleEnabled: enabled })
+      });
+      if (showToast) {
+        showToast(
+          enabled
+            ? 'Kurye işlemleri ve kurye modülü açıldı! (Tüm sistemde aktif)'
+            : 'Kurye işlemleri kapatıldı. Kurye özellikleri hiçbir yerde gözükmeyecek.',
+          enabled ? 'success' : 'info'
+        );
+      }
+    } catch (e) {
+      console.warn('Courier settings API save error:', e);
+    }
+  };
+
   // Yedek İndirme
   const handleDownloadBackup = async () => {
     try {
@@ -882,6 +951,53 @@ export default function SettingsTab({
                   </div>
                 </div>
               ))}
+            </div>
+          </div>
+
+          {/* Kurye İşlemleri ve Kurye Modülü Aç / Kapat Kartı */}
+          <div className="lg:col-span-12 bg-white p-4 sm:p-5 rounded-2xl border border-stone-200 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex items-start gap-3.5 min-w-0">
+              <span className={`w-11 h-11 rounded-2xl flex items-center justify-center text-base shrink-0 transition-all ${
+                settings.courierModuleEnabled !== false
+                  ? 'bg-amber-100 text-amber-800 ring-2 ring-amber-200/60'
+                  : 'bg-stone-100 text-stone-400 border border-stone-200'
+              }`}>
+                <i className="fa-solid fa-motorcycle"></i>
+              </span>
+              <div className="min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h3 className="text-sm font-extrabold text-stone-900">
+                    Kurye İşlemleri ve Kurye Modülü
+                  </h3>
+                  <span className={`text-[10px] font-extrabold px-2.5 py-0.5 rounded-full border ${
+                    settings.courierModuleEnabled !== false
+                      ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                      : 'bg-rose-50 text-rose-700 border-rose-200'
+                  }`}>
+                    {settings.courierModuleEnabled !== false ? '● Aktif (Kurye Açık)' : '○ Kapalı (Kurye Gizli)'}
+                  </span>
+                </div>
+                <p className="text-xs text-stone-500 mt-1 max-w-2xl leading-relaxed">
+                  {settings.courierModuleEnabled !== false
+                    ? 'Kurye sistemi devrede: Sipariş kartlarında kurye atama alanı, /kurye portalı, kurye aşama sekmeleri ve anlık kurye takip tabloları aktiftir.'
+                    : 'Kurye sistemi kapalı: Sistem genelinde tüm kurye seçim alanları, /kurye paneli bağlantıları ve kurye aşamaları tamamen gizlenmiştir. Siparişler doğrudan mutfaktan teslim edildi durumuna alınır.'}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3 shrink-0 self-end sm:self-center">
+              <button
+                type="button"
+                onClick={() => handleCourierModuleToggle(settings.courierModuleEnabled === false)}
+                className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer border shadow-2xs ${
+                  settings.courierModuleEnabled !== false
+                    ? 'bg-emerald-600 hover:bg-emerald-700 text-white border-emerald-600 shadow-emerald-600/15'
+                    : 'bg-stone-100 hover:bg-stone-200 text-stone-700 border-stone-300'
+                }`}
+              >
+                <i className={`fa-solid ${settings.courierModuleEnabled !== false ? 'fa-toggle-on text-base' : 'fa-toggle-off text-base text-stone-400'}`}></i>
+                <span>{settings.courierModuleEnabled !== false ? 'Kurye İşlemlerini Kapat' : 'Kurye İşlemlerini Aç'}</span>
+              </button>
             </div>
           </div>
         </div>

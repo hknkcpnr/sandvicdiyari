@@ -83,6 +83,64 @@ export default function UsersRolesTab({ currentAdmin, onRolesOrUsersUpdated }) {
   const [custVerified, setCustVerified] = useState(true);
   const [custFormError, setCustFormError] = useState('');
   const [approvingCustId, setApprovingCustId] = useState(null);
+  const [courierModuleEnabled, setCourierModuleEnabled] = useState(true);
+
+  useEffect(() => {
+    try {
+      const rawAdmin = localStorage.getItem('sandwich_admin_settings');
+      if (rawAdmin) {
+        const parsed = JSON.parse(rawAdmin);
+        if (typeof parsed?.courierModuleEnabled === 'boolean') {
+          setCourierModuleEnabled(parsed.courierModuleEnabled);
+        }
+      }
+      const sdCourier = localStorage.getItem('sd_courier_module_enabled');
+      if (sdCourier !== null) {
+        setCourierModuleEnabled(sdCourier !== 'false');
+      }
+    } catch {}
+
+    const handleStorageChange = () => {
+      try {
+        const rawAdmin = localStorage.getItem('sandwich_admin_settings');
+        if (rawAdmin) {
+          const parsed = JSON.parse(rawAdmin);
+          if (typeof parsed?.courierModuleEnabled === 'boolean') {
+            setCourierModuleEnabled(parsed.courierModuleEnabled);
+          }
+        }
+        const sdCourier = localStorage.getItem('sd_courier_module_enabled');
+        if (sdCourier !== null) {
+          setCourierModuleEnabled(sdCourier !== 'false');
+        }
+      } catch {}
+    };
+    window.addEventListener('storage', handleStorageChange);
+    window.addEventListener('sd_courier_module_updated', handleStorageChange);
+
+    fetch('/api/admin/settings', { cache: 'no-store' })
+      .then((r) => r.json())
+      .then((j) => {
+        if (j?.success && j?.data) {
+          setCourierModuleEnabled(j.data.courierModuleEnabled !== false);
+        }
+      })
+      .catch(() => {});
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('sd_courier_module_updated', handleStorageChange);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!courierModuleEnabled && subTab === 'kurye') {
+      setSubTab('panel');
+    }
+    if (!courierModuleEnabled && userPortalTarget === 'kurye') {
+      setUserPortalTarget('panel');
+    }
+  }, [courierModuleEnabled, subTab, userPortalTarget]);
 
   const notifyUsersChanged = (data) => {
     try {
@@ -654,21 +712,23 @@ export default function UsersRolesTab({ currentAdmin, onRolesOrUsersUpdated }) {
             </span>
           </button>
 
-          <button
-            type="button"
-            onClick={() => setSubTab('kurye')}
-            className={`px-3 py-2 rounded-xl font-bold text-[11px] sm:text-xs flex items-center gap-1.5 whitespace-nowrap cursor-pointer transition-colors ${
-              subTab === 'kurye' ? 'bg-sky-600 text-white shadow-2xs' : 'text-stone-600 hover:bg-stone-100'
-            }`}
-          >
-            <i className="fa-solid fa-motorcycle text-[11px]"></i>
-            <span>Kurye Paneli (/kurye)</span>
-            <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-extrabold ${
-              subTab === 'kurye' ? 'bg-white/20 text-white' : 'bg-stone-100 text-stone-700'
-            }`}>
-              {courierUsers.length}
-            </span>
-          </button>
+          {courierModuleEnabled && (
+            <button
+              type="button"
+              onClick={() => setSubTab('kurye')}
+              className={`px-3 py-2 rounded-xl font-bold text-[11px] sm:text-xs flex items-center gap-1.5 whitespace-nowrap cursor-pointer transition-colors ${
+                subTab === 'kurye' ? 'bg-sky-600 text-white shadow-2xs' : 'text-stone-600 hover:bg-stone-100'
+              }`}
+            >
+              <i className="fa-solid fa-motorcycle text-[11px]"></i>
+              <span>Kurye Paneli (/kurye)</span>
+              <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-extrabold ${
+                subTab === 'kurye' ? 'bg-white/20 text-white' : 'bg-stone-100 text-stone-700'
+              }`}>
+                {courierUsers.length}
+              </span>
+            </button>
+          )}
 
           <button
             type="button"
@@ -1138,13 +1198,13 @@ export default function UsersRolesTab({ currentAdmin, onRolesOrUsersUpdated }) {
                       icon: 'fa-solid fa-kitchen-set',
                       activeClass: 'border-amber-500 bg-amber-50/70 text-amber-950 ring-1 ring-amber-500/40'
                     },
-                    {
+                    ...(courierModuleEnabled ? [{
                       key: 'kurye',
                       title: 'Kurye Paneli',
                       url: '/kurye',
                       icon: 'fa-solid fa-motorcycle',
                       activeClass: 'border-sky-500 bg-sky-50/70 text-sky-950 ring-1 ring-sky-500/40'
-                    },
+                    }] : []),
                     {
                       key: 'yonetici',
                       title: 'Süper Yönetici',

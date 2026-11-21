@@ -65,6 +65,7 @@ export default function CourierPortalPage() {
   // Session State
   const [courierUser, setCourierUser] = useState(null);
   const [isCheckingSession, setIsCheckingSession] = useState(true);
+  const [courierModuleEnabled, setCourierModuleEnabled] = useState(true);
 
   // Login Form State
   const [loginIdentifier, setLoginIdentifier] = useState('');
@@ -109,7 +110,7 @@ export default function CourierPortalPage() {
     } catch {}
   }, [soundEnabled]);
 
-  // Check saved session on mount
+  // Check saved session on mount & courier module status
   useEffect(() => {
     try {
       const saved = localStorage.getItem('sd_courier_session');
@@ -119,11 +120,54 @@ export default function CourierPortalPage() {
           setCourierUser(parsed);
         }
       }
+      const rawAdmin = localStorage.getItem('sandwich_admin_settings');
+      if (rawAdmin) {
+        const parsed = JSON.parse(rawAdmin);
+        if (typeof parsed?.courierModuleEnabled === 'boolean') {
+          setCourierModuleEnabled(parsed.courierModuleEnabled);
+        }
+      }
+      const sdCourier = localStorage.getItem('sd_courier_module_enabled');
+      if (sdCourier !== null) {
+        setCourierModuleEnabled(sdCourier !== 'false');
+      }
     } catch (e) {
       console.warn('Session load error:', e);
     } finally {
       setIsCheckingSession(false);
     }
+
+    const handleStorageChange = () => {
+      try {
+        const rawAdmin = localStorage.getItem('sandwich_admin_settings');
+        if (rawAdmin) {
+          const parsed = JSON.parse(rawAdmin);
+          if (typeof parsed?.courierModuleEnabled === 'boolean') {
+            setCourierModuleEnabled(parsed.courierModuleEnabled);
+          }
+        }
+        const sdCourier = localStorage.getItem('sd_courier_module_enabled');
+        if (sdCourier !== null) {
+          setCourierModuleEnabled(sdCourier !== 'false');
+        }
+      } catch {}
+    };
+    window.addEventListener('storage', handleStorageChange);
+    window.addEventListener('sd_courier_module_updated', handleStorageChange);
+
+    fetch('/api/admin/settings', { cache: 'no-store' })
+      .then((r) => r.json())
+      .then((j) => {
+        if (j?.success && j?.data) {
+          setCourierModuleEnabled(j.data.courierModuleEnabled !== false);
+        }
+      })
+      .catch(() => {});
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('sd_courier_module_updated', handleStorageChange);
+    };
   }, []);
 
   // Fetch orders from API
@@ -487,6 +531,39 @@ export default function CourierPortalPage() {
         <div className="text-center space-y-3">
           <i className="fa-solid fa-motorcycle text-4xl text-amber-500 animate-bounce"></i>
           <p className="text-xs font-bold text-stone-300">Kurye Portalı Başlatılıyor...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // --------------------------------------------------------------------------
+  // 1.5. COURIER MODULE DISABLED SCREEN
+  // --------------------------------------------------------------------------
+  if (!courierModuleEnabled) {
+    return (
+      <div className="min-h-screen bg-stone-950 text-white flex flex-col justify-center items-center p-4 font-poppins relative overflow-hidden">
+        <div className="absolute top-1/4 -left-32 w-80 h-80 rounded-full bg-amber-500/10 blur-3xl pointer-events-none"></div>
+        <div className="w-full max-w-md bg-stone-900/90 backdrop-blur-xl border border-stone-800 rounded-3xl p-6 sm:p-8 shadow-2xl relative z-10 text-center space-y-5">
+          <div className="w-16 h-16 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-500 flex items-center justify-center text-3xl mx-auto shadow-lg">
+            <i className="fa-solid fa-motorcycle"></i>
+          </div>
+          <div className="space-y-2">
+            <h1 className="text-xl sm:text-2xl font-black text-white">
+              Kurye İşlemleri Devre Dışı
+            </h1>
+            <p className="text-xs text-stone-400 leading-relaxed">
+              Kurye teslimat ve paket servis modülü sistem yöneticisi tarafından geçici olarak kapatılmıştır. Siparişler restoran paneli üzerinden yönetilmektedir.
+            </p>
+          </div>
+          <div className="pt-2">
+            <a
+              href="/panel"
+              className="inline-flex items-center justify-center gap-2 w-full py-3 px-5 rounded-2xl bg-amber-500 hover:bg-amber-400 text-stone-950 font-black text-xs transition-colors shadow-lg shadow-amber-500/20 cursor-pointer"
+            >
+              <i className="fa-solid fa-arrow-left"></i>
+              <span>Restoran Paneline Git (/panel)</span>
+            </a>
+          </div>
         </div>
       </div>
     );

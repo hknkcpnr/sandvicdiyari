@@ -67,12 +67,15 @@ export default function YoneticiPage() {
 
   // System settings (synced with /panel)
   const [adminSettings, setAdminSettings] = useState({
+    courierModuleEnabled: true,
     soundEnabled: true,
     fontSize: 'normal',
     autoRefreshInterval: 60,
     autoPrintReceipt: false,
     receiptFooterNote: 'Afiyet olsun! Bizi tercih ettiğiniz için teşekkürler.'
   });
+
+  const isCourierEnabled = adminSettings?.courierModuleEnabled !== false;
 
   const showToast = (message, type = 'success') => {
     setToast({ message, type });
@@ -102,6 +105,32 @@ export default function YoneticiPage() {
         setAdminSettings((prev) => ({ ...prev, ...JSON.parse(savedSettings) }));
       }
     } catch {}
+
+    const handleStorageChange = () => {
+      try {
+        const fresh = localStorage.getItem(ADMIN_SETTINGS_KEY);
+        if (fresh) {
+          setAdminSettings((prev) => ({ ...prev, ...JSON.parse(fresh) }));
+        }
+      } catch {}
+    };
+    window.addEventListener('storage', handleStorageChange);
+    window.addEventListener('sd_courier_module_updated', handleStorageChange);
+
+    fetch('/api/admin/settings', { cache: 'no-store' })
+      .then((r) => r.json())
+      .then((j) => {
+        if (j?.success && j?.data) {
+          const courierVal = j.data.courierModuleEnabled !== false;
+          setAdminSettings((prev) => ({ ...prev, courierModuleEnabled: courierVal }));
+        }
+      })
+      .catch(() => {});
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('sd_courier_module_updated', handleStorageChange);
+    };
   }, []);
 
   const fetchFinanceData = async () => {
@@ -791,19 +820,21 @@ export default function YoneticiPage() {
               <span className={`truncate ${sidebarCollapsed ? 'md:hidden' : ''}`}>Operasyon Paneli (/panel)</span>
             </a>
 
-            <a
-              href="/kurye"
-              target="_blank"
-              rel="noreferrer"
-              onClick={() => setMobileSidebarOpen(false)}
-              className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-amber-700 bg-amber-50/70 hover:bg-amber-100/80 font-bold transition-colors text-xs ${
-                sidebarCollapsed ? 'md:w-10 md:h-10 md:justify-center md:px-0' : ''
-              }`}
-              title="Kurye Panelini Aç"
-            >
-              <i className="fa-solid fa-motorcycle text-xs w-4 text-center text-amber-600"></i>
-              <span className={`truncate ${sidebarCollapsed ? 'md:hidden' : ''}`}>Kurye Paneli (/kurye)</span>
-            </a>
+            {isCourierEnabled && (
+              <a
+                href="/kurye"
+                target="_blank"
+                rel="noreferrer"
+                onClick={() => setMobileSidebarOpen(false)}
+                className={`flex items-center gap-2.5 px-3 py-2 rounded-xl text-amber-700 bg-amber-50/70 hover:bg-amber-100/80 font-bold transition-colors text-xs ${
+                  sidebarCollapsed ? 'md:w-10 md:h-10 md:justify-center md:px-0' : ''
+                }`}
+                title="Kurye Panelini Aç"
+              >
+                <i className="fa-solid fa-motorcycle text-xs w-4 text-center text-amber-600"></i>
+                <span className={`truncate ${sidebarCollapsed ? 'md:hidden' : ''}`}>Kurye Paneli (/kurye)</span>
+              </a>
+            )}
 
             <a
               href="/"
@@ -909,17 +940,19 @@ export default function YoneticiPage() {
                 </span>
               </div>
 
-              <div className="p-4">
-                <span className="text-[11px] font-semibold text-stone-500 block">
-                  Aktif Kurye &amp; Yolda
-                </span>
-                <p className="text-2xl font-extrabold text-amber-600 mt-0.5">
-                  {overviewData.activeCouriersCount} / {overviewData.couriers.length}
-                </p>
-                <span className="text-[11px] text-stone-400">
-                  Sahada aktif kurye
-                </span>
-              </div>
+              {isCourierEnabled && (
+                <div className="p-4">
+                  <span className="text-[11px] font-semibold text-stone-500 block">
+                    Aktif Kurye &amp; Yolda
+                  </span>
+                  <p className="text-2xl font-extrabold text-amber-600 mt-0.5">
+                    {overviewData.activeCouriersCount} / {overviewData.couriers.length}
+                  </p>
+                  <span className="text-[11px] text-stone-400">
+                    Sahada aktif kurye
+                  </span>
+                </div>
+              )}
 
               <div className="p-4">
                 <span className="text-[11px] font-semibold text-stone-500 block">
@@ -929,7 +962,9 @@ export default function YoneticiPage() {
                   {overviewData.kitchenOrdersCount}
                 </p>
                 <span className="text-[11px] text-stone-400">
-                  {overviewData.unassignedOrders.length} kurye atanmamış
+                  {isCourierEnabled
+                    ? `${overviewData.unassignedOrders.length} kurye atanmamış`
+                    : 'Hazırlanan siparişler'}
                 </span>
               </div>
             </div>
@@ -1055,8 +1090,9 @@ export default function YoneticiPage() {
               </div>
             </div>
 
-            {/* 3. Anlık Kurye ve Sipariş İlişkileri */}
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
+            {/* 3. Anlık Kurye ve Sipariş İlişkileri (Kurye Modülü Açıkken Gösterilir) */}
+            {isCourierEnabled && (
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
               <div className="lg:col-span-7 bg-white rounded-2xl border border-stone-200 overflow-hidden">
                 <div className="px-4 py-3 border-b border-stone-100 flex items-center justify-between">
                   <h3 className="font-bold text-sm text-stone-900 flex items-center gap-2">
@@ -1189,6 +1225,7 @@ export default function YoneticiPage() {
                 )}
               </div>
             </div>
+            )}
           </div>
         )}
 
