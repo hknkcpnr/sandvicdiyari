@@ -134,16 +134,23 @@ export default function SettingsTab({
       .then((j) => {
         if (j?.success && j?.data?.settings) {
           setCustNotifSettings(j.data.settings);
-          if (Array.isArray(j.data.settings.customSounds) && j.data.settings.customSounds.length > 0) {
-            setSettings((prev) => ({
-              ...prev,
-              customSounds: j.data.settings.customSounds,
-              ...(j.data.settings.posSoundType ? { soundType: j.data.settings.posSoundType } : {})
-            }));
-            try {
+          const remoteInt = j.data.settings.posSoundInterval;
+          setSettings((prev) => ({
+            ...prev,
+            ...(Array.isArray(j.data.settings.customSounds) && j.data.settings.customSounds.length > 0
+              ? { customSounds: j.data.settings.customSounds }
+              : {}),
+            ...(j.data.settings.posSoundType ? { soundType: j.data.settings.posSoundType } : {}),
+            ...(typeof remoteInt === 'number' ? { autoRefreshInterval: remoteInt } : {})
+          }));
+          try {
+            if (Array.isArray(j.data.settings.customSounds) && j.data.settings.customSounds.length > 0) {
               localStorage.setItem('sd_custom_bell_sounds', JSON.stringify(j.data.settings.customSounds));
-            } catch {}
-          }
+            }
+            if (typeof remoteInt === 'number') {
+              localStorage.setItem('sd_bell_interval', String(remoteInt));
+            }
+          } catch {}
         }
       })
       .catch(() => {});
@@ -239,27 +246,35 @@ export default function SettingsTab({
     }
   }, [currentSettings]);
 
-  const syncSoundSettingsEverywhere = async (nextCustomSounds, nextSoundType, nextVolume = settings.soundVolume || 80) => {
+  const syncSoundSettingsEverywhere = async (
+    nextCustomSounds,
+    nextSoundType,
+    nextVolume = settings.soundVolume || 80,
+    nextInterval = typeof settings.autoRefreshInterval === 'number' ? settings.autoRefreshInterval : 30
+  ) => {
     const nextSettingsObj = {
       ...settings,
       customSounds: nextCustomSounds,
       soundType: nextSoundType,
-      soundVolume: nextVolume
+      soundVolume: nextVolume,
+      autoRefreshInterval: nextInterval
     };
     setSettings(nextSettingsObj);
     setCustNotifSettings((prev) => ({
       ...prev,
       customSounds: nextCustomSounds,
       posSoundType: nextSoundType,
-      posSoundVolume: nextVolume
+      posSoundVolume: nextVolume,
+      posSoundInterval: nextInterval
     }));
 
     if (typeof window !== 'undefined') {
       window.__sdCustomBellSounds = nextCustomSounds;
-      // 1. Always write lightweight keys first so QuotaExceededError never blocks sd_bell_sound!
+      // 1. Always write lightweight keys first so QuotaExceededError never blocks sd_bell_sound or sd_bell_interval!
       try {
         localStorage.setItem('sd_bell_sound', nextSoundType);
         localStorage.setItem('sd_bell_volume', String(Number(nextVolume) / 100));
+        localStorage.setItem('sd_bell_interval', String(nextInterval));
         const { customSounds: _omitHeavyAudio, ...liteAdminSettings } = nextSettingsObj;
         localStorage.setItem('sandwich_admin_settings', JSON.stringify(liteAdminSettings));
       } catch {}
@@ -292,7 +307,8 @@ export default function SettingsTab({
             ...custNotifSettings,
             customSounds: nextCustomSounds,
             posSoundType: nextSoundType,
-            posSoundVolume: nextVolume
+            posSoundVolume: nextVolume,
+            posSoundInterval: nextInterval
           }
         })
       });
@@ -1250,22 +1266,49 @@ export default function SettingsTab({
               />
             </div>
 
-            {/* Otomatik Liste Yenileme */}
+            {/* Bildirim Sesi Tekrarlama Aralığı */}
             <div className="space-y-2 pt-3 border-t border-stone-100">
-              <label className="text-xs font-bold text-stone-800 block">
-                Sipariş Listesi Otomatik Yenileme Periyodu
-              </label>
+              <div className="flex items-center justify-between flex-wrap gap-1">
+                <label className="text-xs font-bold text-stone-800 block">
+                  Bildirim Sesi Tekrarlama Aralığı (Sipariş Onaylanana Kadar)
+                </label>
+                <span className="text-[11px] text-stone-400">
+                  Seçtiğiniz süre boyunca bekleyen sipariş sesi tekrar çalar
+                </span>
+              </div>
               <div className="flex flex-wrap items-center gap-2">
                 {[
+                  { val: 8, label: '8 Saniyede Bir' },
                   { val: 15, label: '15 Saniyede Bir' },
                   { val: 30, label: '30 Saniyede Bir' },
                   { val: 60, label: '60 Saniyede Bir' },
-                  { val: 0, label: 'Yalnızca Manuel' },
+                  { val: 0, label: 'Tek Sefer Çal (Tekrarlama)' },
                 ].map((item) => (
                   <button
                     key={item.val}
                     type="button"
-                    onClick={() => handleChange('autoRefreshInterval', item.val)}
+                    onClick={() => {
+                      handleChange('autoRefreshInterval', item.val);
+                      const customList = Array.isArray(settings.customSounds) ? settings.customSounds : [];
+                      const activeSoundType =
+                        customList.length > 0 && (!settings.soundType || settings.soundType === 'chime')
+                          ? customList[customList.length - 1].id
+                          : settings.soundType || 'chime';
+                      syncSoundSettingsEverywhere(
+                        customList,
+                        activeSoundType,
+                        settings.soundVolume || 80,
+                        item.val
+                      );
+                      if (showToast) {
+                        showToast(
+                          item.val > 0
+                            ? `Bildirim sesi aralığı ${item.val} saniye olarak kaydedildi!`
+                            : 'Bildirim sesi yalnızca ilk geldiğinde 1 kez çalacak şekilde ayarlandı!',
+                          'success'
+                        );
+                      }
+                    }}
                     className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-all cursor-pointer ${
                       settings.autoRefreshInterval === item.val
                         ? 'bg-stone-900 text-white font-bold'

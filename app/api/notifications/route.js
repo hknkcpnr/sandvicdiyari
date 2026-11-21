@@ -93,7 +93,13 @@ export async function GET(request) {
     const guestStartMs = Number.isFinite(guestTsRaw) && guestTsRaw > 0 ? guestTsRaw : 0;
 
     const fullSettings = await getNotificationSettings();
-    const { customSounds: _posSounds, posSoundType: _posType, posSoundVolume: _posVol, ...customerOnlySettings } = fullSettings;
+    const {
+      customSounds: _posSounds,
+      posSoundType: _posType,
+      posSoundVolume: _posVol,
+      posSoundInterval: _posInt,
+      ...customerOnlySettings
+    } = fullSettings;
     const settings = includePosSounds ? fullSettings : customerOnlySettings;
 
     let personalNotifications = [];
@@ -326,7 +332,13 @@ export async function POST(request) {
         posSoundVolume:
           typeof s.posSoundVolume === 'number'
             ? Math.min(100, Math.max(10, s.posSoundVolume))
-            : current.posSoundVolume || 80
+            : current.posSoundVolume || 80,
+        posSoundInterval:
+          typeof s.posSoundInterval === 'number'
+            ? Math.min(300, Math.max(0, s.posSoundInterval))
+            : typeof current.posSoundInterval === 'number'
+            ? current.posSoundInterval
+            : 30
       });
 
       return NextResponse.json({

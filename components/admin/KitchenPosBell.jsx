@@ -13,7 +13,7 @@ export function speakProductPreview(productName = '', audioUrl = '', volume = 0.
       try {
         activeCustomAudio.pause();
         activeCustomAudio.currentTime = 0;
-      } catch {}
+      } catch { }
       activeCustomAudio = null;
     }
     if (typeof window !== 'undefined' && window.speechSynthesis) {
@@ -24,7 +24,7 @@ export function speakProductPreview(productName = '', audioUrl = '', volume = 0.
       const audio = new Audio(audioUrl.trim());
       audio.volume = safeVolume;
       activeCustomAudio = audio;
-      audio.play().catch(() => {});
+      audio.play().catch(() => { });
       return;
     }
 
@@ -49,8 +49,8 @@ export function extractOrderCustomAudios(orderOrOrders, productsList = []) {
   const orderArray = Array.isArray(orderOrOrders)
     ? orderOrOrders
     : orderOrOrders
-    ? [orderOrOrders]
-    : [];
+      ? [orderOrOrders]
+      : [];
   const customProductAudios = [];
 
   for (const ord of orderArray) {
@@ -64,12 +64,12 @@ export function extractOrderCustomAudios(orderOrOrders, productsList = []) {
       const candId = item.productId ?? item.id;
       const matchedProd = Array.isArray(productsList)
         ? productsList.find(
-            (p) =>
-              (candId !== undefined && candId !== null && String(p.id) === String(candId)) ||
-              (itemName &&
-                String(p.name || '').trim().toLocaleLowerCase('tr-TR') ===
-                  itemName.toLocaleLowerCase('tr-TR'))
-          )
+          (p) =>
+            (candId !== undefined && candId !== null && String(p.id) === String(candId)) ||
+            (itemName &&
+              String(p.name || '').trim().toLocaleLowerCase('tr-TR') ===
+              itemName.toLocaleLowerCase('tr-TR'))
+        )
         : null;
 
       const resolvedAudio =
@@ -96,13 +96,13 @@ function playSequentialProductAudios(audioUrls = [], volume = 0.9) {
       try {
         activeCustomAudio.pause();
         activeCustomAudio.currentTime = 0;
-      } catch {}
+      } catch { }
       activeCustomAudio = null;
     }
     if (activeAudioCtx) {
       try {
         activeAudioCtx.close();
-      } catch {}
+      } catch { }
       activeAudioCtx = null;
     }
     if (typeof window !== 'undefined' && window.speechSynthesis) {
@@ -186,13 +186,13 @@ export function playKitchenBellSound(soundType = null, volume = 0.85, customSoun
       try {
         activeCustomAudio.pause();
         activeCustomAudio.currentTime = 0;
-      } catch {}
+      } catch { }
       activeCustomAudio = null;
     }
     if (activeAudioCtx) {
       try {
         activeAudioCtx.close();
-      } catch {}
+      } catch { }
       activeAudioCtx = null;
     }
 
@@ -209,7 +209,7 @@ export function playKitchenBellSound(soundType = null, volume = 0.85, customSoun
           const parsed = JSON.parse(rawCustom);
           if (Array.isArray(parsed)) customList = parsed;
         }
-      } catch {}
+      } catch { }
     }
 
     // 2. Determine the active soundType
@@ -239,10 +239,10 @@ export function playKitchenBellSound(soundType = null, volume = 0.85, customSoun
     const directAudioUrl =
       matchedCustom?.audioUrl ||
       (typeof effectiveType === 'string' &&
-      (effectiveType.startsWith('data:') ||
-        effectiveType.startsWith('http://') ||
-        effectiveType.startsWith('https://') ||
-        effectiveType.startsWith('/'))
+        (effectiveType.startsWith('data:') ||
+          effectiveType.startsWith('http://') ||
+          effectiveType.startsWith('https://') ||
+          effectiveType.startsWith('/'))
         ? effectiveType
         : null);
 
@@ -378,7 +378,7 @@ export default function KitchenPosBell({
           setFallbackCatalogProducts(j.data);
         }
       })
-      .catch(() => {});
+      .catch(() => { });
   }, [products]);
 
   // Load and sync preferences from localStorage & Supabase on mount and storage events
@@ -398,14 +398,27 @@ export default function KitchenPosBell({
         if (savedVol) setVolume(parseFloat(savedVol));
 
         const savedInt = localStorage.getItem('sd_bell_interval');
-        if (savedInt) setRepeatInterval(parseInt(savedInt, 10));
+        if (savedInt !== null && savedInt !== '') {
+          const parsedInt = parseInt(savedInt, 10);
+          if (!Number.isNaN(parsedInt) && parsedInt >= 0) {
+            setRepeatInterval(parsedInt);
+          }
+        } else {
+          const rawAdminSettings = localStorage.getItem('sandwich_admin_settings');
+          if (rawAdminSettings) {
+            const parsedSettings = JSON.parse(rawAdminSettings);
+            if (typeof parsedSettings?.autoRefreshInterval === 'number') {
+              setRepeatInterval(parsedSettings.autoRefreshInterval);
+            }
+          }
+        }
 
         const rawCustom = localStorage.getItem('sd_custom_bell_sounds');
         if (rawCustom) {
           const parsed = JSON.parse(rawCustom);
           if (Array.isArray(parsed)) setCustomSounds(parsed);
         }
-      } catch (e) {}
+      } catch (e) { }
     };
 
     const syncSoundFromApi = () => {
@@ -425,24 +438,30 @@ export default function KitchenPosBell({
               try {
                 const latestOnly = s.customSounds.slice(-1);
                 localStorage.setItem('sd_custom_bell_sounds', JSON.stringify(latestOnly));
-              } catch {}
+              } catch { }
             }
           }
           if (s.posSoundType) {
             setSoundType(s.posSoundType);
             try {
               localStorage.setItem('sd_bell_sound', s.posSoundType);
-            } catch {}
+            } catch { }
           }
           if (typeof s.posSoundVolume === 'number') {
             const normVol = Math.min(1, Math.max(0.1, s.posSoundVolume / 100));
             setVolume(normVol);
             try {
               localStorage.setItem('sd_bell_volume', String(normVol));
-            } catch {}
+            } catch { }
+          }
+          if (typeof s.posSoundInterval === 'number' && s.posSoundInterval >= 0) {
+            setRepeatInterval(s.posSoundInterval);
+            try {
+              localStorage.setItem('sd_bell_interval', String(s.posSoundInterval));
+            } catch { }
           }
         })
-        .catch(() => {});
+        .catch(() => { });
     };
 
     syncSoundFromLocal();
@@ -452,6 +471,7 @@ export default function KitchenPosBell({
       if (
         !e.key ||
         e.key === 'sd_bell_sound' ||
+        e.key === 'sd_bell_interval' ||
         e.key === 'sd_custom_bell_sounds' ||
         e.key === 'sd_pos_bell_updated' ||
         e.key === 'sandwich_admin_settings'
@@ -528,6 +548,13 @@ export default function KitchenPosBell({
     }
   };
 
+  // Keep latest notification trigger & newOrders in refs so 5s polling of /api/orders never resets the interval timer!
+  const triggerFnRef = useRef(triggerOrderPriorityNotification);
+  const newOrdersRef = useRef(newOrders);
+  const lastPlayedAtRef = useRef(0);
+  triggerFnRef.current = triggerOrderPriorityNotification;
+  newOrdersRef.current = newOrders;
+
   // If a BRAND NEW order arrives while snoozed, cancel snooze and immediately play appropriate audio!
   useEffect(() => {
     const currentIds = new Set(orders.map((o) => o.id));
@@ -543,35 +570,48 @@ export default function KitchenPosBell({
         if (snoozeUntil) {
           setSnoozeUntil(null); // Cancel snooze for new order
         }
+        lastPlayedAtRef.current = Date.now();
         // Pass newOrders if >1 pending orders, otherwise [brandNewOrder]
-        triggerOrderPriorityNotification(newOrders.length > 1 ? newOrders : [brandNewOrder], false);
+        triggerFnRef.current(newOrders.length > 1 ? newOrders : [brandNewOrder], false);
       }
     } else {
       initialMountRef.current = false;
     }
     prevOrderIdsRef.current = currentIds;
-  }, [orders, newOrders, snoozeUntil, effectiveProducts, soundType, customSounds]);
+  }, [orders, newOrders, snoozeUntil]);
 
-  // Continuous Sound Interval Timer (1 item -> Menu sound, >1 items/orders -> /yonetici sound)
+  // Continuous Sound Interval Timer (Strictly respects repeatInterval e.g. 60s without resetting on 5s order polling!)
   useEffect(() => {
     if (!isRinging) return;
 
-    // Play immediately when ringing starts
-    triggerOrderPriorityNotification(newOrders, false);
-    if (typeof navigator !== 'undefined' && navigator.vibrate) {
-      navigator.vibrate([250, 100, 250, 100, 400]);
+    const nowMs = Date.now();
+    const minGapMs = repeatInterval > 0 ? repeatInterval * 1000 : 0;
+
+    // Only play on initial ring start if we haven't already just played within the current interval window
+    if (lastPlayedAtRef.current === 0 || (minGapMs > 0 && nowMs - lastPlayedAtRef.current >= minGapMs)) {
+      lastPlayedAtRef.current = nowMs;
+      triggerFnRef.current(newOrdersRef.current, false);
+      if (typeof navigator !== 'undefined' && navigator.vibrate) {
+        navigator.vibrate([250, 100, 250, 100, 400]);
+      }
+    }
+
+    // If repeatInterval === 0 ('Tek Sefer Çal'), do not repeat on an interval
+    if (!repeatInterval || repeatInterval <= 0) {
+      return;
     }
 
     const intervalMs = Math.max(4, repeatInterval) * 1000;
     const intervalTimer = setInterval(() => {
-      triggerOrderPriorityNotification(newOrders, true);
+      lastPlayedAtRef.current = Date.now();
+      triggerFnRef.current(newOrdersRef.current, true);
       if (typeof navigator !== 'undefined' && navigator.vibrate) {
         navigator.vibrate([250, 100, 250, 100, 400]);
       }
     }, intervalMs);
 
     return () => clearInterval(intervalTimer);
-  }, [isRinging, soundType, volume, repeatInterval, customSounds, newOrders, effectiveProducts, voiceReadoutEnabled]);
+  }, [isRinging, repeatInterval]);
 
   // Document Title Blinking during Active Alarm
   useEffect(() => {
@@ -605,7 +645,7 @@ export default function KitchenPosBell({
     setContinuousBellEnabled(nextVal);
     try {
       localStorage.setItem('sd_continuous_bell', String(nextVal));
-    } catch (e) {}
+    } catch (e) { }
   };
 
   const handleToggleVoiceReadout = () => {
@@ -613,14 +653,14 @@ export default function KitchenPosBell({
     setVoiceReadoutEnabled(nextVal);
     try {
       localStorage.setItem('sd_voice_readout', String(nextVal));
-    } catch (e) {}
+    } catch (e) { }
   };
 
   const handleSaveSoundType = (type) => {
     setSoundType(type);
     try {
       localStorage.setItem('sd_bell_sound', type);
-    } catch (e) {}
+    } catch (e) { }
     playKitchenBellSound(type, volume);
   };
 
@@ -628,14 +668,30 @@ export default function KitchenPosBell({
     setVolume(vol);
     try {
       localStorage.setItem('sd_bell_volume', String(vol));
-    } catch (e) {}
+    } catch (e) { }
   };
 
   const handleSaveInterval = (sec) => {
     setRepeatInterval(sec);
     try {
       localStorage.setItem('sd_bell_interval', String(sec));
-    } catch (e) {}
+      const rawAdmin = localStorage.getItem('sandwich_admin_settings');
+      if (rawAdmin) {
+        const parsed = JSON.parse(rawAdmin);
+        localStorage.setItem(
+          'sandwich_admin_settings',
+          JSON.stringify({ ...parsed, autoRefreshInterval: sec })
+        );
+      }
+    } catch (e) { }
+    fetch('/api/notifications', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'save_settings',
+        settings: { posSoundInterval: sec }
+      })
+    }).catch(() => { });
   };
 
   const testCurrentSound = () => {
@@ -675,9 +731,8 @@ export default function KitchenPosBell({
                 type="button"
                 onClick={testCurrentSound}
                 title="Sesi Test Et"
-                className={`w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-white/20 hover:bg-white/30 flex items-center justify-center text-base sm:text-lg shrink-0 shadow-inner cursor-pointer transition-transform ${
-                  isRinging ? 'animate-bounce ring-2 ring-white/60' : ''
-                }`}
+                className={`w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-white/20 hover:bg-white/30 flex items-center justify-center text-base sm:text-lg shrink-0 shadow-inner cursor-pointer transition-transform ${isRinging ? 'animate-bounce ring-2 ring-white/60' : ''
+                  }`}
                 aria-label="Sesi Test Et"
               >
                 🔔
@@ -863,15 +918,13 @@ export default function KitchenPosBell({
                   role="switch"
                   aria-checked={continuousBellEnabled}
                   onClick={handleToggleContinuous}
-                  className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-hidden ${
-                    continuousBellEnabled ? 'bg-emerald-600' : 'bg-stone-300'
-                  }`}
+                  className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-hidden ${continuousBellEnabled ? 'bg-emerald-600' : 'bg-stone-300'
+                    }`}
                   aria-label="Sürekli Çalan Alarm Modunu Aç veya Kapat"
                 >
                   <span
-                    className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out ${
-                      continuousBellEnabled ? 'translate-x-5' : 'translate-x-0'
-                    }`}
+                    className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out ${continuousBellEnabled ? 'translate-x-5' : 'translate-x-0'
+                      }`}
                   />
                 </button>
               </div>
@@ -892,15 +945,13 @@ export default function KitchenPosBell({
                   role="switch"
                   aria-checked={voiceReadoutEnabled}
                   onClick={handleToggleVoiceReadout}
-                  className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-hidden ${
-                    voiceReadoutEnabled ? 'bg-amber-600' : 'bg-stone-300'
-                  }`}
+                  className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-hidden ${voiceReadoutEnabled ? 'bg-amber-600' : 'bg-stone-300'
+                    }`}
                   aria-label="Sipariş Ürün İsmi Sesli Okumayı Aç veya Kapat"
                 >
                   <span
-                    className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out ${
-                      voiceReadoutEnabled ? 'translate-x-5' : 'translate-x-0'
-                    }`}
+                    className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out ${voiceReadoutEnabled ? 'translate-x-5' : 'translate-x-0'
+                      }`}
                   />
                 </button>
               </div>
@@ -938,11 +989,10 @@ export default function KitchenPosBell({
                     key={s.id}
                     type="button"
                     onClick={() => handleSaveSoundType(s.id)}
-                    className={`w-full text-left p-3 rounded-xl border transition-all cursor-pointer flex items-center justify-between ${
-                      soundType === s.id
-                        ? 'border-amber-500 bg-amber-50/70 text-amber-950 font-semibold ring-1 ring-amber-500'
-                        : 'border-stone-200 hover:border-stone-300 bg-white text-stone-700'
-                    }`}
+                    className={`w-full text-left p-3 rounded-xl border transition-all cursor-pointer flex items-center justify-between ${soundType === s.id
+                      ? 'border-amber-500 bg-amber-50/70 text-amber-950 font-semibold ring-1 ring-amber-500'
+                      : 'border-stone-200 hover:border-stone-300 bg-white text-stone-700'
+                      }`}
                   >
                     <div>
                       <div className="text-xs font-bold">{s.title}</div>
@@ -983,19 +1033,24 @@ export default function KitchenPosBell({
               <label className="block text-xs font-bold text-stone-700 uppercase tracking-wider">
                 Tekrarlama Aralığı (Sipariş Onaylanana Kadar)
               </label>
-              <div className="grid grid-cols-4 gap-2">
-                {[5, 8, 12, 20].map((sec) => (
+              <div className="grid grid-cols-5 gap-1.5">
+                {[
+                  { sec: 8, label: '8 Sn' },
+                  { sec: 15, label: '15 Sn' },
+                  { sec: 30, label: '30 Sn' },
+                  { sec: 60, label: '60 Sn' },
+                  { sec: 0, label: 'Tek Sefer' }
+                ].map((opt) => (
                   <button
-                    key={sec}
+                    key={opt.sec}
                     type="button"
-                    onClick={() => handleSaveInterval(sec)}
-                    className={`py-2 rounded-xl text-xs font-bold transition-all border cursor-pointer ${
-                      repeatInterval === sec
-                        ? 'bg-amber-600 text-white border-amber-600 shadow-xs'
-                        : 'bg-stone-50 hover:bg-stone-100 border-stone-200 text-stone-700'
-                    }`}
+                    onClick={() => handleSaveInterval(opt.sec)}
+                    className={`py-2 rounded-xl text-xs font-bold transition-all border cursor-pointer ${repeatInterval === opt.sec
+                      ? 'bg-amber-600 text-white border-amber-600 shadow-xs'
+                      : 'bg-stone-50 hover:bg-stone-100 border-stone-200 text-stone-700'
+                      }`}
                   >
-                    {sec} Saniye
+                    {opt.label}
                   </button>
                 ))}
               </div>
