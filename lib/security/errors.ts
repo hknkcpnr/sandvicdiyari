@@ -156,7 +156,7 @@ export const SECURITY_HEADERS: Record<string, string> = {
  */
 export async function parseJsonBody<T = Record<string, unknown>>(
   request: Request,
-  maxBytes = 256 * 1024
+  maxBytes = 15 * 1024 * 1024
 ): Promise<T> {
   let rawText = '';
   try {

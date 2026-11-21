@@ -362,6 +362,24 @@ export default function KitchenPosBell({
   // Track previous order IDs to detect arrival of a BRAND NEW order
   const prevOrderIdsRef = useRef(new Set());
   const initialMountRef = useRef(true);
+  const [fallbackCatalogProducts, setFallbackCatalogProducts] = useState([]);
+
+  const effectiveProducts = useMemo(() => {
+    if (Array.isArray(products) && products.length > 0) return products;
+    return fallbackCatalogProducts;
+  }, [products, fallbackCatalogProducts]);
+
+  // Ensure menu products (with their audioUrl) are always loaded in KitchenPosBell
+  useEffect(() => {
+    fetch('/api/products', { cache: 'no-store' })
+      .then((r) => r.json())
+      .then((j) => {
+        if (j?.success && Array.isArray(j.data)) {
+          setFallbackCatalogProducts(j.data);
+        }
+      })
+      .catch(() => {});
+  }, [products]);
 
   // Load and sync preferences from localStorage & Supabase on mount and storage events
   useEffect(() => {
@@ -462,9 +480,9 @@ export default function KitchenPosBell({
   const isSnoozed = snoozeUntil && now < snoozeUntil;
   const isRinging = hasNewOrders && continuousBellEnabled && !isSnoozed;
 
-  // Helper: Play notification sound for active food orders with PRIORITY to ordered products' custom audio
+  // Helper: Play notification sound for active food orders DIRECTLY from inside the Menu (never plays /yonetici sound!)
   const triggerOrderPriorityNotification = (targetOrders = newOrders, isPeriodicRepeat = false) => {
-    // If a periodic repeat fires while a custom audio clip is still actively playing, let it finish
+    // If a periodic repeat fires while a custom menu audio clip is still actively playing, let it finish
     if (
       isPeriodicRepeat &&
       activeCustomAudio &&
@@ -474,24 +492,31 @@ export default function KitchenPosBell({
       return;
     }
 
-    // 1. PRIORITY #1: Custom audio attached inside the ordered food products
-    const orderedProductAudios = extractOrderCustomAudios(targetOrders, products);
+    // 1. Play custom audio attached directly inside the ordered menu products
+    const orderedProductAudios = extractOrderCustomAudios(targetOrders, effectiveProducts);
     if (orderedProductAudios.length > 0) {
       playSequentialProductAudios(orderedProductAudios, volume);
       return;
     }
 
-    // 2. FALLBACK: General POS bell sound + optional Turkish TTS product name readout
-    playKitchenBellSound(soundType, volume, customSounds);
+    // 2. If the specific ordered item has no custom audio file, check if any menu product has a custom audio file or read the menu item name in Turkish
+    const anyMenuAudios = (Array.isArray(effectiveProducts) ? effectiveProducts : [])
+      .map((p) => (typeof p?.audioUrl === 'string' ? p.audioUrl.trim() : ''))
+      .filter(Boolean);
+
+    if (anyMenuAudios.length > 0 && !voiceReadoutEnabled) {
+      playSequentialProductAudios([anyMenuAudios[0]], volume);
+      return;
+    }
+
+    // 3. Direct menu item name voice announcement (never plays the general /yonetici notification sound)
     const primaryOrder = Array.isArray(targetOrders) ? targetOrders[0] : targetOrders;
-    if (voiceReadoutEnabled && primaryOrder) {
-      setTimeout(() => {
-        announceOrderItems(primaryOrder, products, volume);
-      }, 850);
+    if (primaryOrder) {
+      announceOrderItems(primaryOrder, effectiveProducts, volume);
     }
   };
 
-  // If a BRAND NEW order arrives while snoozed, cancel snooze and immediately play with product audio priority!
+  // If a BRAND NEW order arrives while snoozed, cancel snooze and immediately play menu audio!
   useEffect(() => {
     const currentIds = new Set(orders.map((o) => o.id));
     if (!initialMountRef.current) {
@@ -512,13 +537,13 @@ export default function KitchenPosBell({
       initialMountRef.current = false;
     }
     prevOrderIdsRef.current = currentIds;
-  }, [orders, newOrders, snoozeUntil, products]);
+  }, [orders, newOrders, snoozeUntil, effectiveProducts]);
 
-  // Continuous Sound Interval Timer (Prioritizes sound inside ordered food items)
+  // Continuous Sound Interval Timer (Plays directly from inside the ordered menu items)
   useEffect(() => {
     if (!isRinging) return;
 
-    // Play immediately when ringing starts (or when products load with custom audio)
+    // Play immediately when ringing starts (or when menu products load with custom audio)
     triggerOrderPriorityNotification(newOrders, false);
     if (typeof navigator !== 'undefined' && navigator.vibrate) {
       navigator.vibrate([250, 100, 250, 100, 400]);
@@ -533,7 +558,7 @@ export default function KitchenPosBell({
     }, intervalMs);
 
     return () => clearInterval(intervalTimer);
-  }, [isRinging, soundType, volume, repeatInterval, customSounds, newOrders, products, voiceReadoutEnabled]);
+  }, [isRinging, volume, repeatInterval, newOrders, effectiveProducts, voiceReadoutEnabled]);
 
   // Document Title Blinking during Active Alarm
   useEffect(() => {
@@ -603,8 +628,15 @@ export default function KitchenPosBell({
   const testCurrentSound = () => {
     if (hasNewOrders) {
       triggerOrderPriorityNotification(newOrders, false);
+      return;
+    }
+    const firstMenuWithAudio = (Array.isArray(effectiveProducts) ? effectiveProducts : []).find(
+      (p) => typeof p?.audioUrl === 'string' && p.audioUrl.trim()
+    );
+    if (firstMenuWithAudio) {
+      speakProductPreview(firstMenuWithAudio.name, firstMenuWithAudio.audioUrl, volume);
     } else {
-      playKitchenBellSound(soundType, volume, customSounds);
+      speakProductPreview(effectiveProducts?.[0]?.name || 'Örnek Menü', '', volume);
     }
   };
 
@@ -701,9 +733,9 @@ export default function KitchenPosBell({
               {newOrders[0] && (
                 <button
                   type="button"
-                  onClick={() => announceOrderItems(newOrders[0], products, volume)}
+                  onClick={() => triggerOrderPriorityNotification([newOrders[0]], false)}
                   className="px-2.5 sm:px-3 py-1.5 rounded-xl bg-white/20 hover:bg-white/30 text-white font-bold text-[11px] sm:text-xs transition-all active:scale-95 flex items-center gap-1.5 border border-white/25 cursor-pointer shrink-0"
-                  title="Sipariş edilen ürünlerin ismini sesli oku"
+                  title="Sipariş edilen ürünün menü sesini çal veya sesli oku"
                 >
                   <i className="fa-solid fa-volume-high text-[11px]"></i>
                   <span>Sesli Oku</span>
