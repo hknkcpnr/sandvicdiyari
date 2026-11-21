@@ -98,6 +98,8 @@ export async function GET(request) {
       posSoundType: _posType,
       posSoundVolume: _posVol,
       posSoundInterval: _posInt,
+      suffixAudioUrl: _suffixAudio,
+      suffixAudioName: _suffixName,
       ...customerOnlySettings
     } = fullSettings;
     const settings = includePosSounds ? fullSettings : customerOnlySettings;
@@ -338,7 +340,19 @@ export async function POST(request) {
             ? Math.min(300, Math.max(0, s.posSoundInterval))
             : typeof current.posSoundInterval === 'number'
             ? current.posSoundInterval
-            : 60
+            : 60,
+        suffixAudioUrl:
+          typeof s.suffixAudioUrl === 'string'
+            ? s.suffixAudioUrl.trim().slice(0, 4000000)
+            : s.suffixAudioUrl === null
+            ? null
+            : current.suffixAudioUrl || null,
+        suffixAudioName:
+          typeof s.suffixAudioName === 'string'
+            ? sanitizeText(s.suffixAudioName, 80, 'suffixAudioName', '/api/notifications')
+            : s.suffixAudioName === null
+            ? null
+            : current.suffixAudioName || null
       });
 
       return NextResponse.json({

@@ -87,8 +87,8 @@ export function extractOrderCustomAudios(orderOrOrders, productsList = []) {
   return customProductAudios;
 }
 
-// Helper: Play one or more custom audio URLs sequentially
-function playSequentialProductAudios(audioUrls = [], volume = 0.9) {
+// Helper: Play one or more custom audio URLs sequentially, then optional suffix audio 1s later
+function playSequentialProductAudios(audioUrls = [], volume = 0.9, suffixAudioUrl = null) {
   if (!Array.isArray(audioUrls) || audioUrls.length === 0) return false;
   try {
     const safeVolume = Math.min(1, Math.max(0.1, Number(volume) || 0.9));
@@ -109,28 +109,70 @@ function playSequentialProductAudios(audioUrls = [], volume = 0.9) {
       window.speechSynthesis.cancel();
     }
 
+    const markFinished = () => {
+      if (typeof window !== 'undefined') {
+        const endTs = Date.now();
+        window.__sdLastOrderAudioPlayedAt = endTs;
+        try {
+          localStorage.setItem('sd_last_order_sound_at', String(endTs));
+        } catch {}
+      }
+    };
+
+    const resolvedSuffix =
+      suffixAudioUrl ||
+      (typeof window !== 'undefined'
+        ? (window.__sdSuffixAudio || localStorage.getItem('sd_suffix_audio'))
+        : null);
+
+    const playSuffixIfAny = () => {
+      if (resolvedSuffix && typeof resolvedSuffix === 'string' && resolvedSuffix.trim()) {
+        setTimeout(() => {
+          try {
+            const suffixAudio = new Audio(resolvedSuffix.trim());
+            suffixAudio.volume = safeVolume;
+            activeCustomAudio = suffixAudio;
+            suffixAudio.onended = () => {
+              markFinished();
+            };
+            suffixAudio.play().catch((err) => {
+              console.warn('Suffix audio playback error:', err);
+              markFinished();
+            });
+          } catch (err) {
+            markFinished();
+          }
+        }, 1000); // Ürün sesinden 1 sn sonra cümleyi tamamlayan ses çalar
+      } else {
+        markFinished();
+      }
+    };
+
     let index = 0;
     const playNext = () => {
-      if (index >= audioUrls.length) return;
+      if (index >= audioUrls.length) {
+        playSuffixIfAny();
+        return;
+      }
       const url = audioUrls[index];
       index += 1;
       const audio = new Audio(url);
       audio.volume = safeVolume;
       activeCustomAudio = audio;
       audio.onended = () => {
-        if (typeof window !== 'undefined') {
-          const endTs = Date.now();
-          window.__sdLastOrderAudioPlayedAt = endTs;
-          try {
-            localStorage.setItem('sd_last_order_sound_at', String(endTs));
-          } catch {}
-        }
         if (index < audioUrls.length) {
           playNext();
+        } else {
+          playSuffixIfAny();
         }
       };
       audio.play().catch((err) => {
         console.warn('Product custom audio playback error:', err);
+        if (index < audioUrls.length) {
+          playNext();
+        } else {
+          playSuffixIfAny();
+        }
       });
     };
 
@@ -143,15 +185,21 @@ function playSequentialProductAudios(audioUrls = [], volume = 0.9) {
 }
 
 // Announce an incoming order's product names (plays product custom audio with #1 priority, otherwise Turkish TTS readout)
-export function announceOrderItems(order, productsList = [], volume = 0.9) {
+export function announceOrderItems(order, productsList = [], volume = 0.9, suffixAudioUrl = null) {
   if (!order || typeof window === 'undefined') return;
   try {
     const safeVolume = Math.min(1, Math.max(0.1, Number(volume) || 0.9));
     const customProductAudios = extractOrderCustomAudios(order, productsList);
 
+    const resolvedSuffix =
+      suffixAudioUrl ||
+      (typeof window !== 'undefined'
+        ? (window.__sdSuffixAudio || localStorage.getItem('sd_suffix_audio'))
+        : null);
+
     // 1. TOP PRIORITY: If any ordered product has a custom audio recording uploaded, play it directly
     if (customProductAudios.length > 0) {
-      playSequentialProductAudios(customProductAudios, safeVolume);
+      playSequentialProductAudios(customProductAudios, safeVolume, resolvedSuffix);
       return;
     }
 
@@ -176,6 +224,31 @@ export function announceOrderItems(order, productsList = [], volume = 0.9) {
       const voices = window.speechSynthesis.getVoices?.() || [];
       const trVoice = voices.find((v) => v.lang && v.lang.toLowerCase().startsWith('tr'));
       if (trVoice) utterance.voice = trVoice;
+
+      utterance.onend = () => {
+        if (resolvedSuffix && typeof resolvedSuffix === 'string' && resolvedSuffix.trim()) {
+          setTimeout(() => {
+            try {
+              const suffixAudio = new Audio(resolvedSuffix.trim());
+              suffixAudio.volume = safeVolume;
+              activeCustomAudio = suffixAudio;
+              suffixAudio.onended = () => {
+                if (typeof window !== 'undefined') {
+                  const endTs = Date.now();
+                  window.__sdLastOrderAudioPlayedAt = endTs;
+                  try { localStorage.setItem('sd_last_order_sound_at', String(endTs)); } catch {}
+                }
+              };
+              suffixAudio.play().catch(() => {});
+            } catch {}
+          }, 1000);
+        } else if (typeof window !== 'undefined') {
+          const endTs = Date.now();
+          window.__sdLastOrderAudioPlayedAt = endTs;
+          try { localStorage.setItem('sd_last_order_sound_at', String(endTs)); } catch {}
+        }
+      };
+
       window.speechSynthesis.speak(utterance);
     }
   } catch (e) {
@@ -367,6 +440,7 @@ export default function KitchenPosBell({
   const [voiceReadoutEnabled, setVoiceReadoutEnabled] = useState(true);
   const [soundType, setSoundType] = useState('pos_bell'); // 'pos_bell' | 'kitchen_alarm' | 'classic_dingdong' | custom_*
   const [customSounds, setCustomSounds] = useState([]);
+  const [suffixAudio, setSuffixAudio] = useState(null);
   const [volume, setVolume] = useState(0.85);
   const [repeatInterval, setRepeatInterval] = useState(60); // seconds (default 60s)
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -447,6 +521,19 @@ export default function KitchenPosBell({
           const parsed = JSON.parse(rawCustom);
           if (Array.isArray(parsed)) setCustomSounds(parsed);
         }
+
+        const savedSuffix = localStorage.getItem('sd_suffix_audio');
+        if (savedSuffix) {
+          setSuffixAudio(savedSuffix);
+          if (typeof window !== 'undefined') {
+            window.__sdSuffixAudio = savedSuffix;
+          }
+        } else {
+          setSuffixAudio(null);
+          if (typeof window !== 'undefined') {
+            window.__sdSuffixAudio = null;
+          }
+        }
       } catch (e) { }
     };
 
@@ -472,6 +559,19 @@ export default function KitchenPosBell({
           if (typeof s.posSoundInterval === 'number' && s.posSoundInterval >= 0) {
             setRepeatInterval(s.posSoundInterval);
           }
+          if (typeof s.suffixAudioUrl !== 'undefined') {
+            setSuffixAudio(s.suffixAudioUrl || null);
+            if (typeof window !== 'undefined') {
+              window.__sdSuffixAudio = s.suffixAudioUrl || null;
+            }
+            try {
+              if (s.suffixAudioUrl) {
+                localStorage.setItem('sd_suffix_audio', s.suffixAudioUrl);
+              } else {
+                localStorage.removeItem('sd_suffix_audio');
+              }
+            } catch {}
+          }
         })
         .catch(() => { });
     };
@@ -485,6 +585,7 @@ export default function KitchenPosBell({
         e.key === 'sd_bell_interval' ||
         e.key === 'sd_custom_bell_sounds' ||
         e.key === 'sd_pos_bell_updated' ||
+        e.key === 'sd_suffix_audio' ||
         e.key === 'sandwich_admin_settings'
       ) {
         syncSoundFromLocal();
@@ -549,16 +650,17 @@ export default function KitchenPosBell({
 
     // 2. TEKLİ SİPARİŞ (1 Adet Menü/Ürün):
     // Doğrudan sipariş edilen menünün kendi içindeki özel ses çalar!
+    // Varsa 1 saniye sonra genel cümle tamamlayıcı ses kaydı oynatılır.
     const orderedProductAudios = extractOrderCustomAudios(orderArray, effectiveProducts);
     if (orderedProductAudios.length > 0) {
-      playSequentialProductAudios(orderedProductAudios, volume);
+      playSequentialProductAudios(orderedProductAudios, volume, suffixAudio);
       return;
     }
 
     // Menüye özel ses dosyası yüklenmemişse doğrudan menü ismini Türkçe seslendir
     const primaryOrder = orderArray[0];
     if (primaryOrder) {
-      announceOrderItems(primaryOrder, effectiveProducts, volume);
+      announceOrderItems(primaryOrder, effectiveProducts, volume, suffixAudio);
     }
   };
 

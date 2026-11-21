@@ -117,6 +117,13 @@ export default function SettingsTab({
   const [soundUploadError, setSoundUploadError] = useState('');
   const audioFileInputRef = useRef(null);
 
+  // Cümle Tamamlayıcı Ses Kaydı (Suffix Ses) State'leri
+  const [suffixAudioUrl, setSuffixAudioUrl] = useState(null);
+  const [suffixAudioName, setSuffixAudioName] = useState('');
+  const [suffixUploadError, setSuffixUploadError] = useState('');
+  const [isPlayingSuffixPreview, setIsPlayingSuffixPreview] = useState(false);
+  const suffixFileInputRef = useRef(null);
+
   useEffect(() => {
     try {
       const savedInt = localStorage.getItem('sd_bell_interval');
@@ -124,6 +131,11 @@ export default function SettingsTab({
 
       const savedCustom = localStorage.getItem('sd_custom_bell_sounds');
       const parsedCustom = savedCustom ? JSON.parse(savedCustom) : null;
+
+      const savedSuffix = localStorage.getItem('sd_suffix_audio');
+      if (savedSuffix) setSuffixAudioUrl(savedSuffix);
+      const savedSuffixName = localStorage.getItem('sd_suffix_audio_name');
+      if (savedSuffixName) setSuffixAudioName(savedSuffixName);
 
       setSettings((prev) => ({
         ...prev,
@@ -162,6 +174,18 @@ export default function SettingsTab({
               : {}),
             autoRefreshInterval: effectiveInt
           }));
+          if (typeof j.data.settings.suffixAudioUrl !== 'undefined') {
+            setSuffixAudioUrl(j.data.settings.suffixAudioUrl || null);
+            if (j.data.settings.suffixAudioUrl) {
+              try { localStorage.setItem('sd_suffix_audio', j.data.settings.suffixAudioUrl); } catch {}
+            } else {
+              try { localStorage.removeItem('sd_suffix_audio'); } catch {}
+            }
+          }
+          if (j.data.settings.suffixAudioName) {
+            setSuffixAudioName(j.data.settings.suffixAudioName);
+            try { localStorage.setItem('sd_suffix_audio_name', j.data.settings.suffixAudioName); } catch {}
+          }
           try {
             if (Array.isArray(j.data.settings.customSounds) && j.data.settings.customSounds.length > 0) {
               localStorage.setItem('sd_custom_bell_sounds', JSON.stringify(j.data.settings.customSounds));
@@ -554,6 +578,108 @@ export default function SettingsTab({
       typeof settings.autoRefreshInterval === 'number' ? settings.autoRefreshInterval : 60,
       true
     );
+  };
+
+  // Cümle Tamamlayıcı Ses Kaydı Seçimi (.mp3 / .wav)
+  const handleSuffixFileSelect = (e) => {
+    setSuffixUploadError('');
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('audio/') && !/\.(mp3|wav|ogg|m4a|aac)$/i.test(file.name)) {
+      setSuffixUploadError('Lütfen geçerli bir ses dosyası (.mp3, .wav, .ogg, .m4a) seçin.');
+      return;
+    }
+
+    if (file.size > 3.5 * 1024 * 1024) {
+      setSuffixUploadError('Ses dosyası boyutu en fazla 3.5 MB olabilir.');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = async () => {
+      const dataUrl = String(reader.result || '');
+      if (dataUrl.startsWith('data:')) {
+        const cleanName = file.name.slice(0, 60);
+        setSuffixAudioUrl(dataUrl);
+        setSuffixAudioName(cleanName);
+        if (suffixFileInputRef.current) suffixFileInputRef.current.value = '';
+
+        try {
+          localStorage.setItem('sd_suffix_audio', dataUrl);
+          localStorage.setItem('sd_suffix_audio_name', cleanName);
+          localStorage.setItem('sd_pos_bell_updated', String(Date.now()));
+        } catch {}
+
+        try {
+          await fetch('/api/notifications', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              action: 'save_settings',
+              settings: {
+                suffixAudioUrl: dataUrl,
+                suffixAudioName: cleanName
+              }
+            })
+          });
+          if (showToast) {
+            showToast('Cümle tamamlayıcı ses kaydı başarıyla kaydedildi! 🎙️', 'success');
+          }
+        } catch (err) {
+          console.error('Tamamlayıcı ses kaydedilemedi:', err);
+        }
+      }
+    };
+    reader.onerror = () => {
+      setSuffixUploadError('Ses dosyası okunamadı.');
+    };
+    reader.readAsDataURL(file);
+  };
+
+  // Cümle Tamamlayıcı Sesi Kaldır
+  const handleRemoveSuffixAudio = async () => {
+    setSuffixAudioUrl(null);
+    setSuffixAudioName('');
+    if (suffixFileInputRef.current) suffixFileInputRef.current.value = '';
+
+    try {
+      localStorage.removeItem('sd_suffix_audio');
+      localStorage.removeItem('sd_suffix_audio_name');
+      localStorage.setItem('sd_pos_bell_updated', String(Date.now()));
+    } catch {}
+
+    try {
+      await fetch('/api/notifications', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'save_settings',
+          settings: {
+            suffixAudioUrl: null,
+            suffixAudioName: null
+          }
+        })
+      });
+      if (showToast) {
+        showToast('Cümle tamamlayıcı ses kaydı kaldırıldı.', 'info');
+      }
+    } catch {}
+  };
+
+  // Cümle Tamamlayıcı Ses Testi (Önizleme Dinletisi)
+  const handlePlaySuffixTest = () => {
+    if (!suffixAudioUrl) return;
+    try {
+      setIsPlayingSuffixPreview(true);
+      const audio = new Audio(suffixAudioUrl);
+      audio.volume = (settings.soundVolume || 80) / 100;
+      audio.onended = () => setIsPlayingSuffixPreview(false);
+      audio.onerror = () => setIsPlayingSuffixPreview(false);
+      audio.play().catch(() => setIsPlayingSuffixPreview(false));
+    } catch {
+      setIsPlayingSuffixPreview(false);
+    }
   };
 
   // Yedek İndirme
@@ -1116,6 +1242,109 @@ export default function SettingsTab({
                     />
                   </div>
                 </div>
+              </div>
+
+              {/* CÜMLE TAMAMLAYICI SES KAYDI (SUFFIX SES) */}
+              <div className="pt-4 border-t border-stone-150 space-y-3">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <span className="w-9 h-9 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center text-sm shrink-0">
+                      <i className="fa-solid fa-microphone-lines"></i>
+                    </span>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h4 className="text-xs sm:text-sm font-extrabold text-stone-900">
+                          Cümle Tamamlayıcı Ses Kaydı (Bitiş Eki)
+                        </h4>
+                        <span className="text-[10px] font-extrabold bg-purple-50 text-purple-700 border border-purple-200 px-2 py-0.5 rounded-full">
+                          Ürün Sesinden 1 sn Sonra Çalar
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-stone-500 mt-0.5">
+                        Ürün ses kayıtlarının sonuna ortak bir bitiş ekler (Örn: <em>&quot;1 Adet Tavuk Burger&quot;</em> sesinden 1 saniye sonra <em>&quot;siparişi alındı&quot;</em> ses kaydını oynatır).
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Butonlar: Cihazdan Yükle */}
+                  <div className="flex items-center gap-2 shrink-0">
+                    <input
+                      ref={suffixFileInputRef}
+                      type="file"
+                      accept="audio/*,.mp3,.wav,.ogg,.m4a"
+                      onChange={handleSuffixFileSelect}
+                      className="hidden"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => suffixFileInputRef.current?.click()}
+                      className="bg-purple-600 hover:bg-purple-700 text-white font-bold px-3 py-1.5 rounded-xl text-xs flex items-center gap-1.5 cursor-pointer shadow-2xs transition-colors"
+                    >
+                      <i className="fa-solid fa-cloud-arrow-up text-[11px]"></i>
+                      <span>{suffixAudioUrl ? 'Sesi Değiştir' : 'Ses Yükle (.mp3 / .wav)'}</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Yüklü Ses Önizleme & Aksiyonlar */}
+                {suffixAudioUrl ? (
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 bg-purple-50/60 border border-purple-200/80 rounded-xl">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <span className="w-7 h-7 rounded-lg bg-purple-600 text-white flex items-center justify-center text-xs shrink-0">
+                        <i className="fa-solid fa-check"></i>
+                      </span>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-bold text-purple-950 truncate">
+                            {suffixAudioName || 'Cümle Tamamlayıcı Ses Kaydı'}
+                          </span>
+                          <span className="text-[10px] bg-white border border-purple-200 text-purple-700 font-bold px-1.5 py-0.5 rounded">
+                            Aktif
+                          </span>
+                        </div>
+                        <span className="text-[10px] text-purple-700/80 block truncate">
+                          Tekli siparişlerde menü ürün sesi bittikten 1 saniye sonra otomatik oynatılır.
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <button
+                        type="button"
+                        onClick={handlePlaySuffixTest}
+                        className="bg-white hover:bg-purple-100 text-purple-900 border border-purple-200 px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-2xs transition-colors"
+                        title="Bitiş Sesini Dinle"
+                      >
+                        <i className={`fa-solid ${isPlayingSuffixPreview ? 'fa-spinner animate-spin text-purple-600' : 'fa-play text-purple-600 text-[10px]'}`}></i>
+                        <span>{isPlayingSuffixPreview ? 'Çalıyor...' : 'Dinle'}</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={handleRemoveSuffixAudio}
+                        className="bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 px-2.5 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1 cursor-pointer transition-colors"
+                        title="Kaydı Kaldır"
+                      >
+                        <i className="fa-solid fa-trash-can text-[10px]"></i>
+                        <span>Kaldır</span>
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="p-2.5 bg-stone-50 border border-dashed border-stone-200 rounded-xl text-xs text-stone-500 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <i className="fa-solid fa-circle-info text-stone-400"></i>
+                      <span>Henüz tamamlama sesi yüklenmedi. Yüklediğinizde tüm ürün seslerinin ardından 1 sn sonra eklenecektir.</span>
+                    </div>
+                  </div>
+                )}
+
+                {suffixUploadError && (
+                  <p className="text-xs font-semibold text-rose-600 flex items-center gap-1.5">
+                    <i className="fa-solid fa-circle-exclamation"></i>
+                    <span>{suffixUploadError}</span>
+                  </p>
+                )}
               </div>
             </div>
           )}
