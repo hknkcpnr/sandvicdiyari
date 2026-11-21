@@ -1413,6 +1413,58 @@ export default function SettingsTab({
                   })}
                 </div>
 
+                {/* Sistem Mesajları Otomatik Silinme Süresi */}
+                <div className="pt-3 border-t border-stone-150 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-1.5">
+                      <i className="fa-solid fa-clock-rotate-left text-xs text-indigo-600"></i>
+                      <span className="text-xs font-extrabold text-stone-900">
+                        Sistem Mesajları Silinme Süresi
+                      </span>
+                    </div>
+                    <span className="text-[10px] font-extrabold text-indigo-700 bg-indigo-50 border border-indigo-200 px-2 py-0.5 rounded-full">
+                      {Number(custNotifSettings.autoDeleteMinutes ?? 3) === 0
+                        ? 'Süresiz / Kalıcı'
+                        : `${Number(custNotifSettings.autoDeleteMinutes ?? 3)} Dakika Sonra`}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-stone-500">
+                    Müşteri sayfasındaki bildirimler bu süre geçince otomatik silinir / kaybolur.
+                  </p>
+
+                  <div className="grid grid-cols-3 sm:grid-cols-6 gap-1.5">
+                    {[
+                      { val: 1, label: '1 Dk' },
+                      { val: 3, label: '3 Dk' },
+                      { val: 5, label: '5 Dk' },
+                      { val: 10, label: '10 Dk' },
+                      { val: 30, label: '30 Dk' },
+                      { val: 0, label: 'Kalıcı' }
+                    ].map((opt) => {
+                      const currentVal = Number(
+                        typeof custNotifSettings.autoDeleteMinutes !== 'undefined'
+                          ? custNotifSettings.autoDeleteMinutes
+                          : 3
+                      );
+                      const isSelected = currentVal === opt.val;
+                      return (
+                        <button
+                          key={opt.val}
+                          type="button"
+                          onClick={() => handleCustNotifChange('autoDeleteMinutes', opt.val)}
+                          className={`py-1.5 px-2 rounded-xl text-xs font-bold transition-all cursor-pointer border text-center ${
+                            isSelected
+                              ? 'bg-stone-900 text-white border-stone-900 shadow-2xs'
+                              : 'bg-white hover:bg-stone-50 border-stone-200 text-stone-700'
+                          }`}
+                        >
+                          {opt.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
                 {/* Üst Duyuru Bandı Kompakt Form */}
                 <div className="pt-3 border-t border-stone-100 space-y-2.5">
                   <div className="flex items-center justify-between">

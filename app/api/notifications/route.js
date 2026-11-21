@@ -258,11 +258,30 @@ export async function GET(request) {
       ...broadcastNotifications
     ].sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
 
+    // Sistem mesajları müşteri sayfasında belirlenen dakika (varsayılan 3 dk) sonra otomatik kaybolur / silinir
+    const autoDeleteMinutes =
+      typeof settings.autoDeleteMinutes === 'number' && settings.autoDeleteMinutes >= 0
+        ? settings.autoDeleteMinutes
+        : 3;
+
+    let finalNotifications = combined;
+    if (autoDeleteMinutes > 0) {
+      const cutoffTime = Date.now() - autoDeleteMinutes * 60 * 1000;
+      finalNotifications = combined.filter((n) => {
+        const itemTs = new Date(n.createdAt || 0).getTime();
+        if (Number.isNaN(itemTs) || itemTs <= 0) return true;
+        return itemTs >= cutoffTime;
+      });
+    }
+
     return NextResponse.json({
       success: true,
       data: {
-        settings,
-        notifications: combined.slice(0, 40)
+        settings: {
+          ...settings,
+          autoDeleteMinutes
+        },
+        notifications: finalNotifications.slice(0, 40)
       }
     });
   } catch (error) {
@@ -316,6 +335,12 @@ export async function POST(request) {
           typeof s.orderStatusNotifications === 'boolean'
             ? s.orderStatusNotifications
             : current.orderStatusNotifications,
+        autoDeleteMinutes:
+          typeof s.autoDeleteMinutes === 'number'
+            ? Math.min(1440, Math.max(0, s.autoDeleteMinutes))
+            : typeof current.autoDeleteMinutes === 'number'
+            ? current.autoDeleteMinutes
+            : 3,
         broadcasts: Array.isArray(s.broadcasts) ? s.broadcasts : current.broadcasts,
         customSounds: Array.isArray(s.customSounds)
           ? s.customSounds

@@ -218,14 +218,26 @@ export default function CustomerNotificationBell() {
         }
 
         if (brandNew && nextSettings.enabled !== false && nextSettings.toastEnabled !== false) {
-          setActiveToast(brandNew);
-          if (nextSettings.soundEnabled !== false) {
-            playGentleCustomerChime();
+          const maxAgeMs = (typeof nextSettings.autoDeleteMinutes === 'number' ? nextSettings.autoDeleteMinutes : 3) * 60 * 1000;
+          const brandNewAgeMs = Date.now() - new Date(brandNew.createdAt || 0).getTime();
+          // Süresi dolmuş eski bildirimler için anlık toast veya ses çalınmaz
+          if ((nextSettings.autoDeleteMinutes ?? 3) <= 0 || brandNewAgeMs < maxAgeMs) {
+            setActiveToast(brandNew);
+            if (nextSettings.soundEnabled !== false) {
+              playGentleCustomerChime();
+            }
           }
         }
       }
     } catch (e) {}
   }, [currentUser?.email, currentUser?.id]);
+
+  // Canlı sayaç (her 5 saniyede bir tetiklenerek 3 dk süresi dolan mesajları müşteri ekranında anında kaldırır)
+  const [tick, setTick] = useState(0);
+  useEffect(() => {
+    const timer = setInterval(() => setTick((t) => (t + 1) % 1000), 5000);
+    return () => clearInterval(timer);
+  }, []);
 
   useEffect(() => {
     fetchNotifications();
@@ -259,6 +271,20 @@ export default function CustomerNotificationBell() {
     return () => clearTimeout(t);
   }, [activeToast]);
 
+  const autoDeleteMins = typeof settings.autoDeleteMinutes === 'number' ? settings.autoDeleteMinutes : 3;
+
+  // Sistem mesajları belirlenen dakika (varsayılan 3 dk) sonra otomatik temizlenir
+  const validNotifications = useMemo(() => {
+    if (!Array.isArray(notifications)) return [];
+    if (!autoDeleteMins || autoDeleteMins <= 0) return notifications;
+    const cutoff = Date.now() - autoDeleteMins * 60 * 1000;
+    return notifications.filter((n) => {
+      const ts = new Date(n.createdAt || 0).getTime();
+      if (Number.isNaN(ts) || ts <= 0) return true;
+      return ts >= cutoff;
+    });
+  }, [notifications, autoDeleteMins, tick]);
+
   const isUnread = useCallback(
     (n) => {
       if (seenIds.includes(n.id)) return false;
@@ -269,24 +295,24 @@ export default function CustomerNotificationBell() {
   );
 
   const unreadCount = useMemo(
-    () => (Array.isArray(notifications) ? notifications.filter((n) => isUnread(n)).length : 0),
-    [notifications, isUnread]
+    () => (Array.isArray(validNotifications) ? validNotifications.filter((n) => isUnread(n)).length : 0),
+    [validNotifications, isUnread]
   );
 
   const filteredList = useMemo(() => {
-    if (!Array.isArray(notifications)) return [];
+    if (!Array.isArray(validNotifications)) return [];
     if (filterTab === 'personal') {
-      return notifications.filter((n) => n?.scope === 'personal' || n?.scope === 'order');
+      return validNotifications.filter((n) => n?.scope === 'personal' || n?.scope === 'order');
     }
     if (filterTab === 'campaign') {
-      return notifications.filter((n) => n?.scope === 'broadcast');
+      return validNotifications.filter((n) => n?.scope === 'broadcast');
     }
-    return notifications;
-  }, [notifications, filterTab]);
+    return validNotifications;
+  }, [validNotifications, filterTab]);
 
   const handleMarkAllRead = async () => {
     const safeSeen = Array.isArray(seenIds) ? seenIds : [];
-    const safeNotifs = Array.isArray(notifications) ? notifications : [];
+    const safeNotifs = Array.isArray(validNotifications) ? validNotifications : [];
     const allIds = Array.from(new Set([...safeSeen, ...safeNotifs.map((n) => n?.id).filter(Boolean)]));
     persistSeenIds(allIds);
     setNotifications((prev) => (Array.isArray(prev) ? prev.map((n) => ({ ...n, read: true })) : []));
