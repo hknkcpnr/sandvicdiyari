@@ -69,10 +69,10 @@ const SETTINGS_PAGES = {
   system: {
     id: 'system',
     title: 'Sistem, Depolama & Veri Yedekleme',
-    badge: 'Depolama & JSON Yedek',
-    badgeColor: 'bg-rose-50 text-rose-800 border-rose-200',
+    badge: 'Excel & Depolama Yedeği',
+    badgeColor: 'bg-emerald-50 text-emerald-800 border-emerald-200',
     icon: 'fa-solid fa-hard-drive',
-    desc: 'Sistemin diskte kapladığı toplam alan (GB / MB), veritabanı boyutu, yüklenen medya ve tam sistem yedeklemesi.',
+    desc: 'Sistemin diskte kapladığı alan, çok sayfalı Excel (.xlsx) yedeği ve tam sistem arşivlemesi.',
   },
   api: {
     id: 'api',
@@ -805,27 +805,42 @@ export default function SettingsTab({
     }
   };
 
-  // Yedek İndirme
-  const handleDownloadBackup = async () => {
+  // Yedek İndirme (Excel .xlsx & JSON)
+  const [downloadingFormat, setDownloadingFormat] = useState(null); // 'excel' | 'json' | null
+
+  const handleDownloadBackup = async (format = 'excel') => {
+    setDownloadingFormat(format);
     try {
-      const res = await fetch('/api/admin/users');
-      const json = await res.json();
-      const backupData = {
-        exportedAt: new Date().toISOString(),
-        settings,
-        systemData: json.data || {},
-      };
-      const blob = new Blob([JSON.stringify(backupData, null, 2)], { type: 'application/json' });
+      const res = await fetch(`/api/admin/backup?format=${format}`, { cache: 'no-store' });
+      if (!res.ok) {
+        throw new Error(`Sunucu yedekleme dosyasını oluşturamadı (HTTP ${res.status})`);
+      }
+
+      const blob = await res.blob();
+      const ext = format === 'excel' ? 'xlsx' : 'json';
+      const fileName = `Sandvic_Diyari_Sistem_Yedek_${new Date().toISOString().slice(0, 10)}.${ext}`;
+
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `Sandvic_Diyari_Sistem_Yedek_${new Date().toISOString().slice(0, 10)}.json`;
+      a.download = fileName;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
+
+      if (showToast) {
+        showToast(
+          format === 'excel'
+            ? 'Detaylı Excel (.xlsx) sistem yedeği başarıyla indirildi! 📊'
+            : 'JSON veritabanı yedeği başarıyla indirildi! 💾',
+          'success'
+        );
+      }
     } catch (err) {
-      alert('Yedek dosyası oluşturulamadı: ' + err.message);
+      alert('Yedek dosyası indirilemedi: ' + err.message);
+    } finally {
+      setDownloadingFormat(null);
     }
   };
 
@@ -2131,33 +2146,79 @@ export default function SettingsTab({
             </div>
           </div>
 
-          {/* VERİ TABANI & SİSTEM YEDEĞİ İNDİRME */}
+          {/* VERİ TABANI & SİSTEM YEDEĞİ İNDİRME (EXCEL & JSON) */}
           <div className="bg-white p-4 sm:p-6 rounded-2xl border border-stone-200 shadow-xs space-y-4">
-            <div>
-              <h3 className="text-sm font-bold text-stone-900 flex items-center gap-2">
-                <i className="fa-solid fa-cloud-arrow-down text-emerald-600"></i>
-                Veri Tabanı &amp; Sistem Yedeği Al
-              </h3>
-              <p className="text-xs text-stone-500 mt-0.5">
-                Menü ürünleri, roller, yetkiler ve güncel panel yapılandırmasını tek tıkla JSON formatında bilgisayarınıza yedekleyin.
-              </p>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-stone-100 pb-3">
+              <div>
+                <h3 className="text-sm font-extrabold text-stone-900 flex items-center gap-2">
+                  <i className="fa-solid fa-cloud-arrow-down text-emerald-600"></i>
+                  <span>Veri Tabanı &amp; Sistem Yedeği Al (Excel / JSON)</span>
+                </h3>
+                <p className="text-xs text-stone-500 mt-0.5">
+                  Tüm siparişleri, menü ürünlerini, müşteri ve personel listelerini Excel (.xlsx) veya teknik JSON formatında güvenle bilgisayarınıza indirin.
+                </p>
+              </div>
+              <span className="text-[10px] font-extrabold px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 self-start sm:self-center">
+                Excel .xlsx Destekli
+              </span>
             </div>
 
-            <div className="p-4 rounded-xl bg-stone-50 border border-stone-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <div>
-                <span className="font-bold text-xs text-stone-900 block">Tam Sistem Yedek Dosyası (.json)</span>
-                <span className="text-[11px] text-stone-500 block">
-                  Tüm ayar ve veritabanı kayıtlarını içerir.
-                </span>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+              {/* KART 1: EXCEL YEDEĞİ (ÖNCELİKLİ & DETAYLI) */}
+              <div className="p-4 sm:p-5 rounded-2xl bg-emerald-50/50 border-2 border-emerald-200 flex flex-col justify-between gap-4 transition-all hover:border-emerald-300 shadow-2xs">
+                <div className="space-y-1.5">
+                  <div className="flex items-center gap-2">
+                    <span className="w-8 h-8 rounded-xl bg-emerald-600 text-white flex items-center justify-center text-sm font-bold shadow-2xs">
+                      <i className="fa-solid fa-file-excel"></i>
+                    </span>
+                    <div>
+                      <span className="font-extrabold text-sm text-emerald-950 block">Detaylı Excel Yedeği (.xlsx)</span>
+                      <span className="text-[10px] font-bold text-emerald-700 block">Önerilen &bull; Çok Sayfalı Çalışma Kitabı</span>
+                    </div>
+                  </div>
+                  <p className="text-xs text-stone-600 leading-relaxed pt-1">
+                    Siparişler, ürünler, kayıtlı müşteriler, stok malzemeleri, kasa hareketleri ve yorumları ayrı sekmeler halinde içeren profesyonel Excel tablosu.
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => handleDownloadBackup('excel')}
+                  disabled={downloadingFormat !== null}
+                  className="w-full bg-emerald-600 hover:bg-emerald-700 active:scale-98 disabled:opacity-50 text-white text-xs font-black py-2.5 px-4 rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer shadow-md shadow-emerald-600/20"
+                >
+                  <i className={`fa-solid ${downloadingFormat === 'excel' ? 'fa-spinner animate-spin' : 'fa-file-excel'}`}></i>
+                  <span>{downloadingFormat === 'excel' ? 'Excel Hazırlanıyor...' : 'Excel Yedeğini İndir (.xlsx)'}</span>
+                </button>
               </div>
-              <button
-                type="button"
-                onClick={handleDownloadBackup}
-                className="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-4 py-2.5 rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer shadow-xs active:scale-95 shrink-0"
-              >
-                <i className="fa-solid fa-download"></i>
-                <span>Yedek İndir (.json)</span>
-              </button>
+
+              {/* KART 2: TEKNİK JSON YEDEĞİ */}
+              <div className="p-4 sm:p-5 rounded-2xl bg-stone-50 border border-stone-200 flex flex-col justify-between gap-4 transition-all hover:border-stone-300 shadow-2xs">
+                <div className="space-y-1.5">
+                  <div className="flex items-center gap-2">
+                    <span className="w-8 h-8 rounded-xl bg-stone-800 text-white flex items-center justify-center text-sm font-bold shadow-2xs">
+                      <i className="fa-solid fa-code"></i>
+                    </span>
+                    <div>
+                      <span className="font-extrabold text-sm text-stone-900 block">Teknik Veri Tabanı Yedeği (.json)</span>
+                      <span className="text-[10px] font-bold text-stone-500 block">Yazılım Geri Yükleme &amp; Arşiv</span>
+                    </div>
+                  </div>
+                  <p className="text-xs text-stone-600 leading-relaxed pt-1">
+                    Veritabanı tablolarının ve panel yapılandırma ayarlarının ham JSON dökümünü içerir. İleri düzey teknik yedekleme için uygundur.
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => handleDownloadBackup('json')}
+                  disabled={downloadingFormat !== null}
+                  className="w-full bg-stone-900 hover:bg-black active:scale-98 disabled:opacity-50 text-white text-xs font-bold py-2.5 px-4 rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer shadow-xs"
+                >
+                  <i className={`fa-solid ${downloadingFormat === 'json' ? 'fa-spinner animate-spin' : 'fa-download'}`}></i>
+                  <span>{downloadingFormat === 'json' ? 'JSON Hazırlanıyor...' : 'JSON Yedeğini İndir (.json)'}</span>
+                </button>
+              </div>
             </div>
           </div>
 
