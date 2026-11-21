@@ -34,6 +34,7 @@ import TrackOrderModal from '@/components/modals/TrackOrderModal';
 import LiveOrderTracker from '@/components/LiveOrderTracker';
 import FloatingCartBar from '@/components/FloatingCartBar';
 import DraggableContactButton from '@/components/DraggableContactButton';
+import FloatingTrackOrderButton from '@/components/FloatingTrackOrderButton';
 
 export default function Home() {
   const dispatch = useDispatch();
@@ -261,6 +262,7 @@ export default function Home() {
       <MessageModal />
       <LiveOrderTracker />
       <FloatingCartBar />
+      <FloatingTrackOrderButton />
       {!currentUser && <DraggableContactButton />}
     </div>
   );

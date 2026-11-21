@@ -153,17 +153,6 @@ export default function Navbar() {
 
           {/* Sağ Bölüm (Bildirimler, Sepet ve Kullanıcı) */}
           <div className="flex items-center gap-1.5 sm:gap-2.5 lg:gap-3 shrink-0">
-            {/* Sipariş Takibi Butonu (Masaüstü - Yalnızca geniş ekranda orta menüyü sıkıştırmayacak şekilde) */}
-            <button
-              type="button"
-              onClick={() => dispatch(openTrackOrderModal())}
-              className="hidden xl:flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold text-stone-700 bg-stone-100/90 hover:bg-amber-50 hover:text-amber-900 border border-stone-200 transition-colors cursor-pointer shrink-0 whitespace-nowrap"
-              title="Sipariş No ve Telefon ile Sorgula"
-            >
-              <i className="fa-solid fa-location-crosshairs text-amber-600"></i>
-              <span>Sipariş Takibi</span>
-            </button>
-
             {/* Müşteri Bildirim Merkezi Zili */}
             <CustomerNotificationBell />
 
