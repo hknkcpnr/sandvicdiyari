@@ -10,6 +10,11 @@ import {
   assertNoSqlInjection,
   sanitizeText
 } from '@/lib/security/validation';
+import {
+  getCachedProducts,
+  setCachedProducts,
+  invalidateProductCache
+} from '@/lib/productCache';
 
 export async function GET(request) {
   try {
@@ -20,10 +25,22 @@ export async function GET(request) {
       assertNoSqlInjection(category, 'category', '/api/products');
     }
 
+    const cacheKey = category || 'all';
+    const cached = getCachedProducts(cacheKey);
+    if (cached) {
+      return jsonSuccess({
+        count: cached.length,
+        data: cached,
+        cached: true
+      });
+    }
+
     const products = await prisma.product.findMany({
       where: category ? { category } : undefined,
       orderBy: { id: 'asc' }
     });
+
+    setCachedProducts(cacheKey, products);
 
     return jsonSuccess({
       count: products.length,
@@ -112,6 +129,8 @@ export async function POST(request) {
         ingredients: cleanOptions
       }
     });
+
+    invalidateProductCache();
 
     return jsonSuccess(
       {

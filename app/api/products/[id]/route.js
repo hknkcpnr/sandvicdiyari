@@ -8,6 +8,7 @@ import {
   parseJsonBody
 } from '@/lib/security/errors';
 import { sanitizeText } from '@/lib/security/validation';
+import { invalidateProductCache } from '@/lib/productCache';
 
 export async function GET(request, { params }) {
   try {
@@ -98,6 +99,8 @@ export async function PUT(request, { params }) {
       throw new NotFoundError('Güncellenecek ürün bulunamadı.');
     }
 
+    invalidateProductCache();
+
     return jsonSuccess({
       message: 'Ürün bilgileri başarıyla güncellendi.',
       data: updated
@@ -114,6 +117,8 @@ export async function DELETE(request, { params }) {
     const id = sanitizeText(resolvedParams.id, 64, 'id', '/api/products/[id]');
 
     await prisma.product.delete({ where: { id } });
+
+    invalidateProductCache();
 
     return jsonSuccess({
       message: 'Ürün menüden kaldırıldı.'

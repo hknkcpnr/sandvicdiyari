@@ -209,22 +209,28 @@ export default function Home() {
     };
 
     const handleWindowFocus = () => {
+      if (typeof document !== 'undefined' && document.hidden) return;
       loadProducts();
       verifyCurrentSession();
     };
 
     window.addEventListener('storage', handleStorageChange);
     window.addEventListener('focus', handleWindowFocus);
+    window.addEventListener('visibilitychange', handleWindowFocus);
 
-    // Periodic lightweight sync every 3 seconds for instant reaction
+    // Akıllı ve kaynak tasarruflu senkronizasyon:
+    // Sadece sekme aktif ve görünür durumdayken 45 saniyede bir arka plan doğrulaması yapar
     const pollInterval = setInterval(() => {
-      loadProducts();
-      verifyCurrentSession();
-    }, 3000);
+      if (typeof document !== 'undefined' && !document.hidden) {
+        loadProducts();
+        verifyCurrentSession();
+      }
+    }, 45000);
 
     return () => {
       window.removeEventListener('storage', handleStorageChange);
       window.removeEventListener('focus', handleWindowFocus);
+      window.removeEventListener('visibilitychange', handleWindowFocus);
       clearInterval(pollInterval);
     };
   }, [dispatch]);

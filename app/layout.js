@@ -39,6 +39,7 @@ export default function RootLayout({ children }) {
   return (
     <html lang="tr">
       <head>
+        {/* Hızlı DNS ve font ön-bağlantısı (FCP & CLS optimizasyonu) */}
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link
@@ -48,9 +49,11 @@ export default function RootLayout({ children }) {
         <link
           rel="stylesheet"
           href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+          crossOrigin="anonymous"
+          referrerPolicy="no-referrer"
         />
       </head>
-      <body className="bg-stone-50 text-stone-800 antialiased selection:bg-brand-500 selection:text-white min-h-screen flex flex-col">
+      <body className="bg-stone-50 text-stone-800 antialiased selection:bg-brand-500 selection:text-white min-h-screen flex flex-col font-sans">
         <ReduxProvider>
           {children}
         </ReduxProvider>

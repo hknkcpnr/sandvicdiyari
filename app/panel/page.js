@@ -819,24 +819,36 @@ export default function AdminDashboardPage() {
         }
       };
 
-      const handleFocus = () => fetchOrders();
+      const handleFocus = () => {
+        if (typeof document !== 'undefined' && document.hidden) return;
+        fetchOrders();
+      };
       window.addEventListener('storage', handleStorageChange);
       window.addEventListener('focus', handleFocus);
+      window.addEventListener('visibilitychange', handleFocus);
 
-      // Müşteri siparişlerini restoran hızında (5 saniyede bir) kontrol et
+      // Restoran hızında sipariş kontrolü: Sekme açıkken 6 saniye, arka plandayken 15 saniyede bir
+      let pollCounter = 0;
       const ordersPollTimer = setInterval(() => {
-        fetchOrders();
+        pollCounter++;
+        const isHidden = typeof document !== 'undefined' && document.hidden;
+        if (!isHidden || pollCounter % 3 === 0) {
+          fetchOrders();
+        }
       }, 5000);
 
-      // İnceleme ve geri bildirimleri kontrol et
+      // İnceleme ve geri bildirimleri kontrol et (arka planda değilken)
       const otherPollTimer = setInterval(() => {
-        fetchReviews();
-        fetchFeedbacks();
-      }, 20000);
+        if (typeof document === 'undefined' || !document.hidden) {
+          fetchReviews();
+          fetchFeedbacks();
+        }
+      }, 30000);
 
       return () => {
         window.removeEventListener('storage', handleStorageChange);
         window.removeEventListener('focus', handleFocus);
+        window.removeEventListener('visibilitychange', handleFocus);
         clearInterval(ordersPollTimer);
         clearInterval(otherPollTimer);
       };
