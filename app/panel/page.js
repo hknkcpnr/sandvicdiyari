@@ -7,7 +7,7 @@ import { showMessageModal, setReviews, updateReviewStatus, removeReview } from '
 import MessageModal from '@/components/modals/MessageModal';
 import OverviewDashboard from '@/components/admin/OverviewDashboard';
 import InventoryTab from '@/components/admin/InventoryTab';
-import KitchenPosBell, { playKitchenBellSound } from '@/components/admin/KitchenPosBell';
+import KitchenPosBell, { playKitchenBellSound, speakProductPreview } from '@/components/admin/KitchenPosBell';
 import UsersRolesTab from '@/components/admin/UsersRolesTab';
 import MysqlOrmTab from '@/components/admin/MysqlOrmTab';
 import BlurredAmount from '@/components/admin/BlurredAmount';
@@ -356,11 +356,38 @@ export default function AdminDashboardPage() {
   const [prodStock, setProdStock] = useState('25');
   const [prodIsAvailable, setProdIsAvailable] = useState(true);
   const [prodImageUrl, setProdImageUrl] = useState('/images/hero_banner.jpg');
+  const [prodAudioUrl, setProdAudioUrl] = useState('');
+  const [prodAudioFileName, setProdAudioFileName] = useState('');
   const [selectedFileName, setSelectedFileName] = useState('');
   const [imageInputMode, setImageInputMode] = useState('upload'); // 'upload' | 'presets' | 'url'
   const [dragActive, setDragActive] = useState(false);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const fileInputRef = useRef(null);
+  const prodAudioInputRef = useRef(null);
+
+  const handleProductAudioSelect = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('audio/') && !/\.(mp3|wav|ogg|m4a|aac)$/i.test(file.name)) {
+      showToast('Lütfen geçerli bir ses dosyası (.mp3, .wav, .ogg) seçin.', 'error');
+      return;
+    }
+    if (file.size > 3.5 * 1024 * 1024) {
+      showToast('Ses dosyası en fazla 3.5 MB olabilir.', 'error');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      const dataUrl = String(reader.result || '');
+      if (dataUrl.startsWith('data:')) {
+        setProdAudioUrl(dataUrl);
+        setProdAudioFileName(file.name);
+        speakProductPreview(prodName || file.name, dataUrl, 0.9);
+        showToast(`"${file.name}" ürün sesi olarak eklendi! 🔊`, 'success');
+      }
+    };
+    reader.readAsDataURL(file);
+  };
 
   const COMMON_INGREDIENT_TAGS = [
     'Sosis',
@@ -929,6 +956,8 @@ export default function AdminDashboardPage() {
     setIngredientInput('');
     setProdBadge('Yeni Çıktı');
     setProdImageUrl('/images/hero_banner.jpg');
+    setProdAudioUrl('');
+    setProdAudioFileName('');
     setSelectedFileName('');
     setImageInputMode('upload');
     setEditingProduct(null);
@@ -961,6 +990,8 @@ export default function AdminDashboardPage() {
     setIngredientInput('');
     setProdBadge(product.badge || '');
     setProdImageUrl(product.image || '/images/hero_banner.jpg');
+    setProdAudioUrl(product.audioUrl || '');
+    setProdAudioFileName(product.audioUrl ? 'Özel Ürün Sesi' : '');
     setSelectedFileName(product.image?.startsWith('/uploads/') ? 'Yüklenmiş Dosya' : '');
     setImageInputMode(product.image?.startsWith('http') ? 'url' : 'upload');
     setIsAddProductOpen(true);
@@ -1098,6 +1129,7 @@ export default function AdminDashboardPage() {
       ingredients: finalIngredients,
       badge: prodBadge.trim(),
       image: prodImageUrl || '/images/hero_banner.jpg',
+      audioUrl: prodAudioUrl || '',
     };
 
     if (editingProduct) {
@@ -1915,6 +1947,7 @@ export default function AdminDashboardPage() {
         {/* KITCHEN LOUD CONTINUOUS POS BELL & EMERGENCY VISUAL ALERT */}
         <KitchenPosBell
           orders={orders}
+          products={products}
           onOpenOrderDetail={handleOpenDetail}
           onAcceptOrder={(id) => handleProgressStatus(id, 'Hazırlanıyor')}
         />
@@ -2769,6 +2802,19 @@ export default function AdminDashboardPage() {
                             {p.badge}
                           </span>
                         )}
+                        <button
+                          type="button"
+                          onClick={() => speakProductPreview(p.name, p.audioUrl)}
+                          className={`text-[10px] font-bold px-2 py-0.5 rounded-md border flex items-center gap-1 cursor-pointer transition-colors ${
+                            p.audioUrl
+                              ? 'bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100'
+                              : 'bg-stone-100 text-stone-600 border-stone-200 hover:bg-stone-200'
+                          }`}
+                          title={p.audioUrl ? 'Özel ürün sesini dinle' : 'Otomatik Türkçe sesli anonsu dinle'}
+                        >
+                          <i className="fa-solid fa-volume-high text-[9px]"></i>
+                          <span>{p.audioUrl ? 'Özel Ses' : 'Sesli Oku'}</span>
+                        </button>
                       </div>
                       <span className="text-[11px] text-stone-400 capitalize block truncate mt-0.5">
                         {p.category === 'menu' ? '🍱 Menülü Satış' : '🥪 Bireysel Satış'} &bull;{' '}
@@ -4004,6 +4050,64 @@ export default function AdminDashboardPage() {
                           </button>
                         );
                       })}
+                    </div>
+                  </div>
+
+                  {/* ÜRÜNE ÖZEL SİPARİŞ SESİ & OTOMATİK İSİM OKUMA */}
+                  <div className="bg-white p-3 rounded-xl border border-stone-200/90 space-y-2">
+                    <div className="flex items-center justify-between gap-2">
+                      <div>
+                        <span className="text-[11px] font-bold text-stone-800 uppercase tracking-wide flex items-center gap-1.5">
+                          <i className="fa-solid fa-volume-high text-indigo-600"></i>
+                          <span>Sipariş Sesli Anons &amp; Ürüne Özel Ses</span>
+                        </span>
+                        <span className="text-[10px] text-stone-400 block">
+                          {prodAudioUrl
+                            ? `Özel ses yüklendi (${prodAudioFileName || 'Aktif'})`
+                            : 'Özel ses yüklenmezse sipariş geldiğinde ürünün ismi otomatik Türkçe okunur'}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <input
+                          ref={prodAudioInputRef}
+                          type="file"
+                          accept="audio/*,.mp3,.wav,.ogg,.m4a"
+                          onChange={handleProductAudioSelect}
+                          className="hidden"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => speakProductPreview(prodName || 'Örnek Menü', prodAudioUrl)}
+                          className="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 px-2.5 py-1.5 rounded-lg text-[11px] font-bold flex items-center gap-1 cursor-pointer transition-colors"
+                          title="Sipariş geldiğinde çıkacak sesi dinle"
+                        >
+                          <i className="fa-solid fa-play text-[9px]"></i>
+                          <span>Dinle</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => prodAudioInputRef.current?.click()}
+                          className="bg-stone-900 hover:bg-black text-white px-2.5 py-1.5 rounded-lg text-[11px] font-bold flex items-center gap-1 cursor-pointer transition-colors"
+                          title="Bu ürün için özel ses dosyası (.mp3, .wav) yükle"
+                        >
+                          <i className="fa-solid fa-upload text-[9px] text-amber-400"></i>
+                          <span>{prodAudioUrl ? 'Sesi Değiştir' : 'Özel Ses Yükle'}</span>
+                        </button>
+                        {prodAudioUrl && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setProdAudioUrl('');
+                              setProdAudioFileName('');
+                            }}
+                            className="bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 p-1.5 rounded-lg text-[11px] cursor-pointer"
+                            title="Özel Sesi Kaldır (Otomatik Türkçe Okumaya Dön)"
+                          >
+                            <i className="fa-solid fa-trash-can"></i>
+                          </button>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>

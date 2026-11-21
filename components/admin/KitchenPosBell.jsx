@@ -5,6 +5,107 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 let activeCustomAudio = null;
 let activeAudioCtx = null;
 
+// Speak product name in Turkish or play its custom audio file
+export function speakProductPreview(productName = '', audioUrl = '', volume = 0.9) {
+  try {
+    const safeVolume = Math.min(1, Math.max(0.1, Number(volume) || 0.9));
+    if (activeCustomAudio) {
+      try {
+        activeCustomAudio.pause();
+        activeCustomAudio.currentTime = 0;
+      } catch {}
+      activeCustomAudio = null;
+    }
+    if (typeof window !== 'undefined' && window.speechSynthesis) {
+      window.speechSynthesis.cancel();
+    }
+
+    if (audioUrl && typeof audioUrl === 'string' && audioUrl.trim()) {
+      const audio = new Audio(audioUrl.trim());
+      audio.volume = safeVolume;
+      activeCustomAudio = audio;
+      audio.play().catch(() => {});
+      return;
+    }
+
+    if (typeof window !== 'undefined' && window.speechSynthesis) {
+      const cleanName = String(productName || 'Yeni Menü').trim();
+      const utterance = new SpeechSynthesisUtterance(`Yeni sipariş: 1 adet ${cleanName}`);
+      utterance.lang = 'tr-TR';
+      utterance.rate = 1.0;
+      utterance.volume = safeVolume;
+      const voices = window.speechSynthesis.getVoices?.() || [];
+      const trVoice = voices.find((v) => v.lang && v.lang.toLowerCase().startsWith('tr'));
+      if (trVoice) utterance.voice = trVoice;
+      window.speechSynthesis.speak(utterance);
+    }
+  } catch (e) {
+    console.warn('Product voice preview error:', e);
+  }
+}
+
+// Announce an incoming order's product names (plays product custom audio if set, plus Turkish TTS readout)
+export function announceOrderItems(order, productsList = [], volume = 0.9) {
+  if (!order || typeof window === 'undefined') return;
+  try {
+    const safeVolume = Math.min(1, Math.max(0.1, Number(volume) || 0.9));
+    const rawItems = Array.isArray(order.items) ? order.items : [];
+
+    const customProductAudios = [];
+    const speechParts = [];
+
+    for (const item of rawItems) {
+      const qty = Number(item?.quantity || 1);
+      const name = String(item?.name || '').trim();
+      if (!name) continue;
+
+      const matchedProd = Array.isArray(productsList)
+        ? productsList.find(
+            (p) =>
+              (item.id && String(p.id) === String(item.id)) ||
+              String(p.name || '').toLocaleLowerCase('tr-TR') === name.toLocaleLowerCase('tr-TR')
+          )
+        : null;
+
+      if (matchedProd?.audioUrl) {
+        customProductAudios.push(matchedProd.audioUrl);
+      }
+
+      speechParts.push(qty > 1 ? `${qty} adet ${name}` : `1 adet ${name}`);
+    }
+
+    // 1. If any ordered product has a custom audio recording uploaded, play it
+    if (customProductAudios.length > 0) {
+      if (activeCustomAudio) {
+        try {
+          activeCustomAudio.pause();
+        } catch {}
+      }
+      const audio = new Audio(customProductAudios[0]);
+      audio.volume = safeVolume;
+      activeCustomAudio = audio;
+      audio.play().catch(() => {});
+      return;
+    }
+
+    // 2. Otherwise announce the ordered product names in Turkish via Web Speech API
+    if (speechParts.length > 0 && window.speechSynthesis) {
+      window.speechSynthesis.cancel();
+      const textToSpeak = `Yeni sipariş! ${speechParts.join(', ')}`;
+      const utterance = new SpeechSynthesisUtterance(textToSpeak);
+      utterance.lang = 'tr-TR';
+      utterance.rate = 1.0;
+      utterance.volume = safeVolume;
+      const voices = window.speechSynthesis.getVoices?.() || [];
+      const trVoice = voices.find((v) => v.lang && v.lang.toLowerCase().startsWith('tr'));
+      if (trVoice) utterance.voice = trVoice;
+      window.speechSynthesis.speak(utterance);
+    }
+  } catch (e) {
+    console.warn('Order voice announcement error:', e);
+  }
+}
+
 // Web Audio & Custom Audio Kitchen POS Bell Player
 export function playKitchenBellSound(soundType = null, volume = 0.85, customSoundsOpt = null) {
   try {
@@ -170,12 +271,14 @@ export function playKitchenBellSound(soundType = null, volume = 0.85, customSoun
 
 export default function KitchenPosBell({
   orders = [],
+  products = [],
   onOpenOrderDetail,
   onAcceptOrder,
   onAcceptAllNew
 }) {
   // Bell Configuration State (persisted in localStorage)
   const [continuousBellEnabled, setContinuousBellEnabled] = useState(true);
+  const [voiceReadoutEnabled, setVoiceReadoutEnabled] = useState(true);
   const [soundType, setSoundType] = useState('pos_bell'); // 'pos_bell' | 'kitchen_alarm' | 'classic_dingdong' | custom_*
   const [customSounds, setCustomSounds] = useState([]);
   const [volume, setVolume] = useState(0.85);
@@ -290,15 +393,22 @@ export default function KitchenPosBell({
   useEffect(() => {
     const currentIds = new Set(orders.map((o) => o.id));
     if (!initialMountRef.current) {
-      let hasBrandNew = false;
+      let brandNewOrder = null;
       for (const order of newOrders) {
         if (!prevOrderIdsRef.current.has(order.id)) {
-          hasBrandNew = true;
+          brandNewOrder = order;
           break;
         }
       }
-      if (hasBrandNew && snoozeUntil) {
-        setSnoozeUntil(null); // Cancel snooze for new order
+      if (brandNewOrder) {
+        if (snoozeUntil) {
+          setSnoozeUntil(null); // Cancel snooze for new order
+        }
+        if (voiceReadoutEnabled) {
+          setTimeout(() => {
+            announceOrderItems(brandNewOrder, products, volume);
+          }, 900);
+        }
       }
     } else {
       initialMountRef.current = false;
@@ -478,6 +588,18 @@ export default function KitchenPosBell({
               )}
 
               {/* View Oldest Pending Order */}
+              {newOrders[0] && (
+                <button
+                  type="button"
+                  onClick={() => announceOrderItems(newOrders[0], products, volume)}
+                  className="px-2.5 sm:px-3 py-1.5 rounded-xl bg-white/20 hover:bg-white/30 text-white font-bold text-[11px] sm:text-xs transition-all active:scale-95 flex items-center gap-1.5 border border-white/25 cursor-pointer shrink-0"
+                  title="Sipariş edilen ürünlerin ismini sesli oku"
+                >
+                  <i className="fa-solid fa-volume-high text-[11px]"></i>
+                  <span>Sesli Oku</span>
+                </button>
+              )}
+
               {onOpenOrderDetail && newOrders[0] && (
                 <button
                   type="button"

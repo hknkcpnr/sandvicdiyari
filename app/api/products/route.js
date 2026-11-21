@@ -77,6 +77,20 @@ export async function POST(request) {
       .map((t) => (typeof t === 'string' ? sanitizeText(t, 60, 'İçerik Etiketi', '/api/products') : t))
       .filter(Boolean);
 
+    let audioUrl = '';
+    if (typeof body.audioUrl === 'string' && body.audioUrl.trim()) {
+      const rawAudio = body.audioUrl.trim();
+      if (
+        rawAudio.startsWith('data:audio/') ||
+        rawAudio.startsWith('data:application/octet-stream') ||
+        rawAudio.startsWith('http://') ||
+        rawAudio.startsWith('https://') ||
+        rawAudio.startsWith('/')
+      ) {
+        audioUrl = rawAudio.slice(0, 5000000);
+      }
+    }
+
     const newProduct = await prisma.product.create({
       data: {
         name,
@@ -85,6 +99,7 @@ export async function POST(request) {
         category,
         badge,
         image,
+        audioUrl,
         calories,
         prepTime,
         rating: 5.0,

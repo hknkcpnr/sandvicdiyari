@@ -74,6 +74,19 @@ export async function PUT(request, { params }) {
       sanitizedUpdates.options = cleanTags;
       sanitizedUpdates.ingredients = cleanTags;
     }
+    if (typeof body.audioUrl === 'string') {
+      const rawAudio = body.audioUrl.trim();
+      if (
+        !rawAudio ||
+        rawAudio.startsWith('data:audio/') ||
+        rawAudio.startsWith('data:application/octet-stream') ||
+        rawAudio.startsWith('http://') ||
+        rawAudio.startsWith('https://') ||
+        rawAudio.startsWith('/')
+      ) {
+        sanitizedUpdates.audioUrl = rawAudio.slice(0, 5000000);
+      }
+    }
 
     const updated = await prisma.product.update({
       where: { id },

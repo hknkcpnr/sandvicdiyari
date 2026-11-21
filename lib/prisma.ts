@@ -185,7 +185,11 @@ export const prisma = {
             isAvailable: typeof d.isAvailable === 'boolean' ? d.isAvailable : true,
             criticalThreshold: Number(d.criticalThreshold ?? 5),
             options: (d.options as Prisma.InputJsonValue) ?? [],
-            recipe: (d.recipe as Prisma.InputJsonValue) ?? []
+            recipe: (
+              typeof d.audioUrl === 'string' && d.audioUrl.trim()
+                ? [{ type: 'product_audio', audioUrl: d.audioUrl.trim() }]
+                : (d.recipe as Prisma.InputJsonValue) ?? []
+            ) as Prisma.InputJsonValue
           }
         });
         orm.executePrepared('Product', 'INSERT', 'prisma.product.create($1)', [d.name], () => created.id);
@@ -222,6 +226,13 @@ export const prisma = {
           updateData.options = args.data.options as Prisma.InputJsonValue;
         } else if (Array.isArray(args.data.ingredients)) {
           updateData.options = args.data.ingredients as Prisma.InputJsonValue;
+        }
+        if (typeof args.data.audioUrl === 'string') {
+          updateData.recipe = (
+            args.data.audioUrl.trim()
+              ? [{ type: 'product_audio', audioUrl: args.data.audioUrl.trim() }]
+              : []
+          ) as Prisma.InputJsonValue;
         }
 
         const updated = await rawPrisma.product.update({
