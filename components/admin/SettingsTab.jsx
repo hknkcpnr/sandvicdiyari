@@ -117,16 +117,21 @@ export default function SettingsTab({
 
   useEffect(() => {
     try {
+      const savedInt = localStorage.getItem('sd_bell_interval');
+      const parsedLocalInt = savedInt !== null && savedInt !== '' ? parseInt(savedInt, 10) : null;
+
       const savedCustom = localStorage.getItem('sd_custom_bell_sounds');
-      if (savedCustom) {
-        const parsed = JSON.parse(savedCustom);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          setSettings((prev) => ({
-            ...prev,
-            customSounds: Array.isArray(prev.customSounds) && prev.customSounds.length > 0 ? prev.customSounds : parsed
-          }));
-        }
-      }
+      const parsedCustom = savedCustom ? JSON.parse(savedCustom) : null;
+
+      setSettings((prev) => ({
+        ...prev,
+        ...(Array.isArray(parsedCustom) && parsedCustom.length > 0 && (!Array.isArray(prev.customSounds) || prev.customSounds.length === 0)
+          ? { customSounds: parsedCustom }
+          : {}),
+        ...(parsedLocalInt !== null && !Number.isNaN(parsedLocalInt) && parsedLocalInt >= 0
+          ? { autoRefreshInterval: parsedLocalInt }
+          : {})
+      }));
     } catch {}
 
     fetch('/api/notifications?includePosSounds=1', { cache: 'no-store' })
@@ -135,21 +140,31 @@ export default function SettingsTab({
         if (j?.success && j?.data?.settings) {
           setCustNotifSettings(j.data.settings);
           const remoteInt = j.data.settings.posSoundInterval;
+          const localIntRaw = typeof window !== 'undefined' ? localStorage.getItem('sd_bell_interval') : null;
+          const localInt = localIntRaw !== null && localIntRaw !== '' ? parseInt(localIntRaw, 10) : null;
+          const effectiveInt =
+            typeof remoteInt === 'number' && remoteInt >= 0
+              ? remoteInt
+              : localInt !== null && !Number.isNaN(localInt)
+              ? localInt
+              : 60;
+
           setSettings((prev) => ({
             ...prev,
             ...(Array.isArray(j.data.settings.customSounds) && j.data.settings.customSounds.length > 0
               ? { customSounds: j.data.settings.customSounds }
               : {}),
             ...(j.data.settings.posSoundType ? { soundType: j.data.settings.posSoundType } : {}),
-            ...(typeof remoteInt === 'number' ? { autoRefreshInterval: remoteInt } : {})
+            ...(typeof j.data.settings.posSoundVolume === 'number'
+              ? { soundVolume: j.data.settings.posSoundVolume }
+              : {}),
+            autoRefreshInterval: effectiveInt
           }));
           try {
             if (Array.isArray(j.data.settings.customSounds) && j.data.settings.customSounds.length > 0) {
               localStorage.setItem('sd_custom_bell_sounds', JSON.stringify(j.data.settings.customSounds));
             }
-            if (typeof remoteInt === 'number') {
-              localStorage.setItem('sd_bell_interval', String(remoteInt));
-            }
+            localStorage.setItem('sd_bell_interval', String(effectiveInt));
           } catch {}
         }
       })
@@ -233,10 +248,20 @@ export default function SettingsTab({
 
   useEffect(() => {
     if (currentSettings) {
+      const savedInt = typeof window !== 'undefined' ? localStorage.getItem('sd_bell_interval') : null;
+      const parsedLocalInt = savedInt !== null && savedInt !== '' ? parseInt(savedInt, 10) : null;
       setSettings((prev) => ({
         ...DEFAULT_ADMIN_SETTINGS,
         ...prev,
         ...currentSettings,
+        autoRefreshInterval:
+          parsedLocalInt !== null && !Number.isNaN(parsedLocalInt)
+            ? parsedLocalInt
+            : typeof prev.autoRefreshInterval === 'number'
+            ? prev.autoRefreshInterval
+            : typeof currentSettings.autoRefreshInterval === 'number'
+            ? currentSettings.autoRefreshInterval
+            : 60,
         customSounds:
           Array.isArray(currentSettings.customSounds) && currentSettings.customSounds.length > 0
             ? currentSettings.customSounds
@@ -250,22 +275,25 @@ export default function SettingsTab({
     nextCustomSounds,
     nextSoundType,
     nextVolume = settings.soundVolume || 80,
-    nextInterval = typeof settings.autoRefreshInterval === 'number' ? settings.autoRefreshInterval : 30
+    nextInterval = typeof settings.autoRefreshInterval === 'number' ? settings.autoRefreshInterval : 60,
+    includeHeavyAudioInPost = false
   ) => {
+    const cleanInterval = Number.isFinite(Number(nextInterval)) ? Number(nextInterval) : 60;
+    const cleanVolume = Number.isFinite(Number(nextVolume)) ? Number(nextVolume) : 80;
     const nextSettingsObj = {
       ...settings,
       customSounds: nextCustomSounds,
       soundType: nextSoundType,
-      soundVolume: nextVolume,
-      autoRefreshInterval: nextInterval
+      soundVolume: cleanVolume,
+      autoRefreshInterval: cleanInterval
     };
     setSettings(nextSettingsObj);
     setCustNotifSettings((prev) => ({
       ...prev,
       customSounds: nextCustomSounds,
       posSoundType: nextSoundType,
-      posSoundVolume: nextVolume,
-      posSoundInterval: nextInterval
+      posSoundVolume: cleanVolume,
+      posSoundInterval: cleanInterval
     }));
 
     if (typeof window !== 'undefined') {
@@ -273,22 +301,24 @@ export default function SettingsTab({
       // 1. Always write lightweight keys first so QuotaExceededError never blocks sd_bell_sound or sd_bell_interval!
       try {
         localStorage.setItem('sd_bell_sound', nextSoundType);
-        localStorage.setItem('sd_bell_volume', String(Number(nextVolume) / 100));
-        localStorage.setItem('sd_bell_interval', String(nextInterval));
+        localStorage.setItem('sd_bell_volume', String(cleanVolume / 100));
+        localStorage.setItem('sd_bell_interval', String(cleanInterval));
         const { customSounds: _omitHeavyAudio, ...liteAdminSettings } = nextSettingsObj;
         localStorage.setItem('sandwich_admin_settings', JSON.stringify(liteAdminSettings));
       } catch {}
 
       // 2. Write customSounds array; if 5MB localStorage quota is exceeded, store only the active/newest sound in localStorage
-      try {
-        localStorage.setItem('sd_custom_bell_sounds', JSON.stringify(nextCustomSounds));
-      } catch {
+      if (includeHeavyAudioInPost) {
         try {
-          const activeOnly = nextCustomSounds.filter((s) => s.id === nextSoundType);
-          const fallbackSlice = activeOnly.length > 0 ? activeOnly : nextCustomSounds.slice(-1);
-          localStorage.removeItem('sd_custom_bell_sounds');
-          localStorage.setItem('sd_custom_bell_sounds', JSON.stringify(fallbackSlice));
-        } catch {}
+          localStorage.setItem('sd_custom_bell_sounds', JSON.stringify(nextCustomSounds));
+        } catch {
+          try {
+            const activeOnly = nextCustomSounds.filter((s) => s.id === nextSoundType);
+            const fallbackSlice = activeOnly.length > 0 ? activeOnly : nextCustomSounds.slice(-1);
+            localStorage.removeItem('sd_custom_bell_sounds');
+            localStorage.setItem('sd_custom_bell_sounds', JSON.stringify(fallbackSlice));
+          } catch {}
+        }
       }
     }
 
@@ -298,23 +328,31 @@ export default function SettingsTab({
     }
 
     try {
+      // Only send heavy base64 customSounds when adding/deleting a sound file so Vercel 4.5MB body limit never blocks interval/volume updates!
+      const { customSounds: _omitFromCust, ...liteCustNotif } = custNotifSettings;
+      const postSettingsPayload = {
+        ...liteCustNotif,
+        posSoundType: nextSoundType,
+        posSoundVolume: cleanVolume,
+        posSoundInterval: cleanInterval,
+        ...(includeHeavyAudioInPost ? { customSounds: nextCustomSounds.slice(-2) } : {})
+      };
+
       const res = await fetch('/api/notifications', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           action: 'save_settings',
-          settings: {
-            ...custNotifSettings,
-            customSounds: nextCustomSounds,
-            posSoundType: nextSoundType,
-            posSoundVolume: nextVolume,
-            posSoundInterval: nextInterval
-          }
+          settings: postSettingsPayload
         })
       });
       const json = await res.json();
       if (json?.success && json?.data?.settings) {
-        setCustNotifSettings(json.data.settings);
+        setCustNotifSettings((prev) => ({
+          ...prev,
+          ...json.data.settings,
+          posSoundInterval: cleanInterval
+        }));
         try {
           localStorage.setItem('sd_pos_bell_updated', String(Date.now()));
         } catch {}
@@ -439,7 +477,13 @@ export default function SettingsTab({
         setNewSoundFileName('');
         if (audioFileInputRef.current) audioFileInputRef.current.value = '';
 
-        syncSoundSettingsEverywhere(nextList, newSound.id);
+        syncSoundSettingsEverywhere(
+          nextList,
+          newSound.id,
+          settings.soundVolume || 80,
+          typeof settings.autoRefreshInterval === 'number' ? settings.autoRefreshInterval : 60,
+          true
+        );
         handlePlaySoundTest(newSound.id, nextList);
         if (showToast) {
           showToast(`"${autoLabel}" bildirim sesi olarak eklendi ve aktif edildi! 🔊`, 'success');
@@ -479,7 +523,13 @@ export default function SettingsTab({
     setNewSoundFileName('');
     if (audioFileInputRef.current) audioFileInputRef.current.value = '';
 
-    syncSoundSettingsEverywhere(nextList, newSound.id);
+    syncSoundSettingsEverywhere(
+      nextList,
+      newSound.id,
+      settings.soundVolume || 80,
+      typeof settings.autoRefreshInterval === 'number' ? settings.autoRefreshInterval : 60,
+      true
+    );
     handlePlaySoundTest(newSound.id, nextList);
   };
 
@@ -495,7 +545,13 @@ export default function SettingsTab({
           : 'chime'
         : settings.soundType;
 
-    syncSoundSettingsEverywhere(nextList, nextSoundType);
+    syncSoundSettingsEverywhere(
+      nextList,
+      nextSoundType,
+      settings.soundVolume || 80,
+      typeof settings.autoRefreshInterval === 'number' ? settings.autoRefreshInterval : 60,
+      true
+    );
   };
 
   // Yedek İndirme
@@ -1269,19 +1325,57 @@ export default function SettingsTab({
                 max="100"
                 step="5"
                 value={settings.soundVolume || 80}
-                onChange={(e) => handleChange('soundVolume', Number(e.target.value))}
+                onChange={(e) => {
+                  const nextVol = Number(e.target.value);
+                  handleChange('soundVolume', nextVol);
+                  try {
+                    localStorage.setItem('sd_bell_volume', String(nextVol / 100));
+                  } catch {}
+                }}
+                onMouseUp={(e) => {
+                  const nextVol = Number(e.currentTarget.value);
+                  const customList = Array.isArray(settings.customSounds) ? settings.customSounds : [];
+                  const activeSoundType =
+                    customList.length > 0 && (!settings.soundType || settings.soundType === 'chime')
+                      ? customList[customList.length - 1].id
+                      : settings.soundType || 'chime';
+                  syncSoundSettingsEverywhere(
+                    customList,
+                    activeSoundType,
+                    nextVol,
+                    Number(settings.autoRefreshInterval ?? 60),
+                    false
+                  );
+                }}
+                onTouchEnd={(e) => {
+                  const nextVol = Number(e.currentTarget.value);
+                  const customList = Array.isArray(settings.customSounds) ? settings.customSounds : [];
+                  const activeSoundType =
+                    customList.length > 0 && (!settings.soundType || settings.soundType === 'chime')
+                      ? customList[customList.length - 1].id
+                      : settings.soundType || 'chime';
+                  syncSoundSettingsEverywhere(
+                    customList,
+                    activeSoundType,
+                    nextVol,
+                    Number(settings.autoRefreshInterval ?? 60),
+                    false
+                  );
+                }}
                 className="w-full accent-brand-600 cursor-pointer"
               />
             </div>
 
             {/* Bildirim Sesi Tekrarlama Aralığı */}
-            <div className="space-y-2 pt-3 border-t border-stone-100">
-              <div className="flex items-center justify-between flex-wrap gap-1">
+            <div className="space-y-2.5 pt-3 border-t border-stone-100">
+              <div className="flex items-center justify-between flex-wrap gap-2">
                 <label className="text-xs font-bold text-stone-800 block">
                   Bildirim Sesi Tekrarlama Aralığı (Sipariş Onaylanana Kadar)
                 </label>
-                <span className="text-[11px] text-stone-400">
-                  Seçtiğiniz süre boyunca bekleyen sipariş sesi tekrar çalar
+                <span className="text-[11px] font-extrabold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-full">
+                  {Number(settings.autoRefreshInterval ?? 60) === 0
+                    ? 'Aktif: Tek Sefer Çal (Tekrarlama Yok)'
+                    : `Aktif Aralık: ${Number(settings.autoRefreshInterval ?? 60)} Saniyede Bir`}
                 </span>
               </div>
               <div className="flex flex-wrap items-center gap-2">
@@ -1291,41 +1385,49 @@ export default function SettingsTab({
                   { val: 30, label: '30 Saniyede Bir' },
                   { val: 60, label: '60 Saniyede Bir' },
                   { val: 0, label: 'Tek Sefer Çal (Tekrarlama)' },
-                ].map((item) => (
-                  <button
-                    key={item.val}
-                    type="button"
-                    onClick={() => {
-                      handleChange('autoRefreshInterval', item.val);
-                      const customList = Array.isArray(settings.customSounds) ? settings.customSounds : [];
-                      const activeSoundType =
-                        customList.length > 0 && (!settings.soundType || settings.soundType === 'chime')
-                          ? customList[customList.length - 1].id
-                          : settings.soundType || 'chime';
-                      syncSoundSettingsEverywhere(
-                        customList,
-                        activeSoundType,
-                        settings.soundVolume || 80,
-                        item.val
-                      );
-                      if (showToast) {
-                        showToast(
-                          item.val > 0
-                            ? `Bildirim sesi aralığı ${item.val} saniye olarak kaydedildi!`
-                            : 'Bildirim sesi yalnızca ilk geldiğinde 1 kez çalacak şekilde ayarlandı!',
-                          'success'
+                ].map((item) => {
+                  const currentInterval = Number(
+                    typeof settings.autoRefreshInterval !== 'undefined' ? settings.autoRefreshInterval : 60
+                  );
+                  const isSelected = currentInterval === item.val;
+                  return (
+                    <button
+                      key={item.val}
+                      type="button"
+                      onClick={() => {
+                        handleChange('autoRefreshInterval', item.val);
+                        const customList = Array.isArray(settings.customSounds) ? settings.customSounds : [];
+                        const activeSoundType =
+                          customList.length > 0 && (!settings.soundType || settings.soundType === 'chime')
+                            ? customList[customList.length - 1].id
+                            : settings.soundType || 'chime';
+                        syncSoundSettingsEverywhere(
+                          customList,
+                          activeSoundType,
+                          settings.soundVolume || 80,
+                          item.val,
+                          false
                         );
-                      }
-                    }}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-all cursor-pointer ${
-                      settings.autoRefreshInterval === item.val
-                        ? 'bg-stone-900 text-white font-bold'
-                        : 'bg-stone-100 text-stone-600 hover:bg-stone-200'
-                    }`}
-                  >
-                    {item.label}
-                  </button>
-                ))}
+                        if (showToast) {
+                          showToast(
+                            item.val > 0
+                              ? `Bildirim sesi aralığı ${item.val} saniyede bir olarak ayarlandı!`
+                              : 'Bildirim sesi yalnızca 1 kez çalacak şekilde ayarlandı!',
+                            'success'
+                          );
+                        }
+                      }}
+                      className={`px-3.5 py-2 rounded-xl text-xs transition-all cursor-pointer border ${
+                        isSelected
+                          ? 'bg-stone-900 text-white font-bold border-stone-900 shadow-xs ring-2 ring-stone-900/15'
+                          : 'bg-stone-100 text-stone-700 border-stone-200 hover:bg-stone-200 font-medium'
+                      }`}
+                    >
+                      {isSelected && <i className="fa-solid fa-check mr-1.5 text-amber-400"></i>}
+                      {item.label}
+                    </button>
+                  );
+                })}
               </div>
             </div>
           </div>

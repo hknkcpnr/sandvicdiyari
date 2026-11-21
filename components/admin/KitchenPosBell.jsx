@@ -118,6 +118,13 @@ function playSequentialProductAudios(audioUrls = [], volume = 0.9) {
       audio.volume = safeVolume;
       activeCustomAudio = audio;
       audio.onended = () => {
+        if (typeof window !== 'undefined') {
+          const endTs = Date.now();
+          window.__sdLastOrderAudioPlayedAt = endTs;
+          try {
+            localStorage.setItem('sd_last_order_sound_at', String(endTs));
+          } catch {}
+        }
         if (index < audioUrls.length) {
           playNext();
         }
@@ -250,6 +257,15 @@ export function playKitchenBellSound(soundType = null, volume = 0.85, customSoun
       const audio = new Audio(directAudioUrl);
       audio.volume = safeVolume;
       activeCustomAudio = audio;
+      audio.onended = () => {
+        if (typeof window !== 'undefined') {
+          const endTs = Date.now();
+          window.__sdLastOrderAudioPlayedAt = endTs;
+          try {
+            localStorage.setItem('sd_last_order_sound_at', String(endTs));
+          } catch {}
+        }
+      };
       audio.play().catch((err) => {
         console.warn('Custom audio playback error:', err);
       });
@@ -627,6 +643,16 @@ export default function KitchenPosBell({
   useEffect(() => {
     const checkTimer = setInterval(() => {
       if (!isRingingRef.current) return;
+
+      // While an audio clip or speech synthesis is still actively playing, reset the countdown timestamp so the interval starts AFTER playback finishes!
+      const isPlayingAudio =
+        (activeCustomAudio && !activeCustomAudio.paused && !activeCustomAudio.ended) ||
+        (typeof window !== 'undefined' && Boolean(window.speechSynthesis?.speaking));
+      if (isPlayingAudio) {
+        recordPlayedTimestamp();
+        return;
+      }
+
       const intervalSec = typeof repeatIntervalRef.current === 'number' ? repeatIntervalRef.current : 60;
       if (intervalSec <= 0) return; // 0 = Tek Sefer Çal (no periodic repeat)
 
