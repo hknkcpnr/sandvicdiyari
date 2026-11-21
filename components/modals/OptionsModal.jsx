@@ -221,11 +221,11 @@ export default function OptionsModal() {
       onClick={(e) => {
         if (e.target === e.currentTarget) dispatch(closeOptionsModal());
       }}
-      className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-stone-900/65 backdrop-blur-xs animate-in fade-in duration-200"
+      className="fixed inset-0 z-50 flex items-start sm:items-center justify-center p-2 sm:p-4 bg-stone-900/65 backdrop-blur-xs overflow-y-auto animate-in fade-in duration-200"
     >
-      <div className="bg-white rounded-3xl max-w-[680px] w-full shadow-2xl overflow-hidden flex flex-col">
-        {/* Üst Ürün Özeti: Solda Büyük Görsel, Sağda Başlık & Fiyat */}
-        <div className="flex items-center gap-3.5 sm:gap-4 p-3.5 sm:px-5 sm:py-4 bg-gradient-to-br from-stone-50/90 to-white border-b border-stone-200/70 text-left">
+      <div className="bg-white rounded-2xl sm:rounded-3xl max-w-[680px] w-full shadow-2xl my-auto sm:my-6 flex flex-col max-h-[94vh] sm:max-h-[90vh] overflow-hidden border border-stone-200/80">
+        {/* Üst Ürün Özeti: Solda Büyük Görsel, Sağda Başlık & Fiyat (Sabit Üst Bar) */}
+        <div className="shrink-0 flex items-center gap-3.5 sm:gap-4 p-3.5 sm:px-5 sm:py-4 bg-gradient-to-br from-stone-50/95 to-white border-b border-stone-200/80 text-left z-10">
           <div className="relative w-24 h-24 sm:w-36 sm:h-28 rounded-2xl overflow-hidden bg-stone-100 border border-stone-200/80 shadow-xs shrink-0">
             <img
               id="opt-modal-img"
@@ -290,8 +290,8 @@ export default function OptionsModal() {
           </div>
         </div>
 
-        {/* Tek Ekrana Sığan Düzenli Seçenekler Alanı (Scrollsuz) */}
-        <div className="p-3.5 sm:p-4 space-y-2.5 text-left">
+        {/* Kaydırılabilir Seçenekler Alanı (Mobilde & Masaüstünde Akıcı Scroll) */}
+        <div className="flex-1 overflow-y-auto overscroll-contain p-3.5 sm:p-5 space-y-3 text-left touch-pan-y">
           {/* 1 & 2. Ürün İçeriği ve Sos Seçimleri Yan Yana */}
           <div
             className={`grid grid-cols-1 ${
@@ -517,28 +517,28 @@ export default function OptionsModal() {
               />
             </div>
           </div>
+        </div>
 
-          {/* Alt Sepete Ekle Butonu */}
-          <div className="pt-1">
-            {selectedProductForOptions.isAvailable !== false ? (
-              <button
-                type="button"
-                onClick={handleConfirm}
-                className="w-full bg-brand-500 hover:bg-brand-600 text-white font-black py-3 rounded-2xl shadow-lg shadow-brand-500/25 text-sm transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-95"
-              >
-                <i className="fa-solid fa-bag-shopping"></i>
-                <span>Sepete Ekle &bull; ₺{currentTotalPrice.toFixed(2)}</span>
-              </button>
-            ) : (
-              <button
-                type="button"
-                disabled
-                className="w-full bg-stone-300 text-stone-600 font-bold py-3 rounded-2xl text-sm flex items-center justify-center gap-2 cursor-not-allowed opacity-80"
-              >
-                <i className="fa-solid fa-ban text-rose-500"></i> Bu Ürün Tükendi
-              </button>
-            )}
-          </div>
+        {/* Sabit Alt Bar (Sepete Ekle Butonu - Mobilde Her Zaman Görünür & Tıklanabilir) */}
+        <div className="shrink-0 p-3 sm:px-5 sm:py-3.5 bg-white border-t border-stone-200/80 rounded-b-2xl sm:rounded-b-3xl shadow-[0_-4px_16px_rgba(0,0,0,0.06)] z-10">
+          {selectedProductForOptions.isAvailable !== false ? (
+            <button
+              type="button"
+              onClick={handleConfirm}
+              className="w-full bg-brand-500 hover:bg-brand-600 text-white font-black py-3 sm:py-3.5 rounded-2xl shadow-lg shadow-brand-500/25 text-sm sm:text-base transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-98"
+            >
+              <i className="fa-solid fa-bag-shopping"></i>
+              <span>Sepete Ekle &bull; ₺{currentTotalPrice.toFixed(2)}</span>
+            </button>
+          ) : (
+            <button
+              type="button"
+              disabled
+              className="w-full bg-stone-300 text-stone-600 font-bold py-3 sm:py-3.5 rounded-2xl text-sm flex items-center justify-center gap-2 cursor-not-allowed opacity-80"
+            >
+              <i className="fa-solid fa-ban text-rose-500"></i> Bu Ürün Tükendi
+            </button>
+          )}
         </div>
       </div>
     </div>

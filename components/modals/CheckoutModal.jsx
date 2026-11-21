@@ -48,9 +48,9 @@ export default function CheckoutModal() {
     return (
       <div
         id="checkout-modal"
-        className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-stone-900/60 backdrop-blur-sm"
+        className="fixed inset-0 z-50 flex items-start sm:items-center justify-center p-3 sm:p-6 bg-stone-900/60 backdrop-blur-sm overflow-y-auto"
       >
-        <div className="bg-white rounded-3xl max-w-lg w-full p-7 sm:p-9 shadow-2xl relative text-center space-y-5 animate-in fade-in zoom-in-95 duration-200">
+        <div className="bg-white rounded-2xl sm:rounded-3xl max-w-lg w-full p-6 sm:p-8 shadow-2xl relative text-center space-y-5 my-auto max-h-[92vh] overflow-y-auto overscroll-contain animate-in fade-in zoom-in-95 duration-200">
           <div className="w-16 h-16 bg-amber-100 text-amber-600 rounded-2xl flex items-center justify-center text-3xl mx-auto border border-amber-200 shadow-inner">
             <i className="fa-solid fa-bag-shopping"></i>
           </div>
@@ -274,9 +274,9 @@ export default function CheckoutModal() {
   return (
     <div
       id="checkout-modal"
-      className="fixed inset-0 z-50 flex items-center justify-center p-2.5 sm:p-4 bg-stone-900/60 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-start sm:items-center justify-center p-2.5 sm:p-4 bg-stone-900/60 backdrop-blur-sm overflow-y-auto"
     >
-      <div className="bg-white rounded-3xl max-w-4xl w-full p-4 sm:p-6 shadow-2xl relative space-y-3.5 animate-in fade-in zoom-in-95 duration-200 my-auto max-h-[95vh] overflow-y-auto no-scrollbar">
+      <div className="bg-white rounded-2xl sm:rounded-3xl max-w-4xl w-full p-4 sm:p-6 shadow-2xl relative space-y-3.5 animate-in fade-in zoom-in-95 duration-200 my-auto sm:my-6 max-h-[94vh] sm:max-h-[92vh] overflow-y-auto overscroll-contain">
         <div className="flex items-center justify-between border-b border-stone-100 pb-3">
           <div className="flex items-center gap-3.5">
             <div className="w-12 h-12 bg-brand-50 text-brand-600 rounded-2xl flex items-center justify-center text-xl shadow-inner border border-brand-200 shrink-0">
