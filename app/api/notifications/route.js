@@ -305,7 +305,25 @@ export async function POST(request) {
           typeof s.orderStatusNotifications === 'boolean'
             ? s.orderStatusNotifications
             : current.orderStatusNotifications,
-        broadcasts: Array.isArray(s.broadcasts) ? s.broadcasts : current.broadcasts
+        broadcasts: Array.isArray(s.broadcasts) ? s.broadcasts : current.broadcasts,
+        customSounds: Array.isArray(s.customSounds)
+          ? s.customSounds
+              .filter((cs) => cs && typeof cs.audioUrl === 'string' && cs.audioUrl.trim())
+              .map((cs) => ({
+                id: String(cs.id || `custom_${Date.now()}`).slice(0, 64),
+                label: sanitizeText(cs.label || 'Özel Bildirim Sesi', 80, 'Ses Adı', '/api/notifications'),
+                desc: sanitizeText(cs.desc || 'Özel Bildirim Sesi', 120, 'Ses Açıklaması', '/api/notifications'),
+                audioUrl: String(cs.audioUrl).trim().slice(0, 4000000)
+              }))
+          : current.customSounds || [],
+        posSoundType:
+          typeof s.posSoundType === 'string'
+            ? sanitizeText(s.posSoundType, 64, 'posSoundType', '/api/notifications')
+            : current.posSoundType || 'chime',
+        posSoundVolume:
+          typeof s.posSoundVolume === 'number'
+            ? Math.min(100, Math.max(10, s.posSoundVolume))
+            : current.posSoundVolume || 80
       });
 
       return NextResponse.json({

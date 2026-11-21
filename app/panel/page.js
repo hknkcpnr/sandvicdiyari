@@ -7,7 +7,7 @@ import { showMessageModal, setReviews, updateReviewStatus, removeReview } from '
 import MessageModal from '@/components/modals/MessageModal';
 import OverviewDashboard from '@/components/admin/OverviewDashboard';
 import InventoryTab from '@/components/admin/InventoryTab';
-import KitchenPosBell from '@/components/admin/KitchenPosBell';
+import KitchenPosBell, { playKitchenBellSound } from '@/components/admin/KitchenPosBell';
 import UsersRolesTab from '@/components/admin/UsersRolesTab';
 import MysqlOrmTab from '@/components/admin/MysqlOrmTab';
 import BlurredAmount from '@/components/admin/BlurredAmount';
@@ -487,22 +487,19 @@ export default function AdminDashboardPage() {
     }
   }, []);
 
-  // Web Audio chime for new orders
+  // Web Audio & Custom Audio chime for new orders
   const playSoundAlert = () => {
     if (!soundEnabled) return;
     try {
-      const ctx = new (window.AudioContext || window.webkitAudioContext)();
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(587.33, ctx.currentTime);
-      osc.frequency.setValueAtTime(880, ctx.currentTime + 0.15);
-      gain.gain.setValueAtTime(0.25, ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.5);
-      osc.start(ctx.currentTime);
-      osc.stop(ctx.currentTime + 0.5);
+      const preferredSound =
+        (typeof window !== 'undefined' && localStorage.getItem('sd_bell_sound')) ||
+        adminSettings?.soundType ||
+        'pos_bell';
+      const preferredVol =
+        typeof adminSettings?.soundVolume === 'number'
+          ? adminSettings.soundVolume / 100
+          : 0.85;
+      playKitchenBellSound(preferredSound, preferredVol, adminSettings?.customSounds);
     } catch (e) {}
   };
 

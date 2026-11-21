@@ -2,9 +2,52 @@
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 
-// Web Audio Kitchen POS Bell Synthesizer (pure Web Audio, zero external asset dependencies)
-export function playKitchenBellSound(soundType = 'pos_bell', volume = 0.85) {
+// Web Audio & Custom Audio Kitchen POS Bell Player
+export function playKitchenBellSound(soundType = 'pos_bell', volume = 0.85, customSoundsOpt = null) {
   try {
+    const safeVolume = Math.min(1, Math.max(0.05, Number(volume) || 0.85));
+
+    // Check if soundType is a custom uploaded/URL sound
+    let customList = Array.isArray(customSoundsOpt) ? customSoundsOpt : [];
+    if (customList.length === 0 && typeof window !== 'undefined') {
+      try {
+        const rawCustom = localStorage.getItem('sd_custom_bell_sounds');
+        if (rawCustom) {
+          const parsed = JSON.parse(rawCustom);
+          if (Array.isArray(parsed)) customList = parsed;
+        }
+        if (customList.length === 0) {
+          const rawAdminSettings = localStorage.getItem('sandwich_admin_settings');
+          if (rawAdminSettings) {
+            const parsedSettings = JSON.parse(rawAdminSettings);
+            if (Array.isArray(parsedSettings?.customSounds)) {
+              customList = parsedSettings.customSounds;
+            }
+          }
+        }
+      } catch {}
+    }
+
+    const matchedCustom = customList.find((s) => s && s.id === soundType && s.audioUrl);
+    const directAudioUrl =
+      matchedCustom?.audioUrl ||
+      (typeof soundType === 'string' &&
+      (soundType.startsWith('data:audio/') ||
+        soundType.startsWith('http://') ||
+        soundType.startsWith('https://') ||
+        soundType.startsWith('/'))
+        ? soundType
+        : null);
+
+    if (directAudioUrl) {
+      const audio = new Audio(directAudioUrl);
+      audio.volume = safeVolume;
+      audio.play().catch((err) => {
+        console.warn('Custom audio playback fallback to WebAudio:', err);
+      });
+      return;
+    }
+
     const AudioCtx = window.AudioContext || window.webkitAudioContext;
     if (!AudioCtx) return;
     const ctx = new AudioCtx();
@@ -13,11 +56,10 @@ export function playKitchenBellSound(soundType = 'pos_bell', volume = 0.85) {
     }
 
     const masterGain = ctx.createGain();
-    const safeVolume = Math.min(1, Math.max(0.05, Number(volume) || 0.85));
     masterGain.gain.setValueAtTime(safeVolume, ctx.currentTime);
     masterGain.connect(ctx.destination);
 
-    if (soundType === 'kitchen_alarm') {
+    if (soundType === 'kitchen_alarm' || soundType === 'beep') {
       // Urgent triple alarm beep for high-noise kitchens: beep-beep-beep
       [0, 0.12, 0.24, 0.45, 0.57, 0.69].forEach((timeOffset, idx) => {
         const osc = ctx.createOscillator();
@@ -31,7 +73,7 @@ export function playKitchenBellSound(soundType = 'pos_bell', volume = 0.85) {
         osc.start(ctx.currentTime + timeOffset);
         osc.stop(ctx.currentTime + timeOffset + 0.09);
       });
-    } else if (soundType === 'classic_dingdong') {
+    } else if (soundType === 'classic_dingdong' || soundType === 'bell') {
       // Classic two-tone Ding-Dong
       const osc1 = ctx.createOscillator();
       const g1 = ctx.createGain();
@@ -91,7 +133,8 @@ export default function KitchenPosBell({
 }) {
   // Bell Configuration State (persisted in localStorage)
   const [continuousBellEnabled, setContinuousBellEnabled] = useState(true);
-  const [soundType, setSoundType] = useState('pos_bell'); // 'pos_bell' | 'kitchen_alarm' | 'classic_dingdong'
+  const [soundType, setSoundType] = useState('pos_bell'); // 'pos_bell' | 'kitchen_alarm' | 'classic_dingdong' | custom_*
+  const [customSounds, setCustomSounds] = useState([]);
   const [volume, setVolume] = useState(0.85);
   const [repeatInterval, setRepeatInterval] = useState(8); // seconds
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -118,7 +161,31 @@ export default function KitchenPosBell({
 
       const savedInt = localStorage.getItem('sd_bell_interval');
       if (savedInt) setRepeatInterval(parseInt(savedInt, 10));
+
+      const rawCustom = localStorage.getItem('sd_custom_bell_sounds');
+      if (rawCustom) {
+        const parsed = JSON.parse(rawCustom);
+        if (Array.isArray(parsed)) setCustomSounds(parsed);
+      }
     } catch (e) {}
+
+    fetch('/api/notifications', { cache: 'no-store' })
+      .then((r) => r.json())
+      .then((j) => {
+        if (Array.isArray(j?.data?.settings?.customSounds)) {
+          setCustomSounds(j.data.settings.customSounds);
+          try {
+            localStorage.setItem(
+              'sd_custom_bell_sounds',
+              JSON.stringify(j.data.settings.customSounds)
+            );
+          } catch {}
+        }
+        if (j?.data?.settings?.posSoundType && !localStorage.getItem('sd_bell_sound')) {
+          setSoundType(j.data.settings.posSoundType);
+        }
+      })
+      .catch(() => {});
   }, []);
 
   // Update clock every second for snooze countdown
@@ -469,7 +536,12 @@ export default function KitchenPosBell({
                     id: 'classic_dingdong',
                     title: '🎵 Klasik Ding-Dong',
                     desc: 'Yumuşak tınılı geleneksel resepsiyon zili'
-                  }
+                  },
+                  ...customSounds.map((cs) => ({
+                    id: cs.id,
+                    title: `🎶 ${cs.label || 'Özel Bildirim Sesi'}`,
+                    desc: cs.desc || 'Yönetici tarafından eklenen özel bildirim sesi'
+                  }))
                 ].map((s) => (
                   <button
                     key={s.id}

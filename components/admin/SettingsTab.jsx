@@ -1,9 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import UsersRolesTab from './UsersRolesTab';
 import MysqlOrmTab from './MysqlOrmTab';
 import SiteContentEditorTab from './SiteContentEditorTab';
+import { playKitchenBellSound } from './KitchenPosBell';
 import { DEFAULT_CUSTOMER_NOTIFICATION_SETTINGS } from '@/lib/notificationDefaults';
 import { BANNER_THEMES } from '@/components/CustomerAnnouncementBanner';
 
@@ -11,8 +12,9 @@ export const DEFAULT_ADMIN_SETTINGS = {
   fontSize: 'medium', // 'small' | 'medium' | 'large'
   density: 'comfortable', // 'comfortable' | 'compact'
   soundEnabled: true,
-  soundType: 'chime', // 'chime' | 'bell' | 'beep'
+  soundType: 'chime', // 'chime' | 'bell' | 'beep' | 'custom_*'
   soundVolume: 80, // 0 - 100
+  customSounds: [],
   autoRefreshInterval: 30, // seconds: 15, 30, 60, 0
   storeName: 'Sandviç Diyarı',
   storeAddress: 'Torbalı Mah. Hüseyin Kurtuldu Sok. No:32 Torbalı/İZMİR',
@@ -106,12 +108,42 @@ export default function SettingsTab({
   const [bcastAlsoMembers, setBcastAlsoMembers] = useState(true);
   const [isPublishingBcast, setIsPublishingBcast] = useState(false);
 
+  // Özel Bildirim Sesi Ekleme State'leri
+  const [newSoundLabel, setNewSoundLabel] = useState('');
+  const [newSoundUrl, setNewSoundUrl] = useState('');
+  const [newSoundFileName, setNewSoundFileName] = useState('');
+  const [soundUploadError, setSoundUploadError] = useState('');
+  const audioFileInputRef = useRef(null);
+
   useEffect(() => {
+    try {
+      const savedCustom = localStorage.getItem('sd_custom_bell_sounds');
+      if (savedCustom) {
+        const parsed = JSON.parse(savedCustom);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setSettings((prev) => ({
+            ...prev,
+            customSounds: Array.isArray(prev.customSounds) && prev.customSounds.length > 0 ? prev.customSounds : parsed
+          }));
+        }
+      }
+    } catch {}
+
     fetch('/api/notifications', { cache: 'no-store' })
       .then((r) => r.json())
       .then((j) => {
         if (j?.success && j?.data?.settings) {
           setCustNotifSettings(j.data.settings);
+          if (Array.isArray(j.data.settings.customSounds) && j.data.settings.customSounds.length > 0) {
+            setSettings((prev) => ({
+              ...prev,
+              customSounds: j.data.settings.customSounds,
+              ...(j.data.settings.posSoundType ? { soundType: j.data.settings.posSoundType } : {})
+            }));
+            try {
+              localStorage.setItem('sd_custom_bell_sounds', JSON.stringify(j.data.settings.customSounds));
+            } catch {}
+          }
         }
       })
       .catch(() => {});
@@ -206,9 +238,17 @@ export default function SettingsTab({
 
   // Ayarları Kaydet
   const handleSave = async () => {
+    const customList = Array.isArray(settings.customSounds) ? settings.customSounds : [];
     if (typeof window !== 'undefined') {
       try {
         localStorage.setItem('sandwich_admin_settings', JSON.stringify(settings));
+        localStorage.setItem('sd_custom_bell_sounds', JSON.stringify(customList));
+        if (settings.soundType) {
+          localStorage.setItem('sd_bell_sound', settings.soundType);
+        }
+        if (settings.soundVolume) {
+          localStorage.setItem('sd_bell_volume', String(Number(settings.soundVolume) / 100));
+        }
       } catch (e) {
         console.error('Ayarlar kaydedilemedi:', e);
       }
@@ -225,7 +265,12 @@ export default function SettingsTab({
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             action: 'save_settings',
-            settings: custNotifSettings
+            settings: {
+              ...custNotifSettings,
+              customSounds: customList,
+              posSoundType: settings.soundType,
+              posSoundVolume: settings.soundVolume
+            }
           })
         });
         const json = await res.json();
@@ -246,44 +291,115 @@ export default function SettingsTab({
     setTimeout(() => setSavedSuccess(false), 3000);
   };
 
-  // Ses Testi (Web Audio API)
-  const handlePlaySoundTest = () => {
-    try {
-      const AudioCtx = window.AudioContext || window.webkitAudioContext;
-      if (!AudioCtx) return;
-      const ctx = new AudioCtx();
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      const vol = (settings.soundVolume || 80) / 100;
+  // Ses Testi (Web Audio API & Özel Ses Dosyaları)
+  const handlePlaySoundTest = (overrideSoundId = null, overrideList = null) => {
+    const activeType = overrideSoundId || settings.soundType || 'chime';
+    const list = overrideList || settings.customSounds || [];
+    const vol = (settings.soundVolume || 80) / 100;
+    playKitchenBellSound(activeType, vol, list);
+  };
 
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      gain.gain.value = Math.max(0.01, vol * 0.4);
+  // Cihazdan Ses Dosyası Seçme (.mp3, .wav, .ogg, .m4a)
+  const handleAudioFileSelect = (e) => {
+    setSoundUploadError('');
+    const file = e.target.files?.[0];
+    if (!file) return;
 
-      if (settings.soundType === 'bell') {
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(880, ctx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.9);
-        osc.start();
-        osc.stop(ctx.currentTime + 0.9);
-      } else if (settings.soundType === 'beep') {
-        osc.type = 'triangle';
-        osc.frequency.setValueAtTime(1100, ctx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.35);
-        osc.start();
-        osc.stop(ctx.currentTime + 0.35);
-      } else {
-        // 'chime' (iki tonlu yumuşak çan)
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(587.33, ctx.currentTime); // D5
-        osc.frequency.setValueAtTime(880, ctx.currentTime + 0.12); // A5
-        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.8);
-        osc.start();
-        osc.stop(ctx.currentTime + 0.8);
-      }
-    } catch (e) {
-      console.error('Ses testi çalınamadı:', e);
+    if (!file.type.startsWith('audio/') && !/\.(mp3|wav|ogg|m4a|aac)$/i.test(file.name)) {
+      setSoundUploadError('Lütfen geçerli bir ses dosyası (.mp3, .wav, .ogg, .m4a) seçin.');
+      return;
     }
+
+    if (file.size > 2.5 * 1024 * 1024) {
+      setSoundUploadError('Ses dosyası boyutu en fazla 2.5 MB olabilir.');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      const dataUrl = String(reader.result || '');
+      if (dataUrl.startsWith('data:')) {
+        setNewSoundUrl(dataUrl);
+        setNewSoundFileName(file.name);
+        if (!newSoundLabel.trim()) {
+          setNewSoundLabel(file.name.replace(/\.[^/.]+$/, '').slice(0, 40));
+        }
+      }
+    };
+    reader.onerror = () => {
+      setSoundUploadError('Ses dosyası okunamadı.');
+    };
+    reader.readAsDataURL(file);
+  };
+
+  // Yeni Özel Bildirim Sesi Ekle
+  const handleAddCustomSound = () => {
+    setSoundUploadError('');
+    const label = newSoundLabel.trim() || newSoundFileName.replace(/\.[^/.]+$/, '') || 'Özel Bildirim Sesi';
+    const url = newSoundUrl.trim();
+
+    if (!url) {
+      setSoundUploadError('Lütfen cihazınızdan bir ses dosyası seçin veya geçerli bir ses URL adresi girin.');
+      return;
+    }
+
+    const newSound = {
+      id: `custom_${Date.now()}`,
+      label,
+      desc: newSoundFileName ? `Dosya: ${newSoundFileName}` : 'Özel Ses Bağlantısı',
+      audioUrl: url,
+      createdAt: new Date().toISOString()
+    };
+
+    const currentList = Array.isArray(settings.customSounds) ? settings.customSounds : [];
+    const nextList = [...currentList, newSound];
+
+    setSettings((prev) => ({
+      ...prev,
+      customSounds: nextList,
+      soundType: newSound.id
+    }));
+    setCustNotifSettings((prev) => ({
+      ...prev,
+      customSounds: nextList,
+      posSoundType: newSound.id
+    }));
+
+    try {
+      localStorage.setItem('sd_custom_bell_sounds', JSON.stringify(nextList));
+      localStorage.setItem('sd_bell_sound', newSound.id);
+    } catch {}
+
+    setNewSoundLabel('');
+    setNewSoundUrl('');
+    setNewSoundFileName('');
+    if (audioFileInputRef.current) audioFileInputRef.current.value = '';
+
+    handlePlaySoundTest(newSound.id, nextList);
+  };
+
+  // Özel Bildirim Sesini Sil
+  const handleDeleteCustomSound = (soundId, e) => {
+    if (e) e.stopPropagation();
+    const currentList = Array.isArray(settings.customSounds) ? settings.customSounds : [];
+    const nextList = currentList.filter((s) => s.id !== soundId);
+    const nextSoundType = settings.soundType === soundId ? 'chime' : settings.soundType;
+
+    setSettings((prev) => ({
+      ...prev,
+      customSounds: nextList,
+      soundType: nextSoundType
+    }));
+    setCustNotifSettings((prev) => ({
+      ...prev,
+      customSounds: nextList,
+      posSoundType: nextSoundType
+    }));
+
+    try {
+      localStorage.setItem('sd_custom_bell_sounds', JSON.stringify(nextList));
+      localStorage.setItem('sd_bell_sound', nextSoundType);
+    } catch {}
   };
 
   // Yedek İndirme
@@ -893,30 +1009,140 @@ export default function SettingsTab({
             </div>
 
             {/* Ses Tonu Seçimi */}
-            <div className="space-y-2">
-              <label className="text-xs font-bold text-stone-800 block">Zil Sesi Tipi</label>
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-bold text-stone-800 block">
+                  Zil Sesi Tipi (Varsayılan &amp; Özel Eklenen Sesler)
+                </label>
+                <span className="text-[11px] text-stone-400">
+                  Seçtiğiniz ses yeni sipariş geldiğinde çalar
+                </span>
+              </div>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                 {[
-                  { id: 'chime', label: 'Çift Tonlu Çan', desc: 'Melodik & Yumuşak' },
-                  { id: 'bell', label: 'Klasik Zil', desc: 'Net ve Yüksek Ton' },
-                  { id: 'beep', label: 'Dijital Bip', desc: 'Kısa & Hızlı Uyarı' },
+                  { id: 'chime', label: '🔔 Çift Tonlu Çan', desc: 'Melodik & Yumuşak', isBuiltIn: true },
+                  { id: 'bell', label: '🎵 Klasik Zil', desc: 'Net ve Yüksek Ton', isBuiltIn: true },
+                  { id: 'beep', label: '🚨 Dijital Bip', desc: 'Kısa & Hızlı Uyarı', isBuiltIn: true },
+                  ...(Array.isArray(settings.customSounds) ? settings.customSounds : []),
                 ].map((s) => (
-                  <button
+                  <div
                     key={s.id}
-                    type="button"
                     onClick={() => {
                       handleChange('soundType', s.id);
+                      handlePlaySoundTest(s.id);
                     }}
-                    className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
+                    className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex items-center justify-between gap-2 ${
                       settings.soundType === s.id
-                        ? 'border-brand-600 bg-brand-50/20 font-bold text-stone-900'
+                        ? 'border-brand-600 bg-brand-50/30 font-bold text-stone-900 ring-1 ring-brand-500/30'
                         : 'border-stone-200 hover:border-stone-300 bg-white text-stone-700'
                     }`}
                   >
-                    <span className="text-xs block">{s.label}</span>
-                    <span className="text-[10px] text-stone-400 font-normal block">{s.desc}</span>
-                  </button>
+                    <div className="min-w-0">
+                      <span className="text-xs block truncate">
+                        {s.isBuiltIn ? s.label : `🎶 ${s.label}`}
+                      </span>
+                      <span className="text-[10px] text-stone-400 font-normal block truncate">
+                        {s.desc || 'Özel Bildirim Sesi'}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-1 shrink-0">
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handlePlaySoundTest(s.id);
+                        }}
+                        className="w-7 h-7 rounded-lg bg-stone-100 hover:bg-stone-200 text-stone-700 flex items-center justify-center text-[10px] cursor-pointer"
+                        title="Bu Sesi Dinle"
+                      >
+                        <i className="fa-solid fa-play"></i>
+                      </button>
+                      {!s.isBuiltIn && (
+                        <button
+                          type="button"
+                          onClick={(e) => handleDeleteCustomSound(s.id, e)}
+                          className="w-7 h-7 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 flex items-center justify-center text-[10px] cursor-pointer"
+                          title="Özel Sesi Sil"
+                        >
+                          <i className="fa-solid fa-trash-can"></i>
+                        </button>
+                      )}
+                    </div>
+                  </div>
                 ))}
+              </div>
+
+              {/* KULLANICI ÖZEL BİLDİRİM SESİ EKLEME ALANI */}
+              <div className="bg-stone-50/90 border border-stone-200/90 rounded-2xl p-3.5 sm:p-4 space-y-3 mt-2">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div>
+                    <span className="text-xs font-extrabold text-stone-800 flex items-center gap-1.5">
+                      <i className="fa-solid fa-file-audio text-brand-600"></i>
+                      <span>Kendi Bildirim Sesini Ekle (.mp3, .wav, .ogg veya URL)</span>
+                    </span>
+                    <p className="text-[11px] text-stone-500 mt-0.5">
+                      Bilgisayarınızdan veya telefonunuzdan özel zil/alarm sesi yükleyip sipariş bildirimi olarak kullanabilirsiniz.
+                    </p>
+                  </div>
+
+                  <input
+                    ref={audioFileInputRef}
+                    type="file"
+                    accept="audio/*,.mp3,.wav,.ogg,.m4a"
+                    onChange={handleAudioFileSelect}
+                    className="hidden"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => audioFileInputRef.current?.click()}
+                    className="bg-white hover:bg-stone-100 text-stone-800 border border-stone-300 font-bold px-3 py-1.5 rounded-xl text-xs flex items-center gap-1.5 cursor-pointer shadow-2xs transition-colors"
+                  >
+                    <i className="fa-solid fa-upload text-brand-600"></i>
+                    <span>{newSoundFileName ? `Seçildi: ${newSoundFileName}` : 'Cihazdan Ses Dosyası Seç'}</span>
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-12 gap-2.5">
+                  <div className="sm:col-span-4">
+                    <input
+                      type="text"
+                      value={newSoundLabel}
+                      onChange={(e) => setNewSoundLabel(e.target.value)}
+                      placeholder="Ses Adı (Örn: Mutfak Zili 1)"
+                      className="w-full bg-white border border-stone-200 rounded-xl px-3 py-2 text-xs font-semibold text-stone-900 focus:outline-none focus:border-brand-500"
+                    />
+                  </div>
+                  <div className="sm:col-span-5">
+                    <input
+                      type="text"
+                      value={newSoundUrl.startsWith('data:') ? `[Yüklenen Dosya: ${newSoundFileName}]` : newSoundUrl}
+                      onChange={(e) => {
+                        setNewSoundFileName('');
+                        setNewSoundUrl(e.target.value);
+                      }}
+                      placeholder="Veya ses dosyası linki (https://.../zil.mp3)"
+                      className="w-full bg-white border border-stone-200 rounded-xl px-3 py-2 text-xs font-mono text-stone-700 focus:outline-none focus:border-brand-500"
+                    />
+                  </div>
+                  <div className="sm:col-span-3">
+                    <button
+                      type="button"
+                      onClick={handleAddCustomSound}
+                      className="w-full bg-stone-900 hover:bg-black text-white font-bold py-2 px-3 rounded-xl text-xs flex items-center justify-center gap-1.5 cursor-pointer transition-colors"
+                    >
+                      <i className="fa-solid fa-plus text-amber-400"></i>
+                      <span>Sesi Listeye Ekle</span>
+                    </button>
+                  </div>
+                </div>
+
+                {soundUploadError && (
+                  <p className="text-xs font-semibold text-rose-600 flex items-center gap-1.5">
+                    <i className="fa-solid fa-circle-exclamation"></i>
+                    <span>{soundUploadError}</span>
+                  </p>
+                )}
               </div>
             </div>
 
@@ -926,11 +1152,11 @@ export default function SettingsTab({
                 <span className="font-bold text-stone-800">Ses Düzeyi: %{settings.soundVolume || 80}</span>
                 <button
                   type="button"
-                  onClick={handlePlaySoundTest}
+                  onClick={() => handlePlaySoundTest()}
                   className="bg-stone-100 hover:bg-stone-200 text-stone-800 text-xs px-3 py-1.5 rounded-lg font-bold flex items-center gap-1.5 transition-colors cursor-pointer"
                 >
                   <i className="fa-solid fa-play text-[10px]"></i>
-                  <span>Sesi Test Et</span>
+                  <span>Seçili Sesi Test Et</span>
                 </button>
               </div>
               <input
