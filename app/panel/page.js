@@ -2153,7 +2153,6 @@ export default function AdminDashboardPage() {
                 selectedSettingsSubTab === 'sound' ? 'Sistem Ayarları • Ses & Sipariş Bildirimleri' :
                 selectedSettingsSubTab === 'receipt' ? 'Sistem Ayarları • Fiş & Adisyon Baskısı' :
                 selectedSettingsSubTab === 'system' ? 'Sistem Ayarları • Yedekleme & Sistem' :
-                selectedSettingsSubTab === 'logs' ? 'Sistem Ayarları • Kullanıcı İşlem & Güvenlik Logları' :
                 'Sistem Ayarları • Arayüz & Renk Seçenekleri'
               )}
             </h2>

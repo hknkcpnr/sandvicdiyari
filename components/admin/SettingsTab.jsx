@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import ActivityLogsTab from './ActivityLogsTab';
 import ThemeColorPicker from './ThemeColorPicker';
 import SiteContentEditorTab from './SiteContentEditorTab';
 import { playKitchenBellSound } from './KitchenPosBell';
@@ -74,14 +73,6 @@ const SETTINGS_PAGES = {
     badgeColor: 'bg-emerald-50 text-emerald-800 border-emerald-200',
     icon: 'fa-solid fa-hard-drive',
     desc: 'Sistemin diskte kapladığı alan, çok sayfalı Excel (.xlsx) yedeği ve tam sistem arşivlemesi.',
-  },
-  logs: {
-    id: 'logs',
-    title: 'Kullanıcı İşlem & Güvenlik Logları',
-    badge: 'Canlı İşlem Takibi',
-    badgeColor: 'bg-indigo-50 text-indigo-700 border-indigo-200',
-    icon: 'fa-solid fa-clock-rotate-left',
-    desc: 'Hangi personelin ne zaman sipariş sildiği, durum güncellediği, ürün veya fiyat değiştirdiği tüm kullanıcı işlem geçmişi.',
   },
 };
 
@@ -932,11 +923,10 @@ export default function SettingsTab({
               <option value="sound">🔔 Ses & Bildirim</option>
               <option value="receipt">🧾 Fiş Baskı</option>
               <option value="system">💾 Depolama & Yedek</option>
-              <option value="logs">📜 İşlem Logları</option>
             </select>
           </div>
 
-          {activeSubTab !== 'logs' && activeSubTab !== 'site_content' && (
+          {activeSubTab !== 'site_content' && (
             <div className="flex items-center gap-2">
               {savedSuccess && (
                 <span className="text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-3 py-1.5 rounded-xl flex items-center gap-1.5 animate-in fade-in">
@@ -2513,13 +2503,6 @@ export default function SettingsTab({
       {activeSubTab === 'site_content' && (
         <div className="w-full">
           <SiteContentEditorTab />
-        </div>
-      )}
-
-      {/* SEKME: KULLANICI İŞLEM & GÜVENLİK LOGLARI */}
-      {activeSubTab === 'logs' && (
-        <div className="w-full">
-          <ActivityLogsTab showToast={showToast} currentAdmin={currentAdmin} />
         </div>
       )}
     </div>

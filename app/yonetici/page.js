@@ -806,8 +806,7 @@ export default function YoneticiPage() {
     { id: 'appearance', label: 'Arayüz & Renk', icon: 'fa-solid fa-palette' },
     { id: 'sound', label: 'Ses & Bildirim', icon: 'fa-solid fa-volume-high' },
     { id: 'receipt', label: 'Fiş Baskı', icon: 'fa-solid fa-receipt' },
-    { id: 'system', label: 'Depolama & Yedek', icon: 'fa-solid fa-hard-drive' },
-    { id: 'logs', label: 'İşlem Logları', icon: 'fa-solid fa-clock-rotate-left' }
+    { id: 'system', label: 'Depolama & Yedek', icon: 'fa-solid fa-hard-drive' }
   ];
 
   return (
