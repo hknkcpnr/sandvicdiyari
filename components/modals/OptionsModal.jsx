@@ -9,7 +9,12 @@ import {
   showMessageModal
 } from '@/store/slices/uiSlice';
 import { addToCart } from '@/store/slices/cartSlice';
-import { DEFAULT_PRODUCT_OPTIONS } from '@/lib/productOptionsDefaults';
+import {
+  DEFAULT_PRODUCT_OPTIONS,
+  DEFAULT_MENU_DRINK_GROUPS,
+  getMenuSizeTier,
+  normalizeMenuDrinkGroups
+} from '@/lib/productOptionsDefaults';
 
 function extractProductIngredients(product) {
   if (!product) return [];
@@ -72,6 +77,7 @@ export default function OptionsModal() {
   const [drinkOptions, setDrinkOptions] = useState(
     DEFAULT_PRODUCT_OPTIONS.drinks.map((d) => (typeof d === 'string' ? d : d.name))
   );
+  const [menuDrinkGroups, setMenuDrinkGroups] = useState(DEFAULT_MENU_DRINK_GROUPS);
   const [optionsLoaded, setOptionsLoaded] = useState(false);
   const [note, setNote] = useState('');
   const [removedIngredients, setRemovedIngredients] = useState([]);
@@ -119,6 +125,9 @@ export default function OptionsModal() {
                 .map((d) => (typeof d === 'string' ? d : d.name))
             );
           }
+          if (json.data.menuDrinkGroups && typeof json.data.menuDrinkGroups === 'object') {
+            setMenuDrinkGroups(normalizeMenuDrinkGroups(json.data.menuDrinkGroups));
+          }
           setOptionsLoaded(true);
         }
       } catch (err) {
@@ -138,10 +147,32 @@ export default function OptionsModal() {
     };
   }, [isOptionsModalOpen]);
 
+  // Menü boyutu değiştiğinde (1/2/3/4 kişilik) ilgili menünün ilk içeceğini otomatik seç
+  useEffect(() => {
+    if (!isOptionsModalOpen || !selectedProductForOptions || selectedProductForOptions.category !== 'menu') return;
+    const tier = getMenuSizeTier(selectedProductForOptions);
+    const tierList = (menuDrinkGroups?.[tier] || [])
+      .filter((d) => d.isAvailable !== false)
+      .map((d) => d.name);
+    const fallbackList = tierList.length > 0 ? tierList : drinkOptions;
+    if (fallbackList.length > 0 && !fallbackList.includes(selectedDrink)) {
+      setSelectedDrink(fallbackList[0]);
+    }
+  }, [isOptionsModalOpen, selectedProductForOptions, menuDrinkGroups, drinkOptions, selectedDrink]);
+
   if (!isOptionsModalOpen || !selectedProductForOptions) return null;
 
   const isMenu = selectedProductForOptions.category === 'menu';
   const isDrink = selectedProductForOptions.category === 'drink';
+  const menuTier = isMenu ? getMenuSizeTier(selectedProductForOptions) : '1';
+  const activeMenuDrinkOptions = isMenu
+    ? (() => {
+        const tierList = (menuDrinkGroups?.[menuTier] || [])
+          .filter((d) => d.isAvailable !== false)
+          .map((d) => d.name);
+        return tierList.length > 0 ? tierList : drinkOptions;
+      })()
+    : drinkOptions;
 
   // Tekli ürünler için altta önerilecek soğuk içecekler
   const suggestedDrinks = (!isMenu && !isDrink)
@@ -528,21 +559,46 @@ export default function OptionsModal() {
           <div className={`grid grid-cols-1 ${isMenu ? 'sm:grid-cols-2' : ''} gap-2`}>
             {isMenu && (
               <div className="bg-stone-50/80 border border-stone-200/80 rounded-2xl p-2.5 sm:px-3.5">
-                <label className="block text-[11px] font-extrabold text-stone-800 uppercase mb-1 flex items-center gap-1.5">
-                  <i className="fa-solid fa-cup-straw text-brand-500"></i>
-                  Menü İçeceği (Dahil)
+                <label className="block text-[11px] font-extrabold text-stone-800 uppercase mb-1.5 flex items-center justify-between gap-1.5">
+                  <span className="flex items-center gap-1.5">
+                    <i className="fa-solid fa-cup-straw text-brand-500"></i>
+                    Menü İçeceği ({menuTier} Kişilik • Dahil)
+                  </span>
                 </label>
-                <select
-                  value={selectedDrink}
-                  onChange={(e) => setSelectedDrink(e.target.value)}
-                  className="app-select w-full bg-white border border-stone-200 hover:border-brand-400 rounded-xl px-3 py-1.5 text-xs text-stone-900 focus:outline-none focus:border-brand-500 font-bold cursor-pointer transition-all"
-                >
-                  {drinkOptions.map((dr) => (
-                    <option key={dr} value={dr}>
-                      {dr}
-                    </option>
-                  ))}
-                </select>
+                {activeMenuDrinkOptions.length <= 3 ? (
+                  <div className="grid grid-cols-2 gap-1.5">
+                    {activeMenuDrinkOptions.map((dr) => {
+                      const isSelected = selectedDrink === dr;
+                      return (
+                        <button
+                          key={dr}
+                          type="button"
+                          onClick={() => setSelectedDrink(dr)}
+                          className={`px-3 py-2 rounded-xl border text-xs font-extrabold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                            isSelected
+                              ? 'bg-brand-500 border-brand-600 text-white shadow-xs'
+                              : 'bg-white border-stone-200 text-stone-800 hover:border-brand-400'
+                          }`}
+                        >
+                          <i className={`fa-solid ${isSelected ? 'fa-circle-check' : 'fa-circle text-stone-300'} text-[11px]`}></i>
+                          <span className="truncate">{dr}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <select
+                    value={selectedDrink}
+                    onChange={(e) => setSelectedDrink(e.target.value)}
+                    className="app-select w-full bg-white border border-stone-200 hover:border-brand-400 rounded-xl px-3 py-1.5 text-xs text-stone-900 focus:outline-none focus:border-brand-500 font-bold cursor-pointer transition-all"
+                  >
+                    {activeMenuDrinkOptions.map((dr) => (
+                      <option key={dr} value={dr}>
+                        {dr}
+                      </option>
+                    ))}
+                  </select>
+                )}
               </div>
             )}
 

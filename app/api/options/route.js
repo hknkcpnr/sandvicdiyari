@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { db, DEFAULT_PRODUCT_OPTIONS } from '@/lib/db';
+import { normalizeMenuDrinkGroups } from '@/lib/productOptionsDefaults';
 import { rawPrisma } from '@/lib/prisma';
 import { assertProtectedApiAccess, checkRateLimit } from '@/lib/security/auth';
 import { sanitizeText } from '@/lib/security/validation';
@@ -33,7 +34,8 @@ export async function GET() {
               extraSaucePrice: typeof val.extraSaucePrice === 'number' ? val.extraSaucePrice : DEFAULT_PRODUCT_OPTIONS.extraSaucePrice,
               sauces: Array.isArray(val.sauces) ? val.sauces : DEFAULT_PRODUCT_OPTIONS.sauces,
               extras: Array.isArray(val.extras) ? val.extras : DEFAULT_PRODUCT_OPTIONS.extras,
-              drinks: Array.isArray(val.drinks) ? val.drinks : DEFAULT_PRODUCT_OPTIONS.drinks
+              drinks: Array.isArray(val.drinks) ? val.drinks : DEFAULT_PRODUCT_OPTIONS.drinks,
+              menuDrinkGroups: normalizeMenuDrinkGroups(val.menuDrinkGroups)
             };
             setCachedOptions(resData);
             return NextResponse.json({
@@ -113,6 +115,24 @@ export async function POST(request) {
         })).filter(d => d.name.length > 0)
       : DEFAULT_PRODUCT_OPTIONS.drinks;
 
+    // Sanitize menuDrinkGroups (1, 2, 3, 4 kişilik menü içecek seçenekleri)
+    const cleanMenuDrinkGroups = {};
+    const rawGroups = body.menuDrinkGroups && typeof body.menuDrinkGroups === 'object'
+      ? body.menuDrinkGroups
+      : DEFAULT_PRODUCT_OPTIONS.menuDrinkGroups;
+    ['1', '2', '3', '4'].forEach((tier) => {
+      const list = Array.isArray(rawGroups[tier])
+        ? rawGroups[tier]
+        : DEFAULT_PRODUCT_OPTIONS.menuDrinkGroups[tier];
+      cleanMenuDrinkGroups[tier] = list
+        .map((d, idx) => ({
+          id: d?.id ? String(d.id).trim().slice(0, 50) : `m${tier}-${Date.now()}-${idx}`,
+          name: sanitizeText(typeof d === 'string' ? d : (d?.name || ''), 80, 'Menü İçeceği', '/api/options'),
+          isAvailable: typeof d === 'object' && d?.isAvailable === false ? false : true,
+        }))
+        .filter((d) => d.name.length > 0);
+    });
+
     const freeSauceLimit = typeof body.freeSauceLimit === 'number'
       ? Math.max(0, Math.min(20, Math.floor(body.freeSauceLimit)))
       : DEFAULT_PRODUCT_OPTIONS.freeSauceLimit;
@@ -126,7 +146,8 @@ export async function POST(request) {
       extraSaucePrice,
       sauces: cleanSauces,
       extras: cleanExtras,
-      drinks: cleanDrinks
+      drinks: cleanDrinks,
+      menuDrinkGroups: cleanMenuDrinkGroups
     };
 
     const updated = db.saveProductOptions(payloadToSave);

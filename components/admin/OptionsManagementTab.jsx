@@ -3,7 +3,12 @@
 import { useState, useEffect } from 'react';
 import { useDispatch } from 'react-redux';
 import { showMessageModal } from '@/store/slices/uiSlice';
-import { DEFAULT_PRODUCT_OPTIONS } from '@/lib/productOptionsDefaults';
+import {
+  DEFAULT_PRODUCT_OPTIONS,
+  DEFAULT_MENU_DRINK_GROUPS,
+  MENU_DRINK_TIER_META,
+  normalizeMenuDrinkGroups
+} from '@/lib/productOptionsDefaults';
 
 export default function OptionsManagementTab() {
   const dispatch = useDispatch();
@@ -20,6 +25,8 @@ export default function OptionsManagementTab() {
   const [extraSaucePrice, setExtraSaucePrice] = useState(DEFAULT_PRODUCT_OPTIONS.extraSaucePrice ?? 5);
   const [extras, setExtras] = useState([]);
   const [drinks, setDrinks] = useState(DEFAULT_PRODUCT_OPTIONS.drinks);
+  const [menuDrinkGroups, setMenuDrinkGroups] = useState(DEFAULT_MENU_DRINK_GROUPS);
+  const [newTierDrinkInput, setNewTierDrinkInput] = useState({ '1': '', '2': '', '3': '', '4': '' });
 
   // Modal states
   const [isAddSauceModalOpen, setIsAddSauceModalOpen] = useState(false);
@@ -42,6 +49,9 @@ export default function OptionsManagementTab() {
         if (Array.isArray(json.data.sauces)) setSauces(json.data.sauces);
         if (Array.isArray(json.data.extras)) setExtras(json.data.extras);
         if (Array.isArray(json.data.drinks)) setDrinks(json.data.drinks);
+        if (json.data.menuDrinkGroups && typeof json.data.menuDrinkGroups === 'object') {
+          setMenuDrinkGroups(normalizeMenuDrinkGroups(json.data.menuDrinkGroups));
+        }
       }
     } catch (err) {
       console.error('Seçenekler yüklenemedi:', err);
@@ -55,13 +65,22 @@ export default function OptionsManagementTab() {
   }, []);
 
   // Save all options to server
-  const persistOptions = async (updatedSauces, updatedExtras, updatedDrinks, limitOverride, priceOverride) => {
+  const persistOptions = async (
+    updatedSauces,
+    updatedExtras,
+    updatedDrinks,
+    limitOverride,
+    priceOverride,
+    menuDrinkGroupsOverride
+  ) => {
+    const nextGroups = menuDrinkGroupsOverride || menuDrinkGroups;
     const payload = {
       freeSauceLimit: typeof limitOverride === 'number' ? limitOverride : freeSauceLimit,
       extraSaucePrice: typeof priceOverride === 'number' ? priceOverride : extraSaucePrice,
       sauces: updatedSauces || sauces,
       extras: updatedExtras || extras,
-      drinks: updatedDrinks || drinks,
+      drinks: updatedDrinks || nextGroups?.['1'] || drinks,
+      menuDrinkGroups: nextGroups,
     };
     try {
       setSaving(true);
@@ -273,22 +292,72 @@ export default function OptionsManagementTab() {
     setSauces(DEFAULT_PRODUCT_OPTIONS.sauces);
     setExtras(DEFAULT_PRODUCT_OPTIONS.extras);
     setDrinks(DEFAULT_PRODUCT_OPTIONS.drinks);
+    setMenuDrinkGroups(DEFAULT_MENU_DRINK_GROUPS);
     const ok = await persistOptions(
       DEFAULT_PRODUCT_OPTIONS.sauces,
       DEFAULT_PRODUCT_OPTIONS.extras,
       DEFAULT_PRODUCT_OPTIONS.drinks,
       DEFAULT_PRODUCT_OPTIONS.freeSauceLimit ?? 2,
-      DEFAULT_PRODUCT_OPTIONS.extraSaucePrice ?? 5
+      DEFAULT_PRODUCT_OPTIONS.extraSaucePrice ?? 5,
+      DEFAULT_MENU_DRINK_GROUPS
     );
     if (ok) {
       dispatch(
         showMessageModal({
           title: 'Varsayılanlara Sıfırlandı',
-          text: 'Tüm soslar ve ekstra malzemeler fabrika ayarlarına döndürüldü.',
+          text: 'Tüm soslar, ekstra malzemeler ve menü içecekleri fabrika ayarlarına döndürüldü.',
           type: 'success',
         })
       );
     }
+  };
+
+  // Menü İçecek Grubu İşlemleri (1, 2, 3, 4 Kişilik)
+  const handleAddTierDrink = async (tierKey) => {
+    const name = String(newTierDrinkInput[tierKey] || '').trim();
+    if (!name) return;
+    const currentList = menuDrinkGroups[tierKey] || [];
+    const nextGroups = {
+      ...menuDrinkGroups,
+      [tierKey]: [
+        ...currentList,
+        { id: `m${tierKey}-${Date.now()}`, name, isAvailable: true },
+      ],
+    };
+    setMenuDrinkGroups(nextGroups);
+    setNewTierDrinkInput((prev) => ({ ...prev, [tierKey]: '' }));
+    await persistOptions(sauces, extras, nextGroups['1'], freeSauceLimit, extraSaucePrice, nextGroups);
+  };
+
+  const handleToggleTierDrink = async (tierKey, drinkId) => {
+    const nextGroups = {
+      ...menuDrinkGroups,
+      [tierKey]: (menuDrinkGroups[tierKey] || []).map((d) =>
+        d.id === drinkId ? { ...d, isAvailable: !d.isAvailable } : d
+      ),
+    };
+    setMenuDrinkGroups(nextGroups);
+    await persistOptions(sauces, extras, nextGroups['1'], freeSauceLimit, extraSaucePrice, nextGroups);
+  };
+
+  const handleDeleteTierDrink = async (tierKey, drinkId) => {
+    const list = menuDrinkGroups[tierKey] || [];
+    if (list.length <= 1) {
+      dispatch(
+        showMessageModal({
+          title: 'En Az 1 Seçenek Gerekli',
+          text: 'Her menü boyutu için en az 1 içecek seçeneği kalmalıdır.',
+          type: 'warning',
+        })
+      );
+      return;
+    }
+    const nextGroups = {
+      ...menuDrinkGroups,
+      [tierKey]: list.filter((d) => d.id !== drinkId),
+    };
+    setMenuDrinkGroups(nextGroups);
+    await persistOptions(sauces, extras, nextGroups['1'], freeSauceLimit, extraSaucePrice, nextGroups);
   };
 
   // Filtered lists
@@ -393,6 +462,18 @@ export default function OptionsManagementTab() {
           >
             <i className="fa-solid fa-cheese text-orange-500"></i>
             <span>Ekstra Lezzetler ({extras.length})</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveSubTab('drinks')}
+            className={`flex-1 md:flex-none px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
+              activeSubTab === 'drinks'
+                ? 'bg-white text-stone-900 shadow-2xs'
+                : 'text-stone-600 hover:text-stone-900'
+            }`}
+          >
+            <i className="fa-solid fa-cup-straw text-sky-600"></i>
+            <span>Menü İçecekleri</span>
           </button>
         </div>
 
@@ -705,6 +786,116 @@ export default function OptionsManagementTab() {
               );
             })
           )}
+        </div>
+      )}
+
+      {/* 3. MENÜ İÇECEKLERİ YÖNETİMİ (1, 2, 3, 4 KİŞİLİK DİNAMİK) */}
+      {activeSubTab === 'drinks' && (
+        <div className="space-y-4">
+          <div className="bg-sky-50/70 border border-sky-200 rounded-2xl p-3.5 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5 text-xs text-sky-900">
+              <i className="fa-solid fa-circle-info text-sky-600 text-sm"></i>
+              <span>
+                <strong>Menü boyutuna göre dinamik içecek kuralları:</strong> Müşteriler 1, 2, 3 veya 4 kişilik menü seçtiğinde yalnızca o menü için aşağıda aktif olan içecekleri seçebilir.
+              </span>
+            </div>
+            {saving && (
+              <span className="text-[11px] font-bold text-sky-700 shrink-0">Kaydediliyor...</span>
+            )}
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {MENU_DRINK_TIER_META.map((tier) => {
+              const tierDrinks = menuDrinkGroups[tier.key] || [];
+              return (
+                <div
+                  key={tier.key}
+                  className="bg-white rounded-2xl border border-stone-200 shadow-2xs overflow-hidden flex flex-col"
+                >
+                  <div className="px-4 py-3 bg-stone-50 border-b border-stone-100 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="w-7 h-7 rounded-xl bg-sky-100 text-sky-700 font-black text-xs flex items-center justify-center">
+                        {tier.key}K
+                      </span>
+                      <div>
+                        <h4 className="text-xs font-extrabold text-stone-900">{tier.label}</h4>
+                        <span className="text-[10px] font-medium text-stone-500">
+                          {tierDrinks.filter((d) => d.isAvailable !== false).length} aktif seçenek
+                        </span>
+                      </div>
+                    </div>
+                    <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-stone-200/80 text-stone-700">
+                      {tier.badge}
+                    </span>
+                  </div>
+
+                  <div className="p-3.5 space-y-2 flex-1">
+                    {tierDrinks.map((dr) => {
+                      const active = dr.isAvailable !== false;
+                      return (
+                        <div
+                          key={dr.id}
+                          className={`flex items-center justify-between gap-2 px-3 py-2 rounded-xl border text-xs ${
+                            active
+                              ? 'bg-white border-stone-200 text-stone-900'
+                              : 'bg-stone-50 border-stone-200/60 text-stone-400 line-through'
+                          }`}
+                        >
+                          <span className="font-bold truncate">{dr.name}</span>
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            <button
+                              type="button"
+                              onClick={() => handleToggleTierDrink(tier.key, dr.id)}
+                              className={`px-2 py-1 rounded-lg text-[10px] font-extrabold cursor-pointer transition-colors ${
+                                active
+                                  ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100'
+                                  : 'bg-stone-200 text-stone-600 hover:bg-stone-300'
+                              }`}
+                            >
+                              {active ? 'Açık' : 'Kapalı'}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteTierDrink(tier.key, dr.id)}
+                              className="p-1.5 text-stone-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg cursor-pointer transition-colors"
+                              title="Sil"
+                            >
+                              <i className="fa-solid fa-trash-can text-[11px]"></i>
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  <form
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      handleAddTierDrink(tier.key);
+                    }}
+                    className="p-3 bg-stone-50/70 border-t border-stone-100 flex items-center gap-2"
+                  >
+                    <input
+                      type="text"
+                      value={newTierDrinkInput[tier.key] || ''}
+                      onChange={(e) =>
+                        setNewTierDrinkInput((prev) => ({ ...prev, [tier.key]: e.target.value }))
+                      }
+                      placeholder={`Yeni ${tier.key} kişilik içecek ekle...`}
+                      className="flex-1 bg-white border border-stone-200 rounded-xl px-3 py-1.5 text-xs font-medium text-stone-900 focus:outline-none focus:border-brand-500"
+                    />
+                    <button
+                      type="submit"
+                      disabled={saving || !(newTierDrinkInput[tier.key] || '').trim()}
+                      className="bg-stone-900 hover:bg-black text-white text-xs font-bold px-3 py-1.5 rounded-xl cursor-pointer disabled:opacity-40 shrink-0"
+                    >
+                      + Ekle
+                    </button>
+                  </form>
+                </div>
+              );
+            })}
+          </div>
         </div>
       )}
 
