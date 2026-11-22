@@ -8,6 +8,7 @@ import {
 } from '@/lib/security/errors';
 import { checkRateLimit, assertProtectedApiAccess } from '@/lib/security/auth';
 import { sanitizeText } from '@/lib/security/validation';
+import { getCachedReviews, setCachedReviews, invalidateReviewsCache } from '@/lib/productCache';
 
 export const dynamic = 'force-dynamic';
 
@@ -16,11 +17,23 @@ export async function GET(request) {
     const { searchParams } = new URL(request.url);
     const getAll = searchParams.get('all') === 'true';
 
+    const cacheKey = getAll ? 'all' : 'approved';
+    const cached = getCachedReviews(cacheKey);
+    if (cached) {
+      return jsonSuccess({
+        count: cached.length,
+        data: cached,
+        cached: true
+      });
+    }
+
     // Normal müşteri sayfası için sadece ONAYLANMIŞ yorumları getir
     // Admin paneli için (all=true) tüm yorumları (onay bekleyenler dahil) getir
     const reviews = await prisma.review.findMany({
       where: getAll ? undefined : { isApproved: true }
     });
+
+    setCachedReviews(cacheKey, reviews);
 
     return jsonSuccess({
       count: reviews.length,
@@ -100,6 +113,8 @@ export async function POST(request) {
       }
     });
 
+    invalidateReviewsCache();
+
     return jsonSuccess(
       {
         message: 'Değerlendirmeniz alındı! Yönetici onayından sonra sitede yayınlanacaktır.',
@@ -133,6 +148,8 @@ export async function PATCH(request) {
       data: { isApproved }
     });
 
+    invalidateReviewsCache();
+
     return jsonSuccess({
       message: isApproved ? 'Değerlendirme onaylandı ve sitede yayına alındı.' : 'Değerlendirme yayından kaldırıldı.',
       data: updated
@@ -161,6 +178,8 @@ export async function DELETE(request) {
     await prisma.review.delete({
       where: { id }
     });
+
+    invalidateReviewsCache();
 
     return jsonSuccess({
       message: 'Değerlendirme başarıyla silindi.'

@@ -3,6 +3,7 @@ import { db, DEFAULT_PRODUCT_OPTIONS } from '@/lib/db';
 import { rawPrisma } from '@/lib/prisma';
 import { assertProtectedApiAccess, checkRateLimit } from '@/lib/security/auth';
 import { sanitizeText } from '@/lib/security/validation';
+import { getCachedOptions, setCachedOptions, invalidateOptionsCache } from '@/lib/productCache';
 
 export const dynamic = 'force-dynamic';
 
@@ -10,6 +11,15 @@ const PRODUCT_OPTIONS_KEY = 'custom_options';
 
 export async function GET() {
   try {
+    const cached = getCachedOptions();
+    if (cached) {
+      return NextResponse.json({
+        success: true,
+        data: cached,
+        cached: true
+      });
+    }
+
     if (rawPrisma && rawPrisma.systemSetting) {
       for (let attempt = 0; attempt < 2; attempt++) {
         try {
@@ -18,15 +28,17 @@ export async function GET() {
           });
           if (rec && rec.value && typeof rec.value === 'object') {
             const val = rec.value;
+            const resData = {
+              freeSauceLimit: typeof val.freeSauceLimit === 'number' ? val.freeSauceLimit : DEFAULT_PRODUCT_OPTIONS.freeSauceLimit,
+              extraSaucePrice: typeof val.extraSaucePrice === 'number' ? val.extraSaucePrice : DEFAULT_PRODUCT_OPTIONS.extraSaucePrice,
+              sauces: Array.isArray(val.sauces) ? val.sauces : DEFAULT_PRODUCT_OPTIONS.sauces,
+              extras: Array.isArray(val.extras) ? val.extras : DEFAULT_PRODUCT_OPTIONS.extras,
+              drinks: Array.isArray(val.drinks) ? val.drinks : DEFAULT_PRODUCT_OPTIONS.drinks
+            };
+            setCachedOptions(resData);
             return NextResponse.json({
               success: true,
-              data: {
-                freeSauceLimit: typeof val.freeSauceLimit === 'number' ? val.freeSauceLimit : DEFAULT_PRODUCT_OPTIONS.freeSauceLimit,
-                extraSaucePrice: typeof val.extraSaucePrice === 'number' ? val.extraSaucePrice : DEFAULT_PRODUCT_OPTIONS.extraSaucePrice,
-                sauces: Array.isArray(val.sauces) ? val.sauces : DEFAULT_PRODUCT_OPTIONS.sauces,
-                extras: Array.isArray(val.extras) ? val.extras : DEFAULT_PRODUCT_OPTIONS.extras,
-                drinks: Array.isArray(val.drinks) ? val.drinks : DEFAULT_PRODUCT_OPTIONS.drinks
-              }
+              data: resData
             });
           }
           break;
@@ -40,10 +52,11 @@ export async function GET() {
       }
     }
 
-    const data = db.getProductOptions();
+    const data = db.getProductOptions() || DEFAULT_PRODUCT_OPTIONS;
+    setCachedOptions(data);
     return NextResponse.json({
       success: true,
-      data: data || DEFAULT_PRODUCT_OPTIONS
+      data
     });
   } catch (error) {
     console.error('GET /api/options error:', error);
@@ -129,6 +142,8 @@ export async function POST(request) {
     } catch (pgErr) {
       console.warn('Prisma custom_options write warning:', pgErr.message);
     }
+
+    invalidateOptionsCache();
 
     return NextResponse.json({
       success: true,

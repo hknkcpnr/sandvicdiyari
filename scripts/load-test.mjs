@@ -99,33 +99,46 @@ async function main() {
   console.log('================================================================================');
 
   // Isınma (Warm-up)
+  console.log('⚡ Sunucu Isınma İsteği Gönderiliyor...');
   await fireSingleRequest('/api/products');
+  await fireSingleRequest('/api/options');
+  await fireSingleRequest('/');
 
-  // Dalga 1: 100 Eşzamanlı Kullanıcı
-  await runWave('DALGA 1: 100 EŞZAMANLI KULLANICI (Menü & Stok Gezinme)', 100, [
+  // Dalga 1: 100 Eşzamanlı Kullanıcı (Menü, Seçenekler & Yorumlar)
+  await runWave('DALGA 1: 100 EŞZAMANLI KULLANICI (Menü, Soslar & Yorum Gezinme)', 100, [
     '/api/products',
-    '/api/inventory',
-    '/api/reviews'
-  ]);
-
-  // Dalga 2: 250 Eşzamanlı Kullanıcı
-  await runWave('DALGA 2: 250 EŞZAMANLI KULLANICI (Karma API Trafiği)', 250, [
-    '/api/products',
-    '/api/orders',
-    '/api/inventory',
+    '/api/options',
     '/api/reviews',
-    '/api/admin/users'
+    '/api/notifications'
   ]);
 
-  // Dalga 3: 500 Eşzamanlı Kullanıcı (Zirve Yük)
-  await runWave('DALGA 3: 500 EŞZAMANLI KULLANICI (Zirve Yük / Yoğun Saat Simülasyonu)', 500, [
+  // Dalga 2: 250 Eşzamanlı Kullanıcı (Ana Sayfa HTML, Menü & Ziyaretçi Trafiği)
+  await runWave('DALGA 2: 250 EŞZAMANLI KULLANICI (Ana Sayfa, Menü & Ürün Detayları)', 250, [
+    '/',
     '/api/products',
-    '/api/inventory',
+    '/api/options',
     '/api/reviews',
-    '/api/orders'
+    '/api/notifications'
   ]);
 
-  // Dalga 4: Bot Saldırısı ve Rate Limit Testi
+  // Dalga 3: 500 Eşzamanlı Kullanıcı (Zirve Yük / Yoğun Restoran Saati Simülasyonu)
+  await runWave('DALGA 3: 500 EŞZAMANLI KULLANICI (Zirve Akşam Saati / Kampanya Yoğunluğu)', 500, [
+    '/',
+    '/api/products',
+    '/api/options',
+    '/api/reviews',
+    '/api/notifications'
+  ]);
+
+  // Dalga 4: 1000 Eşzamanlı Kullanıcı (Ekstrem Stres Testi)
+  await runWave('DALGA 4: 1.000 EŞZAMANLI KULLANICI (Maksimum Stres & Kapasite Sınırı)', 1000, [
+    '/api/products',
+    '/api/options',
+    '/api/reviews',
+    '/'
+  ]);
+
+  // Dalga 5: Bot Saldırısı ve Rate Limit Testi
   await runBotFloodTest();
 
   console.log('\n================================================================================');

@@ -15,8 +15,9 @@ export async function POST(request) {
   try {
     checkRateLimit(request, {
       keyPrefix: 'POST:/api/auth/login',
-      maxRequests: 20,
-      windowMs: 60 * 1000
+      maxRequests: 8,
+      windowMs: 60 * 1000,
+      blockDurationMs: 60 * 1000
     });
 
     const body = await parseJsonBody(request);
