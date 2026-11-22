@@ -1,5 +1,7 @@
 import { createSlice } from '@reduxjs/toolkit';
 
+export const CART_STORAGE_KEY = 'sandwich_diyari_cart_v1';
+
 export const VALID_COUPONS = {
   TORBALI10: { code: 'TORBALI10', type: 'percent', value: 10, label: '%10 Torbalı Özel İndirimi', minSubtotal: 0 },
   GECEIKRAMI: { code: 'GECEIKRAMI', type: 'fixed', value: 50, label: '₺50 Gece Acıkanlara İkram', minSubtotal: 300 },
@@ -167,9 +169,24 @@ export const cartSlice = createSlice({
       state.grandTotal = 0;
       state.totalCount = 0;
       state.coupon = null;
+    },
+
+    hydrateCart: (state, action) => {
+      const payload = action.payload || {};
+      const safeItems = Array.isArray(payload.items)
+        ? payload.items.filter((it) => it && typeof it === 'object' && it.name && Number(it.quantity) > 0)
+        : [];
+      const couponObj = payload.coupon?.code ? VALID_COUPONS[String(payload.coupon.code).toUpperCase()] || null : null;
+      state.items = safeItems;
+      const totals = calculateTotals(state.items, couponObj);
+      state.totalCount = totals.totalCount;
+      state.subtotal = totals.subtotal;
+      state.discountAmount = totals.discountAmount;
+      state.grandTotal = totals.grandTotal;
+      state.coupon = totals.coupon;
     }
   }
 });
 
-export const { addToCart, changeQuantity, removeItem, clearCart, applyCoupon, removeCoupon } = cartSlice.actions;
+export const { addToCart, changeQuantity, removeItem, clearCart, applyCoupon, removeCoupon, hydrateCart } = cartSlice.actions;
 export default cartSlice.reducer;
