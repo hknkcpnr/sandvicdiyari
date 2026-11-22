@@ -155,7 +155,7 @@ export async function POST(request) {
       permissions: authenticatedAdmin.permissions
     });
 
-    logUserActivity({
+    await logUserActivity({
       user: {
         id: authenticatedAdmin.id,
         name: authenticatedAdmin.name,

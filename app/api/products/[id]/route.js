@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/prisma';
+import { db } from '@/lib/db';
 import { assertProtectedApiAccess } from '@/lib/security/auth';
 import { logUserActivity } from '@/lib/activityLogger';
 import {
@@ -14,9 +15,17 @@ import { invalidateProductCache } from '@/lib/productCache';
 export async function GET(request, { params }) {
   try {
     const resolvedParams = await params;
-    const id = sanitizeText(resolvedParams.id, 64, 'id', '/api/products/[id]');
+    const rawId = sanitizeText(resolvedParams.id, 64, 'id', '/api/products/[id]');
+    const targetId = !Number.isNaN(Number(rawId)) ? Number(rawId) : rawId;
 
-    const product = await prisma.product.findUnique({ where: { id } });
+    let product = null;
+    try {
+      product = await prisma.product.findUnique({ where: { id: targetId } });
+    } catch {}
+
+    if (!product) {
+      product = db.getProductById(targetId);
+    }
 
     if (!product) {
       throw new NotFoundError('Ürün bulunamadı.');
@@ -32,7 +41,8 @@ export async function PUT(request, { params }) {
   try {
     assertProtectedApiAccess(request, { endpoint: '/api/products/[id]' });
     const resolvedParams = await params;
-    const id = sanitizeText(resolvedParams.id, 64, 'id', '/api/products/[id]');
+    const rawId = sanitizeText(resolvedParams.id, 64, 'id', '/api/products/[id]');
+    const targetId = !Number.isNaN(Number(rawId)) ? Number(rawId) : rawId;
     const body = await parseJsonBody(request);
 
     const sanitizedUpdates = { ...body };
@@ -91,10 +101,23 @@ export async function PUT(request, { params }) {
       }
     }
 
-    const updated = await prisma.product.update({
-      where: { id },
-      data: sanitizedUpdates
-    });
+    let updated = null;
+    try {
+      updated = await prisma.product.update({
+        where: { id: targetId },
+        data: sanitizedUpdates
+      });
+    } catch (pgErr) {
+      console.warn('Prisma update product warning:', pgErr?.message);
+    }
+
+    try {
+      db.updateProduct(targetId, sanitizedUpdates);
+    } catch {}
+
+    if (!updated) {
+      updated = db.getProductById(targetId);
+    }
 
     if (!updated) {
       throw new NotFoundError('Güncellenecek ürün bulunamadı.');
@@ -124,9 +147,18 @@ export async function DELETE(request, { params }) {
   try {
     assertProtectedApiAccess(request, { endpoint: '/api/products/[id]' });
     const resolvedParams = await params;
-    const id = sanitizeText(resolvedParams.id, 64, 'id', '/api/products/[id]');
+    const rawId = sanitizeText(resolvedParams.id, 64, 'id', '/api/products/[id]');
+    const targetId = !Number.isNaN(Number(rawId)) ? Number(rawId) : rawId;
 
-    await prisma.product.delete({ where: { id } });
+    try {
+      await prisma.product.delete({ where: { id: targetId } });
+    } catch (pgErr) {
+      console.warn('Prisma delete product warning:', pgErr?.message);
+    }
+
+    try {
+      db.deleteProduct(targetId);
+    } catch {}
 
     invalidateProductCache();
 
@@ -135,8 +167,8 @@ export async function DELETE(request, { params }) {
       action: 'PRODUCT_DELETE',
       category: 'MENU',
       level: 'WARN',
-      message: `Ürün menüden kaldırıldı: ID #${id}`,
-      details: { productId: id }
+      message: `Ürün menüden kaldırıldı: ID #${rawId}`,
+      details: { productId: targetId }
     });
 
     return jsonSuccess({

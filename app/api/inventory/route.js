@@ -365,7 +365,15 @@ export async function DELETE(request) {
     }
 
     const id = sanitizeText(rawId, 64, 'id', '/api/inventory');
-    await prisma.product.delete({ where: { id } });
+    const targetId = !Number.isNaN(Number(id)) ? Number(id) : id;
+    try {
+      await prisma.product.delete({ where: { id: targetId } });
+    } catch (pgErr) {
+      console.warn('Prisma delete product inventory warning:', pgErr?.message);
+    }
+    try {
+      db.deleteProduct(targetId);
+    } catch {}
 
     await logUserActivity({
       req: request,
