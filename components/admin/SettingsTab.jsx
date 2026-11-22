@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import UsersRolesTab from './UsersRolesTab';
 import ActivityLogsTab from './ActivityLogsTab';
 import ThemeColorPicker from './ThemeColorPicker';
 import SiteContentEditorTab from './SiteContentEditorTab';
@@ -51,14 +50,6 @@ const SETTINGS_PAGES = {
     badgeColor: 'bg-amber-50 text-amber-800 border-amber-200',
     icon: 'fa-solid fa-paintbrush',
     desc: 'Müşteri ana sayfasındaki manşet slider, afiş, kampanyalar ve vitrin bölümlerini özelleştirin.',
-  },
-  users: {
-    id: 'users',
-    title: 'Kullanıcılar & Rol Modelleri',
-    badge: 'Yetkilendirme & Personel',
-    badgeColor: 'bg-amber-50 text-amber-800 border-amber-200',
-    icon: 'fa-solid fa-user-shield',
-    desc: 'Yönetici personelleri, departman yetkileri ve müşteri hesaplarını anlık yönetin.',
   },
   sound: {
     id: 'sound',
@@ -936,17 +927,16 @@ export default function SettingsTab({
               className="app-select bg-stone-50 hover:bg-white border border-stone-300 hover:border-brand-500 text-stone-900 text-xs font-bold rounded-2xl px-4 py-2.5 cursor-pointer focus:outline-none focus:ring-3 focus:ring-brand-500/15 transition-all shadow-xs"
               title="Ayar Sayfası Değiştir"
             >
-              <option value="appearance">🔤 Arayüz</option>
-              <option value="site_content">🎨 Vitrin</option>
-              <option value="users">🛡️ Kullanıcılar</option>
-              <option value="sound">🔔 Ses</option>
+              <option value="appearance">🎨 Arayüz & Renk</option>
+              <option value="site_content">🖼️ Vitrin Tasarımı</option>
+              <option value="sound">🔔 Ses & Bildirim</option>
               <option value="receipt">🧾 Fiş Baskı</option>
-              <option value="system">💾 Yedekleme</option>
+              <option value="system">💾 Depolama & Yedek</option>
               <option value="logs">📜 İşlem Logları</option>
             </select>
           </div>
 
-          {activeSubTab !== 'users' && activeSubTab !== 'logs' && activeSubTab !== 'site_content' && (
+          {activeSubTab !== 'logs' && activeSubTab !== 'site_content' && (
             <div className="flex items-center gap-2">
               {savedSuccess && (
                 <span className="text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-3 py-1.5 rounded-xl flex items-center gap-1.5 animate-in fade-in">
@@ -1267,13 +1257,6 @@ export default function SettingsTab({
             </div>
             <ThemeColorPicker variant="grid" />
           </div>
-        </div>
-      )}
-
-      {/* SEKME: KULLANICILAR VE ROL MODELLERİ */}
-      {activeSubTab === 'users' && (
-        <div className="space-y-4">
-          <UsersRolesTab currentAdmin={currentAdmin} />
         </div>
       )}
 

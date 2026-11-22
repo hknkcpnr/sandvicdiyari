@@ -769,53 +769,55 @@ export default function UsersRolesTab({ currentAdmin, onRolesOrUsersUpdated }) {
 
   const PORTAL_META = {
     panel: {
-      badge: '🍽️ /panel • Restoran Paneli',
+      badge: '🍽️ Restoran Paneli',
       badgeClass: 'bg-amber-50 text-amber-800 border-amber-200',
-      title: 'Restoran Paneli (/panel) Kullanıcıları',
+      title: 'Restoran Personeli',
       desc: 'Mutfak, kasa, sipariş onayı, menü ve stok ekranlarını kullanan restoran personeli.',
-      addBtnLabel: '+ Restoran Kullanıcısı Ekle'
+      addBtnLabel: '+ Yeni Personel Ekle'
     },
     kurye: {
-      badge: '🛵 /kurye • Kurye Paneli',
+      badge: '🛵 Kurye Paneli',
       badgeClass: 'bg-sky-50 text-sky-800 border-sky-200',
-      title: 'Kurye Paneli (/kurye) Kullanıcıları',
-      desc: 'Yalnızca kurye teslimat ekranına (/kurye) giriş yapabilen paket servis kuryeleri.',
-      addBtnLabel: '+ Kurye Ekle'
+      title: 'Kurye Ekibi',
+      desc: 'Yalnızca paket servis ve kurye teslimat portalına giriş yapabilen saha kuryeleri.',
+      addBtnLabel: '+ Yeni Kurye Ekle'
     },
     yonetici: {
-      badge: '👑 /yonetici • Süper Yönetici',
+      badge: '👑 Süper Yönetici',
       badgeClass: 'bg-rose-50 text-rose-700 border-rose-200',
-      title: 'Süper Yönetici (/yonetici) Kullanıcıları',
-      desc: 'Kasa/finans, kullanıcı & rol yönetimi, vitrin tasarımı ve sistem ayarlarına tam yetkili yöneticiler.',
-      addBtnLabel: '+ Süper Yönetici Ekle'
+      title: 'Süper Yöneticiler',
+      desc: 'Kasa, finans, kullanıcı & rol yönetimi, vitrin tasarımı ve sistem ayarlarına tam yetkili yöneticiler.',
+      addBtnLabel: '+ Yeni Süper Yönetici Ekle'
     }
   };
 
   return (
     <div className="space-y-4 w-full min-w-0 font-poppins">
       {/* 1. ÜST GEÇİŞ SEKMELERİ (MODERN SEGMENTED CONTROL / PILL MENÜ) */}
-      <div className="bg-stone-100/80 p-1.5 rounded-2xl border border-stone-200/90 shadow-2xs overflow-x-auto scrollbar-none">
-        <div className="flex items-center gap-1 min-w-max">
-          {/* Restoran Paneli */}
+      <div className="bg-stone-100/90 p-1.5 rounded-2xl border border-stone-200/90 shadow-2xs overflow-x-auto scrollbar-none">
+        <div className="flex items-center gap-1.5 min-w-max">
+          {/* Restoran Personeli */}
           <button
             type="button"
             onClick={() => setSubTab('panel')}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all duration-200 cursor-pointer ${
+            className={`flex items-center gap-2.5 px-4 py-2.5 rounded-xl text-xs font-bold transition-all duration-200 cursor-pointer ${
               subTab === 'panel'
-                ? 'bg-white text-stone-900 shadow-sm border border-stone-200/80'
-                : 'text-stone-600 hover:text-stone-900 hover:bg-stone-200/50'
+                ? 'bg-white text-stone-900 shadow-sm border border-stone-200/90 ring-1 ring-black/5'
+                : 'text-stone-600 hover:text-stone-900 hover:bg-white/60'
             }`}
           >
-            <div className={`w-6 h-6 rounded-lg flex items-center justify-center text-xs ${
+            <div className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs shadow-2xs transition-colors shrink-0 ${
               subTab === 'panel' ? 'bg-amber-500 text-white' : 'bg-stone-200/80 text-stone-600'
             }`}>
               <i className="fa-solid fa-kitchen-set"></i>
             </div>
-            <span>Restoran Paneli</span>
-            <span className="text-[10px] font-mono text-stone-400 font-semibold">/panel</span>
+            <div className="text-left">
+              <span className="block leading-tight font-bold">Restoran Personeli</span>
+              <span className="text-[10px] font-medium text-stone-400 block leading-tight">Mutfak & Kasa</span>
+            </div>
             <span
               className={`ml-1 px-2 py-0.5 rounded-full text-[10px] font-extrabold ${
-                subTab === 'panel' ? 'bg-stone-900 text-white' : 'bg-stone-200 text-stone-600'
+                subTab === 'panel' ? 'bg-stone-900 text-white' : 'bg-stone-200/90 text-stone-600'
               }`}
             >
               {panelUsers.length}
@@ -827,22 +829,24 @@ export default function UsersRolesTab({ currentAdmin, onRolesOrUsersUpdated }) {
             <button
               type="button"
               onClick={() => setSubTab('kurye')}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all duration-200 cursor-pointer ${
+              className={`flex items-center gap-2.5 px-4 py-2.5 rounded-xl text-xs font-bold transition-all duration-200 cursor-pointer ${
                 subTab === 'kurye'
-                  ? 'bg-white text-stone-900 shadow-sm border border-stone-200/80'
-                  : 'text-stone-600 hover:text-stone-900 hover:bg-stone-200/50'
+                  ? 'bg-white text-stone-900 shadow-sm border border-stone-200/90 ring-1 ring-black/5'
+                  : 'text-stone-600 hover:text-stone-900 hover:bg-white/60'
               }`}
             >
-              <div className={`w-6 h-6 rounded-lg flex items-center justify-center text-xs ${
+              <div className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs shadow-2xs transition-colors shrink-0 ${
                 subTab === 'kurye' ? 'bg-sky-500 text-white' : 'bg-stone-200/80 text-stone-600'
               }`}>
                 <i className="fa-solid fa-motorcycle"></i>
               </div>
-              <span>Kurye Paneli</span>
-              <span className="text-[10px] font-mono text-stone-400 font-semibold">/kurye</span>
+              <div className="text-left">
+                <span className="block leading-tight font-bold">Kurye Ekibi</span>
+                <span className="text-[10px] font-medium text-stone-400 block leading-tight">Paket Servis</span>
+              </div>
               <span
                 className={`ml-1 px-2 py-0.5 rounded-full text-[10px] font-extrabold ${
-                  subTab === 'kurye' ? 'bg-stone-900 text-white' : 'bg-stone-200 text-stone-600'
+                  subTab === 'kurye' ? 'bg-stone-900 text-white' : 'bg-stone-200/90 text-stone-600'
                 }`}
               >
                 {courierUsers.length}
@@ -854,48 +858,52 @@ export default function UsersRolesTab({ currentAdmin, onRolesOrUsersUpdated }) {
           <button
             type="button"
             onClick={() => setSubTab('yonetici')}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all duration-200 cursor-pointer ${
+            className={`flex items-center gap-2.5 px-4 py-2.5 rounded-xl text-xs font-bold transition-all duration-200 cursor-pointer ${
               subTab === 'yonetici'
-                ? 'bg-white text-stone-900 shadow-sm border border-stone-200/80'
-                : 'text-stone-600 hover:text-stone-900 hover:bg-stone-200/50'
+                ? 'bg-white text-stone-900 shadow-sm border border-stone-200/90 ring-1 ring-black/5'
+                : 'text-stone-600 hover:text-stone-900 hover:bg-white/60'
             }`}
           >
-            <div className={`w-6 h-6 rounded-lg flex items-center justify-center text-xs ${
+            <div className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs shadow-2xs transition-colors shrink-0 ${
               subTab === 'yonetici' ? 'bg-rose-500 text-white' : 'bg-stone-200/80 text-stone-600'
             }`}>
               <i className="fa-solid fa-crown"></i>
             </div>
-            <span>Süper Yönetici</span>
-            <span className="text-[10px] font-mono text-stone-400 font-semibold">/yonetici</span>
+            <div className="text-left">
+              <span className="block leading-tight font-bold">Süper Yöneticiler</span>
+              <span className="text-[10px] font-medium text-stone-400 block leading-tight">Tam Yetki</span>
+            </div>
             <span
               className={`ml-1 px-2 py-0.5 rounded-full text-[10px] font-extrabold ${
-                subTab === 'yonetici' ? 'bg-stone-900 text-white' : 'bg-stone-200 text-stone-600'
+                subTab === 'yonetici' ? 'bg-stone-900 text-white' : 'bg-stone-200/90 text-stone-600'
               }`}
             >
               {superAdminUsers.length}
             </span>
           </button>
 
-          {/* Müşteri Sitesi */}
+          {/* Müşteri Hesapları */}
           <button
             type="button"
             onClick={() => setSubTab('customers')}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all duration-200 cursor-pointer ${
+            className={`flex items-center gap-2.5 px-4 py-2.5 rounded-xl text-xs font-bold transition-all duration-200 cursor-pointer ${
               subTab === 'customers'
-                ? 'bg-white text-stone-900 shadow-sm border border-stone-200/80'
-                : 'text-stone-600 hover:text-stone-900 hover:bg-stone-200/50'
+                ? 'bg-white text-stone-900 shadow-sm border border-stone-200/90 ring-1 ring-black/5'
+                : 'text-stone-600 hover:text-stone-900 hover:bg-white/60'
             }`}
           >
-            <div className={`w-6 h-6 rounded-lg flex items-center justify-center text-xs ${
+            <div className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs shadow-2xs transition-colors shrink-0 ${
               subTab === 'customers' ? 'bg-emerald-500 text-white' : 'bg-stone-200/80 text-stone-600'
             }`}>
-              <i className="fa-solid fa-store"></i>
+              <i className="fa-solid fa-users"></i>
             </div>
-            <span>Müşteri Sitesi</span>
-            <span className="text-[10px] font-mono text-stone-400 font-semibold">/</span>
+            <div className="text-left">
+              <span className="block leading-tight font-bold">Müşteri Hesapları</span>
+              <span className="text-[10px] font-medium text-stone-400 block leading-tight">Kayıtlı Üyeler</span>
+            </div>
             <span
               className={`ml-1 px-2 py-0.5 rounded-full text-[10px] font-extrabold ${
-                subTab === 'customers' ? 'bg-stone-900 text-white' : 'bg-stone-200 text-stone-600'
+                subTab === 'customers' ? 'bg-stone-900 text-white' : 'bg-stone-200/90 text-stone-600'
               }`}
             >
               {customers.length}
@@ -906,21 +914,24 @@ export default function UsersRolesTab({ currentAdmin, onRolesOrUsersUpdated }) {
           <button
             type="button"
             onClick={() => setSubTab('roles')}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all duration-200 cursor-pointer ${
+            className={`flex items-center gap-2.5 px-4 py-2.5 rounded-xl text-xs font-bold transition-all duration-200 cursor-pointer ${
               subTab === 'roles'
-                ? 'bg-white text-stone-900 shadow-sm border border-stone-200/80'
-                : 'text-stone-600 hover:text-stone-900 hover:bg-stone-200/50'
+                ? 'bg-white text-stone-900 shadow-sm border border-stone-200/90 ring-1 ring-black/5'
+                : 'text-stone-600 hover:text-stone-900 hover:bg-white/60'
             }`}
           >
-            <div className={`w-6 h-6 rounded-lg flex items-center justify-center text-xs ${
-              subTab === 'roles' ? 'bg-indigo-500 text-white' : 'bg-stone-200/80 text-stone-600'
+            <div className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs shadow-2xs transition-colors shrink-0 ${
+              subTab === 'roles' ? 'bg-indigo-600 text-white' : 'bg-stone-200/80 text-stone-600'
             }`}>
               <i className="fa-solid fa-shield-halved"></i>
             </div>
-            <span>Rol Modelleri</span>
+            <div className="text-left">
+              <span className="block leading-tight font-bold">Yetki & Roller</span>
+              <span className="text-[10px] font-medium text-stone-400 block leading-tight">İzin Şablonları</span>
+            </div>
             <span
               className={`ml-1 px-2 py-0.5 rounded-full text-[10px] font-extrabold ${
-                subTab === 'roles' ? 'bg-stone-900 text-white' : 'bg-stone-200 text-stone-600'
+                subTab === 'roles' ? 'bg-stone-900 text-white' : 'bg-stone-200/90 text-stone-600'
               }`}
             >
               {roles.length}
@@ -1416,10 +1427,10 @@ export default function UsersRolesTab({ currentAdmin, onRolesOrUsersUpdated }) {
                   {editingUser
                     ? 'Kullanıcıyı Düzenle'
                     : userPortalTarget === 'kurye'
-                    ? 'Yeni Kurye Paneli (/kurye) Kullanıcısı Ekle'
+                    ? 'Yeni Kurye Ekibi Kullanıcısı Ekle'
                     : userPortalTarget === 'yonetici'
-                    ? 'Yeni Süper Yönetici (/yonetici) Ekle'
-                    : 'Yeni Restoran Paneli (/panel) Kullanıcısı Ekle'}
+                    ? 'Yeni Süper Yönetici Ekle'
+                    : 'Yeni Restoran Personeli Ekle'}
                 </h3>
                 <p className="text-[11px] text-stone-500 mt-0.5">
                   Kullanıcının hangi panele giriş yapacağını ve yetki rolünü seçin

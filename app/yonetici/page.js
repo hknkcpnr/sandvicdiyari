@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import UsersRolesTab from '@/components/admin/UsersRolesTab';
+import ActivityLogsTab from '@/components/admin/ActivityLogsTab';
 import SiteContentEditorTab from '@/components/admin/SiteContentEditorTab';
 import SettingsTab from '@/components/admin/SettingsTab';
 import ThemeColorPicker from '@/components/admin/ThemeColorPicker';
@@ -802,12 +803,11 @@ export default function YoneticiPage() {
       : '';
 
   const settingsSubItems = [
-    { id: 'appearance', label: 'Arayüz & Kurye', icon: 'fa-solid fa-sliders' },
-    { id: 'users', label: 'Kullanıcılar', icon: 'fa-solid fa-user-shield' },
-    { id: 'sound', label: 'Ses', icon: 'fa-solid fa-volume-high' },
+    { id: 'appearance', label: 'Arayüz & Renk', icon: 'fa-solid fa-palette' },
+    { id: 'sound', label: 'Ses & Bildirim', icon: 'fa-solid fa-volume-high' },
     { id: 'receipt', label: 'Fiş Baskı', icon: 'fa-solid fa-receipt' },
     { id: 'system', label: 'Depolama & Yedek', icon: 'fa-solid fa-hard-drive' },
-    { id: 'api', label: 'Veritabanı', icon: 'fa-solid fa-database' }
+    { id: 'logs', label: 'İşlem Logları', icon: 'fa-solid fa-clock-rotate-left' }
   ];
 
   return (
@@ -902,6 +902,13 @@ export default function YoneticiPage() {
                     icon: 'fa-solid fa-user-shield',
                     badge: staffUsers.length > 0 ? `${staffUsers.length} Personel` : null,
                     badgeColor: 'bg-stone-100 text-stone-600',
+                  },
+                  {
+                    id: 'logs',
+                    label: 'İşlem Logları',
+                    icon: 'fa-solid fa-clock-rotate-left',
+                    badge: 'Canlı',
+                    badgeColor: 'bg-indigo-50 text-indigo-700 font-bold',
                   },
                   {
                     id: 'settings',
@@ -1113,6 +1120,7 @@ export default function YoneticiPage() {
               {activeTab === 'overview' && 'Yönetim Genel Bakış'}
               {activeTab === 'finance' && 'Kasa & Giren-Çıkan Paralar'}
               {activeTab === 'users' && 'Kullanıcılar & Rol Modelleri Yönetimi'}
+              {activeTab === 'logs' && 'Kullanıcı İşlem & Güvenlik Logları'}
               {activeTab === 'site_content' && 'Sayfa Düzenleri & Vitrin Stüdyosu'}
               {activeTab === 'settings' && 'Sistem & Panel Ayarları'}
             </h2>
@@ -1991,6 +1999,13 @@ export default function YoneticiPage() {
         {activeTab === 'users' && (
           <div className="p-3 sm:p-6 lg:p-8 w-full min-w-0">
             <UsersRolesTab adminUser={adminUser} onNotify={showToast} />
+          </div>
+        )}
+
+        {/* TAB 2.5: İŞLEM LOGLARI */}
+        {activeTab === 'logs' && (
+          <div className="p-3 sm:p-6 lg:p-8 w-full min-w-0">
+            <ActivityLogsTab showToast={showToast} currentAdmin={adminUser} />
           </div>
         )}
 

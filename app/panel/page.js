@@ -1912,6 +1912,33 @@ export default function AdminDashboardPage() {
                   },
                 ],
               },
+              {
+                category: 'Yönetim & Sistem',
+                items: [
+                  {
+                    id: 'users',
+                    label: 'Kullanıcılar & Roller',
+                    icon: 'fa-solid fa-user-shield',
+                  },
+                  {
+                    id: 'logs',
+                    label: 'İşlem Logları',
+                    icon: 'fa-solid fa-clock-rotate-left',
+                    badge: 'Canlı',
+                    badgeColor: 'bg-indigo-50 text-indigo-700 font-bold',
+                  },
+                  {
+                    id: 'site_content',
+                    label: 'Vitrin & Sayfa Düzeni',
+                    icon: 'fa-solid fa-paintbrush',
+                  },
+                  {
+                    id: 'settings',
+                    label: 'Sistem Ayarları',
+                    icon: 'fa-solid fa-sliders',
+                  },
+                ],
+              },
             ].map((section, sIdx) => {
               // Kullanıcı yetki filtreleme
               const filteredItems = section.items.filter((item) => {
@@ -1919,6 +1946,9 @@ export default function AdminDashboardPage() {
                 if (!adminUser?.permissions || !Array.isArray(adminUser.permissions)) return true;
                 if (item.id === 'options') {
                   return adminUser.permissions.includes('options') || adminUser.permissions.includes('options_manage');
+                }
+                if (item.id === 'logs') {
+                  return adminUser.permissions.includes('settings') || adminUser.permissions.includes('users');
                 }
                 return adminUser.permissions.includes(item.id);
               });
@@ -2120,12 +2150,11 @@ export default function AdminDashboardPage() {
               {currentTab === 'logs' && 'Kullanıcı İşlem & Güvenlik Logları'}
               {currentTab === 'site_content' && 'Sayfa Düzenleri & Vitrin Stüdyosu'}
               {currentTab === 'settings' && (
-                selectedSettingsSubTab === 'users' ? 'Sistem Ayarları • Kullanıcılar & Rol Modelleri' :
                 selectedSettingsSubTab === 'sound' ? 'Sistem Ayarları • Ses & Sipariş Bildirimleri' :
                 selectedSettingsSubTab === 'receipt' ? 'Sistem Ayarları • Fiş & Adisyon Baskısı' :
                 selectedSettingsSubTab === 'system' ? 'Sistem Ayarları • Yedekleme & Sistem' :
                 selectedSettingsSubTab === 'logs' ? 'Sistem Ayarları • Kullanıcı İşlem & Güvenlik Logları' :
-                'Sistem Ayarları • Yazı Boyutu & Panel Arayüzü'
+                'Sistem Ayarları • Arayüz & Renk Seçenekleri'
               )}
             </h2>
           </div>
@@ -2906,17 +2935,11 @@ export default function AdminDashboardPage() {
           />
         )}
 
-        {/* TAB USERS & ROLES: AYARLAR İÇİNDE YÖNETİLİR */}
+        {/* TAB USERS & ROLES: MÜSTAKİL KULLANICI & ROL YÖNETİMİ */}
         {currentTab === 'users' && (
-          <SettingsTab
-            currentSettings={adminSettings}
-            currentAdmin={adminUser}
-            initialSubTab="users"
-            onSaveSettings={(newSettings) => {
-              setAdminSettings(newSettings);
-              showToast('Panel ayarları başarıyla güncellendi.', 'success');
-            }}
-          />
+          <div className="p-3 sm:p-6 lg:p-8 w-full min-w-0">
+            <UsersRolesTab adminUser={adminUser} onNotify={showToast} />
+          </div>
         )}
 
         {/* TAB 2: MENÜ & ÜRÜNLER (WITH IMAGE UPLOAD!) */}
@@ -3769,17 +3792,9 @@ export default function AdminDashboardPage() {
 
         {/* TAB 4: KULLANICI İŞLEM & GÜVENLİK LOGLARI */}
         {currentTab === 'logs' && (
-          <SettingsTab
-            currentSettings={adminSettings}
-            currentAdmin={adminUser}
-            initialSubTab="logs"
-            onSubTabChange={setSelectedSettingsSubTab}
-            showToast={showToast}
-            onSaveSettings={(newSettings) => {
-              setAdminSettings(newSettings);
-              showToast('Panel ayarları başarıyla güncellendi.', 'success');
-            }}
-          />
+          <div className="p-3 sm:p-6 lg:p-8 w-full min-w-0">
+            <ActivityLogsTab showToast={showToast} currentAdmin={adminUser} />
+          </div>
         )}
 
         {/* TAB 5: MÜŞTERİ SAYFASI TASARIM & İÇERİK YÖNETİMİ */}
