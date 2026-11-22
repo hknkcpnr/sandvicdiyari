@@ -381,6 +381,33 @@ export default function AdminDashboardPage() {
         );
       });
 
+      // Sipariş silme yetkisine sahip aktif yöneticileri ve restoran müdürlerini filtrele
+      const managers = adminUsers
+        .filter((u) => {
+          if (u.isActive === false) return false;
+          const matchedRole = roles.find((r) => r.id === u.roleId || r.code === u.roleId) || {};
+          const roleId = String(u.roleId || '').toLowerCase();
+          const roleName = String(u.roleName || u.role || matchedRole.name || '').toLowerCase();
+          const isSuper = roleId === 'role_super_admin' || roleName.includes('süper') || String(u.email || '').toLowerCase() === 'admin';
+          const perms = Array.isArray(u.permissions)
+            ? u.permissions
+            : Array.isArray(matchedRole.permissions)
+            ? matchedRole.permissions
+            : [];
+          return isSuper || perms.includes('delete_order');
+        })
+        .map((u) => {
+          const matchedRole = roles.find((r) => r.id === u.roleId || r.code === u.roleId) || {};
+          const isSuper = u.roleId === 'role_super_admin' || String(u.email || '').toLowerCase() === 'admin';
+          return {
+            id: u.id,
+            name: u.name || u.email,
+            email: u.email,
+            roleName: isSuper ? 'Süper Yönetici' : (matchedRole.name || u.roleName || 'Restoran Müdürü'),
+          };
+        });
+      setSupervisors(managers);
+
       const realNames = couriers.map((c) => c.name?.trim()).filter(Boolean);
 
       if (realNames.length > 0) {
@@ -440,6 +467,8 @@ export default function AdminDashboardPage() {
   const [customCancelReason, setCustomCancelReason] = useState('');
   const [deleteModalOrder, setDeleteModalOrder] = useState(null);
   const [deleteAdminPassword, setDeleteAdminPassword] = useState('');
+  const [deleteSupervisorEmail, setDeleteSupervisorEmail] = useState('');
+  const [supervisors, setSupervisors] = useState([]);
   const [deleteRestoreStock, setDeleteRestoreStock] = useState(true);
   const [isDeletingOrder, setIsDeletingOrder] = useState(false);
   const [deleteOrderError, setDeleteOrderError] = useState('');
@@ -1038,12 +1067,14 @@ export default function AdminDashboardPage() {
     }
   };
 
-  // Yönetici Onaylı Kalıcı Sipariş Silme
+  // Kalıcı Sipariş Silme (Yetkili veya Restoran Müdürü Onaylı)
   const handleConfirmDeleteOrder = async (e) => {
     if (e && e.preventDefault) e.preventDefault();
     if (!deleteModalOrder) return;
-    if (!deleteAdminPassword.trim()) {
-      setDeleteOrderError('Lütfen yönetici şifrenizi giriniz.');
+
+    // Yetkisi olmayan personeller için müdür/yönetici şifresi zorunludur
+    if (!canDeleteOrder && !deleteAdminPassword.trim()) {
+      setDeleteOrderError('Yetkiniz bulunmadığı için lütfen bir Restoran Müdürü veya Yönetici şifresi giriniz.');
       return;
     }
 
@@ -1056,6 +1087,7 @@ export default function AdminDashboardPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           password: deleteAdminPassword.trim(),
+          supervisorEmail: deleteSupervisorEmail || undefined,
           restoreStock: deleteRestoreStock,
         }),
       });
@@ -1074,6 +1106,7 @@ export default function AdminDashboardPage() {
 
       setDeleteModalOrder(null);
       setDeleteAdminPassword('');
+      setDeleteSupervisorEmail('');
       dispatch(
         showMessageModal({
           title: 'Sipariş Silindi 🗑️',
@@ -2799,6 +2832,7 @@ export default function AdminDashboardPage() {
                               onClick={() => {
                                 setDeleteOrderError('');
                                 setDeleteAdminPassword('');
+                                setDeleteSupervisorEmail('');
                                 setDeleteRestoreStock(order.status !== 'İptal Edildi');
                                 setDeleteModalOrder(order);
                               }}
@@ -4607,6 +4641,7 @@ export default function AdminDashboardPage() {
                 onClick={() => {
                   setDeleteOrderError('');
                   setDeleteAdminPassword('');
+                  setDeleteSupervisorEmail('');
                   setDeleteRestoreStock(detailOrder.status !== 'İptal Edildi');
                   setDeleteModalOrder(detailOrder);
                 }}
@@ -4764,26 +4799,66 @@ export default function AdminDashboardPage() {
         </div>
       )}
 
-      {/* MODAL: YÖNETİCİ ONAYLI SİPARİŞ SİLME */}
+      {/* MODAL: SİPARİŞİ KALICI OLARAK SİL (YETKİ DURUMUNA DUYARLI) */}
       {deleteModalOrder && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-stone-900/60 backdrop-blur-xs animate-in fade-in duration-150">
-          <div className="bg-white rounded-3xl max-w-xl w-full p-5 sm:p-6 border border-rose-200 shadow-2xl space-y-4 my-auto max-h-[95vh] overflow-y-auto no-scrollbar">
+          <div className="bg-white rounded-3xl max-w-xl w-full p-5 sm:p-6 border border-stone-200 shadow-2xl space-y-4 my-auto max-h-[95vh] overflow-y-auto no-scrollbar">
+            {/* Modal Üst Başlık & Rozet */}
             <div className="flex items-start gap-3.5">
-              <div className="w-12 h-12 rounded-2xl bg-rose-100 text-rose-600 flex items-center justify-center text-xl shrink-0 shadow-inner">
-                <i className="fa-solid fa-shield-halved"></i>
+              <div
+                className={`w-12 h-12 rounded-2xl flex items-center justify-center text-xl shrink-0 shadow-inner ${
+                  canDeleteOrder ? 'bg-rose-100 text-rose-600' : 'bg-amber-100 text-amber-700'
+                }`}
+              >
+                <i className={canDeleteOrder ? 'fa-solid fa-trash-can' : 'fa-solid fa-shield-halved'}></i>
               </div>
               <div className="min-w-0 flex-1">
-                <h4 className="font-extrabold text-stone-900 text-base flex items-center gap-2">
-                  <span>Siparişi Kalıcı Olarak Sil</span>
-                  <span className="bg-rose-100 text-rose-700 text-[10px] font-black px-2 py-0.5 rounded-full uppercase">
-                    Yönetici Onaylı
+                <div className="flex flex-wrap items-center gap-2">
+                  <h4 className="font-extrabold text-stone-900 text-base">
+                    {canDeleteOrder ? 'Siparişi Kalıcı Olarak Sil' : 'Yönetici / Restoran Müdürü Onayı Gerekli'}
+                  </h4>
+                  <span
+                    className={`text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider ${
+                      canDeleteOrder
+                        ? 'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                        : 'bg-amber-100 text-amber-900 border border-amber-300'
+                    }`}
+                  >
+                    {canDeleteOrder ? '✓ Yetkiniz Doğrulandı' : '🔒 Yönetici Onayı Şart'}
                   </span>
-                </h4>
+                </div>
                 <p className="text-xs text-stone-500 mt-0.5">
                   #{deleteModalOrder.orderNumber || deleteModalOrder.id} numaralı sipariş kaydı veritabanından kalıcı olarak silinecektir.
                 </p>
               </div>
             </div>
+
+            {/* Yetki Durumu Bilgi Kartı */}
+            {canDeleteOrder ? (
+              <div className="bg-emerald-50/80 border border-emerald-200/90 rounded-2xl p-3 flex items-start gap-2.5 text-xs text-emerald-900">
+                <i className="fa-solid fa-circle-check text-emerald-600 mt-0.5 shrink-0 text-sm"></i>
+                <div className="min-w-0">
+                  <span className="font-bold block">
+                    Sipariş silme yetkiniz bulunmaktadır ({adminUser?.name || 'Siz'} • {adminUser?.role || 'Yetkili Rol'}).
+                  </span>
+                  <span className="text-[11px] text-emerald-700 block mt-0.5">
+                    Bu işlem geri alınamaz. Siparişi kalıcı olarak kaldırmak için aşağıdaki butona tıklayabilirsiniz.
+                  </span>
+                </div>
+              </div>
+            ) : (
+              <div className="bg-amber-50/90 border border-amber-200 rounded-2xl p-3 flex items-start gap-2.5 text-xs text-amber-950">
+                <i className="fa-solid fa-triangle-exclamation text-amber-600 mt-0.5 shrink-0 text-sm"></i>
+                <div className="min-w-0">
+                  <span className="font-bold block">
+                    Giriş yaptığınız hesapta ({adminUser?.name || 'Mevcut Personel'}) sipariş silme yetkisi bulunmuyor.
+                  </span>
+                  <span className="text-[11px] text-amber-800 block mt-0.5">
+                    Siparişin silinebilmesi için bir <strong>Restoran Müdürü</strong> veya <strong>Süper Yönetici</strong> onay şifresi gereklidir. Rastgele veya hatalı şifrelerle silme işlemi yapılamaz.
+                  </span>
+                </div>
+              </div>
+            )}
 
             {/* Sipariş Özeti */}
             <div className="bg-stone-50 rounded-2xl p-3.5 border border-stone-200/80 space-y-1.5 text-xs text-stone-700">
@@ -4809,14 +4884,14 @@ export default function AdminDashboardPage() {
             </div>
 
             {/* Stok İade Opsiyonu */}
-            <label className="flex items-center gap-2.5 text-xs text-stone-700 cursor-pointer select-none bg-amber-50/60 p-2.5 rounded-xl border border-amber-200/80">
+            <label className="flex items-center gap-2.5 text-xs text-stone-700 cursor-pointer select-none bg-stone-50 p-2.5 rounded-xl border border-stone-200">
               <input
                 type="checkbox"
                 checked={deleteRestoreStock}
                 onChange={(e) => setDeleteRestoreStock(e.target.checked)}
                 className="w-4 h-4 rounded text-brand-600 focus:ring-brand-500 border-stone-300 cursor-pointer"
               />
-              <span className="font-medium text-amber-950">
+              <span className="font-medium text-stone-800">
                 Bu siparişteki ürünlerin stok adetlerini geri yükle (stok iadesi yap)
               </span>
             </label>
@@ -4831,22 +4906,49 @@ export default function AdminDashboardPage() {
 
             {/* Şifre Doğrulama Formu */}
             <form onSubmit={handleConfirmDeleteOrder} className="space-y-3.5 pt-1">
-              <div>
-                <div className="flex justify-between items-center mb-1">
-                  <label className="block text-xs font-bold text-stone-700 uppercase tracking-wide">
-                    Yönetici Onay Şifresi <span className="text-rose-500">*</span>
-                  </label>
+              {!canDeleteOrder && (
+                <div className="space-y-3 bg-stone-50/80 p-3.5 rounded-2xl border border-stone-200">
+                  {/* Yönetici Seçimi */}
+                  {supervisors.length > 0 && (
+                    <div>
+                      <label className="block text-xs font-bold text-stone-700 mb-1">
+                        Onay Verecek Restoran Müdürü / Yönetici
+                      </label>
+                      <select
+                        value={deleteSupervisorEmail}
+                        onChange={(e) => setDeleteSupervisorEmail(e.target.value)}
+                        className="app-select w-full bg-white border border-stone-300 rounded-xl px-3 py-2 text-xs font-semibold text-stone-900 focus:outline-none focus:border-amber-500 cursor-pointer"
+                      >
+                        <option value="">Tüm Yetkili Yöneticiler (Herhangi biri onaylayabilir)</option>
+                        {supervisors.map((s) => (
+                          <option key={s.id || s.email} value={s.email}>
+                            {s.name} ({s.roleName})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+
+                  {/* Yönetici Şifresi */}
+                  <div>
+                    <label className="block text-xs font-bold text-stone-700 mb-1">
+                      Yönetici Onay Şifresi <span className="text-rose-500">*</span>
+                    </label>
+                    <input
+                      type="password"
+                      required
+                      autoFocus
+                      value={deleteAdminPassword}
+                      onChange={(e) => setDeleteAdminPassword(e.target.value)}
+                      placeholder="Müdür / Yönetici şifresini giriniz..."
+                      className="w-full bg-white border border-stone-300 rounded-xl px-3.5 py-2.5 text-xs text-stone-900 focus:outline-none focus:border-amber-500 font-medium transition-all"
+                    />
+                    <span className="text-[11px] text-stone-400 mt-1 block">
+                      Yalnızca sipariş silme yetkisine sahip aktif yöneticilerin şifresi kabul edilir.
+                    </span>
+                  </div>
                 </div>
-                <input
-                  type="password"
-                  required
-                  autoFocus
-                  value={deleteAdminPassword}
-                  onChange={(e) => setDeleteAdminPassword(e.target.value)}
-                  placeholder="Yönetici şifrenizi giriniz..."
-                  className="w-full bg-stone-50 border border-stone-300 rounded-xl px-3.5 py-2.5 text-xs text-stone-900 focus:outline-none focus:border-rose-500 focus:bg-white font-medium transition-all"
-                />
-              </div>
+              )}
 
               <div className="flex gap-2.5 pt-1">
                 <button
@@ -4855,6 +4957,7 @@ export default function AdminDashboardPage() {
                   onClick={() => {
                     setDeleteModalOrder(null);
                     setDeleteAdminPassword('');
+                    setDeleteSupervisorEmail('');
                     setDeleteOrderError('');
                   }}
                   className="flex-1 bg-stone-100 hover:bg-stone-200 text-stone-700 py-2.5 rounded-xl text-xs font-semibold cursor-pointer transition-colors"
@@ -4863,7 +4966,7 @@ export default function AdminDashboardPage() {
                 </button>
                 <button
                   type="submit"
-                  disabled={isDeletingOrder || !deleteAdminPassword}
+                  disabled={isDeletingOrder || (!canDeleteOrder && !deleteAdminPassword.trim())}
                   className="flex-1 bg-rose-600 hover:bg-rose-700 disabled:bg-stone-300 disabled:cursor-not-allowed text-white py-2.5 rounded-xl text-xs font-bold cursor-pointer transition-all flex items-center justify-center gap-2 shadow-md shadow-rose-600/20 active:scale-95"
                 >
                   {isDeletingOrder ? (
@@ -4871,10 +4974,15 @@ export default function AdminDashboardPage() {
                       <i className="fa-solid fa-spinner fa-spin"></i>
                       <span>Siliniyor...</span>
                     </>
-                  ) : (
+                  ) : canDeleteOrder ? (
                     <>
                       <i className="fa-solid fa-trash-can"></i>
-                      <span>Onayla ve Sil</span>
+                      <span>Evet, Siparişi Sil</span>
+                    </>
+                  ) : (
+                    <>
+                      <i className="fa-solid fa-shield-halved"></i>
+                      <span>Yönetici Onayıyla Sil</span>
                     </>
                   )}
                 </button>

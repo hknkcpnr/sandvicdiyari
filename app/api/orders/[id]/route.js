@@ -585,10 +585,12 @@ export async function DELETE(request, { params }) {
     const id = sanitizeText(resolvedParams.id, 64, 'id', '/api/orders/[id]');
 
     let password = '';
+    let supervisorEmail = '';
     let restoreStock = true;
     try {
       const body = await request.json();
-      password = body.password || '';
+      password = body.password || body.supervisorPassword || '';
+      supervisorEmail = body.supervisorEmail || '';
       if (typeof body.restoreStock === 'boolean') {
         restoreStock = body.restoreStock;
       }
@@ -598,7 +600,10 @@ export async function DELETE(request, { params }) {
 
     const { searchParams } = new URL(request.url);
     if (!password) {
-      password = searchParams.get('password') || '';
+      password = searchParams.get('password') || searchParams.get('supervisorPassword') || '';
+    }
+    if (!supervisorEmail) {
+      supervisorEmail = searchParams.get('supervisorEmail') || '';
     }
 
     const jwtPayload = getOptionalAuthFromRequest(request);
@@ -608,30 +613,68 @@ export async function DELETE(request, { params }) {
       Array.isArray(jwtPayload.permissions) &&
       jwtPayload.permissions.includes('delete_order');
 
-    let hasValidPassword = db.verifyAdminActionPassword(password, 'delete_order');
+    let approverInfo = null;
 
-    if (!hasValidPassword && password) {
-      try {
-        const pgAdmins = await rawPrisma.adminUser.findMany({
-          where: { isActive: true },
-          include: { role: true }
-        });
-        for (const adm of pgAdmins) {
-          if (verifyPassword(password, adm.passHash || adm.passwordHash)) {
-            const perms = Array.isArray(adm.role?.permissions) ? adm.role.permissions : [];
-            if (adm.roleId === 'role_super_admin' || perms.includes('delete_order')) {
-              hasValidPassword = true;
-              break;
+    if (hasJwtPermission) {
+      // İstek yapan personelin kendi JWT oturumunda delete_order yetkisi var
+      approverInfo = {
+        type: 'self',
+        name: jwtPayload.name || jwtPayload.email || 'Yetkili Personel',
+        role: jwtPayload.role || 'Yönetici'
+      };
+    } else {
+      // İstek yapan personelin delete_order yetkisi YOK!
+      // Bu durumda gerçek bir Restoran Müdürü veya Yönetici şifresi doğrulanması zorunludur.
+      const cleanPass = (password || '').trim();
+      if (!cleanPass) {
+        throw new AuthorizationError(
+          'Bu personel hesabının sipariş silme yetkisi bulunmamaktadır. Siparişi silmek için lütfen Restoran Müdürü veya Yönetici onay şifresini giriniz.'
+        );
+      }
+
+      // 1. Yerel veritabanında yetkili yönetici şifre kontrolü
+      let authorizedManager = db.verifyAdminActionPassword(cleanPass, 'delete_order', supervisorEmail);
+
+      // 2. PostgreSQL Prisma veritabanında yetkili yönetici şifre kontrolü
+      if (!authorizedManager) {
+        try {
+          const whereClause = { isActive: true };
+          if (supervisorEmail) {
+            whereClause.email = supervisorEmail.toLowerCase();
+          }
+          const pgAdmins = await rawPrisma.adminUser.findMany({
+            where: whereClause,
+            include: { role: true }
+          });
+          for (const adm of pgAdmins) {
+            if (verifyPassword(cleanPass, adm.passHash || adm.passwordHash)) {
+              const isSuper = adm.roleId === 'role_super_admin' || String(adm.email || '').toLowerCase() === 'admin';
+              const perms = Array.isArray(adm.role?.permissions) ? adm.role.permissions : [];
+              if (isSuper || perms.includes('delete_order')) {
+                authorizedManager = {
+                  id: adm.id,
+                  name: adm.name || adm.email,
+                  email: adm.email,
+                  roleName: isSuper ? 'Süper Yönetici' : (adm.role?.name || 'Restoran Müdürü')
+                };
+                break;
+              }
             }
           }
-        }
-      } catch {}
-    }
+        } catch {}
+      }
 
-    if (!hasJwtPermission && !hasValidPassword) {
-      throw new AuthorizationError(
-        'Yetkisiz işlem: Yönetici şifresi hatalı veya sipariş silme yetkiniz bulunmuyor!'
-      );
+      if (!authorizedManager) {
+        throw new AuthorizationError(
+          'Yetkisiz işlem: Girilen onay şifresi hatalı veya sipariş silme yetkisine sahip bir Restoran Müdürü / Yöneticiye ait değil!'
+        );
+      }
+
+      approverInfo = {
+        type: 'supervisor',
+        name: authorizedManager.name,
+        role: authorizedManager.roleName
+      };
     }
 
     const pgOrder = await findOrderInPg(id);
@@ -671,8 +714,13 @@ export async function DELETE(request, { params }) {
         () => pgOrder.id
       );
 
+      const successMsg =
+        approverInfo?.type === 'supervisor'
+          ? `Sipariş #${pgOrder.orderNumber || id}, ${approverInfo.role} (${approverInfo.name}) onayıyla kalıcı olarak silindi.`
+          : `Sipariş #${pgOrder.orderNumber || id} kalıcı olarak silindi.`;
+
       return jsonSuccess({
-        message: `Sipariş #${pgOrder.orderNumber || id} kalıcı olarak silindi.`,
+        message: successMsg,
         data: formatPrismaOrder(pgOrder)
       });
     }
@@ -691,8 +739,13 @@ export async function DELETE(request, { params }) {
 
     await notifyUserOrderDeleted(deletedOrder);
 
+    const successMsg =
+      approverInfo?.type === 'supervisor'
+        ? `Sipariş #${deletedOrder.orderNumber || id}, ${approverInfo.role} (${approverInfo.name}) onayıyla kalıcı olarak silindi.`
+        : `Sipariş #${deletedOrder.orderNumber || id} kalıcı olarak silindi.`;
+
     return jsonSuccess({
-      message: `Sipariş #${deletedOrder.orderNumber || id} kalıcı olarak silindi.`,
+      message: successMsg,
       data: deletedOrder
     });
   } catch (error) {
