@@ -265,10 +265,10 @@ export default function OptionsModal() {
       }}
       className="fixed inset-0 z-50 flex items-start sm:items-center justify-center p-2 sm:p-4 bg-stone-900/65 backdrop-blur-xs overflow-y-auto animate-in fade-in duration-200"
     >
-      <div className="bg-white rounded-2xl sm:rounded-3xl max-w-[680px] w-full shadow-2xl my-auto sm:my-6 flex flex-col max-h-[94vh] sm:max-h-[90vh] overflow-hidden border border-stone-200/80">
-        {/* Üst Ürün Özeti: Solda Büyük Görsel, Sağda Başlık & Fiyat (Sabit Üst Bar) */}
-        <div className="shrink-0 flex items-center gap-3.5 sm:gap-4 p-3.5 sm:px-5 sm:py-4 bg-gradient-to-br from-stone-50/95 to-white border-b border-stone-200/80 text-left z-10">
-          <div className="relative w-24 h-24 sm:w-36 sm:h-28 rounded-2xl overflow-hidden bg-stone-100 border border-stone-200/80 shadow-xs shrink-0">
+      <div className="bg-white rounded-2xl sm:rounded-3xl max-w-[680px] lg:max-w-5xl xl:max-w-6xl w-full shadow-2xl my-auto sm:my-4 flex flex-col max-h-[94vh] lg:max-h-none overflow-hidden border border-stone-200/80">
+        {/* Üst Ürün Özeti: Solda Görsel, Sağda Başlık & Fiyat */}
+        <div className="shrink-0 flex items-center gap-3.5 sm:gap-4 p-3 sm:px-5 sm:py-3 bg-gradient-to-br from-stone-50/95 to-white border-b border-stone-200/80 text-left z-10">
+          <div className="relative w-20 h-20 sm:w-28 sm:h-20 rounded-2xl overflow-hidden bg-stone-100 border border-stone-200/80 shadow-xs shrink-0">
             <img
               id="opt-modal-img"
               src={selectedProductForOptions.image}
@@ -332,9 +332,11 @@ export default function OptionsModal() {
           </div>
         </div>
 
-        {/* Kaydırılabilir Seçenekler Alanı (Mobilde & Masaüstünde Akıcı Scroll) */}
-        <div className="flex-1 overflow-y-auto overscroll-contain p-3.5 sm:p-5 space-y-3 text-left touch-pan-y">
-          {/* 1 & 2. Ürün İçeriği ve Sos Seçimleri Yan Yana */}
+        {/* Seçenekler Alanı (Masaüstünde Geniş 2 Sütun - Scroll Yok, Mobilde Akıcı) */}
+        <div className="flex-1 overflow-y-auto lg:overflow-visible overscroll-contain p-3 sm:p-4 lg:px-5 lg:py-3.5 text-left touch-pan-y">
+          <div className={`grid grid-cols-1 ${!isMenu && !isDrink && suggestedDrinks.length > 0 ? 'lg:grid-cols-12' : ''} gap-3 items-start`}>
+            <div className={`${!isMenu && !isDrink && suggestedDrinks.length > 0 ? 'lg:col-span-7' : ''} space-y-2.5`}>
+              {/* 1 & 2. Ürün İçeriği ve Sos Seçimleri Yan Yana */}
           <div
             className={`grid grid-cols-1 ${
               productIngredients.length > 0 ? 'sm:grid-cols-2' : ''
@@ -559,21 +561,22 @@ export default function OptionsModal() {
               />
             </div>
           </div>
+            </div>
 
-          {/* 5. Tekli Ürünler İçin Altta İçecek Önerileri */}
+          {/* 5. Tekli Ürünler İçin İçecek Önerileri (Masaüstünde Sağ Sütun - Scrollsuz Tam Görünüm) */}
           {!isMenu && !isDrink && suggestedDrinks.length > 0 && (
-            <div className="bg-sky-50/60 border border-sky-200/80 rounded-2xl p-3 sm:px-3.5 space-y-2.5">
+            <div className="lg:col-span-5 bg-sky-50/60 border border-sky-200/80 rounded-2xl p-2.5 sm:px-3.5 space-y-2 h-full">
               <div className="flex items-center justify-between gap-2">
                 <label className="text-[11px] font-extrabold text-stone-900 uppercase flex items-center gap-1.5">
                   <i className="fa-solid fa-bottle-water text-sky-600"></i>
                   Yanına Soğuk İçecek İster misiniz?
                 </label>
                 {selectedSuggestedDrinks.length > 0 ? (
-                  <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-sky-600 text-white">
+                  <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-sky-600 text-white shrink-0">
                     {selectedSuggestedDrinks.length} Seçildi (+₺{suggestedDrinksCost.toFixed(0)})
                   </span>
                 ) : (
-                  <span className="text-[10px] font-semibold text-sky-700">İsteğe Bağlı</span>
+                  <span className="text-[10px] font-semibold text-sky-700 shrink-0">İsteğe Bağlı</span>
                 )}
               </div>
 
@@ -585,14 +588,14 @@ export default function OptionsModal() {
                       key={drinkProd.id}
                       type="button"
                       onClick={() => handleToggleSuggestedDrink(drinkProd.id)}
-                      className={`flex items-center justify-between gap-2 p-2 rounded-xl border text-left transition-all cursor-pointer active:scale-[0.98] ${
+                      className={`flex items-center justify-between gap-1.5 p-1.5 rounded-xl border text-left transition-all cursor-pointer active:scale-[0.98] ${
                         isSelected
                           ? 'bg-sky-100/90 border-sky-500 ring-1 ring-sky-400/40 shadow-2xs'
                           : 'bg-white border-stone-200/90 hover:border-sky-300'
                       }`}
                     >
-                      <div className="flex items-center gap-2 min-w-0">
-                        <div className="w-8 h-8 rounded-lg overflow-hidden bg-stone-100 border border-stone-200/70 shrink-0">
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <div className="w-7 h-7 rounded-lg overflow-hidden bg-stone-100 border border-stone-200/70 shrink-0">
                           <img
                             src={drinkProd.image || '/images/hero_banner.jpg'}
                             alt={drinkProd.name}
@@ -607,12 +610,12 @@ export default function OptionsModal() {
                         </span>
                       </div>
 
-                      <div className="flex items-center gap-1.5 shrink-0">
+                      <div className="flex items-center gap-1 shrink-0">
                         <span className="text-[11px] font-black text-sky-700">
                           +₺{Number(drinkProd.price || 0).toFixed(0)}
                         </span>
                         <span
-                          className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] transition-colors ${
+                          className={`w-4.5 h-4.5 rounded-full flex items-center justify-center text-[9px] transition-colors ${
                             isSelected
                               ? 'bg-sky-600 text-white'
                               : 'bg-stone-100 text-stone-400 border border-stone-200'
@@ -627,6 +630,7 @@ export default function OptionsModal() {
               </div>
             </div>
           )}
+          </div>
         </div>
 
         {/* Sabit Alt Bar (Sepete Ekle Butonu - Mobilde Her Zaman Görünür & Tıklanabilir) */}
