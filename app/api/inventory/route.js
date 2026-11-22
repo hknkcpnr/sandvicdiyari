@@ -1,6 +1,7 @@
 import { db } from '@/lib/db';
 import { prisma, rawPrisma, formatPrismaProduct } from '@/lib/prisma';
 import { orm } from '@/lib/orm/postgresEngine';
+import { logUserActivity } from '@/lib/activityLogger';
 import {
   NotFoundError,
   ValidationError,
@@ -116,6 +117,15 @@ export async function PUT(request) {
       const refreshedProducts = await getAllProductsFromPgOrLocal();
       const summary = computeInventorySummary(refreshedProducts);
 
+      await logUserActivity({
+        req: request,
+        action: 'STOCK_BULK_UPDATE',
+        category: 'MENU',
+        level: 'INFO',
+        message: `Toplu stok işlemi uygulandı: ${safeAction} (${safeAmount} adet)`,
+        details: { action: safeAction, amount: safeAmount }
+      });
+
       return jsonSuccess({
         message: 'Toplu stok işlemi başarıyla uygulandı.',
         products: refreshedProducts,
@@ -206,6 +216,20 @@ export async function PUT(request) {
           const refreshedProducts = await getAllProductsFromPgOrLocal();
           const summary = computeInventorySummary(refreshedProducts);
 
+          await logUserActivity({
+            req: request,
+            action: 'STOCK_UPDATE',
+            category: 'MENU',
+            level: 'INFO',
+            message: `"${updatedPg.name}" stoku güncellendi: ${nextStock} adet (Satış: ${nextAvailable ? 'Açık' : 'Kapalı'})`,
+            details: {
+              productId: numericId,
+              name: updatedPg.name,
+              stock: nextStock,
+              isAvailable: nextAvailable
+            }
+          });
+
           return jsonSuccess({
             message: `"${updatedPg.name}" stok durumu güncellendi.`,
             data: formatPrismaProduct(updatedPg),
@@ -237,6 +261,21 @@ export async function PUT(request) {
     if (updated) {
       const refreshedProducts = await getAllProductsFromPgOrLocal();
       const summary = computeInventorySummary(refreshedProducts);
+
+      await logUserActivity({
+        req: request,
+        action: 'STOCK_UPDATE',
+        category: 'MENU',
+        level: 'INFO',
+        message: `"${updated.name}" stoku güncellendi: ${updated.stock} adet (Satış: ${updated.isAvailable ? 'Açık' : 'Kapalı'})`,
+        details: {
+          productId: safeId,
+          name: updated.name,
+          stock: updated.stock,
+          isAvailable: updated.isAvailable
+        }
+      });
+
       return jsonSuccess({
         message: `"${updated.name}" stok durumu güncellendi.`,
         data: updated,
@@ -295,6 +334,15 @@ export async function POST(request) {
       }
     });
 
+    await logUserActivity({
+      req: request,
+      action: 'PRODUCT_ADD',
+      category: 'MENU',
+      level: 'INFO',
+      message: `Envantere yeni ürün eklendi: "${newProduct.name}" (${newProduct.price} ₺, Stok: ${newProduct.stock})`,
+      details: { productId: newProduct.id, name: newProduct.name, price: newProduct.price }
+    });
+
     return jsonSuccess(
       {
         message: 'Ürün başarıyla eklendi.',
@@ -318,6 +366,15 @@ export async function DELETE(request) {
 
     const id = sanitizeText(rawId, 64, 'id', '/api/inventory');
     await prisma.product.delete({ where: { id } });
+
+    await logUserActivity({
+      req: request,
+      action: 'PRODUCT_DELETE',
+      category: 'MENU',
+      level: 'WARN',
+      message: `Envanterden ürün silindi: ID #${id}`,
+      details: { productId: id }
+    });
 
     const refreshedProducts = await getAllProductsFromPgOrLocal();
     return jsonSuccess({

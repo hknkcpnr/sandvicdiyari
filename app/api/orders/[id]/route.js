@@ -215,6 +215,16 @@ export async function PATCH(request, { params }) {
           db.completeDeliveryByCourier(id, actorName, paymentCollectedMethod);
         } catch {}
 
+        await logUserActivity({
+          user: { name: actorName, role: 'Kurye' },
+          action: 'ORDER_STATUS_UPDATE',
+          category: 'ORDER',
+          level: 'INFO',
+          message: `#${pgOrder.orderNumber || id} sipariş teslim edildi ve tahsilat tamamlandı.`,
+          details: { orderId: id, status: 'Teslim Edildi', paymentCollectedMethod },
+          req: request
+        });
+
         return jsonSuccess({
           message: 'Sipariş teslim edildi ve ödeme tahsilatı tamamlandı.',
           data: formatPrismaOrder(updatedPg)
@@ -231,6 +241,17 @@ export async function PATCH(request, { params }) {
       if (!deliveredOrder) {
         throw new NotFoundError('Sipariş bulunamadı.');
       }
+
+      await logUserActivity({
+        user: { name: courierName || user || 'Kurye', role: 'Kurye' },
+        action: 'ORDER_STATUS_UPDATE',
+        category: 'ORDER',
+        level: 'INFO',
+        message: `#${deliveredOrder.orderNumber || id} sipariş teslim edildi ve tahsilat tamamlandı.`,
+        details: { orderId: id, status: 'Teslim Edildi', paymentCollectedMethod },
+        req: request
+      });
+
       return jsonSuccess({
         message: 'Sipariş teslim edildi ve ödeme tahsilatı tamamlandı.',
         data: deliveredOrder
@@ -305,6 +326,18 @@ export async function PATCH(request, { params }) {
           db.updateCourier(id, courierName, user);
         } catch {}
 
+        await logUserActivity({
+          user: { name: user || 'Yetkili' },
+          action: 'COURIER_ASSIGN',
+          category: 'ORDER',
+          level: 'INFO',
+          message: courierName
+            ? `#${pgOrder.orderNumber || id} siparişi "${courierName}" adlı kuryeye atandı.`
+            : `#${pgOrder.orderNumber || id} siparişinin kurye ataması kaldırıldı.`,
+          details: { orderId: id, courierName },
+          req: request
+        });
+
         return jsonSuccess({
           message: courierName ? `Kurye (${courierName}) atandı.` : 'Kurye ataması güncellendi.',
           data: formatPrismaOrder(updatedPg)
@@ -321,6 +354,19 @@ export async function PATCH(request, { params }) {
       if (!updated) {
         throw new NotFoundError('Sipariş bulunamadı.');
       }
+
+      await logUserActivity({
+        user: { name: user || 'Yetkili' },
+        action: 'COURIER_ASSIGN',
+        category: 'ORDER',
+        level: 'INFO',
+        message: courierName
+          ? `#${updated.orderNumber || id} siparişi "${courierName}" adlı kuryeye atandı.`
+          : `#${updated.orderNumber || id} siparişinin kurye ataması kaldırıldı.`,
+        details: { orderId: id, courierName },
+        req: request
+      });
+
       return jsonSuccess({
         message: courierName ? `Kurye (${courierName}) atandı.` : 'Kurye ataması güncellendi.',
         data: updated
@@ -412,6 +458,17 @@ export async function PATCH(request, { params }) {
       if (!updated) {
         throw new NotFoundError('Sipariş bulunamadı.');
       }
+
+      await logUserActivity({
+        user: { name: user || 'Yetkili' },
+        action: 'PAYMENT_UPDATE',
+        category: 'ORDER',
+        level: 'INFO',
+        message: `#${updated.orderNumber || id} siparişinin ödeme durumu "${paymentStatus}" olarak güncellendi.`,
+        details: { orderId: id, paymentStatus },
+        req: request
+      });
+
       return jsonSuccess({
         message: `Ödeme durumu "${paymentStatus}" olarak güncellendi.`,
         data: updated
@@ -510,7 +567,7 @@ export async function PATCH(request, { params }) {
         () => updatedPg.id
       );
 
-      logUserActivity({
+      await logUserActivity({
         user: { name: user || 'Personel' },
         action: 'ORDER_STATUS_UPDATE',
         category: 'ORDER',
@@ -538,7 +595,7 @@ export async function PATCH(request, { params }) {
       throw new NotFoundError('Sipariş bulunamadı.');
     }
 
-    logUserActivity({
+    await logUserActivity({
       user: { name: user || 'Personel' },
       action: 'ORDER_STATUS_UPDATE',
       category: 'ORDER',
@@ -740,7 +797,7 @@ export async function DELETE(request, { params }) {
           ? `Sipariş #${pgOrder.orderNumber || id}, ${approverInfo.role} (${approverInfo.name}) onayıyla kalıcı olarak silindi.`
           : `Sipariş #${pgOrder.orderNumber || id} kalıcı olarak silindi.`;
 
-      logUserActivity({
+      await logUserActivity({
         user: { name: approverInfo?.name, role: approverInfo?.role },
         action: 'ORDER_DELETE',
         category: 'ORDER',
@@ -775,7 +832,7 @@ export async function DELETE(request, { params }) {
         ? `Sipariş #${deletedOrder.orderNumber || id}, ${approverInfo.role} (${approverInfo.name}) onayıyla kalıcı olarak silindi.`
         : `Sipariş #${deletedOrder.orderNumber || id} kalıcı olarak silindi.`;
 
-    logUserActivity({
+    await logUserActivity({
       user: { name: approverInfo?.name, role: approverInfo?.role },
       action: 'ORDER_DELETE',
       category: 'ORDER',

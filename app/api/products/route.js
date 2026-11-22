@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/prisma';
 import { assertProtectedApiAccess } from '@/lib/security/auth';
+import { logUserActivity } from '@/lib/activityLogger';
 import {
   ValidationError,
   handleApiError,
@@ -131,6 +132,20 @@ export async function POST(request) {
     });
 
     invalidateProductCache();
+
+    await logUserActivity({
+      req: request,
+      action: 'PRODUCT_ADD',
+      category: 'MENU',
+      level: 'INFO',
+      message: `Menüye yeni ürün eklendi: "${newProduct.name}" (${newProduct.price} ₺, Stok: ${newProduct.stock})`,
+      details: {
+        productId: newProduct.id,
+        name: newProduct.name,
+        price: newProduct.price,
+        category: newProduct.category
+      }
+    });
 
     return jsonSuccess(
       {

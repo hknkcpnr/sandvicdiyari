@@ -2,6 +2,7 @@ import { db } from '@/lib/db';
 import { orm } from '@/lib/orm/postgresEngine';
 import { rawPrisma } from '@/lib/prisma';
 import { assertProtectedApiAccess, hashPassword } from '@/lib/security/auth';
+import { logUserActivity } from '@/lib/activityLogger';
 import {
   ConflictError,
   ValidationError,
@@ -265,6 +266,16 @@ export async function POST(request) {
         } catch (e) {}
 
         const customers = await getSyncedCustomers();
+
+        await logUserActivity({
+          req: request,
+          action: 'MEMBER_CREATE',
+          category: 'USER',
+          level: 'INFO',
+          message: `Yeni müşteri kaydı oluşturuldu: "${name}" (${email})`,
+          details: { name, email, phone }
+        });
+
         return jsonSuccess(
           {
             message: 'Yeni müşteri başarıyla eklendi.',
@@ -343,6 +354,16 @@ export async function POST(request) {
         } catch (e) {}
 
         const customers = await getSyncedCustomers();
+
+        await logUserActivity({
+          req: request,
+          action: 'MEMBER_NOTIFY',
+          category: 'USER',
+          level: 'INFO',
+          message: `Müşterilere bildirim gönderildi: "${title}"`,
+          details: { title, target: customerId || 'all' }
+        });
+
         return jsonSuccess({
           message:
             !customerId || customerId === 'all'
@@ -388,6 +409,16 @@ export async function POST(request) {
         }
 
         const customers = await getSyncedCustomers();
+
+        await logUserActivity({
+          req: request,
+          action: 'MEMBER_VERIFY',
+          category: 'USER',
+          level: 'INFO',
+          message: `Müşteri hesabı (${customerId}) ${nextVerified ? 'onaylandı' : 'onayı kaldırıldı'}.`,
+          details: { customerId, verified: nextVerified }
+        });
+
         return jsonSuccess({
           message: nextVerified
             ? 'Müşteri hesabı başarıyla onaylandı ve oturum açma izni verildi.'
@@ -419,6 +450,16 @@ export async function POST(request) {
         }
 
         const customers = await getSyncedCustomers();
+
+        await logUserActivity({
+          req: request,
+          action: 'MEMBER_DELETE',
+          category: 'USER',
+          level: 'WARN',
+          message: `Müşteri kaydı (${customerId}) sistemden silindi.`,
+          details: { customerId }
+        });
+
         return jsonSuccess({
           message: 'Müşteri kaydı sistemden silindi.',
           data: {
@@ -458,6 +499,16 @@ export async function POST(request) {
         }
 
         const customers = await getSyncedCustomers();
+
+        await logUserActivity({
+          req: request,
+          action: 'MEMBER_BLOCK',
+          category: 'USER',
+          level: 'WARN',
+          message: `Müşteri hesabı (${customerId}) ${isBlocked ? 'engellendi' : 'engeli kaldırıldı'}.${reason ? ` Sebep: ${reason}` : ''}`,
+          details: { customerId, isBlocked, reason }
+        });
+
         return jsonSuccess({
           message: isBlocked ? 'Üye başarıyla engellendi.' : 'Üyenin engeli kaldırıldı.',
           data: {
@@ -549,6 +600,16 @@ export async function POST(request) {
         }
 
         const customers = await getSyncedCustomers();
+
+        await logUserActivity({
+          req: request,
+          action: 'MEMBER_UPDATE',
+          category: 'USER',
+          level: 'INFO',
+          message: `Müşteri bilgileri (${customerId}) güncellendi.`,
+          details: { customerId, updates: pgUpdates }
+        });
+
         return jsonSuccess({
           message: 'Müşteri bilgileri başarıyla güncellendi.',
           data: {
@@ -615,6 +676,15 @@ export async function POST(request) {
       }
 
       const { roles: currentRoles, adminUsers: currentAdmins } = await getSyncedRolesAndAdmins();
+
+      await logUserActivity({
+        req: request,
+        action: 'ROLE_SAVE',
+        category: 'USER',
+        level: 'INFO',
+        message: `"${savedRole.name}" rol modeli kaydedildi/güncellendi (${savedRole.permissions?.length || 0} yetki).`,
+        details: { roleId: savedRole.id, name: savedRole.name }
+      });
 
       return jsonSuccess({
         message: 'Rol modeli başarıyla kaydedildi.',
@@ -751,6 +821,15 @@ export async function POST(request) {
 
     const { roles: currentRoles, adminUsers: currentAdmins } = await getSyncedRolesAndAdmins();
 
+    await logUserActivity({
+      req: request,
+      action: 'USER_SAVE',
+      category: 'USER',
+      level: 'INFO',
+      message: `"${name}" (${email}) personeli kaydedildi. Rol: ${savedUser.roleName || roleId}`,
+      details: { userId: savedUser.id, name, email, roleId }
+    });
+
     return jsonSuccess({
       message: 'Kullanıcı başarıyla kaydedildi.',
       data: {
@@ -816,6 +895,15 @@ export async function DELETE(request) {
         getSyncedCustomers()
       ]);
 
+      await logUserActivity({
+        req: request,
+        action: 'ROLE_DELETE',
+        category: 'USER',
+        level: 'WARN',
+        message: `"${id}" rol modeli sistemden silindi.`,
+        details: { roleId: id }
+      });
+
       return jsonSuccess({
         message: 'Rol modeli başarıyla silindi.',
         data: {
@@ -857,6 +945,15 @@ export async function DELETE(request) {
         getSyncedCustomers()
       ]);
 
+      await logUserActivity({
+        req: request,
+        action: 'MEMBER_DELETE',
+        category: 'USER',
+        level: 'WARN',
+        message: `"${id}" müşteri hesabı sistemden silindi.`,
+        details: { customerId: id }
+      });
+
       return jsonSuccess({
         message: 'Müşteri kaydı silindi.',
         data: {
@@ -893,6 +990,15 @@ export async function DELETE(request) {
       getSyncedRolesAndAdmins(),
       getSyncedCustomers()
     ]);
+
+    await logUserActivity({
+      req: request,
+      action: 'USER_DELETE',
+      category: 'USER',
+      level: 'WARN',
+      message: `"${id}" personeli/yetkilisi sistemden silindi.`,
+      details: { userId: id }
+    });
 
     return jsonSuccess({
       message: 'Kullanıcı silindi.',

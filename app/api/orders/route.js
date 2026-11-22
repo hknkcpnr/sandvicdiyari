@@ -1,6 +1,7 @@
 import { db } from '@/lib/db';
 import { prisma, rawPrisma } from '@/lib/prisma';
 import { getOrderPauseState, formatOrderPauseMessage } from '@/lib/orderPause';
+import { logUserActivity } from '@/lib/activityLogger';
 import {
   AuthenticationError,
   ValidationError,
@@ -140,6 +141,16 @@ export async function POST(request) {
 
     const newOrder = await prisma.order.create({
       data: validatedOrder
+    });
+
+    await logUserActivity({
+      user: { name: newOrder.userName || 'Müşteri', email: newOrder.userEmail || '' },
+      action: 'ORDER_CREATE',
+      category: 'ORDER',
+      level: 'INFO',
+      message: `Yeni sipariş oluşturuldu: #${newOrder.orderNumber || newOrder.id} (${newOrder.userName || 'Müşteri'} - ${newOrder.total} ₺)`,
+      details: { orderId: newOrder.id, orderNumber: newOrder.orderNumber, total: newOrder.total },
+      req: request
     });
 
     return jsonSuccess(

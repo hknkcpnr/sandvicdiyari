@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/prisma';
 import { assertProtectedApiAccess } from '@/lib/security/auth';
+import { logUserActivity } from '@/lib/activityLogger';
 import {
   NotFoundError,
   ValidationError,
@@ -101,6 +102,15 @@ export async function PUT(request, { params }) {
 
     invalidateProductCache();
 
+    await logUserActivity({
+      req: request,
+      action: 'PRODUCT_UPDATE',
+      category: 'MENU',
+      level: 'INFO',
+      message: `"${updated.name}" ürün bilgileri ve fiyatı (${updated.price} ₺) güncellendi.`,
+      details: { productId: updated.id, name: updated.name, price: updated.price }
+    });
+
     return jsonSuccess({
       message: 'Ürün bilgileri başarıyla güncellendi.',
       data: updated
@@ -119,6 +129,15 @@ export async function DELETE(request, { params }) {
     await prisma.product.delete({ where: { id } });
 
     invalidateProductCache();
+
+    await logUserActivity({
+      req: request,
+      action: 'PRODUCT_DELETE',
+      category: 'MENU',
+      level: 'WARN',
+      message: `Ürün menüden kaldırıldı: ID #${id}`,
+      details: { productId: id }
+    });
 
     return jsonSuccess({
       message: 'Ürün menüden kaldırıldı.'
