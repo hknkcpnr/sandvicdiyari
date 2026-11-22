@@ -71,10 +71,10 @@ export const cartSlice = createSlice({
           mayonez: 'Mayonez',
           ...(action.payload.sauceLabels || {})
         };
-        const formatted = sauceEntries.map(([k, count]) => `${sauceNames[k] || k} (${count} Adet)`);
+        const formatted = sauceEntries.map(([k, count]) => `${sauceNames[k] || k} (${count}x)`);
         let sauceText = `Soslar: ${formatted.join(', ')}`;
         if (chargeableSauceCount > 0) {
-          sauceText += ` (+${chargeableSauceCount} Adet Ekstra Sos: +₺${extraSauceFee.toFixed(2)})`;
+          sauceText += ` (+${chargeableSauceCount}x Ekstra Sos: +₺${extraSauceFee.toFixed(2)})`;
         }
         descriptionDetails.push(sauceText);
       }

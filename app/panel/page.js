@@ -4898,17 +4898,31 @@ export default function AdminDashboardPage() {
                 </thead>
                 <tbody>
                   {Array.isArray(detailOrder.items) ? (
-                    detailOrder.items.map((it, idx) => (
-                      <tr key={idx} style={{ verticalAlign: 'top' }}>
-                        <td style={{ padding: '3px 0' }}>
-                          <strong>{it.quantity}x {it.name}</strong>
-                          {it.details && <div style={{ fontSize: '9px' }}>{it.details}</div>}
-                        </td>
-                        <td style={{ textAlign: 'right', padding: '3px 0', whiteSpace: 'nowrap' }}>
-                          ₺{(it.price * it.quantity).toFixed(2)}
-                        </td>
-                      </tr>
-                    ))
+                    detailOrder.items.flatMap((it, idx) => {
+                      const count = Math.max(1, Math.min(100, Math.floor(Number(it.quantity || 1))));
+                      const cleanDetails = String(it.details || '')
+                        .replace(/\((\d+)\s*adet\)/gi, '($1x)')
+                        .replace(/\b(\d+)\s*adet\b/gi, '$1x')
+                        .replace(/\badet\b/gi, '')
+                        .trim();
+                      return Array.from({ length: count }).map((_, copyIdx) => (
+                        <tr key={`${idx}_${copyIdx}`} style={{ verticalAlign: 'top', borderBottom: '1px dotted #999' }}>
+                          <td style={{ padding: '3px 0' }}>
+                            <strong>1x {it.name}</strong>
+                            {cleanDetails && (
+                              <div style={{ fontSize: '9px' }}>
+                                {cleanDetails.split(/\s*\|\s*|\n/).filter(Boolean).map((line, lIdx) => (
+                                  <div key={lIdx}>↳ {line}</div>
+                                ))}
+                              </div>
+                            )}
+                          </td>
+                          <td style={{ textAlign: 'right', padding: '3px 0', whiteSpace: 'nowrap' }}>
+                            ₺{Number(it.price || 0).toFixed(2)}
+                          </td>
+                        </tr>
+                      ));
+                    })
                   ) : (
                     <tr>
                       <td colSpan="2">{detailOrder.items}</td>
