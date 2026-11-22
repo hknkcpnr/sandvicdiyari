@@ -80,8 +80,7 @@ export default function Navbar() {
     currentUser && (
       currentUser.type === 'admin' ||
       currentUser.roleId === 'role_super_admin' ||
-      currentUser.email === 'admin' ||
-      String(currentUser.email || '').toLowerCase().includes('hknkcpnr')
+      currentUser.email === 'admin'
     )
   );
 

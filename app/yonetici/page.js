@@ -97,8 +97,7 @@ export default function YoneticiPage() {
           (parsed.roleId === 'role_super_admin' ||
             parsed.role === 'Süper Yönetici' ||
             String(parsed.email || '').toLowerCase() === 'admin' ||
-            String(parsed.email || '').toLowerCase() === 'admin@sandwichdiyari.com' ||
-            String(parsed.email || '').toLowerCase().includes('hknkcpnr'));
+            String(parsed.email || '').toLowerCase() === 'admin@sandwichdiyari.com');
         if (parsed && parsed.name && isSuperAdmin) {
           setAdminUser(parsed);
         } else {
@@ -206,8 +205,7 @@ export default function YoneticiPage() {
         userObj?.roleId === 'role_super_admin' ||
         userObj?.role === 'Süper Yönetici' ||
         String(userObj?.email || '').toLowerCase() === 'admin' ||
-        String(userObj?.email || '').toLowerCase() === 'admin@sandwichdiyari.com' ||
-        String(userObj?.email || '').toLowerCase().includes('hknkcpnr');
+        String(userObj?.email || '').toLowerCase() === 'admin@sandwichdiyari.com';
 
       if (!isSuperAdmin) {
         setLoginError('Bu panel yalnızca Süper Yönetici (/yonetici) hesapları içindir. Restoran paneli için /panel adresini kullanın.');

@@ -1,9 +1,10 @@
 import { db } from '@/lib/db';
 import { orm } from '@/lib/orm/postgresEngine';
 import { rawPrisma } from '@/lib/prisma';
-import { assertProtectedApiAccess, hashPassword } from '@/lib/security/auth';
+import { assertProtectedApiAccess, getOptionalAuthFromRequest, hashPassword } from '@/lib/security/auth';
 import { logUserActivity } from '@/lib/activityLogger';
 import {
+  AuthorizationError,
   ConflictError,
   ValidationError,
   handleApiError,
@@ -11,6 +12,29 @@ import {
   parseJsonBody
 } from '@/lib/security/errors';
 import { sanitizeEmailOrUsername, sanitizePhone, sanitizeText } from '@/lib/security/validation';
+
+/**
+ * Personel / Rol / Müşteri değişikliklerinde oturumdaki yetkiliye ait yetkiyi doğrular.
+ * Süper Yönetici her zaman geçer; diğer personel için 'users' (personel & roller) veya 'members' (müşteriler) gerekir.
+ */
+function assertEntityPermission(request, entityType) {
+  const payload = getOptionalAuthFromRequest(request);
+  if (!payload || payload.type !== 'admin') return;
+  const isSuper =
+    payload.roleId === 'role_super_admin' ||
+    payload.role === 'Süper Yönetici' ||
+    String(payload.email || '').toLowerCase() === 'admin';
+  if (isSuper) return;
+  const perms = Array.isArray(payload.permissions) ? payload.permissions : [];
+  const required = entityType === 'customer' ? 'members' : 'users';
+  if (!perms.includes(required)) {
+    throw new AuthorizationError(
+      required === 'members'
+        ? 'Bu işlem için "Üye Yönetimi" yetkiniz bulunmuyor.'
+        : 'Bu işlem için "Kullanıcı & Rol Yönetimi" yetkiniz bulunmuyor.'
+    );
+  }
+}
 
 /**
  * Supabase / PostgreSQL'den güncel müşteri listesini (sipariş özetiyle birlikte) çeker.
@@ -178,6 +202,7 @@ export async function POST(request) {
     assertProtectedApiAccess(request, { endpoint: '/api/admin/users' });
     const body = await parseJsonBody(request);
     const entityType = sanitizeText(body.entityType || 'user', 32, 'entityType', '/api/admin/users');
+    assertEntityPermission(request, entityType);
 
     // =========================================================================
     // 1. MÜŞTERİ / ÜYE İŞLEMLERİ (create, approve, unapprove, block, unblock, update, delete, notify)
@@ -847,6 +872,7 @@ export async function DELETE(request) {
   try {
     const { searchParams } = new URL(request.url);
     const entityType = sanitizeText(searchParams.get('type') || 'user', 32, 'type', '/api/admin/users');
+    assertEntityPermission(request, entityType);
     const id = sanitizeText(searchParams.get('id') || '', 191, 'id', '/api/admin/users');
 
     if (!id) {

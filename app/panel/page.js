@@ -651,6 +651,41 @@ export default function AdminDashboardPage() {
     }
   }, []);
 
+  // Canlı Yetki Senkronizasyonu: Rol yetkileri değiştiğinde yeniden giriş gerekmeden uygulanır
+  const adminUserId = adminUser?.id;
+  useEffect(() => {
+    if (!adminUserId) return;
+    let cancelled = false;
+    const refreshPermissions = async () => {
+      try {
+        const res = await fetch('/api/admin/login', { cache: 'no-store' });
+        const json = await res.json().catch(() => ({}));
+        if (cancelled) return;
+        if (res.status === 401 || res.status === 403) {
+          setAdminUser(null);
+          sessionStorage.removeItem('sd_admin_session');
+          return;
+        }
+        const fresh = json?.data?.admin;
+        if (json?.success && fresh) {
+          setAdminUser((prev) => {
+            const merged = { ...(prev || {}), ...fresh };
+            try {
+              sessionStorage.setItem('sd_admin_session', JSON.stringify(merged));
+            } catch {}
+            return merged;
+          });
+        }
+      } catch {}
+    };
+    refreshPermissions();
+    const timer = setInterval(refreshPermissions, 30000);
+    return () => {
+      cancelled = true;
+      clearInterval(timer);
+    };
+  }, [adminUserId]);
+
   // Web Audio & Custom Audio chime for new orders
   const playSoundAlert = () => {
     if (!soundEnabled) return;
@@ -1422,8 +1457,7 @@ export default function AdminDashboardPage() {
       adminUser.email === 'admin' ||
       adminUser.email === 'admin@sandwichdiyari.com' ||
       adminUser.roleId === 'role_super_admin' ||
-      adminUser.role === 'Süper Yönetici' ||
-      String(adminUser.email || '').toLowerCase().includes('hknkcpnr')
+      adminUser.role === 'Süper Yönetici'
     )
   );
 
@@ -1448,6 +1482,26 @@ export default function AdminDashboardPage() {
       (Array.isArray(adminUser.permissions) && adminUser.permissions.includes('site_content'))
     )
   );
+
+  // Sekme erişim kontrolü (menüde gizli olan sekme içerikleri de açılamaz)
+  const canAccessTab = (tabId) => {
+    if (!adminUser) return false;
+    if (isSuperAdmin) return true;
+    const perms = Array.isArray(adminUser.permissions) ? adminUser.permissions : [];
+    if (tabId === 'options') return perms.includes('options') || perms.includes('options_manage');
+    if (tabId === 'logs') return perms.includes('settings') || perms.includes('users');
+    return perms.includes(tabId);
+  };
+
+  useEffect(() => {
+    if (!adminUser || isSuperAdmin) return;
+    if (!canAccessTab(currentTab)) {
+      const order = ['overview', 'orders', 'products', 'options', 'inventory', 'members', 'reviews', 'users', 'logs', 'site_content', 'settings'];
+      const firstAllowed = order.find((t) => canAccessTab(t));
+      if (firstAllowed && firstAllowed !== currentTab) setCurrentTab(firstAllowed);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [adminUser, currentTab, isSuperAdmin]);
 
   // Excel / CSV Dışa Aktarma
   const exportOrdersToCsv = (orderList) => {
@@ -1943,7 +1997,7 @@ export default function AdminDashboardPage() {
               // Kullanıcı yetki filtreleme
               const filteredItems = section.items.filter((item) => {
                 if (isSuperAdmin) return true;
-                if (!adminUser?.permissions || !Array.isArray(adminUser.permissions)) return true;
+                if (!adminUser?.permissions || !Array.isArray(adminUser.permissions)) return false;
                 if (item.id === 'options') {
                   return adminUser.permissions.includes('options') || adminUser.permissions.includes('options_manage');
                 }
