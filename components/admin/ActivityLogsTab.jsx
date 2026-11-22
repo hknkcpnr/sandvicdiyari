@@ -3,11 +3,11 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 
 const CATEGORY_TABS = [
-  { id: 'ALL', label: 'Tüm İşlemler', icon: 'fa-solid fa-list-ul' },
-  { id: 'ORDER', label: 'Sipariş & Operasyon', icon: 'fa-solid fa-bell-concierge' },
-  { id: 'MENU', label: 'Menü & Ürünler', icon: 'fa-solid fa-burger' },
-  { id: 'USER', label: 'Kullanıcı & Yetkiler', icon: 'fa-solid fa-user-shield' },
-  { id: 'SYSTEM', label: 'Sistem & Giriş', icon: 'fa-solid fa-shield-halved' },
+  { id: 'ALL', label: 'Tüm İşlemler', icon: 'fa-solid fa-list-ul', statKey: 'total' },
+  { id: 'ORDER', label: 'Sipariş & Operasyon', icon: 'fa-solid fa-bell-concierge', statKey: 'orders' },
+  { id: 'MENU', label: 'Menü & Ürünler', icon: 'fa-solid fa-burger', statKey: 'menu' },
+  { id: 'USER', label: 'Kullanıcı & Yetkiler', icon: 'fa-solid fa-user-shield', statKey: 'users' },
+  { id: 'SYSTEM', label: 'Sistem & Giriş', icon: 'fa-solid fa-shield-halved', statKey: 'system' },
 ];
 
 const LEVEL_STYLES = {
@@ -185,52 +185,31 @@ export default function ActivityLogsTab({ showToast, currentAdmin }) {
 
       {/* 2. EYLEM & FİLTRELEME ÇUBUĞU */}
       <div className="bg-white p-3.5 sm:p-4 rounded-2xl border border-stone-200/90 shadow-xs space-y-3">
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
-          {/* Sol: Kategori Hap Butonları */}
-          <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none pb-1 lg:pb-0">
-            {CATEGORY_TABS.map((tab) => {
-              const isActive = activeCategory === tab.id;
-              return (
-                <button
-                  key={tab.id}
-                  type="button"
-                  onClick={() => setActiveCategory(tab.id)}
-                  className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
-                    isActive
-                      ? 'bg-stone-900 text-white shadow-2xs'
-                      : 'text-stone-600 hover:text-stone-950 bg-stone-100 hover:bg-stone-200'
-                  }`}
-                >
-                  <i className={`${tab.icon} ${isActive ? 'text-amber-400' : 'text-stone-400'}`}></i>
-                  <span>{tab.label}</span>
-                </button>
-              );
-            })}
+        {/* Üst Satır: Arama Kutusu ve Aksiyon Butonları */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          {/* Arama Inputu */}
+          <div className="relative flex-1 max-w-md">
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Kullanıcı, işlem veya sipariş ara..."
+              className="w-full bg-stone-50 border border-stone-200 rounded-xl pl-8 pr-7 py-2 text-xs focus:outline-none focus:border-stone-900 focus:bg-white font-medium transition-all"
+            />
+            <i className="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-stone-400 text-xs"></i>
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery('')}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600 text-xs"
+              >
+                <i className="fa-solid fa-xmark"></i>
+              </button>
+            )}
           </div>
 
-          {/* Sağ: Arama, Yenile, İndir, Temizle */}
+          {/* Sağ: Yenile, Canlı Takip, Dışa Aktar, Temizle */}
           <div className="flex flex-wrap items-center gap-2 shrink-0">
-            {/* Arama Inputu */}
-            <div className="relative w-full sm:w-56">
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Kullanıcı, işlem veya sipariş ara..."
-                className="w-full bg-stone-50 border border-stone-200 rounded-xl pl-8 pr-7 py-2 text-xs focus:outline-none focus:border-stone-900 focus:bg-white font-medium transition-all"
-              />
-              <i className="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-stone-400 text-xs"></i>
-              {searchQuery && (
-                <button
-                  type="button"
-                  onClick={() => setSearchQuery('')}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600 text-xs"
-                >
-                  <i className="fa-solid fa-xmark"></i>
-                </button>
-              )}
-            </div>
-
             {/* Yenile */}
             <button
               type="button"
@@ -253,7 +232,7 @@ export default function ActivityLogsTab({ showToast, currentAdmin }) {
               }`}
             >
               <span className={`w-2 h-2 rounded-full ${autoRefresh ? 'bg-emerald-500 animate-pulse' : 'bg-stone-400'}`}></span>
-              <span className="hidden sm:inline">{autoRefresh ? 'Canlı Akış' : 'Statik'}</span>
+              <span>{autoRefresh ? 'Canlı Akış' : 'Statik'}</span>
             </button>
 
             {/* Dışa Aktar */}
@@ -278,6 +257,40 @@ export default function ActivityLogsTab({ showToast, currentAdmin }) {
               <i className="fa-solid fa-trash-can text-rose-600"></i>
               <span className="hidden sm:inline">Temizle</span>
             </button>
+          </div>
+        </div>
+
+        {/* Alt Satır: Kategori Filtre Butonları (Tam Genişlikte, Sıkışmadan ve Sayıcı Rozetleriyle) */}
+        <div className="pt-2.5 border-t border-stone-100">
+          <div className="flex flex-wrap items-center gap-2">
+            {CATEGORY_TABS.map((tab) => {
+              const isActive = activeCategory === tab.id;
+              const count = tab.statKey === 'total'
+                ? (stats.total || logs.length)
+                : (stats[tab.statKey] || 0);
+              return (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => setActiveCategory(tab.id)}
+                  className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                    isActive
+                      ? 'bg-stone-900 text-white shadow-2xs'
+                      : 'text-stone-600 hover:text-stone-950 bg-stone-100 hover:bg-stone-200/80 border border-transparent hover:border-stone-200'
+                  }`}
+                >
+                  <i className={`${tab.icon} ${isActive ? 'text-amber-400' : 'text-stone-400'}`}></i>
+                  <span>{tab.label}</span>
+                  <span
+                    className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold ${
+                      isActive ? 'bg-stone-800 text-stone-200' : 'bg-stone-200/90 text-stone-700'
+                    }`}
+                  >
+                    {count}
+                  </span>
+                </button>
+              );
+            })}
           </div>
         </div>
       </div>
