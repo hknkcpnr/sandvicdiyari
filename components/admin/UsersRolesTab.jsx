@@ -5,27 +5,59 @@ import { useDispatch } from 'react-redux';
 import { showMessageModal } from '@/store/slices/uiSlice';
 import { formatTurkishPhoneInput } from '@/lib/phoneUtils';
 
-// Sistemde tanımlı tüm yetki modülleri
-export const AVAILABLE_PERMISSIONS = [
-  { id: 'overview', label: 'Genel Bakış Sayfası', icon: 'fa-solid fa-chart-pie', desc: 'Operasyon özeti ve sipariş yoğunluk paneli' },
-  { id: 'orders', label: 'Sipariş Yönetimi', icon: 'fa-solid fa-list-check', desc: 'Sipariş onaylama, durum ilerletme, kurye atama ve fiş yazdırma' },
-  { id: 'delete_order', label: 'Sipariş Silme & İptal', icon: 'fa-solid fa-trash-can', desc: 'Siparişleri iptal etme ve kalıcı silme yetkisi' },
-  { id: 'products', label: 'Menü & Ürünler Sayfası', icon: 'fa-solid fa-burger', desc: 'Menü ve ürün listesini görüntüleme yetkisi' },
-  { id: 'product_add', label: 'Menüye Ürün Ekleme', icon: 'fa-solid fa-circle-plus', desc: 'Menüye yeni sandviç, menü veya içecek ekleme yetkisi' },
-  { id: 'product_edit', label: 'Menü & Ürün Düzenleme', icon: 'fa-solid fa-pen-to-square', desc: 'Mevcut ürünlerin adını, açıklamasını ve görselini düzenleme yetkisi' },
-  { id: 'product_delete', label: 'Menüden Ürün Silme', icon: 'fa-solid fa-trash', desc: 'Menüdeki ürünleri kalıcı olarak kaldırma yetkisi' },
-  { id: 'options_manage', label: 'Soslar & Ekstralar Yönetimi', icon: 'fa-solid fa-bottle-droplet', desc: 'Sos ve ekstra malzeme ekleme, düzenleme ve silme yetkisi' },
-  { id: 'manage_prices', label: 'Fiyat Güncelleme', icon: 'fa-solid fa-tags', desc: 'Ürün ve ekstra malzeme fiyatlarını değiştirme yetkisi' },
-  { id: 'inventory', label: 'Stok Yönetimi Sayfası', icon: 'fa-solid fa-boxes-stacked', desc: 'Ürün stok tablosunu görüntüleme yetkisi' },
-  { id: 'stock_update', label: 'Stok Değişimi & Satış Aç/Kapa', icon: 'fa-solid fa-arrows-rotate', desc: 'Stok adetlerini artırma/azaltma ve ürünü satışa açıp kapatma yetkisi' },
-  { id: 'members', label: 'Üye Yönetimi', icon: 'fa-solid fa-users', desc: 'Kayıtlı müşteriler, onaylama, engelleme ve bildirimler' },
-  { id: 'reviews', label: 'Geri Bildirimler', icon: 'fa-regular fa-star', desc: 'Müşteri yorumlarını inceleme ve onaylama' },
-  { id: 'site_content', label: 'Müşteri Sayfası Tasarım & İçerik', icon: 'fa-solid fa-paintbrush', desc: 'Vitrin başlıkları, banner, görseller ve kampanya bölümlerini düzenleme' },
-  { id: 'users', label: 'Kullanıcı & Rol Yönetimi', icon: 'fa-solid fa-user-shield', desc: 'Personel ve yetki modelleri yönetimi' },
-  { id: 'settings', label: 'Sistem & Panel Ayarları', icon: 'fa-solid fa-sliders', desc: 'Arayüz, ses, fiş baskı ve sistem ayarları' },
-  { id: 'view_revenue', label: 'Ciro & Kasa Yönetimi (/yonetici)', icon: 'fa-solid fa-coins', desc: 'Ciro, kasa giriş-çıkış ve finansal tutarları görme yetkisi' },
-  { id: 'courier_delivery', label: 'Kurye Portalı & Teslimat (/kurye)', icon: 'fa-solid fa-motorcycle', desc: 'Kurye teslimat portalına giriş ve paket teslimat yetkisi' },
+// Sistemde kategorize edilmiş tüm yetki modülleri
+export const PERMISSION_GROUPS = [
+  {
+    title: 'Sipariş & Canlı Operasyon',
+    icon: 'fa-solid fa-list-check text-amber-500',
+    perms: [
+      { id: 'overview', label: 'Genel Bakış Sayfası', icon: 'fa-solid fa-chart-pie', desc: 'Operasyon özeti ve sipariş yoğunluk paneli' },
+      { id: 'orders', label: 'Sipariş Yönetimi', icon: 'fa-solid fa-list-check', desc: 'Sipariş onaylama, durum ilerletme, kurye atama ve fiş yazdırma' },
+      { id: 'delete_order', label: 'Sipariş Silme & İptal', icon: 'fa-solid fa-trash-can', desc: 'Siparişleri iptal etme ve kalıcı silme yetkisi' },
+    ]
+  },
+  {
+    title: 'Menü, Ürünler & Soslar',
+    icon: 'fa-solid fa-burger text-rose-500',
+    perms: [
+      { id: 'products', label: 'Menü & Ürünler Sayfası', icon: 'fa-solid fa-burger', desc: 'Menü ve ürün listesini görüntüleme yetkisi' },
+      { id: 'product_add', label: 'Menüye Ürün Ekleme', icon: 'fa-solid fa-circle-plus', desc: 'Menüye yeni sandviç, menü veya içecek ekleme yetkisi' },
+      { id: 'product_edit', label: 'Menü & Ürün Düzenleme', icon: 'fa-solid fa-pen-to-square', desc: 'Mevcut ürünlerin adını, açıklamasını ve görselini düzenleme yetkisi' },
+      { id: 'product_delete', label: 'Menüden Ürün Silme', icon: 'fa-solid fa-trash', desc: 'Menüdeki ürünleri kalıcı olarak kaldırma yetkisi' },
+      { id: 'options_manage', label: 'Soslar & Ekstralar Yönetimi', icon: 'fa-solid fa-bottle-droplet', desc: 'Sos ve ekstra malzeme ekleme, düzenleme ve silme yetkisi' },
+      { id: 'manage_prices', label: 'Fiyat Güncelleme', icon: 'fa-solid fa-tags', desc: 'Ürün ve ekstra malzeme fiyatlarını değiştirme yetkisi' },
+    ]
+  },
+  {
+    title: 'Stok & Envanter',
+    icon: 'fa-solid fa-boxes-stacked text-emerald-500',
+    perms: [
+      { id: 'inventory', label: 'Stok Yönetimi Sayfası', icon: 'fa-solid fa-boxes-stacked', desc: 'Ürün stok tablosunu görüntüleme yetkisi' },
+      { id: 'stock_update', label: 'Stok Değişimi & Satış Aç/Kapa', icon: 'fa-solid fa-arrows-rotate', desc: 'Stok adetlerini artırma/azaltma ve ürünü satışa açıp kapatma yetkisi' },
+    ]
+  },
+  {
+    title: 'Müşteri, Yorumlar & Vitrin',
+    icon: 'fa-solid fa-users text-indigo-500',
+    perms: [
+      { id: 'members', label: 'Üye Yönetimi', icon: 'fa-solid fa-users', desc: 'Kayıtlı müşteriler, onaylama, engelleme ve bildirimler' },
+      { id: 'reviews', label: 'Geri Bildirimler & Yorumlar', icon: 'fa-regular fa-star', desc: 'Müşteri yorumlarını inceleme ve onaylama' },
+      { id: 'site_content', label: 'Müşteri Sayfası Tasarım & İçerik', icon: 'fa-solid fa-paintbrush', desc: 'Vitrin başlıkları, banner, görseller ve kampanya bölümlerini düzenleme' },
+    ]
+  },
+  {
+    title: 'Yönetim, Finans & Kurye',
+    icon: 'fa-solid fa-crown text-purple-500',
+    perms: [
+      { id: 'view_revenue', label: 'Ciro & Kasa Yönetimi (/yonetici)', icon: 'fa-solid fa-coins', desc: 'Ciro, kasa giriş-çıkış ve finansal tutarları görme yetkisi' },
+      { id: 'users', label: 'Kullanıcı & Rol Yönetimi', icon: 'fa-solid fa-user-shield', desc: 'Personel ve yetki modelleri yönetimi' },
+      { id: 'settings', label: 'Sistem & Panel Ayarları', icon: 'fa-solid fa-sliders', desc: 'Arayüz, ses, fiş baskı ve sistem ayarları' },
+      { id: 'courier_delivery', label: 'Kurye Portalı & Teslimat (/kurye)', icon: 'fa-solid fa-motorcycle', desc: 'Kurye teslimat portalına giriş ve paket teslimat yetkisi' },
+    ]
+  }
 ];
+
+export const AVAILABLE_PERMISSIONS = PERMISSION_GROUPS.flatMap((g) => g.perms);
 
 const ROLE_COLORS = {
   rose: { label: 'Kırmızı', bg: 'bg-rose-50', text: 'text-rose-700', border: 'border-rose-200', dot: 'bg-rose-500' },
@@ -372,12 +404,45 @@ export default function UsersRolesTab({ currentAdmin, onRolesOrUsersUpdated }) {
   };
 
   const togglePermission = (permId) => {
-    setRolePermissions((prev) =>
-      prev.includes(permId) ? prev.filter((p) => p !== permId) : [...prev, permId]
-    );
+    setRolePermissions((prev) => {
+      const exists = prev.includes(permId);
+      if (exists) {
+        return prev.filter((p) => p !== permId);
+      } else {
+        const next = [...prev, permId];
+        if (['product_add', 'product_edit', 'product_delete', 'manage_prices', 'options_manage'].includes(permId)) {
+          if (!next.includes('products')) next.push('products');
+        }
+        if (permId === 'options_manage' && !next.includes('options')) {
+          next.push('options');
+        }
+        if (permId === 'stock_update' && !next.includes('inventory')) {
+          next.push('inventory');
+        }
+        if (permId === 'delete_order' && !next.includes('orders')) {
+          next.push('orders');
+        }
+        return next;
+      }
+    });
   };
 
-  // Rol Kaydet
+  const toggleGroupPermissions = (groupPermIds) => {
+    setRolePermissions((prev) => {
+      const allSelected = groupPermIds.every((id) => prev.includes(id));
+      if (allSelected) {
+        return prev.filter((id) => !groupPermIds.includes(id));
+      } else {
+        const merged = Array.from(new Set([...prev, ...groupPermIds]));
+        if (groupPermIds.includes('options_manage') && !merged.includes('options')) {
+          merged.push('options');
+        }
+        return merged;
+      }
+    });
+  };
+
+  // Rol Kaydet (Yeni veya Düzenleme)
   const handleSaveRole = async (e) => {
     e.preventDefault();
     setRoleFormError('');
@@ -392,6 +457,27 @@ export default function UsersRolesTab({ currentAdmin, onRolesOrUsersUpdated }) {
     }
 
     try {
+      // Permission senkronizasyonu: options ve options_manage uyumluluğu
+      const cleanPerms = Array.from(new Set([
+        ...rolePermissions,
+        ...(rolePermissions.includes('options_manage') ? ['options'] : []),
+        ...(rolePermissions.includes('options') ? ['options_manage'] : [])
+      ]));
+
+      // Alt yetki seçildiyse ana sayfa görünürlük yetkilerini de otomatik tamamla
+      if (
+        (cleanPerms.includes('product_add') || cleanPerms.includes('product_edit') || cleanPerms.includes('product_delete') || cleanPerms.includes('manage_prices')) &&
+        !cleanPerms.includes('products')
+      ) {
+        cleanPerms.push('products');
+      }
+      if (cleanPerms.includes('stock_update') && !cleanPerms.includes('inventory')) {
+        cleanPerms.push('inventory');
+      }
+      if (cleanPerms.includes('delete_order') && !cleanPerms.includes('orders')) {
+        cleanPerms.push('orders');
+      }
+
       const res = await fetch('/api/admin/users', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -401,7 +487,7 @@ export default function UsersRolesTab({ currentAdmin, onRolesOrUsersUpdated }) {
           name: roleName.trim(),
           color: roleColor,
           description: roleDesc.trim(),
-          permissions: rolePermissions,
+          permissions: cleanPerms,
         }),
       });
       const json = await res.json();
@@ -417,23 +503,29 @@ export default function UsersRolesTab({ currentAdmin, onRolesOrUsersUpdated }) {
 
       dispatch(
         showMessageModal({
-          title: editingRole ? 'Rol Güncellendi' : 'Yeni Rol Oluşturuldu',
-          text: `"${roleName}" rolü kaydedildi.`,
+          title: editingRole ? 'Rol Modeli Güncellendi ✨' : 'Yeni Rol Modeli Oluşturuldu 🎉',
+          text: `"${roleName.trim()}" yetki rolü başarıyla kaydedildi.`,
           type: 'success',
         })
       );
     } catch (err) {
-      setRoleFormError('Sunucu hatası oluştu.');
+      setRoleFormError('Sunucu bağlantı hatası oluştu: ' + err.message);
     }
   };
 
   // Rol Sil
   const handleDeleteRole = async (role) => {
     if (role.code === 'super_admin' || role.id === 'role_super_admin') {
-      alert('Süper Yönetici rolü silinemez.');
+      alert('Süper Yönetici rolü sistem güvenliği için silinemez.');
       return;
     }
-    if (!confirm(`"${role.name}" rolünü silmek istediğinize emin misiniz?`)) return;
+
+    const assignedCount = adminUsers.filter((u) => String(u.roleId) === String(role.id)).length;
+    const confirmMsg = assignedCount > 0
+      ? `"${role.name}" rolüne atanmış ${assignedCount} personel bulunmaktadır.\n\nRol silindiğinde bu personeller otomatik olarak "Kasiyer & Salon" rolüne devredilecektir. Silmek istediğinize emin misiniz?`
+      : `"${role.name}" rol modelini kalıcı olarak silmek istediğinize emin misiniz?`;
+
+    if (!confirm(confirmMsg)) return;
 
     try {
       const res = await fetch(`/api/admin/users?type=role&id=${encodeURIComponent(role.id)}`, {
@@ -444,11 +536,19 @@ export default function UsersRolesTab({ currentAdmin, onRolesOrUsersUpdated }) {
         setRoles(json.data.roles || []);
         setAdminUsers(json.data.adminUsers || []);
         if (onRolesOrUsersUpdated) onRolesOrUsersUpdated(json.data);
+
+        dispatch(
+          showMessageModal({
+            title: 'Rol Başarıyla Silindi 🗑️',
+            text: `"${role.name}" yetki rolü kaldırıldı.${assignedCount > 0 ? ' İlgili personeller Kasiyer rolüne devredildi.' : ''}`,
+            type: 'info',
+          })
+        );
       } else {
         alert(json.error || 'Rol silinemedi.');
       }
     } catch (err) {
-      alert('Bağlantı hatası.');
+      alert('Bağlantı hatası oluştu: ' + err.message);
     }
   };
 
@@ -692,104 +792,211 @@ export default function UsersRolesTab({ currentAdmin, onRolesOrUsersUpdated }) {
   };
 
   return (
-    <div className="space-y-4 w-full min-w-0">
-      {/* 4 PORTAL MİMARİSİ & ROL SEKMELERİ */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 bg-white p-2.5 rounded-2xl border border-stone-200/90 shadow-2xs">
-        <div className="flex flex-wrap items-center gap-1.5 w-full lg:w-auto">
+    <div className="space-y-4 w-full min-w-0 font-poppins">
+      {/* 1. ÜST GEÇİŞ SEKMELERİ (MODERN SEGMENTED CONTROL / PILL MENÜ) */}
+      <div className="bg-stone-100/80 p-1.5 rounded-2xl border border-stone-200/90 shadow-2xs overflow-x-auto scrollbar-none">
+        <div className="flex items-center gap-1 min-w-max">
+          {/* Restoran Paneli */}
           <button
             type="button"
             onClick={() => setSubTab('panel')}
-            className={`px-3 py-2 rounded-xl font-bold text-[11px] sm:text-xs flex items-center gap-1.5 whitespace-nowrap cursor-pointer transition-colors ${
-              subTab === 'panel' ? 'bg-amber-500 text-stone-950 shadow-2xs' : 'text-stone-600 hover:bg-stone-100'
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all duration-200 cursor-pointer ${
+              subTab === 'panel'
+                ? 'bg-white text-stone-900 shadow-sm border border-stone-200/80'
+                : 'text-stone-600 hover:text-stone-900 hover:bg-stone-200/50'
             }`}
           >
-            <i className="fa-solid fa-kitchen-set text-[11px]"></i>
-            <span>Restoran Paneli (/panel)</span>
-            <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-extrabold ${
-              subTab === 'panel' ? 'bg-stone-950/15 text-stone-950' : 'bg-stone-100 text-stone-700'
+            <div className={`w-6 h-6 rounded-lg flex items-center justify-center text-xs ${
+              subTab === 'panel' ? 'bg-amber-500 text-white' : 'bg-stone-200/80 text-stone-600'
             }`}>
+              <i className="fa-solid fa-kitchen-set"></i>
+            </div>
+            <span>Restoran Paneli</span>
+            <span className="text-[10px] font-mono text-stone-400 font-semibold">/panel</span>
+            <span
+              className={`ml-1 px-2 py-0.5 rounded-full text-[10px] font-extrabold ${
+                subTab === 'panel' ? 'bg-stone-900 text-white' : 'bg-stone-200 text-stone-600'
+              }`}
+            >
               {panelUsers.length}
             </span>
           </button>
 
-          {courierModuleEnabled && (
+          {/* Kurye Paneli */}
+          {(courierUsers.length > 0 || courierModuleEnabled !== false) && (
             <button
               type="button"
               onClick={() => setSubTab('kurye')}
-              className={`px-3 py-2 rounded-xl font-bold text-[11px] sm:text-xs flex items-center gap-1.5 whitespace-nowrap cursor-pointer transition-colors ${
-                subTab === 'kurye' ? 'bg-sky-600 text-white shadow-2xs' : 'text-stone-600 hover:bg-stone-100'
+              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all duration-200 cursor-pointer ${
+                subTab === 'kurye'
+                  ? 'bg-white text-stone-900 shadow-sm border border-stone-200/80'
+                  : 'text-stone-600 hover:text-stone-900 hover:bg-stone-200/50'
               }`}
             >
-              <i className="fa-solid fa-motorcycle text-[11px]"></i>
-              <span>Kurye Paneli (/kurye)</span>
-              <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-extrabold ${
-                subTab === 'kurye' ? 'bg-white/20 text-white' : 'bg-stone-100 text-stone-700'
+              <div className={`w-6 h-6 rounded-lg flex items-center justify-center text-xs ${
+                subTab === 'kurye' ? 'bg-sky-500 text-white' : 'bg-stone-200/80 text-stone-600'
               }`}>
+                <i className="fa-solid fa-motorcycle"></i>
+              </div>
+              <span>Kurye Paneli</span>
+              <span className="text-[10px] font-mono text-stone-400 font-semibold">/kurye</span>
+              <span
+                className={`ml-1 px-2 py-0.5 rounded-full text-[10px] font-extrabold ${
+                  subTab === 'kurye' ? 'bg-stone-900 text-white' : 'bg-stone-200 text-stone-600'
+                }`}
+              >
                 {courierUsers.length}
               </span>
             </button>
           )}
 
+          {/* Süper Yönetici */}
           <button
             type="button"
             onClick={() => setSubTab('yonetici')}
-            className={`px-3 py-2 rounded-xl font-bold text-[11px] sm:text-xs flex items-center gap-1.5 whitespace-nowrap cursor-pointer transition-colors ${
-              subTab === 'yonetici' ? 'bg-rose-600 text-white shadow-2xs' : 'text-stone-600 hover:bg-stone-100'
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all duration-200 cursor-pointer ${
+              subTab === 'yonetici'
+                ? 'bg-white text-stone-900 shadow-sm border border-stone-200/80'
+                : 'text-stone-600 hover:text-stone-900 hover:bg-stone-200/50'
             }`}
           >
-            <i className="fa-solid fa-crown text-[11px]"></i>
-            <span>Süper Yönetici (/yonetici)</span>
-            <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-extrabold ${
-              subTab === 'yonetici' ? 'bg-white/20 text-white' : 'bg-stone-100 text-stone-700'
+            <div className={`w-6 h-6 rounded-lg flex items-center justify-center text-xs ${
+              subTab === 'yonetici' ? 'bg-rose-500 text-white' : 'bg-stone-200/80 text-stone-600'
             }`}>
+              <i className="fa-solid fa-crown"></i>
+            </div>
+            <span>Süper Yönetici</span>
+            <span className="text-[10px] font-mono text-stone-400 font-semibold">/yonetici</span>
+            <span
+              className={`ml-1 px-2 py-0.5 rounded-full text-[10px] font-extrabold ${
+                subTab === 'yonetici' ? 'bg-stone-900 text-white' : 'bg-stone-200 text-stone-600'
+              }`}
+            >
               {superAdminUsers.length}
             </span>
           </button>
 
+          {/* Müşteri Sitesi */}
           <button
             type="button"
             onClick={() => setSubTab('customers')}
-            className={`px-3 py-2 rounded-xl font-bold text-[11px] sm:text-xs flex items-center gap-1.5 whitespace-nowrap cursor-pointer transition-colors ${
-              subTab === 'customers' ? 'bg-emerald-600 text-white shadow-2xs' : 'text-stone-600 hover:bg-stone-100'
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all duration-200 cursor-pointer ${
+              subTab === 'customers'
+                ? 'bg-white text-stone-900 shadow-sm border border-stone-200/80'
+                : 'text-stone-600 hover:text-stone-900 hover:bg-stone-200/50'
             }`}
           >
-            <i className="fa-solid fa-store text-[11px]"></i>
-            <span>Müşteri Sitesi (/)</span>
-            <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-extrabold ${
-              subTab === 'customers' ? 'bg-white/20 text-white' : 'bg-stone-100 text-stone-700'
+            <div className={`w-6 h-6 rounded-lg flex items-center justify-center text-xs ${
+              subTab === 'customers' ? 'bg-emerald-500 text-white' : 'bg-stone-200/80 text-stone-600'
             }`}>
+              <i className="fa-solid fa-store"></i>
+            </div>
+            <span>Müşteri Sitesi</span>
+            <span className="text-[10px] font-mono text-stone-400 font-semibold">/</span>
+            <span
+              className={`ml-1 px-2 py-0.5 rounded-full text-[10px] font-extrabold ${
+                subTab === 'customers' ? 'bg-stone-900 text-white' : 'bg-stone-200 text-stone-600'
+              }`}
+            >
               {customers.length}
             </span>
           </button>
 
+          {/* Rol Modelleri */}
           <button
             type="button"
             onClick={() => setSubTab('roles')}
-            className={`px-3 py-2 rounded-xl font-bold text-[11px] sm:text-xs flex items-center gap-1.5 whitespace-nowrap cursor-pointer transition-colors ${
-              subTab === 'roles' ? 'bg-stone-900 text-white shadow-2xs' : 'text-stone-600 hover:bg-stone-100'
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all duration-200 cursor-pointer ${
+              subTab === 'roles'
+                ? 'bg-white text-stone-900 shadow-sm border border-stone-200/80'
+                : 'text-stone-600 hover:text-stone-900 hover:bg-stone-200/50'
             }`}
           >
-            <i className="fa-solid fa-shield-halved text-[11px]"></i>
-            <span>Rol Modelleri</span>
-            <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-extrabold ${
-              subTab === 'roles' ? 'bg-white/20 text-white' : 'bg-stone-100 text-stone-700'
+            <div className={`w-6 h-6 rounded-lg flex items-center justify-center text-xs ${
+              subTab === 'roles' ? 'bg-indigo-500 text-white' : 'bg-stone-200/80 text-stone-600'
             }`}>
+              <i className="fa-solid fa-shield-halved"></i>
+            </div>
+            <span>Rol Modelleri</span>
+            <span
+              className={`ml-1 px-2 py-0.5 rounded-full text-[10px] font-extrabold ${
+                subTab === 'roles' ? 'bg-stone-900 text-white' : 'bg-stone-200 text-stone-600'
+              }`}
+            >
               {roles.length}
             </span>
           </button>
         </div>
+      </div>
 
-        <div className="flex items-center gap-2 w-full lg:w-auto justify-end">
+      {/* 2. EYLEM & ARAMA ŞERİDİ */}
+      <div className="bg-white p-3.5 sm:p-4 rounded-2xl border border-stone-200/90 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-3">
+        {/* Sol: Başlık ve Açıklama Rozeti */}
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-700 border border-amber-200/60 flex items-center justify-center text-base shrink-0 shadow-2xs">
+            <i
+              className={
+                subTab === 'roles'
+                  ? 'fa-solid fa-shield-halved text-indigo-600'
+                  : subTab === 'customers'
+                  ? 'fa-solid fa-users text-emerald-600'
+                  : subTab === 'kurye'
+                  ? 'fa-solid fa-motorcycle text-sky-600'
+                  : subTab === 'yonetici'
+                  ? 'fa-solid fa-crown text-rose-600'
+                  : 'fa-solid fa-kitchen-set text-amber-600'
+              }
+            ></i>
+          </div>
+          <div className="min-w-0">
+            <div className="flex items-center gap-2">
+              <h3 className="text-sm font-extrabold text-stone-900 truncate">
+                {subTab === 'roles'
+                  ? 'Yetki & Rol Modelleri'
+                  : subTab === 'customers'
+                  ? 'Kayıtlı Müşteri & Üye Listesi'
+                  : PORTAL_META[subTab]?.title}
+              </h3>
+              <span
+                className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full border ${
+                  subTab === 'roles'
+                    ? 'bg-indigo-50 text-indigo-700 border-indigo-200'
+                    : subTab === 'customers'
+                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                    : PORTAL_META[subTab]?.badgeClass
+                }`}
+              >
+                {subTab === 'roles'
+                  ? '🛡️ Yetki Modelleri'
+                  : subTab === 'customers'
+                  ? '🛍️ Müşteri Hesapları'
+                  : PORTAL_META[subTab]?.badge}
+              </span>
+            </div>
+            <p className="text-xs text-stone-500 truncate mt-0.5">
+              {subTab === 'roles'
+                ? 'Personele atanacak modül ve işlem izinlerini belirleyin, düzenleyin veya yeni roller ekleyin.'
+                : subTab === 'customers'
+                ? 'Siteden sipariş veren üyeleri onaylayın, engelleyin veya bildirim gönderin.'
+                : PORTAL_META[subTab]?.desc}
+            </p>
+          </div>
+        </div>
+
+        {/* Sağ: Arama, Yenile ve Ekle Butonları */}
+        <div className="flex flex-wrap items-center gap-2 shrink-0 pt-2 md:pt-0 border-t md:border-t-0 border-stone-100">
+          {/* Yenile */}
           <button
             type="button"
             onClick={fetchData}
-            title="Verileri Yenile"
-            className="p-2 rounded-xl text-stone-500 hover:text-stone-900 hover:bg-stone-100 border border-stone-200 transition-colors cursor-pointer shrink-0"
+            title="Listeyi Yenile"
+            className="p-2 rounded-xl text-stone-600 hover:text-stone-900 bg-stone-50 hover:bg-stone-100 border border-stone-200 transition-colors cursor-pointer shrink-0"
           >
             <i className={`fa-solid fa-arrows-rotate text-xs ${loading ? 'fa-spin' : ''}`}></i>
           </button>
 
-          <div className="relative w-full sm:w-52">
+          {/* Arama Inputu */}
+          <div className="relative w-full sm:w-56">
             <input
               type="text"
               value={searchQuery}
@@ -801,25 +1008,35 @@ export default function UsersRolesTab({ currentAdmin, onRolesOrUsersUpdated }) {
                   ? 'Müşteri ara...'
                   : 'Kullanıcı ara...'
               }
-              className="w-full bg-stone-50 border border-stone-200 rounded-xl pl-8 pr-3 py-1.5 text-xs focus:outline-none focus:border-stone-400 font-medium"
+              className="w-full bg-stone-50 border border-stone-200 rounded-xl pl-8 pr-7 py-2 text-xs focus:outline-none focus:border-stone-900 focus:bg-white font-medium transition-all"
             />
             <i className="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-stone-400 text-xs"></i>
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery('')}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600 text-xs"
+              >
+                <i className="fa-solid fa-xmark"></i>
+              </button>
+            )}
           </div>
 
+          {/* Ana Ekleme Butonu */}
           {subTab === 'roles' ? (
             <button
               type="button"
               onClick={handleOpenAddRole}
-              className="bg-stone-900 hover:bg-black text-white font-bold px-3 py-1.5 rounded-xl text-xs flex items-center gap-1.5 transition-colors cursor-pointer shrink-0 shadow-2xs"
+              className="bg-stone-900 hover:bg-black text-white font-bold px-3.5 py-2 rounded-xl text-xs flex items-center gap-1.5 transition-all cursor-pointer shrink-0 shadow-xs active:scale-95"
             >
-              <i className="fa-solid fa-shield-halved text-indigo-400"></i>
-              <span>+ Rol Ekle</span>
+              <i className="fa-solid fa-shield-halved text-amber-400"></i>
+              <span>+ Yeni Rol Ekle</span>
             </button>
           ) : subTab === 'customers' ? (
             <button
               type="button"
               onClick={handleOpenAddCustomer}
-              className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-3 py-1.5 rounded-xl text-xs flex items-center gap-1.5 transition-colors cursor-pointer shrink-0 shadow-2xs"
+              className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-3.5 py-2 rounded-xl text-xs flex items-center gap-1.5 transition-all cursor-pointer shrink-0 shadow-xs active:scale-95"
             >
               <i className="fa-solid fa-user-plus text-white"></i>
               <span>+ Müşteri Ekle</span>
@@ -828,9 +1045,9 @@ export default function UsersRolesTab({ currentAdmin, onRolesOrUsersUpdated }) {
             <button
               type="button"
               onClick={() => handleOpenAddUser(subTab)}
-              className="bg-stone-900 hover:bg-black text-white font-bold px-3.5 py-1.5 rounded-xl text-xs flex items-center gap-1.5 transition-colors cursor-pointer shrink-0 shadow-2xs"
+              className="bg-stone-900 hover:bg-black text-white font-bold px-3.5 py-2 rounded-xl text-xs flex items-center gap-1.5 transition-all cursor-pointer shrink-0 shadow-xs active:scale-95"
             >
-              <i className="fa-solid fa-user-plus text-amber-300"></i>
+              <i className="fa-solid fa-user-plus text-amber-400"></i>
               <span>{PORTAL_META[subTab]?.addBtnLabel || '+ Kullanıcı Ekle'}</span>
             </button>
           )}
@@ -857,14 +1074,48 @@ export default function UsersRolesTab({ currentAdmin, onRolesOrUsersUpdated }) {
           </div>
 
           {filteredStaff.length === 0 ? (
-            <div className="p-8 text-center text-stone-400 text-xs space-y-3">
-              <p>Bu panel için henüz kayıtlı kullanıcı bulunmuyor.</p>
+            <div className="py-12 px-4 text-center space-y-4">
+              <div
+                className={`w-16 h-16 rounded-3xl border flex items-center justify-center text-2xl mx-auto shadow-2xs ${
+                  subTab === 'kurye'
+                    ? 'bg-sky-50 text-sky-600 border-sky-200/60'
+                    : subTab === 'yonetici'
+                    ? 'bg-rose-50 text-rose-600 border-rose-200/60'
+                    : 'bg-amber-50 text-amber-600 border-amber-200/60'
+                }`}
+              >
+                <i
+                  className={
+                    subTab === 'kurye'
+                      ? 'fa-solid fa-motorcycle'
+                      : subTab === 'yonetici'
+                      ? 'fa-solid fa-crown'
+                      : 'fa-solid fa-kitchen-set'
+                  }
+                ></i>
+              </div>
+              <div className="max-w-md mx-auto space-y-1">
+                <h4 className="text-sm font-extrabold text-stone-900">
+                  {subTab === 'kurye'
+                    ? 'Henüz Kayıtlı Kurye Bulunmuyor'
+                    : subTab === 'yonetici'
+                    ? 'Henüz Süper Yönetici Bulunmuyor'
+                    : 'Henüz Restoran Paneli Kullanıcısı Bulunmuyor'}
+                </h4>
+                <p className="text-xs text-stone-500">
+                  {subTab === 'kurye'
+                    ? 'Paket servis siparişlerini teslim edecek kurye personellerini buradan ekleyebilirsiniz.'
+                    : subTab === 'yonetici'
+                    ? 'Sistem ayarlarına ve ciro raporlarına erişebilecek yöneticileri buradan tanımlayabilirsiniz.'
+                    : 'Mutfak, kasa, sipariş hazırlama ve stok takibi yapacak personelleri buradan sisteme ekleyebilirsiniz.'}
+                </p>
+              </div>
               <button
                 type="button"
                 onClick={() => handleOpenAddUser(subTab)}
-                className="inline-flex items-center gap-1.5 bg-stone-900 hover:bg-black text-white font-bold text-xs px-3.5 py-2 rounded-xl cursor-pointer transition-colors"
+                className="inline-flex items-center gap-2 bg-stone-900 hover:bg-black text-white font-bold text-xs px-5 py-2.5 rounded-xl cursor-pointer shadow-xs transition-all active:scale-95"
               >
-                <i className="fa-solid fa-user-plus text-amber-300"></i>
+                <i className="fa-solid fa-user-plus text-amber-400"></i>
                 <span>{PORTAL_META[subTab]?.addBtnLabel || '+ Kullanıcı Ekle'}</span>
               </button>
             </div>
@@ -1412,11 +1663,16 @@ export default function UsersRolesTab({ currentAdmin, onRolesOrUsersUpdated }) {
                 </div>
               </div>
 
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <label className="text-xs font-bold text-stone-700">
-                    Erişilebilir Modüller ({rolePermissions.length} / {AVAILABLE_PERMISSIONS.length})
-                  </label>
+              <div className="space-y-3">
+                <div className="flex items-center justify-between pb-1 border-b border-stone-100">
+                  <div>
+                    <label className="text-xs font-bold text-stone-900 block">
+                      Erişilebilir Modüller & Yetkiler ({rolePermissions.length} / {AVAILABLE_PERMISSIONS.length})
+                    </label>
+                    <span className="text-[11px] text-stone-500">
+                      Bu role atanacak personelin erişebileceği sayfaları ve işlem yetkilerini belirleyin
+                    </span>
+                  </div>
                   <button
                     type="button"
                     onClick={() =>
@@ -1426,32 +1682,76 @@ export default function UsersRolesTab({ currentAdmin, onRolesOrUsersUpdated }) {
                           : AVAILABLE_PERMISSIONS.map((p) => p.id)
                       )
                     }
-                    className="text-[11px] font-bold text-brand-600 hover:underline cursor-pointer"
+                    className="text-xs font-bold text-stone-700 hover:text-stone-900 bg-stone-100 hover:bg-stone-200 px-3 py-1.5 rounded-xl transition-colors cursor-pointer shrink-0"
                   >
-                    {rolePermissions.length === AVAILABLE_PERMISSIONS.length ? 'Temizle' : 'Tümünü Seç'}
+                    {rolePermissions.length === AVAILABLE_PERMISSIONS.length ? 'Tümünü Temizle' : 'Tüm Yetkileri Seç'}
                   </button>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-1.5">
-                  {AVAILABLE_PERMISSIONS.map((perm) => {
-                    const checked = rolePermissions.includes(perm.id);
+                <div className="space-y-2.5 max-h-[50vh] overflow-y-auto pr-1 scrollbar-thin">
+                  {PERMISSION_GROUPS.map((group) => {
+                    const groupPermIds = group.perms.map((p) => p.id);
+                    const selectedCount = group.perms.filter((p) => rolePermissions.includes(p.id)).length;
+                    const isAllSelected = selectedCount === group.perms.length;
+
                     return (
-                      <label
-                        key={perm.id}
-                        className={`flex items-center gap-2 px-3 py-2 rounded-xl border cursor-pointer transition-colors ${
-                          checked
-                            ? 'bg-emerald-50 border-emerald-300 text-stone-900 font-bold'
-                            : 'bg-stone-50 border-stone-200 text-stone-600 hover:bg-stone-100'
-                        }`}
+                      <div
+                        key={group.title}
+                        className="bg-stone-50/70 border border-stone-200/90 rounded-2xl p-3 sm:p-3.5 space-y-2.5 transition-colors"
                       >
-                        <input
-                          type="checkbox"
-                          checked={checked}
-                          onChange={() => togglePermission(perm.id)}
-                          className="w-3.5 h-3.5 accent-emerald-600 rounded shrink-0"
-                        />
-                        <span className="text-xs truncate">{perm.label}</span>
-                      </label>
+                        <div className="flex items-center justify-between gap-2 pb-2 border-b border-stone-200/60">
+                          <div className="flex items-center gap-2">
+                            <span className="w-6 h-6 rounded-lg bg-white border border-stone-200 flex items-center justify-center text-xs shadow-2xs">
+                              <i className={group.icon}></i>
+                            </span>
+                            <span className="text-xs font-bold text-stone-900">{group.title}</span>
+                            <span className="text-[10px] font-extrabold px-1.5 py-0.5 rounded-md bg-stone-200/80 text-stone-700">
+                              {selectedCount} / {group.perms.length}
+                            </span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => toggleGroupPermissions(groupPermIds)}
+                            className="text-[11px] font-bold text-stone-600 hover:text-stone-900 underline cursor-pointer"
+                          >
+                            {isAllSelected ? 'Grubu Kaldır' : 'Grubu Seç'}
+                          </button>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                          {group.perms.map((perm) => {
+                            const checked = rolePermissions.includes(perm.id);
+                            return (
+                              <label
+                                key={perm.id}
+                                className={`p-2.5 rounded-xl border cursor-pointer transition-all flex items-start gap-2.5 ${
+                                  checked
+                                    ? 'bg-emerald-50/70 border-emerald-300 text-stone-900 shadow-2xs'
+                                    : 'bg-white border-stone-200/90 hover:border-stone-300 text-stone-600'
+                                }`}
+                              >
+                                <input
+                                  type="checkbox"
+                                  checked={checked}
+                                  onChange={() => togglePermission(perm.id)}
+                                  className="w-4 h-4 mt-0.5 accent-emerald-600 rounded shrink-0 cursor-pointer"
+                                />
+                                <div className="min-w-0">
+                                  <div className="flex items-center gap-1.5">
+                                    <i className={`${perm.icon} text-[11px] ${checked ? 'text-emerald-600' : 'text-stone-400'}`}></i>
+                                    <span className="text-xs font-bold block text-stone-900 leading-snug truncate">
+                                      {perm.label}
+                                    </span>
+                                  </div>
+                                  <span className="text-[11px] text-stone-500 block leading-tight mt-0.5">
+                                    {perm.desc}
+                                  </span>
+                                </div>
+                              </label>
+                            );
+                          })}
+                        </div>
+                      </div>
                     );
                   })}
                 </div>

@@ -1881,6 +1881,9 @@ export default function AdminDashboardPage() {
               const filteredItems = section.items.filter((item) => {
                 if (isSuperAdmin) return true;
                 if (!adminUser?.permissions || !Array.isArray(adminUser.permissions)) return true;
+                if (item.id === 'options') {
+                  return adminUser.permissions.includes('options') || adminUser.permissions.includes('options_manage');
+                }
                 return adminUser.permissions.includes(item.id);
               });
 

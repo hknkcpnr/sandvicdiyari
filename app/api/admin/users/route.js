@@ -110,12 +110,12 @@ async function getSyncedRolesAndAdmins() {
             ? { ...r, permissions: allSuperPerms }
             : r
         );
-        // Ensure all default system roles (Restoran Müdürü, Kasiyer, Mutfak Şefi, Paket Kuryesi) exist
+        // Süper Yönetici rolünün eksik olmadığından emin ol
         const mergedRoles = [...normalizedPgRoles];
-        for (const sysRole of defaultSystemRoles) {
-          if (!mergedRoles.some((r) => r.id === sysRole.id || r.code === sysRole.code)) {
-            mergedRoles.push(sysRole);
-          }
+        const superExists = mergedRoles.some((r) => r.id === 'role_super_admin' || r.code === 'super_admin');
+        if (!superExists) {
+          const defaultSuper = defaultSystemRoles.find((r) => r.id === 'role_super_admin');
+          if (defaultSuper) mergedRoles.unshift(defaultSuper);
         }
         roles = mergedRoles;
       }
@@ -601,6 +601,14 @@ export async function POST(request) {
               permissions: savedRole.permissions || ['orders']
             }
           });
+
+          // Rol ismi değiştiyse atanmış admin kullanıcılarında da roleName güncelle
+          if (rawPrisma.adminUser) {
+            await rawPrisma.adminUser.updateMany({
+              where: { roleId: savedRole.id },
+              data: { roleName: savedRole.name }
+            });
+          }
         }
       } catch (err) {
         console.warn('Prisma role upsert warning:', err.message);
@@ -767,6 +775,26 @@ export async function DELETE(request) {
     }
 
     if (entityType === 'role') {
+      if (id === 'role_super_admin' || id === 'super_admin') {
+        throw new ValidationError('Süper Yönetici rolü sistem güvenliği gereği silinemez.');
+      }
+
+      const fallbackRoleId = 'role_cashier';
+      const fallbackRoleName = 'Kasiyer & Salon';
+
+      // 1. Prisma'da bu role atanmış yetkilileri güvenli fallback role devret (Foreign Key kısıtını çözer)
+      try {
+        if (rawPrisma && rawPrisma.adminUser) {
+          await rawPrisma.adminUser.updateMany({
+            where: { roleId: String(id) },
+            data: { roleId: fallbackRoleId, roleName: fallbackRoleName }
+          });
+        }
+      } catch (e) {
+        console.warn('Prisma reassign users notice:', e.message);
+      }
+
+      // 2. Prisma'dan rolü sil
       try {
         if (rawPrisma && rawPrisma.role) {
           await rawPrisma.role.deleteMany({
@@ -780,6 +808,7 @@ export async function DELETE(request) {
         console.warn('Prisma delete role notice:', e.message);
       }
 
+      // 3. Yerel veritabanından rolü sil ve personelleri devret
       db.deleteRole(id);
 
       const [{ roles: currentRoles, adminUsers: currentAdmins }, customers] = await Promise.all([
@@ -788,7 +817,7 @@ export async function DELETE(request) {
       ]);
 
       return jsonSuccess({
-        message: 'Rol modeli silindi.',
+        message: 'Rol modeli başarıyla silindi.',
         data: {
           roles: currentRoles,
           adminUsers: currentAdmins,
