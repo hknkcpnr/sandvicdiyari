@@ -54,6 +54,7 @@ export default function YoneticiPage() {
     totalCount: 0
   });
   const [loadingFinance, setLoadingFinance] = useState(false);
+  const [mobileActionsOpen, setMobileActionsOpen] = useState(false);
   const [dateFilter, setDateFilter] = useState('today'); // 'today' | 'week' | 'month' | 'all'
   const [typeFilter, setTypeFilter] = useState('all'); // 'all' | 'in' | 'out'
   const [chartPeriod, setChartPeriod] = useState('daily'); // 'daily' | 'weekly' | 'monthly'
@@ -1123,7 +1124,8 @@ export default function YoneticiPage() {
             </h2>
           </div>
 
-          <div className="flex items-center gap-2 shrink-0">
+          {/* SAĞ TARAF: MASAÜSTÜ HIZLI ARAÇLAR */}
+          <div className="hidden md:flex items-center gap-2 shrink-0">
             {/* Süper Yönetici Kurye Modülü Aç / Kapat Butonu */}
             <button
               type="button"
@@ -1157,7 +1159,7 @@ export default function YoneticiPage() {
               }`}
             >
               <i className={`fa-solid ${isCourierEnabled ? 'fa-motorcycle text-amber-600' : 'fa-eye-slash text-stone-400'}`}></i>
-              <span className="hidden sm:inline">{isCourierEnabled ? 'Kurye: Açık' : 'Kurye: Kapalı'}</span>
+              <span>{isCourierEnabled ? 'Kurye: Açık' : 'Kurye: Kapalı'}</span>
             </button>
 
             {/* Doğrudan Arayüz Renk Paleti Seçici */}
@@ -1176,6 +1178,90 @@ export default function YoneticiPage() {
             >
               <i className={`fa-solid fa-rotate-right ${loadingFinance ? 'animate-spin' : ''}`}></i>
             </button>
+          </div>
+
+          {/* SAĞ TARAF: MOBİL AÇILIR HIZLI ARAÇLAR MENÜSÜ */}
+          <div className="md:hidden relative shrink-0">
+            <button
+              type="button"
+              onClick={() => setMobileActionsOpen((v) => !v)}
+              className={`h-9 px-3 rounded-xl border text-xs font-extrabold flex items-center gap-1.5 transition-all cursor-pointer shadow-2xs active:scale-95 ${
+                mobileActionsOpen
+                  ? 'bg-stone-900 border-stone-900 text-white'
+                  : 'bg-stone-100 hover:bg-stone-200/80 border-stone-200 text-stone-800'
+              }`}
+              aria-label="Hızlı Araçlar Menüsü"
+            >
+              <i className="fa-solid fa-sliders text-[11px]"></i>
+              <span>Araçlar</span>
+              <i className={`fa-solid fa-chevron-down text-[10px] transition-transform duration-200 ${mobileActionsOpen ? 'rotate-180' : ''}`}></i>
+            </button>
+
+            {mobileActionsOpen && (
+              <>
+                <div className="fixed inset-0 z-40 bg-black/15" onClick={() => setMobileActionsOpen(false)} />
+                <div className="absolute right-0 top-full mt-2 z-50 w-68 max-w-[calc(100vw-1.5rem)] bg-white border border-stone-200 rounded-2xl shadow-2xl p-3 space-y-2.5">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const nextVal = !isCourierEnabled;
+                      const nextAdmin = { ...adminSettings, courierModuleEnabled: nextVal };
+                      setAdminSettings(nextAdmin);
+                      try {
+                        localStorage.setItem(ADMIN_SETTINGS_KEY, JSON.stringify(nextAdmin));
+                        localStorage.setItem('sd_courier_module_enabled', String(nextVal));
+                        window.dispatchEvent(new Event('storage'));
+                        window.dispatchEvent(new CustomEvent('sd_courier_module_updated', { detail: { enabled: nextVal } }));
+                      } catch {}
+                      fetch('/api/admin/settings', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ courierModuleEnabled: nextVal })
+                      }).catch(() => {});
+                      showToast(
+                        nextVal
+                          ? 'Kurye portalı açıldı!'
+                          : 'Kurye portalı kapatıldı!',
+                        nextVal ? 'success' : 'info'
+                      );
+                    }}
+                    className="w-full flex items-center justify-between px-3 py-2 rounded-xl bg-stone-50 hover:bg-stone-100 border border-stone-200/70 transition-colors cursor-pointer"
+                  >
+                    <span className="text-xs font-bold text-stone-700 flex items-center gap-2">
+                      <i className={`fa-solid ${isCourierEnabled ? 'fa-motorcycle text-amber-600' : 'fa-eye-slash text-stone-400'}`}></i>
+                      <span>Kurye Portalı</span>
+                    </span>
+                    <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full ${isCourierEnabled ? 'bg-amber-100 text-amber-800' : 'bg-stone-200 text-stone-500'}`}>
+                      {isCourierEnabled ? 'Açık' : 'Kapalı'}
+                    </span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      fetchFinanceData();
+                      setMobileActionsOpen(false);
+                    }}
+                    className="w-full flex items-center justify-between px-3 py-2 rounded-xl bg-stone-50 hover:bg-stone-100 border border-stone-200/70 transition-colors cursor-pointer"
+                  >
+                    <span className="text-xs font-bold text-stone-700 flex items-center gap-2">
+                      <i className={`fa-solid fa-rotate-right text-stone-500 ${loadingFinance ? 'animate-spin' : ''}`}></i>
+                      <span>Verileri Yenile</span>
+                    </span>
+                    <i className="fa-solid fa-chevron-right text-[10px] text-stone-400"></i>
+                  </button>
+
+                  <div className="pt-1.5 border-t border-stone-100">
+                    <ThemeColorPicker
+                      variant="inline"
+                      onThemeChanged={() => {
+                        showToast('Arayüz renk teması güncellendi! 🎨', 'success');
+                      }}
+                    />
+                  </div>
+                </div>
+              </>
+            )}
           </div>
         </header>
 

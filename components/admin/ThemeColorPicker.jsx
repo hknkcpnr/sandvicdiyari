@@ -48,6 +48,42 @@ export default function ThemeColorPicker({ variant = 'grid', onThemeChanged }) {
 
   const activeThemeObj = PANEL_THEMES.find((t) => t.id === currentThemeId) || PANEL_THEMES[0];
 
+  // MOBİL AÇILIR MENÜ İÇİ KOMPAKT RENK SEÇİCİ (INLINE)
+  if (variant === 'inline') {
+    return (
+      <div className="space-y-2 font-poppins">
+        <div className="flex items-center justify-between">
+          <span className="text-[11px] font-extrabold text-stone-700 flex items-center gap-1.5">
+            <i className="fa-solid fa-palette text-amber-500 text-xs"></i>
+            Arayüz Rengi
+          </span>
+          <span className="text-[10px] font-bold text-stone-500">{activeThemeObj.name}</span>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          {PANEL_THEMES.map((theme) => {
+            const isSelected = theme.id === currentThemeId;
+            return (
+              <button
+                key={theme.id}
+                type="button"
+                onClick={() => handleSelectTheme(theme.id)}
+                title={theme.name}
+                className={`w-7 h-7 rounded-full flex items-center justify-center transition-all cursor-pointer border-2 ${
+                  isSelected
+                    ? 'border-stone-900 scale-110 shadow-sm'
+                    : 'border-white shadow-xs hover:scale-105'
+                }`}
+                style={{ backgroundColor: theme.colorHex }}
+              >
+                {isSelected && <i className="fa-solid fa-check text-[10px] text-white drop-shadow"></i>}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
+
   // HEADER İÇİN KOMPAKT AÇILIR MENÜ (DROPDOWN)
   if (variant === 'dropdown') {
     return (
