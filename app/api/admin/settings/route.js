@@ -10,7 +10,7 @@ export const dynamic = 'force-dynamic';
 const SETTING_KEY = 'admin_system_settings';
 
 const DEFAULT_SETTINGS = {
-  courierModuleEnabled: true,
+  courierModuleEnabled: false,
   fontSize: 'medium',
   density: 'comfortable',
   storeName: 'Sandviç Diyarı',
@@ -83,7 +83,7 @@ export async function POST(request) {
       courierModuleEnabled:
         typeof incoming.courierModuleEnabled === 'boolean'
           ? incoming.courierModuleEnabled
-          : current.courierModuleEnabled !== false
+          : current.courierModuleEnabled === true
     };
 
     // Sipariş alımı durdurma alanlarını doğrula

@@ -889,5 +889,8 @@
       "workingHours": "Hergün 10:00 - 03:00 Gece Servisi"
     }
   },
-  "phoneOtps": []
+  "phoneOtps": [],
+  "settings": {
+    "courierModuleEnabled": false
+  }
 }

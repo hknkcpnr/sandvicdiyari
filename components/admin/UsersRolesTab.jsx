@@ -115,7 +115,7 @@ export default function UsersRolesTab({ currentAdmin, onRolesOrUsersUpdated }) {
   const [custVerified, setCustVerified] = useState(true);
   const [custFormError, setCustFormError] = useState('');
   const [approvingCustId, setApprovingCustId] = useState(null);
-  const [courierModuleEnabled, setCourierModuleEnabled] = useState(true);
+  const [courierModuleEnabled, setCourierModuleEnabled] = useState(false);
 
   useEffect(() => {
     try {
@@ -128,7 +128,7 @@ export default function UsersRolesTab({ currentAdmin, onRolesOrUsersUpdated }) {
       }
       const sdCourier = localStorage.getItem('sd_courier_module_enabled');
       if (sdCourier !== null) {
-        setCourierModuleEnabled(sdCourier !== 'false');
+        setCourierModuleEnabled(sdCourier === 'true');
       }
     } catch {}
 
@@ -143,7 +143,7 @@ export default function UsersRolesTab({ currentAdmin, onRolesOrUsersUpdated }) {
         }
         const sdCourier = localStorage.getItem('sd_courier_module_enabled');
         if (sdCourier !== null) {
-          setCourierModuleEnabled(sdCourier !== 'false');
+          setCourierModuleEnabled(sdCourier === 'true');
         }
       } catch {}
     };
@@ -154,7 +154,7 @@ export default function UsersRolesTab({ currentAdmin, onRolesOrUsersUpdated }) {
       .then((r) => r.json())
       .then((j) => {
         if (j?.success && j?.data) {
-          setCourierModuleEnabled(j.data.courierModuleEnabled !== false);
+          setCourierModuleEnabled(j.data.courierModuleEnabled === true);
         }
       })
       .catch(() => {});
@@ -825,7 +825,7 @@ export default function UsersRolesTab({ currentAdmin, onRolesOrUsersUpdated }) {
           </button>
 
           {/* Kurye Paneli */}
-          {(courierUsers.length > 0 || courierModuleEnabled !== false) && (
+          {courierModuleEnabled === true && (
             <button
               type="button"
               onClick={() => setSubTab('kurye')}

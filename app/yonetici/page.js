@@ -71,7 +71,7 @@ export default function YoneticiPage() {
 
   // System settings (synced with /panel)
   const [adminSettings, setAdminSettings] = useState({
-    courierModuleEnabled: true,
+    courierModuleEnabled: false,
     soundEnabled: true,
     fontSize: 'normal',
     autoRefreshInterval: 60,
@@ -79,7 +79,7 @@ export default function YoneticiPage() {
     receiptFooterNote: 'Afiyet olsun! Bizi tercih ettiğiniz için teşekkürler.'
   });
 
-  const isCourierEnabled = adminSettings?.courierModuleEnabled !== false;
+  const isCourierEnabled = adminSettings?.courierModuleEnabled === true;
 
   const showToast = (message, type = 'success') => {
     setToast({ message, type });
@@ -126,7 +126,7 @@ export default function YoneticiPage() {
       .then((r) => r.json())
       .then((j) => {
         if (j?.success && j?.data) {
-          const courierVal = j.data.courierModuleEnabled !== false;
+          const courierVal = j.data.courierModuleEnabled === true;
           setAdminSettings((prev) => ({ ...prev, courierModuleEnabled: courierVal }));
         }
       })
@@ -1127,6 +1127,42 @@ export default function YoneticiPage() {
           </div>
 
           <div className="flex items-center gap-2 shrink-0">
+            {/* Süper Yönetici Kurye Modülü Aç / Kapat Butonu */}
+            <button
+              type="button"
+              onClick={() => {
+                const nextVal = !isCourierEnabled;
+                const nextAdmin = { ...adminSettings, courierModuleEnabled: nextVal };
+                setAdminSettings(nextAdmin);
+                try {
+                  localStorage.setItem(ADMIN_SETTINGS_KEY, JSON.stringify(nextAdmin));
+                  localStorage.setItem('sd_courier_module_enabled', String(nextVal));
+                  window.dispatchEvent(new Event('storage'));
+                  window.dispatchEvent(new CustomEvent('sd_courier_module_updated', { detail: { enabled: nextVal } }));
+                } catch {}
+                fetch('/api/admin/settings', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ courierModuleEnabled: nextVal })
+                }).catch(() => {});
+                showToast(
+                  nextVal
+                    ? 'Kurye portalı açıldı! (/panel ve sistemde kurye görünür yapıldı)'
+                    : 'Kurye portalı kapatıldı! (/panel ve arayüzden kurye tamamen gizlendi)',
+                  nextVal ? 'success' : 'info'
+                );
+              }}
+              title={isCourierEnabled ? 'Kurye Portalını Kapat (Gizle)' : 'Kurye Portalını Aç (Görünür Yap)'}
+              className={`h-8 px-2.5 rounded-xl border text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-2xs ${
+                isCourierEnabled
+                  ? 'bg-amber-50 hover:bg-amber-100 border-amber-300 text-amber-900'
+                  : 'bg-stone-100 hover:bg-stone-200 border-stone-200 text-stone-600'
+              }`}
+            >
+              <i className={`fa-solid ${isCourierEnabled ? 'fa-motorcycle text-amber-600' : 'fa-eye-slash text-stone-400'}`}></i>
+              <span className="hidden sm:inline">{isCourierEnabled ? 'Kurye: Açık' : 'Kurye: Kapalı'}</span>
+            </button>
+
             {/* Doğrudan Arayüz Renk Paleti Seçici */}
             <ThemeColorPicker
               variant="dropdown"

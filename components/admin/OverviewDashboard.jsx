@@ -41,20 +41,20 @@ export default function OverviewDashboard({
   canViewRevenue = false,
   isCourierEnabled: propCourierEnabled,
 }) {
-  const [localCourierEnabled, setLocalCourierEnabled] = useState(true);
+  const [localCourierEnabled, setLocalCourierEnabled] = useState(false);
 
   useEffect(() => {
     try {
       const sdCourier = localStorage.getItem('sd_courier_module_enabled');
       if (sdCourier !== null) {
-        setLocalCourierEnabled(sdCourier !== 'false');
+        setLocalCourierEnabled(sdCourier === 'true');
       }
     } catch {}
     const handleStorage = () => {
       try {
         const sdCourier = localStorage.getItem('sd_courier_module_enabled');
         if (sdCourier !== null) {
-          setLocalCourierEnabled(sdCourier !== 'false');
+          setLocalCourierEnabled(sdCourier === 'true');
         }
       } catch {}
     };

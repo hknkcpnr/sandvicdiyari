@@ -11,7 +11,7 @@ import { getOrderPauseState } from '@/lib/orderPause';
 import { printTestThermalReceipt } from '@/lib/thermalReceipt';
 
 export const DEFAULT_ADMIN_SETTINGS = {
-  courierModuleEnabled: true,
+  courierModuleEnabled: false,
   ordersPaused: false,
   ordersPausedUntil: null,
   ordersPausedReason: '',
@@ -204,7 +204,7 @@ export default function SettingsTab({
         }
         const sdCourier = localStorage.getItem('sd_courier_module_enabled');
         if (sdCourier !== null) {
-          savedCourier = sdCourier !== 'false';
+          savedCourier = sdCourier === 'true';
         }
       } catch {}
 
@@ -225,7 +225,7 @@ export default function SettingsTab({
       .then((r) => r.json())
       .then((j) => {
         if (j?.success && j?.data) {
-          const courierVal = j.data.courierModuleEnabled !== false;
+          const courierVal = j.data.courierModuleEnabled === true;
           setSettings((prev) => ({ ...prev, courierModuleEnabled: courierVal }));
           try {
             const raw = localStorage.getItem('sandwich_admin_settings');
@@ -1080,11 +1080,11 @@ export default function SettingsTab({
                 </p>
               </div>
               <span className={`text-[10px] font-extrabold px-2.5 py-1 rounded-full border self-start sm:self-center ${
-                settings.courierModuleEnabled !== false
+                settings.courierModuleEnabled === true
                   ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
                   : 'bg-rose-50 text-rose-700 border-rose-200'
               }`}>
-                {settings.courierModuleEnabled !== false ? '● Kurye: Açık (Görünür)' : '○ Kurye: Sistemden Tamamen Gizli'}
+                {settings.courierModuleEnabled === true ? '● Kurye: Açık (Görünür)' : '○ Kurye: Sistemden Tamamen Gizli'}
               </span>
             </div>
 
@@ -1093,13 +1093,13 @@ export default function SettingsTab({
               <div
                 onClick={() => handleCourierModuleToggle(true)}
                 className={`p-4 rounded-2xl border-2 transition-all cursor-pointer flex items-start gap-3.5 ${
-                  settings.courierModuleEnabled !== false
+                  settings.courierModuleEnabled === true
                     ? 'border-emerald-600 bg-emerald-50/30 shadow-xs ring-1 ring-emerald-500/20'
                     : 'border-stone-200 hover:border-stone-300 bg-white opacity-70'
                 }`}
               >
                 <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 text-base ${
-                  settings.courierModuleEnabled !== false
+                  settings.courierModuleEnabled === true
                     ? 'bg-emerald-600 text-white shadow-xs'
                     : 'bg-stone-100 text-stone-500'
                 }`}>
@@ -1109,11 +1109,11 @@ export default function SettingsTab({
                   <div className="flex items-center justify-between gap-2">
                     <span className="font-extrabold text-xs text-stone-900">Kuryeyi Göster (Standart Operasyon)</span>
                     <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${
-                      settings.courierModuleEnabled !== false
+                      settings.courierModuleEnabled === true
                         ? 'bg-emerald-600 text-white'
                         : 'bg-stone-100 text-stone-500'
                     }`}>
-                      {settings.courierModuleEnabled !== false ? 'Seçili' : 'Aç'}
+                      {settings.courierModuleEnabled === true ? 'Seçili' : 'Aç'}
                     </span>
                   </div>
                   <p className="text-[11px] text-stone-500 leading-snug">
