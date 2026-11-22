@@ -61,8 +61,10 @@ export default function OptionsModal() {
     (state) => state.ui
   );
   const { currentUser } = useSelector((state) => state.auth);
+  const allProducts = useSelector((state) => state.product.items);
 
   const [selectedDrink, setSelectedDrink] = useState('Kutu Pepsi (330ml)');
+  const [selectedSuggestedDrinkIds, setSelectedSuggestedDrinkIds] = useState([]);
   const [saucesList, setSaucesList] = useState([]);
   const [freeSauceLimit, setFreeSauceLimit] = useState(DEFAULT_PRODUCT_OPTIONS.freeSauceLimit ?? 2);
   const [extraSaucePrice, setExtraSaucePrice] = useState(DEFAULT_PRODUCT_OPTIONS.extraSaucePrice ?? 5);
@@ -77,6 +79,7 @@ export default function OptionsModal() {
   useEffect(() => {
     if (isOptionsModalOpen) {
       setRemovedIngredients([]);
+      setSelectedSuggestedDrinkIds([]);
     }
   }, [isOptionsModalOpen, selectedProductForOptions?.id]);
 
@@ -138,6 +141,26 @@ export default function OptionsModal() {
   if (!isOptionsModalOpen || !selectedProductForOptions) return null;
 
   const isMenu = selectedProductForOptions.category === 'menu';
+  const isDrink = selectedProductForOptions.category === 'drink';
+
+  // Tekli ürünler için altta önerilecek soğuk içecekler
+  const suggestedDrinks = (!isMenu && !isDrink)
+    ? (allProducts || []).filter((p) => p.category === 'drink' && p.isAvailable !== false)
+    : [];
+
+  const selectedSuggestedDrinks = suggestedDrinks.filter((d) =>
+    selectedSuggestedDrinkIds.includes(d.id)
+  );
+  const suggestedDrinksCost = selectedSuggestedDrinks.reduce(
+    (sum, d) => sum + (Number(d.price) || 0),
+    0
+  );
+
+  const handleToggleSuggestedDrink = (drinkId) => {
+    setSelectedSuggestedDrinkIds((prev) =>
+      prev.includes(drinkId) ? prev.filter((id) => id !== drinkId) : [...prev, drinkId]
+    );
+  };
 
   // Only show available sauces and extras to the customer
   const availableSauces = (saucesList || []).filter((s) => s.isAvailable !== false);
@@ -155,7 +178,7 @@ export default function OptionsModal() {
     .reduce((sum, e) => sum + (Number(e.price) || 0), 0);
 
   const currentTotalPrice =
-    Number(selectedProductForOptions.price || 0) + extrasCost + extraSauceCost;
+    Number(selectedProductForOptions.price || 0) + extrasCost + extraSauceCost + suggestedDrinksCost;
 
   const handleToggleExtra = (index) => {
     setExtras((prev) =>
@@ -198,17 +221,36 @@ export default function OptionsModal() {
         removedIngredients,
       })
     );
+
+    // Tekli üründe seçilen öneri içecekleri de sepete ekle
+    selectedSuggestedDrinks.forEach((drinkProd) => {
+      dispatch(
+        addToCart({
+          product: drinkProd,
+          sauces: {},
+          extras: [],
+          note: '',
+          drink: null,
+          removedIngredients: [],
+        })
+      );
+    });
+
     dispatch(closeOptionsModal());
     dispatch(
       showMessageModal({
         title: 'Sepete Eklendi! 🥪',
-        text: `${selectedProductForOptions.name} sepetinize eklendi!`,
+        text:
+          selectedSuggestedDrinks.length > 0
+            ? `${selectedProductForOptions.name} ve ${selectedSuggestedDrinks.length} adet içecek sepetinize eklendi!`
+            : `${selectedProductForOptions.name} sepetinize eklendi!`,
         type: 'success',
       })
     );
     // Reset form state
     setNote('');
     setRemovedIngredients([]);
+    setSelectedSuggestedDrinkIds([]);
     if (drinkOptions.length > 0) {
       setSelectedDrink(drinkOptions[0]);
     }
@@ -517,6 +559,74 @@ export default function OptionsModal() {
               />
             </div>
           </div>
+
+          {/* 5. Tekli Ürünler İçin Altta İçecek Önerileri */}
+          {!isMenu && !isDrink && suggestedDrinks.length > 0 && (
+            <div className="bg-sky-50/60 border border-sky-200/80 rounded-2xl p-3 sm:px-3.5 space-y-2.5">
+              <div className="flex items-center justify-between gap-2">
+                <label className="text-[11px] font-extrabold text-stone-900 uppercase flex items-center gap-1.5">
+                  <i className="fa-solid fa-bottle-water text-sky-600"></i>
+                  Yanına Soğuk İçecek İster misiniz?
+                </label>
+                {selectedSuggestedDrinks.length > 0 ? (
+                  <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-sky-600 text-white">
+                    {selectedSuggestedDrinks.length} Seçildi (+₺{suggestedDrinksCost.toFixed(0)})
+                  </span>
+                ) : (
+                  <span className="text-[10px] font-semibold text-sky-700">İsteğe Bağlı</span>
+                )}
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+                {suggestedDrinks.map((drinkProd) => {
+                  const isSelected = selectedSuggestedDrinkIds.includes(drinkProd.id);
+                  return (
+                    <button
+                      key={drinkProd.id}
+                      type="button"
+                      onClick={() => handleToggleSuggestedDrink(drinkProd.id)}
+                      className={`flex items-center justify-between gap-2 p-2 rounded-xl border text-left transition-all cursor-pointer active:scale-[0.98] ${
+                        isSelected
+                          ? 'bg-sky-100/90 border-sky-500 ring-1 ring-sky-400/40 shadow-2xs'
+                          : 'bg-white border-stone-200/90 hover:border-sky-300'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 min-w-0">
+                        <div className="w-8 h-8 rounded-lg overflow-hidden bg-stone-100 border border-stone-200/70 shrink-0">
+                          <img
+                            src={drinkProd.image || '/images/hero_banner.jpg'}
+                            alt={drinkProd.name}
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              e.currentTarget.src = '/images/hero_banner.jpg';
+                            }}
+                          />
+                        </div>
+                        <span className="text-[11px] font-bold text-stone-800 truncate">
+                          {drinkProd.name}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <span className="text-[11px] font-black text-sky-700">
+                          +₺{Number(drinkProd.price || 0).toFixed(0)}
+                        </span>
+                        <span
+                          className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] transition-colors ${
+                            isSelected
+                              ? 'bg-sky-600 text-white'
+                              : 'bg-stone-100 text-stone-400 border border-stone-200'
+                          }`}
+                        >
+                          <i className={`fa-solid ${isSelected ? 'fa-check' : 'fa-plus'}`}></i>
+                        </span>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Sabit Alt Bar (Sepete Ekle Butonu - Mobilde Her Zaman Görünür & Tıklanabilir) */}
