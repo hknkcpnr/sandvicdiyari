@@ -1,6 +1,7 @@
 import { db } from '@/lib/db';
 import { rawPrisma } from '@/lib/prisma';
 import { orm } from '@/lib/orm/postgresEngine';
+import { logUserActivity } from '@/lib/activityLogger';
 import {
   AuthenticationError,
   AuthorizationError,
@@ -152,6 +153,21 @@ export async function POST(request) {
       role: authenticatedAdmin.role,
       roleId: authenticatedAdmin.roleId,
       permissions: authenticatedAdmin.permissions
+    });
+
+    logUserActivity({
+      user: {
+        id: authenticatedAdmin.id,
+        name: authenticatedAdmin.name,
+        email: authenticatedAdmin.email,
+        role: authenticatedAdmin.role
+      },
+      action: 'LOGIN',
+      category: 'SYSTEM',
+      level: 'INFO',
+      message: `Panele giriş yapıldı: ${authenticatedAdmin.name} (${authenticatedAdmin.role || 'Yönetici'}) [Hedef: /${portal}]`,
+      details: { portal, email: authenticatedAdmin.email },
+      req: request
     });
 
     const response = jsonSuccess({

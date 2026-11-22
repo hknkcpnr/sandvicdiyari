@@ -1,6 +1,7 @@
 import { db } from '@/lib/db';
 import { rawPrisma, formatPrismaOrder } from '@/lib/prisma';
 import { orm } from '@/lib/orm/postgresEngine';
+import { logUserActivity } from '@/lib/activityLogger';
 import {
   AuthorizationError,
   NotFoundError,
@@ -509,6 +510,16 @@ export async function PATCH(request, { params }) {
         () => updatedPg.id
       );
 
+      logUserActivity({
+        user: { name: user || 'Personel' },
+        action: 'ORDER_STATUS_UPDATE',
+        category: 'ORDER',
+        level: status === 'İptal Edildi' ? 'WARN' : 'INFO',
+        message: `#${pgOrder.orderNumber || id} sipariş durumu "${status}" yapıldı${reason ? ` (Gerekçe: ${reason})` : ''}`,
+        details: { orderId: id, status, note, reason },
+        req: request
+      });
+
       return jsonSuccess({
         message: `Sipariş durumu "${status}" olarak güncellendi.`,
         data: formatPrismaOrder(updatedPg)
@@ -526,6 +537,16 @@ export async function PATCH(request, { params }) {
     if (!updatedOrder) {
       throw new NotFoundError('Sipariş bulunamadı.');
     }
+
+    logUserActivity({
+      user: { name: user || 'Personel' },
+      action: 'ORDER_STATUS_UPDATE',
+      category: 'ORDER',
+      level: status === 'İptal Edildi' ? 'WARN' : 'INFO',
+      message: `#${updatedOrder.orderNumber || id} sipariş durumu "${status}" yapıldı${reason ? ` (Gerekçe: ${reason})` : ''}`,
+      details: { orderId: id, status, note, reason },
+      req: request
+    });
 
     return jsonSuccess({
       message: `Sipariş durumu "${status}" olarak güncellendi.`,
@@ -719,6 +740,16 @@ export async function DELETE(request, { params }) {
           ? `Sipariş #${pgOrder.orderNumber || id}, ${approverInfo.role} (${approverInfo.name}) onayıyla kalıcı olarak silindi.`
           : `Sipariş #${pgOrder.orderNumber || id} kalıcı olarak silindi.`;
 
+      logUserActivity({
+        user: { name: approverInfo?.name, role: approverInfo?.role },
+        action: 'ORDER_DELETE',
+        category: 'ORDER',
+        level: 'WARN',
+        message: successMsg,
+        details: { orderId: id, approver: approverInfo, restoreStock },
+        req: request
+      });
+
       return jsonSuccess({
         message: successMsg,
         data: formatPrismaOrder(pgOrder)
@@ -743,6 +774,16 @@ export async function DELETE(request, { params }) {
       approverInfo?.type === 'supervisor'
         ? `Sipariş #${deletedOrder.orderNumber || id}, ${approverInfo.role} (${approverInfo.name}) onayıyla kalıcı olarak silindi.`
         : `Sipariş #${deletedOrder.orderNumber || id} kalıcı olarak silindi.`;
+
+    logUserActivity({
+      user: { name: approverInfo?.name, role: approverInfo?.role },
+      action: 'ORDER_DELETE',
+      category: 'ORDER',
+      level: 'WARN',
+      message: successMsg,
+      details: { orderId: id, approver: approverInfo, restoreStock },
+      req: request
+    });
 
     return jsonSuccess({
       message: successMsg,

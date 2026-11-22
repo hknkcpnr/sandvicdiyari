@@ -4,6 +4,8 @@ import { useState, useEffect, useMemo } from 'react';
 import UsersRolesTab from '@/components/admin/UsersRolesTab';
 import SiteContentEditorTab from '@/components/admin/SiteContentEditorTab';
 import SettingsTab from '@/components/admin/SettingsTab';
+import ThemeColorPicker from '@/components/admin/ThemeColorPicker';
+import { applyPanelTheme, getSavedTheme } from '@/lib/themeColors';
 
 const ADMIN_SESSION_KEY = 'sandwich_admin_session';
 const ADMIN_SETTINGS_KEY = 'sandwich_admin_settings';
@@ -85,6 +87,7 @@ export default function YoneticiPage() {
 
   useEffect(() => {
     try {
+      applyPanelTheme(getSavedTheme());
       const saved = localStorage.getItem(ADMIN_SESSION_KEY);
       if (saved) {
         const parsed = JSON.parse(saved);
@@ -1116,6 +1119,14 @@ export default function YoneticiPage() {
           </div>
 
           <div className="flex items-center gap-2 shrink-0">
+            {/* Doğrudan Arayüz Renk Paleti Seçici */}
+            <ThemeColorPicker
+              variant="dropdown"
+              onThemeChanged={() => {
+                showToast('Arayüz renk teması güncellendi! 🎨', 'success');
+              }}
+            />
+
             <button
               type="button"
               onClick={fetchFinanceData}

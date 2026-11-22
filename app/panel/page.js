@@ -9,7 +9,9 @@ import OverviewDashboard from '@/components/admin/OverviewDashboard';
 import InventoryTab from '@/components/admin/InventoryTab';
 import KitchenPosBell, { playKitchenBellSound, speakProductPreview } from '@/components/admin/KitchenPosBell';
 import UsersRolesTab from '@/components/admin/UsersRolesTab';
-import MysqlOrmTab from '@/components/admin/MysqlOrmTab';
+import ActivityLogsTab from '@/components/admin/ActivityLogsTab';
+import ThemeColorPicker from '@/components/admin/ThemeColorPicker';
+import { applyPanelTheme, getSavedTheme } from '@/lib/themeColors';
 import BlurredAmount from '@/components/admin/BlurredAmount';
 import SettingsTab, { DEFAULT_ADMIN_SETTINGS } from '@/components/admin/SettingsTab';
 import SiteContentEditorTab from '@/components/admin/SiteContentEditorTab';
@@ -283,6 +285,7 @@ export default function AdminDashboardPage() {
 
   useEffect(() => {
     try {
+      applyPanelTheme(getSavedTheme());
       const saved = localStorage.getItem('sandwich_admin_sidebar_collapsed');
       if (saved !== null) {
         setSidebarCollapsed(saved === 'true');
@@ -2114,14 +2117,14 @@ export default function AdminDashboardPage() {
               {currentTab === 'options' && 'Soslar, Ekstralar & Sepet Seçenekleri'}
               {currentTab === 'users' && 'Kullanıcılar & Rol Modelleri Yönetimi'}
               {currentTab === 'reviews' && 'Müşteri Değerlendirmeleri'}
-              {currentTab === 'api' && 'PostgreSQL 16 ORM, TypeScript & Siber Güvenlik Merkezi'}
+              {currentTab === 'logs' && 'Kullanıcı İşlem & Güvenlik Logları'}
               {currentTab === 'site_content' && 'Sayfa Düzenleri & Vitrin Stüdyosu'}
               {currentTab === 'settings' && (
                 selectedSettingsSubTab === 'users' ? 'Sistem Ayarları • Kullanıcılar & Rol Modelleri' :
                 selectedSettingsSubTab === 'sound' ? 'Sistem Ayarları • Ses & Sipariş Bildirimleri' :
                 selectedSettingsSubTab === 'receipt' ? 'Sistem Ayarları • Fiş & Adisyon Baskısı' :
                 selectedSettingsSubTab === 'system' ? 'Sistem Ayarları • Yedekleme & Sistem' :
-                selectedSettingsSubTab === 'api' ? 'Sistem Ayarları • PostgreSQL 16 ORM & Güvenlik' :
+                selectedSettingsSubTab === 'logs' ? 'Sistem Ayarları • Kullanıcı İşlem & Güvenlik Logları' :
                 'Sistem Ayarları • Yazı Boyutu & Panel Arayüzü'
               )}
             </h2>
@@ -2256,6 +2259,14 @@ export default function AdminDashboardPage() {
             >
               <i className={`fa-solid fa-rotate-right text-xs ${loadingOrders ? 'fa-spin text-amber-500' : ''}`}></i>
             </button>
+
+            {/* Doğrudan Arayüz Renk Paleti Seçici */}
+            <ThemeColorPicker
+              variant="dropdown"
+              onThemeChanged={() => {
+                showToast('Arayüz renk teması güncellendi! 🎨', 'success');
+              }}
+            />
 
             {/* Sağ Taraf: Sayfa Düzenleri & Vitrin Stüdyosu Açma Butonu */}
             {canEditSiteContent && (
@@ -3756,12 +3767,12 @@ export default function AdminDashboardPage() {
           </div>
         )}
 
-        {/* TAB 4: POSTGRESQL ORM (SİSTEM AYARLARI İÇİNDE YÖNETİLİR) */}
-        {currentTab === 'api' && (
+        {/* TAB 4: KULLANICI İŞLEM & GÜVENLİK LOGLARI */}
+        {currentTab === 'logs' && (
           <SettingsTab
             currentSettings={adminSettings}
             currentAdmin={adminUser}
-            initialSubTab="api"
+            initialSubTab="logs"
             onSubTabChange={setSelectedSettingsSubTab}
             showToast={showToast}
             onSaveSettings={(newSettings) => {

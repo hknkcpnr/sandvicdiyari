@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useRef } from 'react';
 import UsersRolesTab from './UsersRolesTab';
-import MysqlOrmTab from './MysqlOrmTab';
+import ActivityLogsTab from './ActivityLogsTab';
+import ThemeColorPicker from './ThemeColorPicker';
 import SiteContentEditorTab from './SiteContentEditorTab';
 import { playKitchenBellSound } from './KitchenPosBell';
 import { DEFAULT_CUSTOMER_NOTIFICATION_SETTINGS } from '@/lib/notificationDefaults';
@@ -83,13 +84,13 @@ const SETTINGS_PAGES = {
     icon: 'fa-solid fa-hard-drive',
     desc: 'Sistemin diskte kapladığı alan, çok sayfalı Excel (.xlsx) yedeği ve tam sistem arşivlemesi.',
   },
-  api: {
-    id: 'api',
-    title: 'PostgreSQL 16 ORM & Güvenlik',
-    badge: 'PostgreSQL 16 & Prisma',
-    badgeColor: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-    icon: 'fa-solid fa-database',
-    desc: 'PostgreSQL 16 veritabanı bağlantısı, Prisma ORM sorguları ve SQL injection güvenlik testleri.',
+  logs: {
+    id: 'logs',
+    title: 'Kullanıcı İşlem & Güvenlik Logları',
+    badge: 'Canlı İşlem Takibi',
+    badgeColor: 'bg-indigo-50 text-indigo-700 border-indigo-200',
+    icon: 'fa-solid fa-clock-rotate-left',
+    desc: 'Hangi personelin ne zaman sipariş sildiği, durum güncellediği, ürün veya fiyat değiştirdiği tüm kullanıcı işlem geçmişi.',
   },
 };
 
@@ -941,11 +942,11 @@ export default function SettingsTab({
               <option value="sound">🔔 Ses</option>
               <option value="receipt">🧾 Fiş Baskı</option>
               <option value="system">💾 Yedekleme</option>
-              <option value="api">🐘 Veritabanı</option>
+              <option value="logs">📜 İşlem Logları</option>
             </select>
           </div>
 
-          {activeSubTab !== 'users' && activeSubTab !== 'api' && activeSubTab !== 'site_content' && (
+          {activeSubTab !== 'users' && activeSubTab !== 'logs' && activeSubTab !== 'site_content' && (
             <div className="flex items-center gap-2">
               {savedSuccess && (
                 <span className="text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-3 py-1.5 rounded-xl flex items-center gap-1.5 animate-in fade-in">
@@ -1246,6 +1247,25 @@ export default function SettingsTab({
                 Süresiz Durdur (Ben Açana Kadar)
               </button>
             </div>
+          </div>
+
+          {/* Arayüz Renk Teması & Palet Seçenekleri */}
+          <div className="lg:col-span-12 bg-white p-4 sm:p-5 rounded-2xl border border-stone-200 shadow-xs space-y-3.5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-stone-100 pb-3">
+              <div>
+                <h3 className="text-sm font-extrabold text-stone-900 flex items-center gap-2">
+                  <i className="fa-solid fa-palette text-amber-500"></i>
+                  <span>Arayüz Renk Teması & Palet Seçenekleri</span>
+                </h3>
+                <p className="text-xs text-stone-500 mt-0.5">
+                  Restoran paneli ve butonların vurgu rengini dilediğiniz gibi özelleştirin.
+                </p>
+              </div>
+              <span className="text-[10px] font-extrabold px-2.5 py-1 rounded-full bg-stone-100 text-stone-700 border border-stone-200 self-start sm:self-center">
+                7 Farklı Renk Paleti
+              </span>
+            </div>
+            <ThemeColorPicker variant="grid" />
           </div>
         </div>
       )}
@@ -2513,10 +2533,10 @@ export default function SettingsTab({
         </div>
       )}
 
-      {/* SEKME: POSTGRESQL 16 ORM & SİBER GÜVENLİK MERKEZİ */}
-      {activeSubTab === 'api' && (
+      {/* SEKME: KULLANICI İŞLEM & GÜVENLİK LOGLARI */}
+      {activeSubTab === 'logs' && (
         <div className="w-full">
-          <MysqlOrmTab showToast={showToast} />
+          <ActivityLogsTab showToast={showToast} currentAdmin={currentAdmin} />
         </div>
       )}
     </div>

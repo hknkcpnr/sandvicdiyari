@@ -91,8 +91,11 @@ async function runTests() {
     'lib/security/auth.ts',
     'lib/security/validation.ts',
     'app/api/health/db/route.ts',
-    'components/admin/MysqlOrmTab.jsx',
-    'components/admin/UsersRolesTab.jsx'
+    'components/admin/ActivityLogsTab.jsx',
+    'components/admin/ThemeColorPicker.jsx',
+    'components/admin/UsersRolesTab.jsx',
+    'lib/activityLogger.js',
+    'lib/themeColors.js'
   ];
 
   for (const relPath of requiredFiles) {

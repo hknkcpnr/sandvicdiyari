@@ -4,6 +4,36 @@
 
 :root {
   --font-poppins: 'Poppins', sans-serif;
+  --panel-accent-color: #d97706;
+}
+
+[data-panel-theme="emerald"] {
+  --panel-accent-color: #059669;
+}
+[data-panel-theme="indigo"] {
+  --panel-accent-color: #4f46e5;
+}
+[data-panel-theme="rose"] {
+  --panel-accent-color: #e11d48;
+}
+[data-panel-theme="sky"] {
+  --panel-accent-color: #0284c7;
+}
+[data-panel-theme="purple"] {
+  --panel-accent-color: #7c3aed;
+}
+[data-panel-theme="dark"] {
+  --panel-accent-color: #18181b;
+}
+
+.theme-accent-bg {
+  background-color: var(--panel-accent-color) !important;
+}
+.theme-accent-text {
+  color: var(--panel-accent-color) !important;
+}
+.theme-accent-border {
+  border-color: var(--panel-accent-color) !important;
 }
 
 body {
