@@ -1618,70 +1618,84 @@ export default function UsersRolesTab({ currentAdmin, onRolesOrUsersUpdated }) {
 
       {/* MODAL 2: ROL MODELİ EKLE / DÜZENLE */}
       {isRoleModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center p-3 sm:p-4 bg-stone-900/60 backdrop-blur-xs overflow-y-auto animate-in fade-in duration-150">
-          <div className="bg-white rounded-2xl sm:rounded-3xl max-w-4xl w-full p-4 sm:p-6 shadow-2xl space-y-3.5 my-auto max-h-[92vh] overflow-y-auto overscroll-contain">
-            <div className="flex items-center justify-between border-b border-stone-100 pb-3">
-              <h3 className="font-bold text-base text-stone-900">
-                {editingRole ? `"${editingRole.name}" Rolünü Düzenle` : 'Yeni Rol Modeli'}
-              </h3>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-stone-900/60 backdrop-blur-xs overflow-y-auto animate-in fade-in duration-150">
+          <div className="bg-white rounded-2xl sm:rounded-3xl max-w-6xl xl:max-w-7xl w-full shadow-2xl flex flex-col max-h-[96vh] my-auto overflow-hidden animate-in zoom-in-95 duration-150">
+            {/* Modal Başlık */}
+            <div className="flex items-center justify-between px-5 sm:px-6 py-3.5 border-b border-stone-100 bg-white shrink-0">
+              <div className="flex items-center gap-2.5">
+                <span className="w-8 h-8 rounded-xl bg-indigo-50 border border-indigo-200 text-indigo-700 flex items-center justify-center text-xs shadow-2xs">
+                  <i className="fa-solid fa-shield-halved"></i>
+                </span>
+                <div>
+                  <h3 className="font-extrabold text-sm sm:text-base text-stone-900 leading-tight">
+                    {editingRole ? `"${editingRole.name}" Rolünü Düzenle` : 'Yeni Rol Modeli Oluştur'}
+                  </h3>
+                  <p className="text-[11px] text-stone-500 leading-tight">
+                    Personelin erişebileceği modülleri ve yetkileri tek ekrandan belirleyin
+                  </p>
+                </div>
+              </div>
               <button
                 type="button"
                 onClick={() => setIsRoleModalOpen(false)}
-                className="text-stone-400 hover:text-stone-700 p-1.5 rounded-lg hover:bg-stone-100 cursor-pointer"
+                className="text-stone-400 hover:text-stone-700 p-1.5 rounded-lg hover:bg-stone-100 cursor-pointer transition-colors"
               >
                 <i className="fa-solid fa-xmark text-lg"></i>
               </button>
             </div>
 
-            <form onSubmit={handleSaveRole} className="space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-12 gap-3">
-                <div className="sm:col-span-6">
-                  <label className="block text-xs font-bold text-stone-700 mb-1">Rol Adı</label>
-                  <input
-                    type="text"
-                    required
-                    value={roleName}
-                    onChange={(e) => setRoleName(e.target.value)}
-                    placeholder="Örn: Kurye, Kasiyer..."
-                    className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3.5 py-2 text-xs sm:text-sm text-stone-900 focus:outline-none focus:border-stone-400"
-                  />
+            {/* Modal Form */}
+            <form onSubmit={handleSaveRole} className="flex-1 flex flex-col min-h-0 overflow-hidden">
+              <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-3.5 scrollbar-thin">
+                {/* 1. Üst Satır: Rol Adı, Rozet Rengi, Açıklama Tek Satırda */}
+                <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-end bg-stone-50/70 p-3 sm:p-3.5 rounded-2xl border border-stone-200/80">
+                  <div className="sm:col-span-4">
+                    <label className="block text-xs font-bold text-stone-700 mb-1">Rol Adı</label>
+                    <input
+                      type="text"
+                      required
+                      value={roleName}
+                      onChange={(e) => setRoleName(e.target.value)}
+                      placeholder="Örn: Restoran Müdürü, Şef, Kasiyer..."
+                      className="w-full bg-white border border-stone-200 rounded-xl px-3 py-2 text-xs sm:text-sm text-stone-900 focus:outline-none focus:border-stone-900 font-medium"
+                    />
+                  </div>
+
+                  <div className="sm:col-span-3">
+                    <label className="block text-xs font-bold text-stone-700 mb-1">Rozet Rengi</label>
+                    <select
+                      value={roleColor}
+                      onChange={(e) => setRoleColor(e.target.value)}
+                      className="app-select w-full bg-white border border-stone-200 rounded-xl px-3 py-2 text-xs sm:text-sm font-bold text-stone-900 focus:outline-none focus:border-stone-900 cursor-pointer"
+                    >
+                      {Object.entries(ROLE_COLORS).map(([key, val]) => (
+                        <option key={key} value={key}>
+                          {val.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="sm:col-span-5">
+                    <label className="block text-xs font-bold text-stone-700 mb-1">Açıklama</label>
+                    <input
+                      type="text"
+                      value={roleDesc}
+                      onChange={(e) => setRoleDesc(e.target.value)}
+                      placeholder="Yetki ve görev özeti..."
+                      className="w-full bg-white border border-stone-200 rounded-xl px-3 py-2 text-xs sm:text-sm text-stone-800 focus:outline-none focus:border-stone-900"
+                    />
+                  </div>
                 </div>
 
-                <div className="sm:col-span-6">
-                  <label className="block text-xs font-bold text-stone-700 mb-1">Rozet Rengi</label>
-                  <select
-                    value={roleColor}
-                    onChange={(e) => setRoleColor(e.target.value)}
-                    className="app-select w-full bg-stone-50 hover:bg-stone-100/60 border border-stone-200 hover:border-brand-400 rounded-2xl px-4 py-3 text-xs sm:text-sm font-bold text-stone-900 focus:outline-none focus:border-brand-500 cursor-pointer shadow-2xs transition-all"
-                  >
-                    {Object.entries(ROLE_COLORS).map(([key, val]) => (
-                      <option key={key} value={key}>
-                        {val.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="sm:col-span-12">
-                  <label className="block text-xs font-bold text-stone-700 mb-1">Açıklama</label>
-                  <input
-                    type="text"
-                    value={roleDesc}
-                    onChange={(e) => setRoleDesc(e.target.value)}
-                    placeholder="Yetki ve görev özeti..."
-                    className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3.5 py-2 text-xs sm:text-sm text-stone-800 focus:outline-none focus:border-stone-400"
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-3">
+                {/* 2. Modüller & Yetkiler Başlık & Toplu Seçim */}
                 <div className="flex items-center justify-between pb-1 border-b border-stone-100">
-                  <div>
-                    <label className="text-xs font-bold text-stone-900 block">
-                      Erişilebilir Modüller & Yetkiler ({rolePermissions.length} / {AVAILABLE_PERMISSIONS.length})
+                  <div className="flex items-center gap-2">
+                    <label className="text-xs font-extrabold text-stone-900 block">
+                      Erişilebilir Modüller & Yetkiler
                     </label>
-                    <span className="text-[11px] text-stone-500">
-                      Bu role atanacak personelin erişebileceği sayfaları ve işlem yetkilerini belirleyin
+                    <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-stone-900 text-white">
+                      {rolePermissions.length} / {AVAILABLE_PERMISSIONS.length}
                     </span>
                   </div>
                   <button
@@ -1699,86 +1713,160 @@ export default function UsersRolesTab({ currentAdmin, onRolesOrUsersUpdated }) {
                   </button>
                 </div>
 
-                <div className="space-y-2.5 max-h-[50vh] overflow-y-auto pr-1 scrollbar-thin">
-                  {PERMISSION_GROUPS.map((group) => {
-                    const groupPermIds = group.perms.map((p) => p.id);
-                    const selectedCount = group.perms.filter((p) => rolePermissions.includes(p.id)).length;
-                    const isAllSelected = selectedCount === group.perms.length;
+                {/* 3. İki Sütunlu Dengeli Yetki Grupları (9 Yetki Sol, 9 Yetki Sağ) */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-3.5">
+                  {/* Sol Kolon: Sipariş & Operasyon (3) + Menü, Ürünler & Soslar (6) = 9 yetki */}
+                  <div className="space-y-3">
+                    {[PERMISSION_GROUPS[0], PERMISSION_GROUPS[1]].map((group) => {
+                      const groupPermIds = group.perms.map((p) => p.id);
+                      const selectedCount = group.perms.filter((p) => rolePermissions.includes(p.id)).length;
+                      const isAllSelected = selectedCount === group.perms.length;
 
-                    return (
-                      <div
-                        key={group.title}
-                        className="bg-stone-50/70 border border-stone-200/90 rounded-2xl p-3 sm:p-3.5 space-y-2.5 transition-colors"
-                      >
-                        <div className="flex items-center justify-between gap-2 pb-2 border-b border-stone-200/60">
-                          <div className="flex items-center gap-2">
-                            <span className="w-6 h-6 rounded-lg bg-white border border-stone-200 flex items-center justify-center text-xs shadow-2xs">
-                              <i className={group.icon}></i>
-                            </span>
-                            <span className="text-xs font-bold text-stone-900">{group.title}</span>
-                            <span className="text-[10px] font-extrabold px-1.5 py-0.5 rounded-md bg-stone-200/80 text-stone-700">
-                              {selectedCount} / {group.perms.length}
-                            </span>
+                      return (
+                        <div
+                          key={group.title}
+                          className="bg-stone-50/70 border border-stone-200/90 rounded-2xl p-3 space-y-2.5 transition-colors"
+                        >
+                          <div className="flex items-center justify-between gap-2 pb-2 border-b border-stone-200/60">
+                            <div className="flex items-center gap-2">
+                              <span className="w-6 h-6 rounded-lg bg-white border border-stone-200 flex items-center justify-center text-xs shadow-2xs">
+                                <i className={group.icon}></i>
+                              </span>
+                              <span className="text-xs font-bold text-stone-900">{group.title}</span>
+                              <span className="text-[10px] font-extrabold px-1.5 py-0.5 rounded-md bg-stone-200/80 text-stone-700">
+                                {selectedCount} / {group.perms.length}
+                              </span>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => toggleGroupPermissions(groupPermIds)}
+                              className="text-[11px] font-bold text-stone-600 hover:text-stone-900 underline cursor-pointer"
+                            >
+                              {isAllSelected ? 'Grubu Kaldır' : 'Grubu Seç'}
+                            </button>
                           </div>
-                          <button
-                            type="button"
-                            onClick={() => toggleGroupPermissions(groupPermIds)}
-                            className="text-[11px] font-bold text-stone-600 hover:text-stone-900 underline cursor-pointer"
-                          >
-                            {isAllSelected ? 'Grubu Kaldır' : 'Grubu Seç'}
-                          </button>
-                        </div>
 
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                          {group.perms.map((perm) => {
-                            const checked = rolePermissions.includes(perm.id);
-                            return (
-                              <label
-                                key={perm.id}
-                                className={`p-2.5 rounded-xl border cursor-pointer transition-all flex items-start gap-2.5 ${
-                                  checked
-                                    ? 'bg-emerald-50/70 border-emerald-300 text-stone-900 shadow-2xs'
-                                    : 'bg-white border-stone-200/90 hover:border-stone-300 text-stone-600'
-                                }`}
-                              >
-                                <input
-                                  type="checkbox"
-                                  checked={checked}
-                                  onChange={() => togglePermission(perm.id)}
-                                  className="w-4 h-4 mt-0.5 accent-emerald-600 rounded shrink-0 cursor-pointer"
-                                />
-                                <div className="min-w-0">
-                                  <div className="flex items-center gap-1.5">
-                                    <i className={`${perm.icon} text-[11px] ${checked ? 'text-emerald-600' : 'text-stone-400'}`}></i>
-                                    <span className="text-xs font-bold block text-stone-900 leading-snug truncate">
-                                      {perm.label}
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+                            {group.perms.map((perm) => {
+                              const checked = rolePermissions.includes(perm.id);
+                              return (
+                                <label
+                                  key={perm.id}
+                                  className={`p-2 rounded-xl border cursor-pointer transition-all flex items-start gap-2 ${
+                                    checked
+                                      ? 'bg-emerald-50/80 border-emerald-300 text-stone-900 shadow-2xs'
+                                      : 'bg-white border-stone-200/90 hover:border-stone-300 text-stone-600'
+                                  }`}
+                                >
+                                  <input
+                                    type="checkbox"
+                                    checked={checked}
+                                    onChange={() => togglePermission(perm.id)}
+                                    className="w-4 h-4 mt-0.5 accent-emerald-600 rounded shrink-0 cursor-pointer"
+                                  />
+                                  <div className="min-w-0">
+                                    <div className="flex items-center gap-1.5">
+                                      <i className={`${perm.icon} text-[11px] ${checked ? 'text-emerald-600' : 'text-stone-400'}`}></i>
+                                      <span className="text-xs font-bold block text-stone-900 leading-snug truncate">
+                                        {perm.label}
+                                      </span>
+                                    </div>
+                                    <span className="text-[10px] text-stone-500 block leading-tight mt-0.5">
+                                      {perm.desc}
                                     </span>
                                   </div>
-                                  <span className="text-[11px] text-stone-500 block leading-tight mt-0.5">
-                                    {perm.desc}
-                                  </span>
-                                </div>
-                              </label>
-                            );
-                          })}
+                                </label>
+                              );
+                            })}
+                          </div>
                         </div>
-                      </div>
-                    );
-                  })}
+                      );
+                    })}
+                  </div>
+
+                  {/* Sağ Kolon: Stok & Envanter (2) + Müşteri & Vitrin (3) + Yönetim, Finans & Kurye (4) = 9 yetki */}
+                  <div className="space-y-3">
+                    {[PERMISSION_GROUPS[2], PERMISSION_GROUPS[3], PERMISSION_GROUPS[4]].map((group) => {
+                      const groupPermIds = group.perms.map((p) => p.id);
+                      const selectedCount = group.perms.filter((p) => rolePermissions.includes(p.id)).length;
+                      const isAllSelected = selectedCount === group.perms.length;
+
+                      return (
+                        <div
+                          key={group.title}
+                          className="bg-stone-50/70 border border-stone-200/90 rounded-2xl p-3 space-y-2.5 transition-colors"
+                        >
+                          <div className="flex items-center justify-between gap-2 pb-2 border-b border-stone-200/60">
+                            <div className="flex items-center gap-2">
+                              <span className="w-6 h-6 rounded-lg bg-white border border-stone-200 flex items-center justify-center text-xs shadow-2xs">
+                                <i className={group.icon}></i>
+                              </span>
+                              <span className="text-xs font-bold text-stone-900">{group.title}</span>
+                              <span className="text-[10px] font-extrabold px-1.5 py-0.5 rounded-md bg-stone-200/80 text-stone-700">
+                                {selectedCount} / {group.perms.length}
+                              </span>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => toggleGroupPermissions(groupPermIds)}
+                              className="text-[11px] font-bold text-stone-600 hover:text-stone-900 underline cursor-pointer"
+                            >
+                              {isAllSelected ? 'Grubu Kaldır' : 'Grubu Seç'}
+                            </button>
+                          </div>
+
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+                            {group.perms.map((perm) => {
+                              const checked = rolePermissions.includes(perm.id);
+                              return (
+                                <label
+                                  key={perm.id}
+                                  className={`p-2 rounded-xl border cursor-pointer transition-all flex items-start gap-2 ${
+                                    checked
+                                      ? 'bg-emerald-50/80 border-emerald-300 text-stone-900 shadow-2xs'
+                                      : 'bg-white border-stone-200/90 hover:border-stone-300 text-stone-600'
+                                  }`}
+                                >
+                                  <input
+                                    type="checkbox"
+                                    checked={checked}
+                                    onChange={() => togglePermission(perm.id)}
+                                    className="w-4 h-4 mt-0.5 accent-emerald-600 rounded shrink-0 cursor-pointer"
+                                  />
+                                  <div className="min-w-0">
+                                    <div className="flex items-center gap-1.5">
+                                      <i className={`${perm.icon} text-[11px] ${checked ? 'text-emerald-600' : 'text-stone-400'}`}></i>
+                                      <span className="text-xs font-bold block text-stone-900 leading-snug truncate">
+                                        {perm.label}
+                                      </span>
+                                    </div>
+                                    <span className="text-[10px] text-stone-500 block leading-tight mt-0.5">
+                                      {perm.desc}
+                                    </span>
+                                  </div>
+                                </label>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
+
+                {roleFormError && (
+                  <div className="bg-rose-50 border border-rose-200 text-rose-700 px-3.5 py-2 rounded-xl text-xs font-semibold">
+                    {roleFormError}
+                  </div>
+                )}
               </div>
 
-              {roleFormError && (
-                <div className="bg-rose-50 border border-rose-200 text-rose-700 px-3.5 py-2 rounded-xl text-xs font-semibold">
-                  {roleFormError}
-                </div>
-              )}
-
-              <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-stone-100">
+              {/* Sabit Alt Bar: İptal ve Kaydet Kesinlikle Görünür */}
+              <div className="flex items-center justify-end gap-2.5 px-5 sm:px-6 py-3 border-t border-stone-100 bg-stone-50/80 shrink-0">
                 <button
                   type="button"
                   onClick={() => setIsRoleModalOpen(false)}
-                  className="px-4 py-2 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-700 font-bold text-xs cursor-pointer transition-colors"
+                  className="px-4 py-2 rounded-xl bg-white hover:bg-stone-100 border border-stone-200 text-stone-700 font-bold text-xs cursor-pointer transition-colors shadow-2xs"
                 >
                   İptal
                 </button>
