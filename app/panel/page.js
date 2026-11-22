@@ -20,7 +20,7 @@ import OptionsManagementTab from '@/components/admin/OptionsManagementTab';
 import AdminPagination from '@/components/admin/AdminPagination';
 import { buildWhatsAppOrderConfirmUrl } from '@/lib/phoneUtils';
 import { getOrderPauseState } from '@/lib/orderPause';
-import { printThermalReceipt } from '@/lib/thermalReceipt';
+import { printThermalReceipt, generateReceiptHtml } from '@/lib/thermalReceipt';
 
 // Status styling and Turkish badge helpers
 const STATUS_CONFIG = {
@@ -218,6 +218,7 @@ export default function AdminDashboardPage() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [mobileActionsOpen, setMobileActionsOpen] = useState(false);
+  const [receiptPreviewHtml, setReceiptPreviewHtml] = useState('');
   const [siteEditorDrawerOpen, setSiteEditorDrawerOpen] = useState(false);
   const [siteEditorWide, setSiteEditorWide] = useState(false);
   const [selectedSiteContentSubTab, setSelectedSiteContentSubTab] = useState('hero');
@@ -4819,6 +4820,16 @@ export default function AdminDashboardPage() {
             <div className="flex flex-col sm:flex-row gap-3 pt-3 border-t border-stone-100">
               <button
                 type="button"
+                onClick={() => setReceiptPreviewHtml(generateReceiptHtml(detailOrder, adminSettings))}
+                className="bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 py-3 px-4 rounded-2xl text-xs sm:text-sm font-bold cursor-pointer flex items-center justify-center gap-2 transition-colors active:scale-95 shadow-2xs"
+                title="Yazdırmadan önce fiş görünümünü ekranda incele"
+              >
+                <i className="fa-solid fa-eye text-amber-700"></i>
+                <span>Fiş Önizle</span>
+              </button>
+
+              <button
+                type="button"
                 onClick={() => {
                   printThermalReceipt(detailOrder, adminSettings);
                   showToast(`Sipariş #${detailOrder.orderNumber || detailOrder.id} fişi Xprinter yazıcıya gönderildi 🧾`, 'info');
@@ -4941,6 +4952,69 @@ export default function AdminDashboardPage() {
               <div style={{ textAlign: 'center', marginTop: '12px', fontSize: '10px' }}>
                 <p style={{ margin: '2px 0' }}>{adminSettings?.receiptFooter || 'Bizi Tercih Ettiğiniz İçin Teşekkür Ederiz!'}</p>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: FİŞ ÖNİZLEME (YAZDIRMADAN ÖNCE EKRANDA GÖR) */}
+      {receiptPreviewHtml && (
+        <div
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setReceiptPreviewHtml('');
+          }}
+          className="fixed inset-0 z-[70] flex items-center justify-center p-3 sm:p-6 bg-stone-900/65 backdrop-blur-xs"
+        >
+          <div className="bg-white rounded-3xl max-w-md w-full p-4 sm:p-5 border border-stone-200 shadow-2xl space-y-3">
+            <div className="flex items-center justify-between border-b border-stone-100 pb-2.5">
+              <div className="flex items-center gap-2">
+                <i className="fa-solid fa-receipt text-amber-600"></i>
+                <h4 className="font-extrabold text-stone-900 text-sm">
+                  Fiş Önizleme ({adminSettings?.receiptPaperWidth || '80mm'})
+                </h4>
+              </div>
+              <button
+                type="button"
+                onClick={() => setReceiptPreviewHtml('')}
+                className="w-8 h-8 rounded-full bg-stone-100 hover:bg-stone-200 text-stone-600 flex items-center justify-center cursor-pointer"
+              >
+                <i className="fa-solid fa-xmark text-xs"></i>
+              </button>
+            </div>
+            <div className="bg-stone-100 rounded-2xl p-3 flex justify-center">
+              <div
+                className="bg-white shadow-md border border-stone-300 rounded-lg overflow-hidden"
+                style={{ width: adminSettings?.receiptPaperWidth === '58mm' ? '260px' : '340px' }}
+              >
+                <iframe
+                  title="Sipariş Fiş Önizleme"
+                  srcDoc={receiptPreviewHtml}
+                  className="w-full h-[520px] border-0 bg-white"
+                />
+              </div>
+            </div>
+            <div className="flex gap-2">
+              {detailOrder && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    printThermalReceipt(detailOrder, adminSettings);
+                    setReceiptPreviewHtml('');
+                    showToast(`Sipariş #${detailOrder.orderNumber || detailOrder.id} fişi yazıcıya gönderildi 🧾`, 'info');
+                  }}
+                  className="flex-1 bg-brand-600 hover:bg-brand-700 text-white py-2.5 rounded-xl text-xs font-extrabold cursor-pointer flex items-center justify-center gap-1.5"
+                >
+                  <i className="fa-solid fa-print"></i>
+                  <span>Yazdır</span>
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => setReceiptPreviewHtml('')}
+                className="flex-1 bg-stone-900 hover:bg-black text-white py-2.5 rounded-xl text-xs font-extrabold cursor-pointer"
+              >
+                Kapat
+              </button>
             </div>
           </div>
         </div>

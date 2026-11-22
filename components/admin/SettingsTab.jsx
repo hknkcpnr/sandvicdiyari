@@ -7,7 +7,7 @@ import { playKitchenBellSound } from './KitchenPosBell';
 import { DEFAULT_CUSTOMER_NOTIFICATION_SETTINGS } from '@/lib/notificationDefaults';
 import { BANNER_THEMES } from '@/components/CustomerAnnouncementBanner';
 import { getOrderPauseState } from '@/lib/orderPause';
-import { printTestThermalReceipt } from '@/lib/thermalReceipt';
+import { printTestThermalReceipt, generateReceiptHtml, getSampleThermalOrder } from '@/lib/thermalReceipt';
 
 export const DEFAULT_ADMIN_SETTINGS = {
   courierModuleEnabled: false,
@@ -120,6 +120,7 @@ export default function SettingsTab({
   // Sunucu Disk & Depolama Bilgisi State'leri
   const [storageInfo, setStorageInfo] = useState(null);
   const [loadingStorage, setLoadingStorage] = useState(false);
+  const [showReceiptPreview, setShowReceiptPreview] = useState(false);
 
   const fetchStorageInfo = async () => {
     setLoadingStorage(true);
@@ -2048,18 +2049,53 @@ export default function SettingsTab({
                   Sipariş yönetim panelinde sipariş onaylandığında fişin otomatikman Xprinter yazıcıdan çıkmasını yönetin.
                 </p>
               </div>
-              <button
-                type="button"
-                onClick={() => {
-                  printTestThermalReceipt(settings);
-                  showToast?.('Test fişi Xprinter yazıcıya gönderildi! 🧾', 'success');
-                }}
-                className="self-start sm:self-auto bg-stone-900 hover:bg-stone-800 text-white text-xs font-black py-2.5 px-4 rounded-xl flex items-center gap-2 shadow-xs cursor-pointer active:scale-95 transition-all"
-              >
-                <i className="fa-solid fa-receipt text-amber-400"></i>
-                <span>Test Fişi Yazdır (80mm)</span>
-              </button>
+              <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
+                <button
+                  type="button"
+                  onClick={() => setShowReceiptPreview((v) => !v)}
+                  className="bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 text-xs font-black py-2.5 px-4 rounded-xl flex items-center gap-2 shadow-2xs cursor-pointer active:scale-95 transition-all"
+                >
+                  <i className={`fa-solid ${showReceiptPreview ? 'fa-eye-slash' : 'fa-eye'} text-amber-700`}></i>
+                  <span>{showReceiptPreview ? 'Önizlemeyi Gizle' : 'Fiş Önizle (Yazdırmadan Gör)'}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    printTestThermalReceipt(settings);
+                    showToast?.('Test fişi Xprinter yazıcıya gönderildi! 🧾', 'success');
+                  }}
+                  className="bg-stone-900 hover:bg-stone-800 text-white text-xs font-black py-2.5 px-4 rounded-xl flex items-center gap-2 shadow-xs cursor-pointer active:scale-95 transition-all"
+                >
+                  <i className="fa-solid fa-receipt text-amber-400"></i>
+                  <span>Test Fişi Yazdır ({settings.receiptPaperWidth || '80mm'})</span>
+                </button>
+              </div>
             </div>
+
+            {/* Canlı Termal Fiş Önizleme (Kağıt Harcamadan Ekranda Gör) */}
+            {showReceiptPreview && (
+              <div className="bg-stone-100 border border-stone-200 rounded-2xl p-4 flex flex-col items-center gap-3">
+                <div className="w-full flex items-center justify-between text-xs">
+                  <span className="font-extrabold text-stone-700 flex items-center gap-1.5">
+                    <i className="fa-solid fa-receipt text-amber-600"></i>
+                    Canlı Termal Fiş Önizleme ({settings.receiptPaperWidth || '80mm'})
+                  </span>
+                  <span className="text-[11px] text-stone-500 font-medium">
+                    Yazıcıdan çıkacak birebir görünüm
+                  </span>
+                </div>
+                <div
+                  className="bg-white shadow-lg border border-stone-300 rounded-lg overflow-hidden"
+                  style={{ width: settings.receiptPaperWidth === '58mm' ? '260px' : '340px' }}
+                >
+                  <iframe
+                    title="Termal Fiş Önizleme"
+                    srcDoc={generateReceiptHtml(getSampleThermalOrder(), settings)}
+                    className="w-full h-[540px] border-0 bg-white"
+                  />
+                </div>
+              </div>
+            )}
 
             {/* Otomatik Yazdırma Anahtarı (ÖNE ÇIKAN ÖZELLİK) */}
             <div className="bg-amber-500/10 border-2 border-amber-500/40 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
