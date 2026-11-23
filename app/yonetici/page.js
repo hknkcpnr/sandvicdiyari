@@ -90,7 +90,9 @@ export default function YoneticiPage() {
   useEffect(() => {
     try {
       applyPanelTheme(getSavedTheme());
-      const saved = localStorage.getItem(ADMIN_SESSION_KEY);
+      // Güvenlik: Eski kalıcı localStorage oturumunu temizle; /yonetici yalnızca sekme açıkken (sessionStorage) oturum tutar
+      localStorage.removeItem(ADMIN_SESSION_KEY);
+      const saved = sessionStorage.getItem(ADMIN_SESSION_KEY);
       if (saved) {
         const parsed = JSON.parse(saved);
         const isSuperAdmin =
@@ -102,7 +104,7 @@ export default function YoneticiPage() {
         if (parsed && parsed.name && isSuperAdmin) {
           setAdminUser(parsed);
         } else {
-          localStorage.removeItem(ADMIN_SESSION_KEY);
+          sessionStorage.removeItem(ADMIN_SESSION_KEY);
         }
       }
       const savedSettings = localStorage.getItem(ADMIN_SETTINGS_KEY);
@@ -216,7 +218,8 @@ export default function YoneticiPage() {
         return;
       }
 
-      localStorage.setItem(ADMIN_SESSION_KEY, JSON.stringify(userObj));
+      sessionStorage.setItem(ADMIN_SESSION_KEY, JSON.stringify(userObj));
+      localStorage.removeItem(ADMIN_SESSION_KEY);
       setAdminUser(userObj);
       setLoginPassword('');
     } catch {
@@ -227,6 +230,7 @@ export default function YoneticiPage() {
   };
 
   const handleLogout = () => {
+    sessionStorage.removeItem(ADMIN_SESSION_KEY);
     localStorage.removeItem(ADMIN_SESSION_KEY);
     setAdminUser(null);
   };
