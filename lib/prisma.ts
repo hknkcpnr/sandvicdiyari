@@ -552,7 +552,7 @@ export const prisma = {
             items: {
               include: {
                 product: {
-                  select: { id: true, name: true, recipe: true }
+                  select: { id: true, name: true }
                 }
               }
             },
@@ -718,7 +718,7 @@ export const prisma = {
               items: {
                 include: {
                   product: {
-                    select: { id: true, name: true, recipe: true }
+                    select: { id: true, name: true }
                   }
                 }
               },

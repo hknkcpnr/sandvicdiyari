@@ -15,7 +15,7 @@ export default function TopBar() {
   });
 
   const loadContact = () => {
-    fetch('/api/site-content')
+    fetch('/api/site-content?section=contactBar')
       .then((res) => res.json())
       .then((res) => {
         if (res.success && res.data?.contactBar) {

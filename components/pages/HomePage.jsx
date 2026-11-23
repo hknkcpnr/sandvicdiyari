@@ -41,7 +41,7 @@ export default function HomePage() {
 
   // Müşteri sayfası vitrin ve içerik ayarlarını getir
   const loadSiteContent = () => {
-    fetch('/api/site-content')
+    fetch('/api/site-content?scope=home')
       .then((res) => res.json())
       .then((res) => {
         if (res.success && res.data) {
@@ -67,23 +67,30 @@ export default function HomePage() {
     loadSiteContent();
     loadApprovedReviews();
 
+    let lastFocusFetchAt = Date.now();
+    const handleFocus = () => {
+      const now = Date.now();
+      if (now - lastFocusFetchAt < 60000) return;
+      lastFocusFetchAt = now;
+      loadSiteContent();
+      loadApprovedReviews();
+    };
+
     // Admin panelinden içerik kaydedildiğinde anında canlı güncelleme
     const handleStorageChange = (e) => {
       if (e.key === 'sandwich_site_content_updated' || e.key === 'sandwich_reviews_updated') {
+        lastFocusFetchAt = Date.now();
         loadSiteContent();
         loadApprovedReviews();
       }
     };
 
     window.addEventListener('storage', handleStorageChange);
-    window.addEventListener('focus', () => {
-      loadSiteContent();
-      loadApprovedReviews();
-    });
+    window.addEventListener('focus', handleFocus);
 
     return () => {
       window.removeEventListener('storage', handleStorageChange);
-      window.removeEventListener('focus', loadSiteContent);
+      window.removeEventListener('focus', handleFocus);
     };
   }, []);
 

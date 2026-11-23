@@ -741,7 +741,7 @@ export default function AdminDashboardPage() {
   // Fetch products from API
   const fetchProducts = async () => {
     try {
-      const res = await fetch('/api/products');
+      const res = await fetch('/api/products?includeAudio=1');
       const json = await res.json();
       if (json.success && Array.isArray(json.data)) {
         dispatch(setProducts(json.data));
@@ -3100,7 +3100,7 @@ export default function AdminDashboardPage() {
             products={products}
             canUpdateStock={canUpdateStock}
             onRefreshProducts={() => {
-              fetch('/api/products')
+              fetch('/api/products?includeAudio=1')
                 .then((r) => r.json())
                 .then((j) => {
                   if (j.success && j.data) dispatch(setProducts(j.data));

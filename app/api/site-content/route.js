@@ -2,6 +2,11 @@ import { NextResponse } from 'next/server';
 import { db, DEFAULT_SITE_CONTENT } from '@/lib/db';
 import { rawPrisma } from '@/lib/prisma';
 import { assertProtectedApiAccess, checkRateLimit } from '@/lib/security/auth';
+import {
+  getCachedSiteContent,
+  setCachedSiteContent,
+  invalidateSiteContentCache
+} from '@/lib/productCache';
 
 export const dynamic = 'force-dynamic';
 
@@ -19,28 +24,71 @@ function sanitizeSiteContent(content) {
   return clone;
 }
 
-export async function GET() {
+async function loadFullSanitizedSiteContent() {
+  const cachedFull = getCachedSiteContent('full');
+  if (cachedFull) {
+    return { data: cachedFull, cached: true };
+  }
+
+  let rawData = null;
   try {
-    try {
-      if (rawPrisma && rawPrisma.systemSetting) {
-        const rec = await rawPrisma.systemSetting.findUnique({
-          where: { key: SITE_CONTENT_KEY }
-        });
-        if (rec && rec.value && typeof rec.value === 'object') {
-          return NextResponse.json({
-            success: true,
-            data: sanitizeSiteContent({ ...DEFAULT_SITE_CONTENT, ...rec.value })
-          });
-        }
+    if (rawPrisma && rawPrisma.systemSetting) {
+      const rec = await rawPrisma.systemSetting.findUnique({
+        where: { key: SITE_CONTENT_KEY }
+      });
+      if (rec && rec.value && typeof rec.value === 'object') {
+        rawData = { ...DEFAULT_SITE_CONTENT, ...rec.value };
       }
-    } catch (pgErr) {
-      console.warn('Prisma site-content read fallback:', pgErr.message);
+    }
+  } catch (pgErr) {
+    console.warn('Prisma site-content read fallback:', pgErr.message);
+  }
+
+  if (!rawData) {
+    rawData = db.getSiteContent() || DEFAULT_SITE_CONTENT;
+  }
+
+  const sanitized = sanitizeSiteContent(rawData);
+  setCachedSiteContent('full', sanitized);
+  return { data: sanitized, cached: false };
+}
+
+export async function GET(request) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const section = searchParams.get('section');
+    const scope = searchParams.get('scope');
+
+    const { data: fullContent, cached } = await loadFullSanitizedSiteContent();
+
+    if (section === 'contactBar') {
+      return NextResponse.json({
+        success: true,
+        cached,
+        data: {
+          contactBar: fullContent?.contactBar || DEFAULT_SITE_CONTENT.contactBar
+        }
+      });
     }
 
-    const data = db.getSiteContent();
+    if (scope === 'home') {
+      return NextResponse.json({
+        success: true,
+        cached,
+        data: {
+          ...fullContent,
+          storySection: {
+            ...(fullContent?.storySection || DEFAULT_SITE_CONTENT.storySection),
+            images: []
+          }
+        }
+      });
+    }
+
     return NextResponse.json({
       success: true,
-      data: sanitizeSiteContent(data || DEFAULT_SITE_CONTENT)
+      cached,
+      data: fullContent
     });
   } catch (error) {
     console.error('GET /api/site-content error:', error);
@@ -83,10 +131,14 @@ export async function POST(request) {
       console.warn('Prisma site-content write warning:', pgErr.message);
     }
 
+    const sanitizedUpdated = sanitizeSiteContent(updated);
+    invalidateSiteContentCache();
+    setCachedSiteContent('full', sanitizedUpdated);
+
     return NextResponse.json({
       success: true,
       message: 'Müşteri sayfası içeriği başarıyla güncellendi.',
-      data: sanitizeSiteContent(updated)
+      data: sanitizedUpdated
     });
   } catch (error) {
     console.error('POST /api/site-content error:', error);

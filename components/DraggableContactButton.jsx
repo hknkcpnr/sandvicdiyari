@@ -52,7 +52,7 @@ export default function DraggableContactButton() {
 
   // İletişim verisini yükle
   useEffect(() => {
-    fetch('/api/site-content')
+    fetch('/api/site-content?section=contactBar')
       .then((res) => res.json())
       .then((res) => {
         if (res.success && res.data?.contactBar) {

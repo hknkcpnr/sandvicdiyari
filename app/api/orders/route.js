@@ -1,6 +1,7 @@
 import { db } from '@/lib/db';
 import { prisma, rawPrisma } from '@/lib/prisma';
 import { getOrderPauseState, formatOrderPauseMessage } from '@/lib/orderPause';
+import { getCachedProducts, setCachedProducts } from '@/lib/productCache';
 import { logUserActivity } from '@/lib/activityLogger';
 import {
   AuthenticationError,
@@ -110,7 +111,24 @@ export async function POST(request) {
     }
 
     const body = await parseJsonBody(request);
-    const pgProducts = await prisma.product.findMany();
+    let pgProducts = getCachedProducts('all:public');
+    if (!pgProducts) {
+      pgProducts = await prisma.product.findMany({
+        select: {
+          id: true,
+          name: true,
+          price: true,
+          category: true,
+          stock: true,
+          trackStock: true,
+          isAvailable: true,
+          options: true
+        }
+      });
+      if (Array.isArray(pgProducts) && pgProducts.length > 0) {
+        setCachedProducts('all:public', pgProducts);
+      }
+    }
     const catalogProducts = Array.isArray(pgProducts) && pgProducts.length > 0 ? pgProducts : db.getProducts();
 
     // Server-side validation, XSS/SQLi sanitization, and authoritative price calculation

@@ -461,7 +461,8 @@ export default function KitchenPosBell({
 
   // Ensure menu products (with their audioUrl) are always loaded in KitchenPosBell
   useEffect(() => {
-    fetch('/api/products', { cache: 'no-store' })
+    if (Array.isArray(products) && products.length > 0) return;
+    fetch('/api/products?includeAudio=1', { cache: 'no-store' })
       .then((r) => r.json())
       .then((j) => {
         if (j?.success && Array.isArray(j.data)) {

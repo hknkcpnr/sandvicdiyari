@@ -4,6 +4,11 @@ import { assertProtectedApiAccess } from '@/lib/security/auth';
 import { handleApiError, ValidationError } from '@/lib/security/errors';
 import { sanitizeText } from '@/lib/security/validation';
 import { getOrderPauseState } from '@/lib/orderPause';
+import {
+  getCachedAdminSettings,
+  setCachedAdminSettings,
+  invalidateAdminSettingsCache
+} from '@/lib/productCache';
 
 export const dynamic = 'force-dynamic';
 
@@ -30,21 +35,30 @@ const DEFAULT_SETTINGS = {
 
 let memorySettings = null;
 
-async function getAdminSettings() {
+async function getAdminSettings(forceFresh = false) {
+  if (!forceFresh) {
+    const cached = getCachedAdminSettings();
+    if (cached) return cached;
+  }
+
   try {
     if (rawPrisma && rawPrisma.systemSetting) {
       const rec = await rawPrisma.systemSetting.findUnique({
         where: { key: SETTING_KEY }
       });
       if (rec && rec.value && typeof rec.value === 'object') {
-        memorySettings = { ...DEFAULT_SETTINGS, ...rec.value };
-        return memorySettings;
+        const merged = { ...DEFAULT_SETTINGS, ...rec.value };
+        memorySettings = merged;
+        setCachedAdminSettings(merged);
+        return merged;
       }
     }
   } catch (err) {
     console.warn('Prisma admin settings read warning:', err.message);
   }
-  return memorySettings || DEFAULT_SETTINGS;
+  const fallback = memorySettings || DEFAULT_SETTINGS;
+  setCachedAdminSettings(fallback);
+  return fallback;
 }
 
 function withComputedState(settings) {
@@ -76,7 +90,7 @@ export async function POST(request) {
     // Hesaplanan alan istemciden gelirse saklanmasın
     const { orderPause: _ignoredComputed, ...incoming } = body;
 
-    const current = await getAdminSettings();
+    const current = await getAdminSettings(true);
     const updated = {
       ...current,
       ...incoming,
@@ -105,6 +119,8 @@ export async function POST(request) {
     }
 
     memorySettings = updated;
+    invalidateAdminSettingsCache();
+    setCachedAdminSettings(updated);
 
     try {
       if (rawPrisma && rawPrisma.systemSetting) {

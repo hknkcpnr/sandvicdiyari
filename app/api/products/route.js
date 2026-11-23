@@ -17,16 +17,38 @@ import {
   invalidateProductCache
 } from '@/lib/productCache';
 
+const PUBLIC_PRODUCT_SELECT = {
+  id: true,
+  name: true,
+  desc: true,
+  price: true,
+  category: true,
+  badge: true,
+  image: true,
+  calories: true,
+  prepTime: true,
+  rating: true,
+  stock: true,
+  trackStock: true,
+  isAvailable: true,
+  criticalThreshold: true,
+  options: true,
+  createdAt: true,
+  updatedAt: true
+};
+
 export async function GET(request) {
   try {
     const { searchParams } = new URL(request.url);
     const category = searchParams.get('category');
+    const includeAudio =
+      searchParams.get('includeAudio') === '1' || searchParams.get('includeAudio') === 'true';
 
     if (category) {
       assertNoSqlInjection(category, 'category', '/api/products');
     }
 
-    const cacheKey = category || 'all';
+    const cacheKey = `${category || 'all'}:${includeAudio ? 'full' : 'public'}`;
     const cached = getCachedProducts(cacheKey);
     if (cached) {
       return jsonSuccess({
@@ -36,10 +58,19 @@ export async function GET(request) {
       });
     }
 
-    const products = await prisma.product.findMany({
+    let products = await prisma.product.findMany({
       where: category ? { category } : undefined,
-      orderBy: { id: 'asc' }
+      orderBy: { id: 'asc' },
+      ...(includeAudio ? {} : { select: PUBLIC_PRODUCT_SELECT })
     });
+
+    if (!includeAudio && Array.isArray(products)) {
+      products = products.map((p) => ({
+        ...p,
+        audioUrl: '',
+        recipe: []
+      }));
+    }
 
     setCachedProducts(cacheKey, products);
 
