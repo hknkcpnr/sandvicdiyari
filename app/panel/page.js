@@ -245,7 +245,10 @@ export default function AdminDashboardPage() {
 
   useEffect(() => {
     refreshOrderPause();
-    const timer = setInterval(refreshOrderPause, 30000);
+    const timer = setInterval(() => {
+      if (typeof document !== 'undefined' && document.hidden) return;
+      refreshOrderPause();
+    }, 90000);
     return () => clearInterval(timer);
   }, []);
 
@@ -681,7 +684,10 @@ export default function AdminDashboardPage() {
       } catch {}
     };
     refreshPermissions();
-    const timer = setInterval(refreshPermissions, 30000);
+    const timer = setInterval(() => {
+      if (typeof document !== 'undefined' && document.hidden) return;
+      refreshPermissions();
+    }, 90000);
     return () => {
       cancelled = true;
       clearInterval(timer);

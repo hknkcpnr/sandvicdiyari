@@ -178,7 +178,10 @@ export default function YoneticiPage() {
   useEffect(() => {
     if (!adminUser) return;
     fetchFinanceData();
-    const timer = setInterval(fetchFinanceData, 15000);
+    const timer = setInterval(() => {
+      if (typeof document !== 'undefined' && document.hidden) return;
+      fetchFinanceData();
+    }, 60000);
     return () => clearInterval(timer);
   }, [adminUser]);
 

@@ -84,12 +84,13 @@ export default function ActivityLogsTab({ showToast, currentAdmin }) {
     fetchLogs();
   }, [fetchLogs]);
 
-  // Canlı Otomatik Yenileme (15 saniyede bir)
+  // Canlı Otomatik Yenileme (Sekme açıkken 45 saniyede bir - kota dostu)
   useEffect(() => {
     if (!autoRefresh) return;
     const interval = setInterval(() => {
+      if (typeof document !== 'undefined' && document.hidden) return;
       fetchLogs();
-    }, 15000);
+    }, 45000);
     return () => clearInterval(interval);
   }, [autoRefresh, fetchLogs]);
 

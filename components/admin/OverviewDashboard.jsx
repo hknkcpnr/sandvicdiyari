@@ -98,7 +98,10 @@ export default function OverviewDashboard({
         .catch(() => {});
     };
     loadVisitors();
-    const timer = setInterval(loadVisitors, 15000);
+    const timer = setInterval(() => {
+      if (typeof document !== 'undefined' && document.hidden) return;
+      loadVisitors();
+    }, 60000);
     return () => {
       active = false;
       clearInterval(timer);
