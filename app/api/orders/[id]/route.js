@@ -534,25 +534,9 @@ export async function PATCH(request, { params }) {
         include: { items: true, statusHistory: true }
       });
 
-      // Restore product stock in Supabase if cancelled
+      // Restore product stock in PostgreSQL in a single batched query (eliminates N+1)
       if (status === 'İptal Edildi' && Array.isArray(pgOrder.items)) {
-        for (const item of pgOrder.items) {
-          if (item.productId) {
-            try {
-              const prod = await rawPrisma.product.findUnique({ where: { id: item.productId } });
-              if (prod && prod.trackStock) {
-                const newStock = (Number(prod.stock) || 0) + (Number(item.quantity) || 1);
-                await rawPrisma.product.update({
-                  where: { id: prod.id },
-                  data: {
-                    stock: newStock,
-                    ...(newStock > 0 ? { isAvailable: true } : {})
-                  }
-                });
-              }
-            } catch {}
-          }
-        }
+        await restoreOrderItemsStockInPg(pgOrder.items);
       }
 
       try {
@@ -611,6 +595,52 @@ export async function PATCH(request, { params }) {
     });
   } catch (error) {
     return handleApiError(error, '/api/orders/[id]', request);
+  }
+}
+
+/**
+ * Sipariş iptal/silme sırasında tüm ürünlerin stok iadesini tek `WHERE id IN (...)` sorgusu
+ * ve tek transaction içinde gerçekleştirir (N+1 sorgu önleme).
+ */
+async function restoreOrderItemsStockInPg(items) {
+  if (!Array.isArray(items) || items.length === 0) return;
+  const qtyByProductId = new Map();
+  for (const item of items) {
+    const pid = Number(item?.productId);
+    if (Number.isInteger(pid) && pid > 0) {
+      const qty = Math.max(1, Number(item.quantity) || 1);
+      qtyByProductId.set(pid, (qtyByProductId.get(pid) || 0) + qty);
+    }
+  }
+  const productIds = Array.from(qtyByProductId.keys());
+  if (productIds.length === 0) return;
+
+  try {
+    const products = await rawPrisma.product.findMany({
+      where: { id: { in: productIds } },
+      select: { id: true, stock: true, trackStock: true }
+    });
+    const updates = [];
+    for (const prod of products) {
+      if (!prod.trackStock) continue;
+      const addedQty = qtyByProductId.get(prod.id) || 0;
+      if (addedQty <= 0) continue;
+      const newStock = (Number(prod.stock) || 0) + addedQty;
+      updates.push(
+        rawPrisma.product.update({
+          where: { id: prod.id },
+          data: {
+            stock: newStock,
+            ...(newStock > 0 ? { isAvailable: true } : {})
+          }
+        })
+      );
+    }
+    if (updates.length > 0) {
+      await rawPrisma.$transaction(updates);
+    }
+  } catch (err) {
+    console.warn('Batch stock restore warning:', err?.message || err);
   }
 }
 
@@ -758,23 +788,7 @@ export async function DELETE(request, { params }) {
     const pgOrder = await findOrderInPg(id);
     if (pgOrder) {
       if (restoreStock && pgOrder.status !== 'İptal Edildi' && Array.isArray(pgOrder.items)) {
-        for (const item of pgOrder.items) {
-          if (item.productId) {
-            try {
-              const prod = await rawPrisma.product.findUnique({ where: { id: item.productId } });
-              if (prod && prod.trackStock) {
-                const newStock = (Number(prod.stock) || 0) + (Number(item.quantity) || 1);
-                await rawPrisma.product.update({
-                  where: { id: prod.id },
-                  data: {
-                    stock: newStock,
-                    ...(newStock > 0 ? { isAvailable: true } : {})
-                  }
-                });
-              }
-            } catch {}
-          }
-        }
+        await restoreOrderItemsStockInPg(pgOrder.items);
       }
 
       await notifyUserOrderDeleted(pgOrder);

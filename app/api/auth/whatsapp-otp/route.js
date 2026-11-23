@@ -11,10 +11,29 @@ import { isValidTurkishPhone, toWhatsAppPhone } from '@/lib/phoneUtils';
 
 // Bellek içi güvenli OTP saklama alanı (Telefon -> { code, expiresAt, name, senderPhone, attempts })
 const otpStore = new Map();
+const MAX_OTP_ENTRIES = 1000;
 const MAX_OTP_ATTEMPTS = 5;
 const SYSTEM_SENDER_PHONE = '0553 855 76 12';
 const SYSTEM_SENDER_E164 = '905538557612';
 const OTP_EXPIRY_MS = 3 * 60 * 1000; // 3 Dakika (180 saniye)
+
+function pruneExpiredOtps() {
+  const now = Date.now();
+  for (const [phone, rec] of otpStore.entries()) {
+    if (!rec || now > rec.expiresAt) {
+      otpStore.delete(phone);
+    }
+  }
+  if (otpStore.size > MAX_OTP_ENTRIES) {
+    const excess = otpStore.size - MAX_OTP_ENTRIES;
+    let removed = 0;
+    for (const key of otpStore.keys()) {
+      otpStore.delete(key);
+      removed += 1;
+      if (removed >= excess) break;
+    }
+  }
+}
 
 export async function POST(request) {
   try {
@@ -67,6 +86,7 @@ export async function POST(request) {
     }
 
     // KRİPTOGRAFİK OLARAK GÜVENLİ 6 HANELİ KOD OLUŞTURMA (CSPRNG)
+    pruneExpiredOtps();
     const generatedCode = String(crypto.randomInt(100000, 1000000));
     const expiresAt = Date.now() + OTP_EXPIRY_MS;
 

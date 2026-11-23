@@ -339,15 +339,20 @@ export async function POST(request) {
               const allUsers = await rawPrisma.user.findMany({
                 select: { id: true, notifications: true }
               });
-              await Promise.all(
-                allUsers.map((u) => {
-                  const prev = Array.isArray(u.notifications) ? u.notifications : [];
-                  return rawPrisma.user.update({
-                    where: { id: u.id },
-                    data: { notifications: [notifItem, ...prev].slice(0, 50) }
-                  });
-                })
-              );
+              // Bağlantı havuzunu (connection pool) boğmamak için 10'arlı gruplar halinde güncelle
+              const CHUNK_SIZE = 10;
+              for (let i = 0; i < allUsers.length; i += CHUNK_SIZE) {
+                const chunk = allUsers.slice(i, i + CHUNK_SIZE);
+                await Promise.all(
+                  chunk.map((u) => {
+                    const prev = Array.isArray(u.notifications) ? u.notifications : [];
+                    return rawPrisma.user.update({
+                      where: { id: u.id },
+                      data: { notifications: [notifItem, ...prev].slice(0, 50) }
+                    });
+                  })
+                );
+              }
               notifiedCount = allUsers.length;
             } else {
               const target = await rawPrisma.user.findFirst({

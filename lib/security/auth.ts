@@ -303,7 +303,34 @@ interface RateBucket {
   blockedUntil?: number;
 }
 
+const MAX_RATE_BUCKETS = 2000;
 const rateBuckets = new Map<string, RateBucket>();
+let lastRatePruneAt = 0;
+
+function pruneRateBuckets(now: number, maxWindowMs: number): void {
+  if (rateBuckets.size < MAX_RATE_BUCKETS && now - lastRatePruneAt < 60_000) {
+    return;
+  }
+  lastRatePruneAt = now;
+  const staleCutoff = now - Math.max(maxWindowMs, 5 * 60_000);
+  for (const [key, b] of rateBuckets.entries()) {
+    const blockedActive = Boolean(b.blockedUntil && now < b.blockedUntil);
+    const hasRecent = b.timestamps.length > 0 && b.timestamps[b.timestamps.length - 1] > staleCutoff;
+    if (!blockedActive && !hasRecent) {
+      rateBuckets.delete(key);
+    }
+  }
+  // Hard cap: en eski girişleri temizleyerek bellek sızıntısını önle
+  if (rateBuckets.size > MAX_RATE_BUCKETS) {
+    const excess = rateBuckets.size - MAX_RATE_BUCKETS;
+    let removed = 0;
+    for (const key of rateBuckets.keys()) {
+      rateBuckets.delete(key);
+      removed += 1;
+      if (removed >= excess) break;
+    }
+  }
+}
 
 export interface RateLimitConfig {
   keyPrefix: string;
@@ -316,6 +343,7 @@ export function checkRateLimit(request: Request, config: RateLimitConfig): void 
   const ip = getClientIp(request);
   const bucketKey = `${config.keyPrefix}:${ip}`;
   const now = Date.now();
+  pruneRateBuckets(now, config.windowMs);
 
   let bucket = rateBuckets.get(bucketKey);
   if (!bucket) {

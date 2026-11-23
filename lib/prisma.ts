@@ -15,16 +15,34 @@ const globalForPrisma = globalThis as unknown as {
   rawPrisma: PrismaClient | undefined;
 };
 
+/**
+ * Veritabanı bağlantı adresine güvenli havuz limitleri (connection_limit=10, pool_timeout=20)
+ * ekler; 3-4 GB RAM'li VPS sunucularda eşzamanlı trafikte bağlantı şişmesini engeller.
+ */
+function buildPooledDatasourceUrl(rawUrl?: string): string | undefined {
+  if (!rawUrl) return undefined;
+  try {
+    const parsed = new URL(rawUrl);
+    if (!parsed.searchParams.has('connection_limit')) {
+      parsed.searchParams.set('connection_limit', '10');
+    }
+    if (!parsed.searchParams.has('pool_timeout')) {
+      parsed.searchParams.set('pool_timeout', '20');
+    }
+    return parsed.toString();
+  } catch {
+    return rawUrl;
+  }
+}
+
 export const rawPrisma: PrismaClient =
   globalForPrisma.rawPrisma ??
   new PrismaClient({
-    datasourceUrl: process.env.POSTGRES_PRISMA_URL || process.env.DATABASE_URL,
+    datasourceUrl: buildPooledDatasourceUrl(process.env.POSTGRES_PRISMA_URL || process.env.DATABASE_URL),
     log: process.env.NODE_ENV === 'development' ? ['error', 'warn'] : ['error']
   });
 
-if (process.env.NODE_ENV !== 'production') {
-  globalForPrisma.rawPrisma = rawPrisma;
-}
+globalForPrisma.rawPrisma = rawPrisma;
 
 /**
  * Prisma Product kaydını arayüz (Frontend) ile %100 uyumlu Number & Stok formatına dönüştürür
@@ -526,7 +544,6 @@ export const prisma = {
 
   order: {
     findMany: async (args?: Prisma.OrderFindManyArgs) => {
-      const localOrders = db.getOrders();
       try {
         const pgOrders = await rawPrisma.order.findMany({
           where: args?.where,
@@ -552,7 +569,7 @@ export const prisma = {
         );
         return pgOrders.map((o) => formatPrismaOrder(o as unknown as Record<string, unknown>));
       } catch {
-        return localOrders;
+        return db.getOrders();
       }
     },
 
@@ -580,36 +597,62 @@ export const prisma = {
         const orderNo = String(createdLocal.orderNumber || createdLocal.id);
         const itemsArr = Array.isArray(createdLocal.items) ? createdLocal.items : [];
 
+        // Sadece siparişteki benzersiz ürün ID'lerini topla (tüm tabloyu tarama yerine WHERE id IN (...))
+        const qtyByProductId = new Map<number, number>();
+        for (const it of itemsArr as Record<string, unknown>[]) {
+          const candidateId = Number(it.id);
+          if (Number.isInteger(candidateId) && candidateId > 0) {
+            const qty = Math.max(1, Number(it.quantity || 1));
+            qtyByProductId.set(candidateId, (qtyByProductId.get(candidateId) || 0) + qty);
+          }
+        }
+        const orderedProductIds = Array.from(qtyByProductId.keys());
+
         const createdPg = await rawPrisma.$transaction(async (tx) => {
-          const existingProducts = await tx.product.findMany();
+          const existingProducts =
+            orderedProductIds.length > 0
+              ? await tx.product.findMany({
+                  where: { id: { in: orderedProductIds } },
+                  select: {
+                    id: true,
+                    name: true,
+                    stock: true,
+                    trackStock: true,
+                    isAvailable: true
+                  }
+                })
+              : [];
           const productMap = new Map(existingProducts.map((p) => [p.id, p]));
 
-          // Deduct stock in Supabase PostgreSQL for ordered catalog products
-          for (const it of itemsArr as Record<string, unknown>[]) {
-            const candidateId = Number(it.id);
-            const qty = Math.max(1, Number(it.quantity || 1));
-            const pgProd = Number.isInteger(candidateId) ? productMap.get(candidateId) : undefined;
-            if (pgProd) {
-              if (!pgProd.isAvailable) {
-                throw new Error(`"${pgProd.name}" şu anda tükendiği için sipariş verilemez.`);
+          // Toplam adede göre stok kontrolü ve toplu stok düşümü (N+1 önleme)
+          const stockUpdates: Promise<unknown>[] = [];
+          for (const [prodId, totalQty] of qtyByProductId.entries()) {
+            const pgProd = productMap.get(prodId);
+            if (!pgProd) continue;
+            if (!pgProd.isAvailable) {
+              throw new Error(`"${pgProd.name}" şu anda tükendiği için sipariş verilemez.`);
+            }
+            if (pgProd.trackStock) {
+              const curStock = typeof pgProd.stock === 'number' ? pgProd.stock : 25;
+              if (curStock < totalQty) {
+                throw new Error(
+                  `"${pgProd.name}" için yeterli stok bulunmuyor (Mevcut: ${curStock}, İstenen: ${totalQty}).`
+                );
               }
-              if (pgProd.trackStock) {
-                const curStock = typeof pgProd.stock === 'number' ? pgProd.stock : 25;
-                if (curStock < qty) {
-                  throw new Error(
-                    `"${pgProd.name}" için yeterli stok bulunmuyor (Mevcut: ${curStock}, İstenen: ${qty}).`
-                  );
-                }
-                const newStock = Math.max(0, curStock - qty);
-                await tx.product.update({
+              const newStock = Math.max(0, curStock - totalQty);
+              stockUpdates.push(
+                tx.product.update({
                   where: { id: pgProd.id },
                   data: {
                     stock: newStock,
                     ...(newStock === 0 ? { isAvailable: false } : {})
                   }
-                });
-              }
+                })
+              );
             }
+          }
+          if (stockUpdates.length > 0) {
+            await Promise.all(stockUpdates);
           }
 
           let linkedUserId: string | null = null;
