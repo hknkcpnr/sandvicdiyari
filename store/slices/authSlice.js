@@ -2,6 +2,9 @@ import { createSlice } from '@reduxjs/toolkit';
 import { initialUsers } from '@/data/initialData';
 import { formatTurkishPhoneInput } from '@/lib/phoneUtils';
 
+export const CUSTOMER_SESSION_TTL_MS = 2 * 60 * 60 * 1000; // 2 saat
+export const CUSTOMER_SESSION_EXPIRES_KEY = 'sd_current_user_expires_at';
+
 const initialState = {
   currentUser: null,
   usersList: initialUsers,
@@ -12,7 +15,7 @@ export const authSlice = createSlice({
   initialState,
   reducers: {
     login: (state, action) => {
-      const { email, pass, user: apiUser } = action.payload || {};
+      const { email, pass, user: apiUser, preserveExpiry } = action.payload || {};
       if (apiUser && apiUser.email) {
         const normalizedUser = {
           ...apiUser,
@@ -25,6 +28,9 @@ export const authSlice = createSlice({
         try {
           if (typeof window !== 'undefined') {
             localStorage.setItem('sd_current_user', JSON.stringify(normalizedUser));
+            if (!preserveExpiry || !localStorage.getItem(CUSTOMER_SESSION_EXPIRES_KEY)) {
+              localStorage.setItem(CUSTOMER_SESSION_EXPIRES_KEY, String(Date.now() + CUSTOMER_SESSION_TTL_MS));
+            }
           }
         } catch (e) {}
         return;
@@ -49,6 +55,9 @@ export const authSlice = createSlice({
         try {
           if (typeof window !== 'undefined') {
             localStorage.setItem('sd_current_user', JSON.stringify(normalizedUser));
+            if (!preserveExpiry || !localStorage.getItem(CUSTOMER_SESSION_EXPIRES_KEY)) {
+              localStorage.setItem(CUSTOMER_SESSION_EXPIRES_KEY, String(Date.now() + CUSTOMER_SESSION_TTL_MS));
+            }
           }
         } catch (e) {}
       }
@@ -70,6 +79,7 @@ export const authSlice = createSlice({
         try {
           if (typeof window !== 'undefined') {
             localStorage.setItem('sd_current_user', JSON.stringify(newUser));
+            localStorage.setItem(CUSTOMER_SESSION_EXPIRES_KEY, String(Date.now() + CUSTOMER_SESSION_TTL_MS));
           }
         } catch (e) {}
       }
@@ -80,6 +90,7 @@ export const authSlice = createSlice({
         if (typeof window !== 'undefined') {
           localStorage.removeItem('sd_current_user');
           localStorage.removeItem('sd_auth_token');
+          localStorage.removeItem(CUSTOMER_SESSION_EXPIRES_KEY);
         }
       } catch (e) {}
     },

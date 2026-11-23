@@ -117,12 +117,16 @@ export async function POST(request) {
     }
 
     const { pass: _, passHash: __, ...userSafe } = user;
-    const token = signJwtToken({
-      sub: String(user.id || user.email),
-      email: user.email,
-      name: user.name,
-      type: user.type === 'admin' ? 'admin' : 'customer'
-    });
+    const customerHours = isAdmin ? 24 : 2;
+    const token = signJwtToken(
+      {
+        sub: String(user.id || user.email),
+        email: user.email,
+        name: user.name,
+        type: user.type === 'admin' ? 'admin' : 'customer'
+      },
+      customerHours
+    );
 
     const response = jsonSuccess({
       message: 'Giriş başarılı!',
@@ -131,7 +135,7 @@ export async function POST(request) {
         token
       }
     });
-    response.headers.append('Set-Cookie', buildAuthCookieHeader(token, 'sd_auth_token'));
+    response.headers.append('Set-Cookie', buildAuthCookieHeader(token, 'sd_auth_token', 2 * 3600));
     if (isAdmin) {
       response.headers.append('Set-Cookie', buildAuthCookieHeader(token, 'sd_admin_token'));
     }

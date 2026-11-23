@@ -66,12 +66,15 @@ export async function GET(request) {
     }
 
     const { pass: _, passHash: __, ...userSafe } = user;
-    const token = signJwtToken({
-      sub: String(user.id || user.email),
-      email: user.email,
-      name: user.name,
-      type: 'customer'
-    });
+    const token = signJwtToken(
+      {
+        sub: String(user.id || user.email),
+        email: user.email,
+        name: user.name,
+        type: 'customer'
+      },
+      2
+    );
 
     return jsonSuccess({
       approved: true,

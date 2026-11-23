@@ -141,15 +141,44 @@ export default function Home() {
 
     try {
       const savedUser = localStorage.getItem('sd_current_user');
+      const expiresAtRaw = localStorage.getItem('sd_current_user_expires_at');
       if (savedUser) {
-        const parsedUser = JSON.parse(savedUser);
-        if (parsedUser && parsedUser.email) {
-          dispatch(login({ user: parsedUser }));
-          // Sunucu ile hemen doğrula (silinmiş mi?)
-          verifyCurrentSession(parsedUser);
+        const expiresAt = Number(expiresAtRaw || 0);
+        // 2 saatlik müşteri oturum süresi dolduysa (veya eski süresiz kayıtsa) oturumu kapat
+        if (!expiresAt || Date.now() > expiresAt) {
+          localStorage.removeItem('sd_current_user');
+          localStorage.removeItem('sd_auth_token');
+          localStorage.removeItem('sd_current_user_expires_at');
+          dispatch(logout());
+        } else {
+          const parsedUser = JSON.parse(savedUser);
+          if (parsedUser && parsedUser.email) {
+            dispatch(login({ user: parsedUser, preserveExpiry: true }));
+            // Sunucu ile hemen doğrula (silinmiş mi?)
+            verifyCurrentSession(parsedUser);
+          }
         }
       }
     } catch (e) {}
+
+    // Müşteri sayfası açıkken 2 saat dolduğunda otomatik oturum sonlandırma
+    const sessionExpiryTimer = setInterval(() => {
+      try {
+        const hasUser = localStorage.getItem('sd_current_user');
+        if (!hasUser) return;
+        const expiresAt = Number(localStorage.getItem('sd_current_user_expires_at') || 0);
+        if (!expiresAt || Date.now() > expiresAt) {
+          dispatch(logout());
+          dispatch(
+            showMessageModal({
+              title: 'Oturum Süresi Doldu',
+              text: 'Güvenliğiniz gereği 2 saatlik oturum süreniz sona erdi. Sipariş vermeye devam etmek için tekrar giriş yapabilirsiniz.',
+              type: 'info',
+            })
+          );
+        }
+      } catch {}
+    }, 30000);
 
     const loadProducts = () => {
       fetch('/api/products')
@@ -232,6 +261,7 @@ export default function Home() {
       window.removeEventListener('focus', handleWindowFocus);
       window.removeEventListener('visibilitychange', handleWindowFocus);
       clearInterval(pollInterval);
+      clearInterval(sessionExpiryTimer);
     };
   }, [dispatch]);
 
