@@ -304,110 +304,105 @@ export default function OptionsModal() {
       }}
       className="fixed inset-0 z-50 flex items-start sm:items-center justify-center p-2 sm:p-4 bg-stone-900/65 backdrop-blur-xs overflow-y-auto animate-in fade-in duration-200"
     >
-      <div className="bg-white rounded-2xl sm:rounded-3xl max-w-[680px] lg:max-w-5xl xl:max-w-6xl w-full shadow-2xl my-auto sm:my-4 flex flex-col lg:flex-row max-h-[94vh] lg:max-h-none overflow-hidden border border-stone-200/80 relative">
-        {/* SOL VİTRİN PANELİ: BÜYÜK GÖRSEL & ÜRÜN KARTI (Mobilde Üst Hero, Masaüstünde Sol Vitrin) */}
-        <div className="shrink-0 lg:w-[340px] xl:w-[375px] bg-gradient-to-b from-stone-50 via-white to-amber-50/40 lg:border-r border-b lg:border-b-0 border-stone-200/80 flex flex-col text-left relative">
-          {/* Büyük Ürün Görseli */}
-          <div className="relative w-full h-44 sm:h-52 lg:h-64 xl:h-72 bg-stone-900 overflow-hidden shrink-0">
-            <img
-              id="opt-modal-img"
-              src={selectedProductForOptions.image}
-              alt={selectedProductForOptions.name}
-              className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
-              onError={(e) => {
-                e.currentTarget.src =
-                  'https://images.unsplash.com/photo-1550547660-d9450f859349?auto=format&fit=crop&q=80&w=800';
-              }}
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-black/10 to-transparent pointer-events-none" />
+      <div className="bg-stone-50 rounded-2xl sm:rounded-3xl max-w-[680px] lg:max-w-5xl xl:max-w-6xl w-full shadow-2xl my-auto sm:my-4 flex flex-col lg:flex-row max-h-[94vh] lg:max-h-none overflow-hidden border border-stone-200/90 relative">
+        {/* SOL VİTRİN PANELİ: TAM BOY BÜYÜK GÖRSEL & EDITORIAL KART */}
+        <div className="shrink-0 lg:w-[360px] xl:w-[400px] bg-stone-950 relative overflow-hidden flex flex-col justify-between text-left min-h-[210px] sm:min-h-[235px] lg:min-h-[500px]">
+          {/* Tam Arka Plan Ürün Fotoğrafı */}
+          <img
+            id="opt-modal-img"
+            src={selectedProductForOptions.image}
+            alt={selectedProductForOptions.name}
+            className="absolute inset-0 w-full h-full object-cover object-center scale-[1.01] hover:scale-105 transition-transform duration-700"
+            onError={(e) => {
+              e.currentTarget.src =
+                'https://images.unsplash.com/photo-1550547660-d9450f859349?auto=format&fit=crop&q=80&w=800';
+            }}
+          />
 
-            {/* Sol Üst Rozet */}
-            {selectedProductForOptions.badge && (
-              <span className="absolute top-3 left-3 bg-brand-500 text-white text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full shadow-md">
-                {selectedProductForOptions.badge}
-              </span>
-            )}
+          {/* Sinematik Gradient Katmanı (Üstten hafif, alttan derin okunabilirlik) */}
+          <div className="absolute inset-0 bg-gradient-to-t from-stone-950 via-stone-950/65 to-stone-950/15 pointer-events-none" />
 
-            {/* Mobil Kapat Butonu (Görsel Üzerinde) */}
-            <button
-              type="button"
-              onClick={() => dispatch(closeOptionsModal())}
-              className="lg:hidden absolute top-3 right-3 w-8 h-8 rounded-full bg-white/90 hover:bg-white text-stone-800 flex items-center justify-center shadow-md cursor-pointer transition-colors"
-              title="Kapat"
-            >
-              <i className="fa-solid fa-xmark text-sm"></i>
-            </button>
-
-            {/* Görsel Altında Yüzen Fiyat Rozeti */}
-            <div className="absolute bottom-3 left-3 right-3 flex items-end justify-between gap-2">
-              <div className="bg-white/95 backdrop-blur-xs px-3 py-1.5 rounded-xl shadow-lg border border-white/80 flex items-baseline gap-1.5">
-                <span
-                  id="opt-modal-price"
-                  className="text-lg sm:text-xl font-black text-brand-600 leading-none"
-                >
-                  ₺{currentTotalPrice.toFixed(2)}
+          {/* Üst Satır: Rozet & Mobil Kapat Butonu */}
+          <div className="relative z-10 flex items-center justify-between gap-2 p-3.5 sm:p-4 lg:p-5">
+            <div className="flex flex-wrap items-center gap-1.5">
+              {selectedProductForOptions.badge && (
+                <span className="inline-flex items-center gap-1 bg-brand-500 text-white text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full shadow-lg shadow-brand-500/30">
+                  <i className="fa-solid fa-fire text-[9px]"></i>
+                  {selectedProductForOptions.badge}
                 </span>
-                {(extrasCost > 0 || extraSauceCost > 0 || suggestedDrinksCost > 0 || drinkExtraCost > 0) && (
-                  <span className="text-[10px] font-bold text-stone-400 line-through">
-                    ₺{Number(selectedProductForOptions.price).toFixed(2)}
-                  </span>
-                )}
-              </div>
+              )}
               {selectedProductForOptions.prepTime && (
-                <span className="bg-stone-900/80 backdrop-blur-xs text-white text-[10px] font-bold px-2.5 py-1 rounded-lg flex items-center gap-1">
+                <span className="inline-flex items-center gap-1 bg-black/55 backdrop-blur-md text-white/95 text-[10px] font-bold px-2.5 py-1 rounded-full border border-white/15">
                   <i className="fa-regular fa-clock text-amber-400"></i>
                   {selectedProductForOptions.prepTime}
                 </span>
               )}
             </div>
+
+            <button
+              type="button"
+              onClick={() => dispatch(closeOptionsModal())}
+              className="lg:hidden w-8 h-8 rounded-full bg-black/50 backdrop-blur-md hover:bg-black/75 text-white border border-white/20 flex items-center justify-center shadow-md cursor-pointer transition-colors"
+              title="Kapat"
+            >
+              <i className="fa-solid fa-xmark text-sm"></i>
+            </button>
           </div>
 
-          {/* Görsel Altı Başlık, Açıklama ve Etiketler */}
-          <div className="p-3.5 sm:p-4 lg:p-5 flex-1 flex flex-col justify-between gap-3">
+          {/* Alt Satır: Başlık, Açıklama, Etiketler & Canlı Fiyat */}
+          <div className="relative z-10 p-4 sm:p-5 lg:p-6 pt-12 space-y-3 mt-auto">
             <div className="space-y-1.5">
               <h4
                 id="opt-modal-title"
-                className="font-black text-base sm:text-lg lg:text-xl text-stone-900 leading-snug"
+                className="font-black text-lg sm:text-xl lg:text-2xl text-white leading-tight drop-shadow-sm"
               >
                 {selectedProductForOptions.name}
               </h4>
 
               {(selectedProductForOptions.description || selectedProductForOptions.desc) && (
-                <p className="text-stone-600 text-xs lg:text-[13px] leading-relaxed">
+                <p className="text-stone-200/90 text-xs lg:text-[13px] leading-relaxed line-clamp-3">
                   {selectedProductForOptions.description || selectedProductForOptions.desc}
                 </p>
               )}
             </div>
 
-            <div className="hidden lg:flex flex-wrap items-center gap-1.5 pt-3 border-t border-stone-200/70">
-              <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200/70 px-2.5 py-1 rounded-lg">
-                <i className="fa-solid fa-fire text-amber-500"></i>
-                Sipariş Üzerine Taze
-              </span>
-              {selectedProductForOptions.calories && (
-                <span className="inline-flex items-center gap-1 text-[10px] font-bold text-stone-600 bg-stone-100 border border-stone-200/70 px-2.5 py-1 rounded-lg">
-                  <i className="fa-solid fa-bolt text-amber-500"></i>
-                  {selectedProductForOptions.calories}
+            <div className="flex flex-wrap items-center justify-between gap-2 pt-3 border-t border-white/15">
+              <div className="flex items-baseline gap-2">
+                <span
+                  id="opt-modal-price"
+                  className="text-2xl sm:text-3xl font-black text-amber-400 leading-none tracking-tight drop-shadow"
+                >
+                  ₺{currentTotalPrice.toFixed(2)}
                 </span>
-              )}
+                {(extrasCost > 0 || extraSauceCost > 0 || suggestedDrinksCost > 0 || drinkExtraCost > 0) && (
+                  <span className="text-xs font-bold text-stone-300/80 line-through">
+                    ₺{Number(selectedProductForOptions.price).toFixed(2)}
+                  </span>
+                )}
+              </div>
+
+              <span className="inline-flex items-center gap-1.5 text-[10px] font-extrabold text-emerald-300 bg-emerald-500/20 backdrop-blur-xs border border-emerald-400/30 px-2.5 py-1 rounded-full">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                Taze &amp; Sıcak
+              </span>
             </div>
           </div>
         </div>
 
         {/* SAĞ ÖZELLEŞTİRME PANELİ */}
-        <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
+        <div className="flex-1 min-w-0 flex flex-col overflow-hidden bg-stone-50/80">
           {/* Masaüstü Sağ Üst Başlık & Kapat */}
-          <div className="hidden lg:flex items-center justify-between px-5 py-3 border-b border-stone-100 bg-white shrink-0">
-            <div className="flex items-center gap-2">
-              <span className="w-7 h-7 rounded-xl bg-brand-50 text-brand-600 flex items-center justify-center text-xs">
+          <div className="hidden lg:flex items-center justify-between px-5 py-3.5 border-b border-stone-200/80 bg-white shrink-0">
+            <div className="flex items-center gap-2.5">
+              <span className="w-8 h-8 rounded-xl bg-gradient-to-br from-brand-500 to-amber-500 text-white flex items-center justify-center text-xs shadow-xs">
                 <i className="fa-solid fa-sliders"></i>
               </span>
               <div>
-                <h5 className="text-xs font-black text-stone-900 uppercase tracking-wide">
+                <h5 className="text-xs font-black text-stone-900 uppercase tracking-wider">
                   Siparişini Özelleştir
                 </h5>
-                <p className="text-[11px] text-stone-400 font-medium">
-                  Malzeme, sos, ekstra ve içecek tercihlerini seç
+                <p className="text-[11px] text-stone-500 font-medium">
+                  İçerik, sos, ekstra ve içecek tercihlerini tek ekranda seç
                 </p>
               </div>
             </div>
@@ -422,17 +417,17 @@ export default function OptionsModal() {
           </div>
 
           {/* Seçenekler Alanı (Masaüstünde Scroll Yok, Mobilde Akıcı) */}
-          <div className="flex-1 overflow-y-auto lg:overflow-visible overscroll-contain p-3 sm:p-4 lg:px-5 lg:py-3.5 text-left touch-pan-y">
-            <div className="space-y-2.5">
+          <div className="flex-1 overflow-y-auto lg:overflow-visible overscroll-contain p-3 sm:p-4 lg:p-5 text-left touch-pan-y">
+            <div className="space-y-3">
               {/* 1 & 2. Ürün İçeriği ve Sos Seçimleri Yan Yana */}
           <div
             className={`grid grid-cols-1 ${
               productIngredients.length > 0 ? 'sm:grid-cols-2' : ''
-            } gap-2.5 items-stretch`}
+            } gap-3 items-stretch`}
           >
             {/* 1. Ürün İçeriği (Çıkarılabilir Etiketler) */}
             {productIngredients.length > 0 && (
-              <div className="bg-stone-50/80 border border-stone-200/80 rounded-2xl p-2.5 sm:px-3.5 flex flex-col justify-between gap-2">
+              <div className="bg-white border border-stone-200/90 shadow-2xs rounded-2xl p-3 sm:px-4 flex flex-col justify-between gap-2">
                 <div className="space-y-1.5">
                   <div className="flex items-center justify-between gap-1">
                     <span className="text-[11px] font-extrabold text-stone-800 uppercase flex items-center gap-1.5">
@@ -478,7 +473,7 @@ export default function OptionsModal() {
             )}
 
             {/* 2. Sos Seçimleri & Adetleri */}
-            <div className="bg-stone-50/80 border border-stone-200/80 rounded-2xl p-2.5 sm:px-3.5 space-y-1.5">
+            <div className="bg-white border border-stone-200/90 shadow-2xs rounded-2xl p-3 sm:px-4 space-y-2">
               <div className="flex flex-wrap items-center justify-between gap-1">
                 <span className="text-[11px] font-extrabold text-stone-800 uppercase flex items-center gap-1.5">
                   <i className="fa-solid fa-bottle-droplet text-amber-500"></i>
@@ -555,7 +550,7 @@ export default function OptionsModal() {
           </div>
 
           {/* 3. Ekstra Malzemeler (Ücretli) */}
-          <div className="bg-stone-50/80 border border-stone-200/80 rounded-2xl p-2.5 sm:px-3.5 space-y-1.5">
+          <div className="bg-white border border-stone-200/90 shadow-2xs rounded-2xl p-3 sm:px-4 space-y-2">
             <div className="flex items-center justify-between">
               <span className="text-[11px] font-extrabold text-stone-800 uppercase flex items-center gap-1.5">
                 <i className="fa-solid fa-cheese text-orange-500"></i>
@@ -613,9 +608,9 @@ export default function OptionsModal() {
           </div>
 
           {/* 4. Menü İçecek Seçimi & Sipariş Notu */}
-          <div className={`grid grid-cols-1 ${isMenu ? 'sm:grid-cols-2' : ''} gap-2`}>
+          <div className={`grid grid-cols-1 ${isMenu ? 'sm:grid-cols-2' : ''} gap-3`}>
             {isMenu && (
-              <div className="bg-stone-50/80 border border-stone-200/80 rounded-2xl p-2.5 sm:px-3.5">
+              <div className="bg-white border border-stone-200/90 shadow-2xs rounded-2xl p-3 sm:px-4">
                 <label className="block text-[11px] font-extrabold text-stone-800 uppercase mb-1.5 flex items-center justify-between gap-1.5">
                   <span className="flex items-center gap-1.5">
                     <i className="fa-solid fa-cup-straw text-brand-500"></i>
@@ -678,8 +673,8 @@ export default function OptionsModal() {
               </div>
             )}
 
-            <div className="bg-stone-50/80 border border-stone-200/80 rounded-2xl p-2.5 sm:px-3.5">
-              <label className="block text-[11px] font-extrabold text-stone-800 uppercase mb-1 flex items-center gap-1.5">
+            <div className="bg-white border border-stone-200/90 shadow-2xs rounded-2xl p-3 sm:px-4">
+              <label className="block text-[11px] font-extrabold text-stone-800 uppercase mb-1.5 flex items-center gap-1.5">
                 <i className="fa-solid fa-pen text-stone-400"></i>
                 Sipariş Notu / Özel İstek
               </label>
@@ -688,7 +683,7 @@ export default function OptionsModal() {
                 id="opt-note"
                 value={note}
                 onChange={(e) => setNote(e.target.value)}
-                className="w-full bg-white border border-stone-200 rounded-xl px-3 py-1.5 text-xs focus:outline-none focus:border-brand-500 font-medium text-stone-800"
+                className="w-full bg-stone-50 focus:bg-white border border-stone-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-brand-500 font-medium text-stone-800 transition-colors"
                 placeholder="Örn: Ekmeği bol kızarmış olsun..."
               />
             </div>
@@ -765,21 +760,30 @@ export default function OptionsModal() {
           </div>
 
           {/* Sabit Alt Bar (Sepete Ekle Butonu) */}
-          <div className="shrink-0 p-3 sm:px-5 sm:py-3.5 bg-white border-t border-stone-200/80 shadow-[0_-4px_16px_rgba(0,0,0,0.04)] z-10">
+          <div className="shrink-0 p-3 sm:px-5 sm:py-3.5 bg-white border-t border-stone-200/80 shadow-[0_-4px_16px_rgba(0,0,0,0.04)] z-10 flex items-center justify-between gap-3">
+            <div className="hidden sm:flex flex-col">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-stone-400">
+                Toplam Tutar
+              </span>
+              <span className="text-lg font-black text-stone-900 leading-tight">
+                ₺{currentTotalPrice.toFixed(2)}
+              </span>
+            </div>
             {selectedProductForOptions.isAvailable !== false ? (
               <button
                 type="button"
                 onClick={handleConfirm}
-                className="w-full bg-brand-500 hover:bg-brand-600 text-white font-black py-3 sm:py-3.5 rounded-2xl shadow-lg shadow-brand-500/25 text-sm sm:text-base transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-98"
+                className="flex-1 bg-gradient-to-r from-brand-500 to-amber-500 hover:from-brand-600 hover:to-amber-600 text-white font-black py-3 sm:py-3.5 px-5 rounded-2xl shadow-lg shadow-brand-500/25 text-sm sm:text-base transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-98"
               >
                 <i className="fa-solid fa-bag-shopping"></i>
                 <span>Sepete Ekle &bull; ₺{currentTotalPrice.toFixed(2)}</span>
+                <i className="fa-solid fa-arrow-right text-xs opacity-80 hidden sm:inline"></i>
               </button>
             ) : (
               <button
                 type="button"
                 disabled
-                className="w-full bg-stone-300 text-stone-600 font-bold py-3 sm:py-3.5 rounded-2xl text-sm flex items-center justify-center gap-2 cursor-not-allowed opacity-80"
+                className="flex-1 bg-stone-300 text-stone-600 font-bold py-3 sm:py-3.5 rounded-2xl text-sm flex items-center justify-center gap-2 cursor-not-allowed opacity-80"
               >
                 <i className="fa-solid fa-ban text-rose-500"></i> Bu Ürün Tükendi
               </button>
