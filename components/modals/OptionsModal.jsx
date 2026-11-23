@@ -296,77 +296,126 @@ export default function OptionsModal() {
       }}
       className="fixed inset-0 z-50 flex items-start sm:items-center justify-center p-2 sm:p-4 bg-stone-900/65 backdrop-blur-xs overflow-y-auto animate-in fade-in duration-200"
     >
-      <div className="bg-white rounded-2xl sm:rounded-3xl max-w-[680px] lg:max-w-5xl xl:max-w-6xl w-full shadow-2xl my-auto sm:my-4 flex flex-col max-h-[94vh] lg:max-h-none overflow-hidden border border-stone-200/80">
-        {/* Üst Ürün Özeti: Solda Görsel, Sağda Başlık & Fiyat */}
-        <div className="shrink-0 flex items-center gap-3.5 sm:gap-4 p-3 sm:px-5 sm:py-3 bg-gradient-to-br from-stone-50/95 to-white border-b border-stone-200/80 text-left z-10">
-          <div className="relative w-20 h-20 sm:w-28 sm:h-20 rounded-2xl overflow-hidden bg-stone-100 border border-stone-200/80 shadow-xs shrink-0">
+      <div className="bg-white rounded-2xl sm:rounded-3xl max-w-[680px] lg:max-w-5xl xl:max-w-6xl w-full shadow-2xl my-auto sm:my-4 flex flex-col lg:flex-row max-h-[94vh] lg:max-h-none overflow-hidden border border-stone-200/80 relative">
+        {/* SOL VİTRİN PANELİ: BÜYÜK GÖRSEL & ÜRÜN KARTI (Mobilde Üst Hero, Masaüstünde Sol Vitrin) */}
+        <div className="shrink-0 lg:w-[340px] xl:w-[375px] bg-gradient-to-b from-stone-50 via-white to-amber-50/40 lg:border-r border-b lg:border-b-0 border-stone-200/80 flex flex-col text-left relative">
+          {/* Büyük Ürün Görseli */}
+          <div className="relative w-full h-44 sm:h-52 lg:h-64 xl:h-72 bg-stone-900 overflow-hidden shrink-0">
             <img
               id="opt-modal-img"
               src={selectedProductForOptions.image}
               alt={selectedProductForOptions.name}
-              className="w-full h-full object-cover"
+              className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
               onError={(e) => {
                 e.currentTarget.src =
                   'https://images.unsplash.com/photo-1550547660-d9450f859349?auto=format&fit=crop&q=80&w=800';
               }}
             />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-black/10 to-transparent pointer-events-none" />
+
+            {/* Sol Üst Rozet */}
+            {selectedProductForOptions.badge && (
+              <span className="absolute top-3 left-3 bg-brand-500 text-white text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full shadow-md">
+                {selectedProductForOptions.badge}
+              </span>
+            )}
+
+            {/* Mobil Kapat Butonu (Görsel Üzerinde) */}
+            <button
+              type="button"
+              onClick={() => dispatch(closeOptionsModal())}
+              className="lg:hidden absolute top-3 right-3 w-8 h-8 rounded-full bg-white/90 hover:bg-white text-stone-800 flex items-center justify-center shadow-md cursor-pointer transition-colors"
+              title="Kapat"
+            >
+              <i className="fa-solid fa-xmark text-sm"></i>
+            </button>
+
+            {/* Görsel Altında Yüzen Fiyat Rozeti */}
+            <div className="absolute bottom-3 left-3 right-3 flex items-end justify-between gap-2">
+              <div className="bg-white/95 backdrop-blur-xs px-3 py-1.5 rounded-xl shadow-lg border border-white/80 flex items-baseline gap-1.5">
+                <span
+                  id="opt-modal-price"
+                  className="text-lg sm:text-xl font-black text-brand-600 leading-none"
+                >
+                  ₺{currentTotalPrice.toFixed(2)}
+                </span>
+                {(extrasCost > 0 || extraSauceCost > 0 || suggestedDrinksCost > 0) && (
+                  <span className="text-[10px] font-bold text-stone-400 line-through">
+                    ₺{Number(selectedProductForOptions.price).toFixed(2)}
+                  </span>
+                )}
+              </div>
+              {selectedProductForOptions.prepTime && (
+                <span className="bg-stone-900/80 backdrop-blur-xs text-white text-[10px] font-bold px-2.5 py-1 rounded-lg flex items-center gap-1">
+                  <i className="fa-regular fa-clock text-amber-400"></i>
+                  {selectedProductForOptions.prepTime}
+                </span>
+              )}
+            </div>
           </div>
 
-          <div className="flex-1 min-w-0 flex flex-col justify-between self-stretch py-0.5">
-            <div>
-              <div className="flex items-start justify-between gap-2">
-                <div className="min-w-0">
-                  {selectedProductForOptions.badge && (
-                    <span className="inline-block bg-brand-50 text-brand-600 border border-brand-200/70 text-[10px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-md mb-1">
-                      {selectedProductForOptions.badge}
-                    </span>
-                  )}
-                  <h4
-                    id="opt-modal-title"
-                    className="font-extrabold text-base sm:text-xl text-stone-900 leading-snug truncate"
-                  >
-                    {selectedProductForOptions.name}
-                  </h4>
-                </div>
-
-                {/* Kapat Butonu */}
-                <button
-                  type="button"
-                  onClick={() => dispatch(closeOptionsModal())}
-                  className="w-8 h-8 rounded-full bg-stone-100 hover:bg-stone-200 text-stone-500 hover:text-stone-800 flex items-center justify-center shrink-0 cursor-pointer transition-colors"
-                  title="Kapat"
-                >
-                  <i className="fa-solid fa-xmark text-sm"></i>
-                </button>
-              </div>
+          {/* Görsel Altı Başlık, Açıklama ve Etiketler */}
+          <div className="p-3.5 sm:p-4 lg:p-5 flex-1 flex flex-col justify-between gap-3">
+            <div className="space-y-1.5">
+              <h4
+                id="opt-modal-title"
+                className="font-black text-base sm:text-lg lg:text-xl text-stone-900 leading-snug"
+              >
+                {selectedProductForOptions.name}
+              </h4>
 
               {(selectedProductForOptions.description || selectedProductForOptions.desc) && (
-                <p className="text-stone-500 text-xs mt-1 line-clamp-2 leading-relaxed">
+                <p className="text-stone-600 text-xs lg:text-[13px] leading-relaxed">
                   {selectedProductForOptions.description || selectedProductForOptions.desc}
                 </p>
               )}
             </div>
 
-            <div className="flex items-baseline gap-2 mt-2">
-              <span
-                id="opt-modal-price"
-                className="text-base sm:text-lg font-black text-brand-600 leading-none"
-              >
-                ₺{currentTotalPrice.toFixed(2)}
+            <div className="hidden lg:flex flex-wrap items-center gap-1.5 pt-3 border-t border-stone-200/70">
+              <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200/70 px-2.5 py-1 rounded-lg">
+                <i className="fa-solid fa-fire text-amber-500"></i>
+                Sipariş Üzerine Taze
               </span>
-              {(extrasCost > 0 || extraSauceCost > 0) && (
-                <span className="text-[11px] font-semibold text-stone-400">
-                  (Baz fiyat: ₺{Number(selectedProductForOptions.price).toFixed(2)})
+              {selectedProductForOptions.calories && (
+                <span className="inline-flex items-center gap-1 text-[10px] font-bold text-stone-600 bg-stone-100 border border-stone-200/70 px-2.5 py-1 rounded-lg">
+                  <i className="fa-solid fa-bolt text-amber-500"></i>
+                  {selectedProductForOptions.calories}
                 </span>
               )}
             </div>
           </div>
         </div>
 
-        {/* Seçenekler Alanı (Masaüstünde Geniş 2 Sütun - Scroll Yok, Mobilde Akıcı) */}
-        <div className="flex-1 overflow-y-auto lg:overflow-visible overscroll-contain p-3 sm:p-4 lg:px-5 lg:py-3.5 text-left touch-pan-y">
-          <div className={`grid grid-cols-1 ${!isMenu && !isDrink && suggestedDrinks.length > 0 ? 'lg:grid-cols-12' : ''} gap-3 items-start`}>
-            <div className={`${!isMenu && !isDrink && suggestedDrinks.length > 0 ? 'lg:col-span-7' : ''} space-y-2.5`}>
+        {/* SAĞ ÖZELLEŞTİRME PANELİ */}
+        <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
+          {/* Masaüstü Sağ Üst Başlık & Kapat */}
+          <div className="hidden lg:flex items-center justify-between px-5 py-3 border-b border-stone-100 bg-white shrink-0">
+            <div className="flex items-center gap-2">
+              <span className="w-7 h-7 rounded-xl bg-brand-50 text-brand-600 flex items-center justify-center text-xs">
+                <i className="fa-solid fa-sliders"></i>
+              </span>
+              <div>
+                <h5 className="text-xs font-black text-stone-900 uppercase tracking-wide">
+                  Siparişini Özelleştir
+                </h5>
+                <p className="text-[11px] text-stone-400 font-medium">
+                  Malzeme, sos, ekstra ve içecek tercihlerini seç
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => dispatch(closeOptionsModal())}
+              className="w-8 h-8 rounded-full bg-stone-100 hover:bg-stone-200 text-stone-500 hover:text-stone-900 flex items-center justify-center shrink-0 cursor-pointer transition-colors"
+              title="Kapat"
+            >
+              <i className="fa-solid fa-xmark text-sm"></i>
+            </button>
+          </div>
+
+          {/* Seçenekler Alanı (Masaüstünde Scroll Yok, Mobilde Akıcı) */}
+          <div className="flex-1 overflow-y-auto lg:overflow-visible overscroll-contain p-3 sm:p-4 lg:px-5 lg:py-3.5 text-left touch-pan-y">
+            <div className="space-y-2.5">
               {/* 1 & 2. Ürün İçeriği ve Sos Seçimleri Yan Yana */}
           <div
             className={`grid grid-cols-1 ${
@@ -617,11 +666,10 @@ export default function OptionsModal() {
               />
             </div>
           </div>
-            </div>
 
-          {/* 5. Tekli Ürünler İçin İçecek Önerileri (Masaüstünde Sağ Sütun - Scrollsuz Tam Görünüm) */}
+          {/* 5. Tekli Ürünler İçin İçecek Önerileri (3 Sütunlu Kompakt Izgara - Scroll Yok) */}
           {!isMenu && !isDrink && suggestedDrinks.length > 0 && (
-            <div className="lg:col-span-5 bg-sky-50/60 border border-sky-200/80 rounded-2xl p-2.5 sm:px-3.5 space-y-2 h-full">
+            <div className="bg-sky-50/60 border border-sky-200/80 rounded-2xl p-2.5 sm:px-3.5 space-y-2">
               <div className="flex items-center justify-between gap-2">
                 <label className="text-[11px] font-extrabold text-stone-900 uppercase flex items-center gap-1.5">
                   <i className="fa-solid fa-bottle-water text-sky-600"></i>
@@ -636,7 +684,7 @@ export default function OptionsModal() {
                 )}
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-1.5">
                 {suggestedDrinks.map((drinkProd) => {
                   const isSelected = selectedSuggestedDrinkIds.includes(drinkProd.id);
                   return (
@@ -686,29 +734,30 @@ export default function OptionsModal() {
               </div>
             </div>
           )}
+            </div>
           </div>
-        </div>
 
-        {/* Sabit Alt Bar (Sepete Ekle Butonu - Mobilde Her Zaman Görünür & Tıklanabilir) */}
-        <div className="shrink-0 p-3 sm:px-5 sm:py-3.5 bg-white border-t border-stone-200/80 rounded-b-2xl sm:rounded-b-3xl shadow-[0_-4px_16px_rgba(0,0,0,0.06)] z-10">
-          {selectedProductForOptions.isAvailable !== false ? (
-            <button
-              type="button"
-              onClick={handleConfirm}
-              className="w-full bg-brand-500 hover:bg-brand-600 text-white font-black py-3 sm:py-3.5 rounded-2xl shadow-lg shadow-brand-500/25 text-sm sm:text-base transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-98"
-            >
-              <i className="fa-solid fa-bag-shopping"></i>
-              <span>Sepete Ekle &bull; ₺{currentTotalPrice.toFixed(2)}</span>
-            </button>
-          ) : (
-            <button
-              type="button"
-              disabled
-              className="w-full bg-stone-300 text-stone-600 font-bold py-3 sm:py-3.5 rounded-2xl text-sm flex items-center justify-center gap-2 cursor-not-allowed opacity-80"
-            >
-              <i className="fa-solid fa-ban text-rose-500"></i> Bu Ürün Tükendi
-            </button>
-          )}
+          {/* Sabit Alt Bar (Sepete Ekle Butonu) */}
+          <div className="shrink-0 p-3 sm:px-5 sm:py-3.5 bg-white border-t border-stone-200/80 shadow-[0_-4px_16px_rgba(0,0,0,0.04)] z-10">
+            {selectedProductForOptions.isAvailable !== false ? (
+              <button
+                type="button"
+                onClick={handleConfirm}
+                className="w-full bg-brand-500 hover:bg-brand-600 text-white font-black py-3 sm:py-3.5 rounded-2xl shadow-lg shadow-brand-500/25 text-sm sm:text-base transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-98"
+              >
+                <i className="fa-solid fa-bag-shopping"></i>
+                <span>Sepete Ekle &bull; ₺{currentTotalPrice.toFixed(2)}</span>
+              </button>
+            ) : (
+              <button
+                type="button"
+                disabled
+                className="w-full bg-stone-300 text-stone-600 font-bold py-3 sm:py-3.5 rounded-2xl text-sm flex items-center justify-center gap-2 cursor-not-allowed opacity-80"
+              >
+                <i className="fa-solid fa-ban text-rose-500"></i> Bu Ürün Tükendi
+              </button>
+            )}
+          </div>
         </div>
       </div>
     </div>
