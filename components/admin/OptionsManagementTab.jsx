@@ -27,6 +27,7 @@ export default function OptionsManagementTab() {
   const [drinks, setDrinks] = useState(DEFAULT_PRODUCT_OPTIONS.drinks);
   const [menuDrinkGroups, setMenuDrinkGroups] = useState(DEFAULT_MENU_DRINK_GROUPS);
   const [newTierDrinkInput, setNewTierDrinkInput] = useState({ '1': '', '2': '', '3': '', '4': '' });
+  const [newTierDrinkPrice, setNewTierDrinkPrice] = useState({ '1': '0', '2': '0', '3': '0', '4': '0' });
 
   // Modal states
   const [isAddSauceModalOpen, setIsAddSauceModalOpen] = useState(false);
@@ -316,16 +317,43 @@ export default function OptionsManagementTab() {
   const handleAddTierDrink = async (tierKey) => {
     const name = String(newTierDrinkInput[tierKey] || '').trim();
     if (!name) return;
+    const price = Math.max(0, Math.min(500, Number(newTierDrinkPrice[tierKey]) || 0));
     const currentList = menuDrinkGroups[tierKey] || [];
     const nextGroups = {
       ...menuDrinkGroups,
       [tierKey]: [
         ...currentList,
-        { id: `m${tierKey}-${Date.now()}`, name, isAvailable: true },
+        { id: `m${tierKey}-${Date.now()}`, name, price, isAvailable: true },
       ],
     };
     setMenuDrinkGroups(nextGroups);
     setNewTierDrinkInput((prev) => ({ ...prev, [tierKey]: '' }));
+    setNewTierDrinkPrice((prev) => ({ ...prev, [tierKey]: '0' }));
+    await persistOptions(sauces, extras, nextGroups['1'], freeSauceLimit, extraSaucePrice, nextGroups);
+  };
+
+  const handleUpdateTierDrinkPrice = async (tierKey, drinkId, rawPrice) => {
+    const cleanPrice = Math.max(0, Math.min(500, Number(rawPrice) || 0));
+    const nextGroups = {
+      ...menuDrinkGroups,
+      [tierKey]: (menuDrinkGroups[tierKey] || []).map((d) =>
+        d.id === drinkId ? { ...d, price: cleanPrice } : d
+      ),
+    };
+    setMenuDrinkGroups(nextGroups);
+    await persistOptions(sauces, extras, nextGroups['1'], freeSauceLimit, extraSaucePrice, nextGroups);
+  };
+
+  const handleMakeDefaultTierDrink = async (tierKey, drinkId) => {
+    const list = menuDrinkGroups[tierKey] || [];
+    const target = list.find((d) => d.id === drinkId);
+    if (!target) return;
+    const reordered = [target, ...list.filter((d) => d.id !== drinkId)];
+    const nextGroups = {
+      ...menuDrinkGroups,
+      [tierKey]: reordered,
+    };
+    setMenuDrinkGroups(nextGroups);
     await persistOptions(sauces, extras, nextGroups['1'], freeSauceLimit, extraSaucePrice, nextGroups);
   };
 
@@ -830,19 +858,64 @@ export default function OptionsManagementTab() {
                   </div>
 
                   <div className="p-3.5 space-y-2 flex-1">
-                    {tierDrinks.map((dr) => {
+                    {tierDrinks.map((dr, idx) => {
                       const active = dr.isAvailable !== false;
+                      const isDefault = idx === 0;
+                      const drPrice = Math.max(0, Number(dr.price) || 0);
                       return (
                         <div
                           key={dr.id}
-                          className={`flex items-center justify-between gap-2 px-3 py-2 rounded-xl border text-xs ${
+                          className={`flex flex-wrap sm:flex-nowrap items-center justify-between gap-2 px-3 py-2 rounded-xl border text-xs ${
                             active
-                              ? 'bg-white border-stone-200 text-stone-900'
+                              ? isDefault
+                                ? 'bg-amber-50/40 border-amber-300/80 text-stone-900'
+                                : 'bg-white border-stone-200 text-stone-900'
                               : 'bg-stone-50 border-stone-200/60 text-stone-400 line-through'
                           }`}
                         >
-                          <span className="font-bold truncate">{dr.name}</span>
+                          <div className="flex items-center gap-1.5 min-w-0 flex-1">
+                            <button
+                              type="button"
+                              onClick={() => !isDefault && handleMakeDefaultTierDrink(tier.key, dr.id)}
+                              title={isDefault ? 'Varsayılan Seçili İçecek' : 'Varsayılan İçecek Yap (1. Sıraya Al)'}
+                              className={`shrink-0 text-xs transition-colors ${
+                                isDefault
+                                  ? 'text-amber-500 cursor-default'
+                                  : 'text-stone-300 hover:text-amber-500 cursor-pointer'
+                              }`}
+                            >
+                              <i className="fa-solid fa-star"></i>
+                            </button>
+                            <span className="font-bold truncate">{dr.name}</span>
+                            {isDefault && (
+                              <span className="text-[9px] font-extrabold px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 shrink-0">
+                                Varsayılan
+                              </span>
+                            )}
+                          </div>
+
                           <div className="flex items-center gap-1.5 shrink-0">
+                            <div className="flex items-center bg-stone-50 border border-stone-200 rounded-lg px-1.5 py-0.5" title="Fiyat Farkı (+₺, 0 = Dahil)">
+                              <span className="text-[10px] font-bold text-stone-500 mr-0.5">+₺</span>
+                              <input
+                                type="number"
+                                min={0}
+                                max={500}
+                                step={1}
+                                defaultValue={drPrice}
+                                key={`${dr.id}_${drPrice}`}
+                                onBlur={(e) => {
+                                  const nextVal = Math.max(0, Number(e.target.value) || 0);
+                                  if (nextVal !== drPrice) {
+                                    handleUpdateTierDrinkPrice(tier.key, dr.id, nextVal);
+                                  }
+                                }}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') e.currentTarget.blur();
+                                }}
+                                className="w-11 bg-transparent text-[11px] font-black text-stone-900 focus:outline-none text-right"
+                              />
+                            </div>
                             <button
                               type="button"
                               onClick={() => handleToggleTierDrink(tier.key, dr.id)}
@@ -873,7 +946,7 @@ export default function OptionsManagementTab() {
                       e.preventDefault();
                       handleAddTierDrink(tier.key);
                     }}
-                    className="p-3 bg-stone-50/70 border-t border-stone-100 flex items-center gap-2"
+                    className="p-3 bg-stone-50/70 border-t border-stone-100 flex items-center gap-1.5"
                   >
                     <input
                       type="text"
@@ -881,9 +954,22 @@ export default function OptionsManagementTab() {
                       onChange={(e) =>
                         setNewTierDrinkInput((prev) => ({ ...prev, [tier.key]: e.target.value }))
                       }
-                      placeholder={`Yeni ${tier.key} kişilik içecek ekle...`}
-                      className="flex-1 bg-white border border-stone-200 rounded-xl px-3 py-1.5 text-xs font-medium text-stone-900 focus:outline-none focus:border-brand-500"
+                      placeholder={`Yeni ${tier.key} kişilik içecek...`}
+                      className="flex-1 min-w-0 bg-white border border-stone-200 rounded-xl px-2.5 py-1.5 text-xs font-medium text-stone-900 focus:outline-none focus:border-brand-500"
                     />
+                    <div className="flex items-center bg-white border border-stone-200 rounded-xl px-2 py-1.5 shrink-0" title="Ek Ücret (+₺, 0 = Dahil)">
+                      <span className="text-[10px] font-bold text-stone-400 mr-0.5">+₺</span>
+                      <input
+                        type="number"
+                        min={0}
+                        max={500}
+                        value={newTierDrinkPrice[tier.key] ?? '0'}
+                        onChange={(e) =>
+                          setNewTierDrinkPrice((prev) => ({ ...prev, [tier.key]: e.target.value }))
+                        }
+                        className="w-10 text-xs font-bold text-stone-900 focus:outline-none text-right"
+                      />
+                    </div>
                     <button
                       type="submit"
                       disabled={saving || !(newTierDrinkInput[tier.key] || '').trim()}

@@ -165,14 +165,17 @@ export default function OptionsModal() {
   const isMenu = selectedProductForOptions.category === 'menu';
   const isDrink = selectedProductForOptions.category === 'drink';
   const menuTier = isMenu ? getMenuSizeTier(selectedProductForOptions) : '1';
-  const activeMenuDrinkOptions = isMenu
+  const activeMenuDrinkItems = isMenu
     ? (() => {
-        const tierList = (menuDrinkGroups?.[menuTier] || [])
-          .filter((d) => d.isAvailable !== false)
-          .map((d) => d.name);
-        return tierList.length > 0 ? tierList : drinkOptions;
+        const tierList = (menuDrinkGroups?.[menuTier] || []).filter((d) => d.isAvailable !== false);
+        if (tierList.length > 0) return tierList;
+        return drinkOptions.map((name, i) => ({ id: `dr-${i}`, name, price: 0, isAvailable: true }));
       })()
-    : drinkOptions;
+    : [];
+  const selectedMenuDrinkObj = isMenu
+    ? activeMenuDrinkItems.find((d) => d.name === selectedDrink) || activeMenuDrinkItems[0] || null
+    : null;
+  const drinkExtraCost = isMenu ? Math.max(0, Number(selectedMenuDrinkObj?.price) || 0) : 0;
 
   // Tekli ürünler için altta önerilecek soğuk içecekler
   const suggestedDrinks = (!isMenu && !isDrink)
@@ -209,7 +212,11 @@ export default function OptionsModal() {
     .reduce((sum, e) => sum + (Number(e.price) || 0), 0);
 
   const currentTotalPrice =
-    Number(selectedProductForOptions.price || 0) + extrasCost + extraSauceCost + suggestedDrinksCost;
+    Number(selectedProductForOptions.price || 0) +
+    extrasCost +
+    extraSauceCost +
+    suggestedDrinksCost +
+    drinkExtraCost;
 
   const handleToggleExtra = (index) => {
     setExtras((prev) =>
@@ -248,6 +255,7 @@ export default function OptionsModal() {
         extraSaucePrice,
         extras: selectedExtras,
         drink: isMenu ? selectedDrink : null,
+        drinkPrice: drinkExtraCost,
         note,
         removedIngredients,
       })
@@ -339,7 +347,7 @@ export default function OptionsModal() {
                 >
                   ₺{currentTotalPrice.toFixed(2)}
                 </span>
-                {(extrasCost > 0 || extraSauceCost > 0 || suggestedDrinksCost > 0) && (
+                {(extrasCost > 0 || extraSauceCost > 0 || suggestedDrinksCost > 0 || drinkExtraCost > 0) && (
                   <span className="text-[10px] font-bold text-stone-400 line-through">
                     ₺{Number(selectedProductForOptions.price).toFixed(2)}
                   </span>
@@ -614,23 +622,39 @@ export default function OptionsModal() {
                     Menü İçeceği ({menuTier} Kişilik • Dahil)
                   </span>
                 </label>
-                {activeMenuDrinkOptions.length <= 3 ? (
+                {activeMenuDrinkItems.length <= 3 ? (
                   <div className="grid grid-cols-2 gap-1.5">
-                    {activeMenuDrinkOptions.map((dr) => {
-                      const isSelected = selectedDrink === dr;
+                    {activeMenuDrinkItems.map((dr) => {
+                      const isSelected = selectedDrink === dr.name;
+                      const drPrice = Math.max(0, Number(dr.price) || 0);
                       return (
                         <button
-                          key={dr}
+                          key={dr.id || dr.name}
                           type="button"
-                          onClick={() => setSelectedDrink(dr)}
-                          className={`px-3 py-2 rounded-xl border text-xs font-extrabold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                          onClick={() => setSelectedDrink(dr.name)}
+                          className={`px-2.5 py-2 rounded-xl border text-xs font-extrabold transition-all cursor-pointer flex items-center justify-between gap-1.5 ${
                             isSelected
                               ? 'bg-brand-500 border-brand-600 text-white shadow-xs'
                               : 'bg-white border-stone-200 text-stone-800 hover:border-brand-400'
                           }`}
                         >
-                          <i className={`fa-solid ${isSelected ? 'fa-circle-check' : 'fa-circle text-stone-300'} text-[11px]`}></i>
-                          <span className="truncate">{dr}</span>
+                          <span className="flex items-center gap-1.5 min-w-0">
+                            <i className={`fa-solid ${isSelected ? 'fa-circle-check' : 'fa-circle text-stone-300'} text-[11px] shrink-0`}></i>
+                            <span className="truncate">{dr.name}</span>
+                          </span>
+                          <span
+                            className={`text-[10px] font-black px-1.5 py-0.5 rounded-md shrink-0 ${
+                              drPrice > 0
+                                ? isSelected
+                                  ? 'bg-white/25 text-white'
+                                  : 'bg-amber-100 text-amber-800'
+                                : isSelected
+                                ? 'bg-white/20 text-white'
+                                : 'bg-emerald-50 text-emerald-700'
+                            }`}
+                          >
+                            {drPrice > 0 ? `+₺${drPrice}` : 'Dahil'}
+                          </span>
                         </button>
                       );
                     })}
@@ -641,11 +665,14 @@ export default function OptionsModal() {
                     onChange={(e) => setSelectedDrink(e.target.value)}
                     className="app-select w-full bg-white border border-stone-200 hover:border-brand-400 rounded-xl px-3 py-1.5 text-xs text-stone-900 focus:outline-none focus:border-brand-500 font-bold cursor-pointer transition-all"
                   >
-                    {activeMenuDrinkOptions.map((dr) => (
-                      <option key={dr} value={dr}>
-                        {dr}
-                      </option>
-                    ))}
+                    {activeMenuDrinkItems.map((dr) => {
+                      const drPrice = Math.max(0, Number(dr.price) || 0);
+                      return (
+                        <option key={dr.id || dr.name} value={dr.name}>
+                          {drPrice > 0 ? `${dr.name} (+₺${drPrice})` : `${dr.name} (Dahil)`}
+                        </option>
+                      );
+                    })}
                   </select>
                 )}
               </div>

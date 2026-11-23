@@ -128,6 +128,7 @@ export async function POST(request) {
         .map((d, idx) => ({
           id: d?.id ? String(d.id).trim().slice(0, 50) : `m${tier}-${Date.now()}-${idx}`,
           name: sanitizeText(typeof d === 'string' ? d : (d?.name || ''), 80, 'Menü İçeceği', '/api/options'),
+          price: typeof d === 'object' ? Math.max(0, Math.min(500, Number(d?.price) || 0)) : 0,
           isAvailable: typeof d === 'object' && d?.isAvailable === false ? false : true,
         }))
         .filter((d) => d.name.length > 0);
