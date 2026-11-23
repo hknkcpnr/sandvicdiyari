@@ -67,68 +67,203 @@ export default function CheckoutModal() {
 
   // GİRİŞ / MİSAFİR KONTROLÜ: Kullanıcı oturum açmamışsa ve misafir moduna geçmediyse seçim sun
   if ((!currentUser || !currentUser.email) && !isGuestCheckout) {
+    const totalItemCount = items.reduce((sum, item) => sum + (item.quantity || 1), 0);
+    const previewThumbs = items.filter((item) => item?.image).slice(0, 3);
+
     return (
       <div
         id="checkout-modal"
-        className="fixed inset-0 z-50 flex items-start sm:items-center justify-center p-3 sm:p-6 bg-stone-900/60 backdrop-blur-sm overflow-y-auto"
+        className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-stone-950/75 backdrop-blur-md overflow-y-auto"
+        onClick={(e) => {
+          if (e.target === e.currentTarget) dispatch(closeCheckoutModal());
+        }}
       >
-        <div className="bg-white rounded-2xl sm:rounded-3xl max-w-lg w-full p-6 sm:p-8 shadow-2xl relative text-center space-y-5 my-auto max-h-[92vh] overflow-y-auto overscroll-contain animate-in fade-in zoom-in-95 duration-200">
-          <div className="w-16 h-16 bg-amber-100 text-amber-600 rounded-2xl flex items-center justify-center text-3xl mx-auto border border-amber-200 shadow-inner">
-            <i className="fa-solid fa-bag-shopping"></i>
-          </div>
-          <div className="space-y-2">
-            <h3 className="text-xl sm:text-2xl font-black text-stone-900">
-              Siparişe Devam Edin
-            </h3>
-            <p className="text-stone-500 text-xs sm:text-sm leading-relaxed">
-              Üye olmadan <strong>Misafir Olarak Devam Et</strong> butonuna tıklayarak bilgilerinizi girebilir veya hesabınıza giriş yapabilirsiniz.
-            </p>
-          </div>
+        <div className="bg-white rounded-[1.75rem] sm:rounded-[2rem] max-w-3xl w-full shadow-2xl border border-white/15 relative overflow-hidden my-auto animate-in fade-in zoom-in-95 duration-200 grid grid-cols-1 md:grid-cols-12">
+          {/* Sol Görsel Vitrin Paneli */}
+          <div className="md:col-span-5 relative min-h-[210px] md:min-h-[450px] bg-stone-950 overflow-hidden flex flex-col justify-between p-5 sm:p-6">
+            <img
+              src="/images/reviews_showcase.jpg"
+              alt="Sandviç Diyarı Lezzetleri"
+              className="absolute inset-0 w-full h-full object-cover object-center scale-105"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-stone-950 via-stone-950/55 to-stone-950/20" />
 
-          <div className="space-y-2.5 pt-2">
-            {/* 1. Seçenek: Misafir Olarak Devam Et */}
-            <button
-              type="button"
-              onClick={() => setIsGuestCheckout(true)}
-              className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black py-3.5 px-4 rounded-2xl shadow-lg shadow-emerald-600/25 text-xs sm:text-sm transition-all cursor-pointer flex items-center justify-center gap-2 active:scale-98"
-            >
-              <i className="fa-solid fa-bolt text-amber-300 text-base"></i>
-              <span>Misafir Olarak Devam Et</span>
-            </button>
-
-            <div className="grid grid-cols-2 gap-2.5 pt-1">
+            {/* Üst Rozet */}
+            <div className="relative z-10 flex items-center justify-between gap-2">
+              <span className="inline-flex items-center gap-1.5 bg-amber-500/95 text-white text-[10px] font-black uppercase tracking-wider px-3 py-1.5 rounded-full shadow-lg">
+                <i className="fa-solid fa-fire text-[10px]"></i>
+                Sıcak &amp; Taze
+              </span>
+              {/* Mobil Kapat Butonu */}
               <button
                 type="button"
-                onClick={() => {
-                  dispatch(closeCheckoutModal());
-                  dispatch(openAuthModal('login'));
-                }}
-                className="bg-stone-900 hover:bg-black text-white font-bold py-3 px-3 rounded-2xl text-xs sm:text-sm transition-colors cursor-pointer flex items-center justify-center gap-1.5"
+                onClick={() => dispatch(closeCheckoutModal())}
+                aria-label="Kapat"
+                className="md:hidden w-9 h-9 rounded-full bg-black/50 backdrop-blur-md text-white hover:bg-black/70 flex items-center justify-center transition-colors cursor-pointer"
               >
-                <i className="fa-solid fa-right-to-bracket"></i>
-                <span>Giriş Yap</span>
+                <i className="fa-solid fa-xmark text-sm"></i>
               </button>
-              <button
-                type="button"
-                onClick={() => {
-                  dispatch(closeCheckoutModal());
-                  dispatch(openAuthModal('register'));
-                }}
-                className="bg-brand-500 hover:bg-brand-600 text-white font-bold py-3 px-3 rounded-2xl text-xs sm:text-sm transition-colors cursor-pointer flex items-center justify-center gap-1.5"
-              >
-                <i className="fa-solid fa-user-plus"></i>
-                <span>Kayıt Ol</span>
-              </button>
+            </div>
+
+            {/* Alt Özet Kartı */}
+            <div className="relative z-10 space-y-3 mt-auto pt-8">
+              <div>
+                <p className="text-amber-300 text-[10px] font-black uppercase tracking-widest mb-1">
+                  Sandviç Diyarı
+                </p>
+                <h4 className="text-white text-xl sm:text-2xl font-black leading-tight drop-shadow-sm">
+                  Lezzet kapınıza bir adım uzakta
+                </h4>
+              </div>
+
+              {totalItemCount > 0 && (
+                <div className="bg-white/12 backdrop-blur-md border border-white/15 rounded-2xl p-3 flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    {previewThumbs.length > 0 ? (
+                      <div className="flex -space-x-2.5 shrink-0">
+                        {previewThumbs.map((item, idx) => (
+                          <img
+                            key={`${item.id || idx}-${idx}`}
+                            src={item.image}
+                            alt={item.name}
+                            className="w-9 h-9 rounded-full object-cover border-2 border-stone-900 bg-stone-800"
+                          />
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="w-9 h-9 rounded-xl bg-amber-500/20 text-amber-300 flex items-center justify-center shrink-0">
+                        <i className="fa-solid fa-bag-shopping"></i>
+                      </div>
+                    )}
+                    <div className="min-w-0">
+                      <p className="text-[10px] font-bold text-stone-300 uppercase tracking-wider">
+                        Sepetiniz
+                      </p>
+                      <p className="text-xs font-extrabold text-white truncate">
+                        {totalItemCount} Ürün Seçildi
+                      </p>
+                    </div>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <span className="text-base font-black text-amber-400">
+                      ₺{grandTotal.toFixed(2)}
+                    </span>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
-          <button
-            type="button"
-            onClick={() => dispatch(closeCheckoutModal())}
-            className="text-xs font-bold text-stone-400 hover:text-stone-700 pt-1 cursor-pointer"
-          >
-            Vazgeç ve Sepete Dön
-          </button>
+          {/* Sağ Aksiyon Paneli */}
+          <div className="md:col-span-7 bg-stone-50/90 p-5 sm:p-7 flex flex-col justify-between relative">
+            {/* Masaüstü Kapat Butonu */}
+            <button
+              type="button"
+              onClick={() => dispatch(closeCheckoutModal())}
+              aria-label="Kapat"
+              className="hidden md:flex absolute top-5 right-5 w-9 h-9 rounded-full bg-white border border-stone-200 text-stone-500 hover:text-stone-900 hover:border-stone-300 items-center justify-center shadow-2xs transition-colors cursor-pointer"
+            >
+              <i className="fa-solid fa-xmark text-sm"></i>
+            </button>
+
+            <div className="space-y-5">
+              {/* Başlık */}
+              <div className="space-y-1.5 pr-0 md:pr-10">
+                <div className="inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider text-amber-700 bg-amber-100/90 border border-amber-200/80 px-2.5 py-1 rounded-full">
+                  <i className="fa-solid fa-bag-shopping text-[10px]"></i>
+                  Sipariş Adımı
+                </div>
+                <h3 className="text-2xl sm:text-[26px] font-black text-stone-900 tracking-tight">
+                  Siparişe Devam Edin
+                </h3>
+                <p className="text-stone-500 text-xs sm:text-sm leading-relaxed">
+                  Üye olmadan <strong>hızlıca devam edebilir</strong> veya hesabınızla giriş yaparak adres bilgilerinizi otomatik kullanabilirsiniz.
+                </p>
+              </div>
+
+              {/* Aksiyon Butonları */}
+              <div className="space-y-3">
+                {/* 1. Seçenek: Misafir Olarak Devam Et */}
+                <button
+                  type="button"
+                  onClick={() => setIsGuestCheckout(true)}
+                  className="w-full group bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white p-4 rounded-2xl shadow-lg shadow-emerald-600/20 transition-all cursor-pointer flex items-center justify-between gap-3 active:scale-[0.99]"
+                >
+                  <div className="flex items-center gap-3.5 text-left">
+                    <div className="w-11 h-11 rounded-xl bg-white/15 border border-white/20 flex items-center justify-center shrink-0">
+                      <i className="fa-solid fa-bolt text-amber-300 text-lg"></i>
+                    </div>
+                    <div>
+                      <span className="block font-black text-sm sm:text-base leading-tight">
+                        Misafir Olarak Devam Et
+                      </span>
+                      <span className="block text-[11px] font-medium text-emerald-100 mt-0.5">
+                        Üyelik gerekmez • 30 saniyede sipariş
+                      </span>
+                    </div>
+                  </div>
+                  <i className="fa-solid fa-arrow-right text-sm text-white/80 group-hover:translate-x-1 transition-transform shrink-0"></i>
+                </button>
+
+                {/* Ayraç */}
+                <div className="relative py-1 flex items-center justify-center">
+                  <div className="absolute inset-x-0 h-px bg-stone-200" />
+                  <span className="relative bg-stone-50 px-3 text-[11px] font-bold text-stone-400">
+                    veya hesabınızla devam edin
+                  </span>
+                </div>
+
+                {/* Giriş Yap & Kayıt Ol */}
+                <div className="grid grid-cols-2 gap-2.5">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      dispatch(closeCheckoutModal());
+                      dispatch(openAuthModal('login'));
+                    }}
+                    className="bg-stone-900 hover:bg-black text-white font-bold py-3.5 px-4 rounded-2xl text-xs sm:text-sm shadow-sm transition-all cursor-pointer flex items-center justify-center gap-2 active:scale-[0.98]"
+                  >
+                    <i className="fa-solid fa-right-to-bracket"></i>
+                    <span>Giriş Yap</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      dispatch(closeCheckoutModal());
+                      dispatch(openAuthModal('register'));
+                    }}
+                    className="bg-gradient-to-r from-brand-500 to-amber-500 hover:from-brand-600 hover:to-amber-600 text-white font-bold py-3.5 px-4 rounded-2xl text-xs sm:text-sm shadow-sm shadow-amber-500/20 transition-all cursor-pointer flex items-center justify-center gap-2 active:scale-[0.98]"
+                  >
+                    <i className="fa-solid fa-user-plus"></i>
+                    <span>Kayıt Ol</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Alt Güven Bilgisi ve Geri Dön */}
+            <div className="pt-5 mt-5 border-t border-stone-200/80 flex flex-wrap items-center justify-between gap-2">
+              <div className="flex items-center gap-3 text-[11px] font-semibold text-stone-500">
+                <span className="inline-flex items-center gap-1">
+                  <i className="fa-solid fa-wallet text-amber-500"></i>
+                  Kapıda Ödeme
+                </span>
+                <span className="inline-flex items-center gap-1">
+                  <i className="fa-solid fa-motorcycle text-emerald-600"></i>
+                  Hızlı Kurye
+                </span>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => dispatch(closeCheckoutModal())}
+                className="inline-flex items-center gap-1.5 text-xs font-bold text-stone-400 hover:text-stone-700 transition-colors cursor-pointer"
+              >
+                <i className="fa-solid fa-arrow-left text-[10px]"></i>
+                Vazgeç ve Sepete Dön
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     );
