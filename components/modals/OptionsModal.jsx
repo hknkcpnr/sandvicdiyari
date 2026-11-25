@@ -68,7 +68,7 @@ export default function OptionsModal() {
   const { currentUser } = useSelector((state) => state.auth);
   const allProducts = useSelector((state) => state.product.items);
 
-  const [selectedDrink, setSelectedDrink] = useState('Kutu Pepsi (330ml)');
+  const [selectedDrink, setSelectedDrink] = useState('Ayran');
   const [selectedSuggestedDrinkIds, setSelectedSuggestedDrinkIds] = useState([]);
   const [saucesList, setSaucesList] = useState([]);
   const [freeSauceLimit, setFreeSauceLimit] = useState(DEFAULT_PRODUCT_OPTIONS.freeSauceLimit ?? 2);
@@ -86,6 +86,11 @@ export default function OptionsModal() {
     if (isOptionsModalOpen) {
       setRemovedIngredients([]);
       setSelectedSuggestedDrinkIds([]);
+      if (selectedProductForOptions?.category === 'menu') {
+        const tier = getMenuSizeTier(selectedProductForOptions);
+        const tierDrinks = (menuDrinkGroups?.[tier] || []).filter((d) => d.isAvailable !== false);
+        setSelectedDrink(tierDrinks[0]?.name || 'Ayran');
+      }
     }
   }, [isOptionsModalOpen, selectedProductForOptions?.id]);
 

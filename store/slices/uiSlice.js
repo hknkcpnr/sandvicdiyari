@@ -1,5 +1,4 @@
 import { createSlice } from '@reduxjs/toolkit';
-import { initialReviews } from '@/data/initialData';
 
 const initialState = {
   activePage: 'home',
@@ -20,7 +19,7 @@ const initialState = {
     text: '',
     type: 'success',
   },
-  reviews: (initialReviews || []).filter((r) => r.isApproved === true),
+  reviews: [],
   activeAdminTab: 'orders',
   favorites: [],
   onlyFavoritesFilter: false

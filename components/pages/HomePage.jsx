@@ -9,7 +9,6 @@ import {
   setReviews
 } from '@/store/slices/uiSlice';
 import ProductCard from '@/components/ProductCard';
-import { campaignProducts } from '@/data/initialData';
 import { DEFAULT_SITE_CONTENT } from '@/lib/siteContentDefaults';
 import { getRestaurantStatus, CLOSED_MESSAGE } from '@/lib/openingHours';
 
@@ -267,8 +266,8 @@ export default function HomePage() {
           </div>
         )}
 
-        {/* Kampanya Ürünleri Alanı (Katalog Görünümü) */}
-        {campaignsSection.visible !== false && (
+        {/* Kampanya Ürünleri Alanı (Canlı Veritabanı Menüleri) */}
+        {campaignsSection.visible !== false && menuCategoryProducts.length > 0 && (
           <div>
             <div className="flex justify-between items-end mb-8">
               <div>
@@ -291,28 +290,36 @@ export default function HomePage() {
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-              {campaignProducts.map((menu) => {
-                const savings = menu.oldPrice ? Math.round(menu.oldPrice - menu.price) : 0;
+              {menuCategoryProducts.map((menu) => {
+                const isSoldOut = menu.isAvailable === false;
+                const priceVal = Number(menu.price || 0);
+                const savings = menu.oldPrice ? Math.round(Number(menu.oldPrice) - priceVal) : 0;
                 return (
                   <div
                     key={menu.id}
-                    className="bg-white rounded-3xl p-4 border border-stone-200/80 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between group"
+                    className={`bg-white rounded-3xl p-4 border border-stone-200/80 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between group ${
+                      isSoldOut ? 'opacity-70' : ''
+                    }`}
                   >
                     <div>
                       <div className="relative w-full h-44 rounded-2xl overflow-hidden mb-4 bg-stone-100">
                         <img
-                          src={menu.image}
+                          src={menu.image || '/images/hero_banner.jpg'}
                           alt={menu.name}
-                          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                          className={`w-full h-full object-cover transition-transform duration-500 group-hover:scale-105 ${
+                            isSoldOut ? 'grayscale' : ''
+                          }`}
                           onError={(e) => {
                             e.currentTarget.onerror = null;
                             e.currentTarget.src =
                               'https://images.unsplash.com/photo-1550547660-d9450f859349?auto=format&fit=crop&q=80&w=500';
                           }}
                         />
-                        <span className="absolute top-2.5 left-2.5 bg-white/95 backdrop-blur-md text-stone-900 text-[10px] font-extrabold px-2.5 py-1 rounded-full uppercase tracking-wider shadow-sm">
-                          {menu.badge}
-                        </span>
+                        {menu.badge && (
+                          <span className="absolute top-2.5 left-2.5 bg-white/95 backdrop-blur-md text-stone-900 text-[10px] font-extrabold px-2.5 py-1 rounded-full uppercase tracking-wider shadow-sm">
+                            {menu.badge}
+                          </span>
+                        )}
                         {savings > 0 && (
                           <span className="absolute top-2.5 right-2.5 bg-rose-600 text-white text-[10px] font-black px-2.5 py-1 rounded-full shadow-md">
                             -₺{savings} İndirim
@@ -324,7 +331,7 @@ export default function HomePage() {
                         {menu.name}
                       </h4>
                       <p className="text-stone-500 text-xs mt-1.5 leading-relaxed line-clamp-2">
-                        {menu.description}
+                        {menu.description || menu.desc}
                       </p>
                     </div>
 
@@ -332,19 +339,29 @@ export default function HomePage() {
                       <div>
                         {menu.oldPrice && (
                           <span className="text-[11px] text-stone-400 line-through block font-medium">
-                            ₺{menu.oldPrice.toFixed(2)}
+                            ₺{Number(menu.oldPrice).toFixed(2)}
                           </span>
                         )}
                         <span className="text-lg font-extrabold text-brand-600">
-                          ₺{menu.price.toFixed(2)}
+                          ₺{priceVal.toFixed(2)}
                         </span>
                       </div>
-                      <button
-                        onClick={() => handleCampaignOrderClick(menu)}
-                        className="bg-brand-500 hover:bg-brand-600 text-white px-4 py-2.5 rounded-xl shadow-md shadow-brand-500/20 transition-all flex items-center gap-1.5 text-xs font-bold cursor-pointer active:scale-95"
-                      >
-                        <i className="fa-solid fa-plus"></i> Sepete Ekle
-                      </button>
+                      {isSoldOut ? (
+                        <button
+                          type="button"
+                          disabled
+                          className="bg-stone-200 text-stone-500 px-4 py-2.5 rounded-xl text-xs font-bold cursor-not-allowed flex items-center gap-1.5"
+                        >
+                          <i className="fa-solid fa-ban"></i> Tükendi
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => handleCampaignOrderClick(menu)}
+                          className="bg-brand-500 hover:bg-brand-600 text-white px-4 py-2.5 rounded-xl shadow-md shadow-brand-500/20 transition-all flex items-center gap-1.5 text-xs font-bold cursor-pointer active:scale-95"
+                        >
+                          <i className="fa-solid fa-plus"></i> Sepete Ekle
+                        </button>
+                      )}
                     </div>
                   </div>
                 );
@@ -388,39 +405,30 @@ export default function HomePage() {
 
             <div className="relative z-10 grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-6 md:divide-x md:divide-white/10">
               {(featuresSection.items || []).map((feat, idx) => {
-                // Güvenli başlık ve açıklama eşleşmesi (Eski veritabanı / tarayıcı önbelleğini anında günceller)
                 let displayTitle = feat.title;
                 let displayDesc = feat.desc;
 
                 if (idx === 0) {
-                  if (
-                    !displayTitle ||
-                    displayTitle === '%100 Günlük Malzeme' ||
-                    displayTitle === 'Sipariş'
-                  ) {
+                  if (!displayTitle) {
                     displayTitle = 'Tazelik & Doğallık';
+                  }
+                  if (!displayDesc) {
                     displayDesc =
                       'Çıtır ekmeklerimiz ve yeşilliklerimiz her sabah yerel taze üreticilerden günlük temin edilir, tazeliği ilk lokmada hissettirir.';
                   }
                 } else if (idx === 1) {
-                  if (
-                    !displayTitle ||
-                    displayTitle === 'Hızlı & Sıcak Kurye Servisi' ||
-                    displayTitle === 'Hazırlama' ||
-                    displayTitle === 'Sıcak Hazırlama'
-                  ) {
+                  if (!displayTitle) {
                     displayTitle = 'Ürünün Hazırlanışı & Lezzeti';
+                  }
+                  if (!displayDesc) {
                     displayDesc =
                       'Siparişiniz usta eller tarafından taptaze malzemelerle tavada ve ızgarada anında sıcacık pişirilir, enfes bir lezzete kavuşur.';
                   }
                 } else if (idx === 2) {
-                  if (
-                    !displayTitle ||
-                    displayTitle === 'Hijyen & Güven' ||
-                    displayTitle === 'Kurye' ||
-                    displayTitle === 'Hızlı Kurye'
-                  ) {
+                  if (!displayTitle) {
                     displayTitle = 'Hızlı & Sıcak Kurye';
+                  }
+                  if (!displayDesc) {
                     displayDesc =
                       'Özel ısı yalıtımlı çantalarımız ve seri kuryelerimizle siparişiniz hiç soğumadan en kısa sürede kapınıza teslim edilir.';
                   }

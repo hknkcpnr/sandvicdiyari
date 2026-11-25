@@ -1,5 +1,4 @@
 import { createSlice } from '@reduxjs/toolkit';
-import { initialUsers } from '@/data/initialData';
 import { formatTurkishPhoneInput } from '@/lib/phoneUtils';
 
 export const CUSTOMER_SESSION_TTL_MS = 2 * 60 * 60 * 1000; // 2 saat
@@ -7,7 +6,7 @@ export const CUSTOMER_SESSION_EXPIRES_KEY = 'sd_current_user_expires_at';
 
 const initialState = {
   currentUser: null,
-  usersList: initialUsers,
+  usersList: [],
 };
 
 export const authSlice = createSlice({

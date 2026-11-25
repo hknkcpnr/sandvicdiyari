@@ -892,5 +892,37 @@
   "phoneOtps": [],
   "settings": {
     "courierModuleEnabled": false
+  },
+  "productOptions": {
+    "menuDrinkGroups": {
+      "1": [
+        {
+          "id": "m1-ayran",
+          "name": "Ayran",
+          "price": 0,
+          "isAvailable": true
+        },
+        {
+          "id": "m1-kutu-kola",
+          "name": "Kutu Kola",
+          "price": 20,
+          "isAvailable": true
+        }
+      ]
+    },
+    "drinks": [
+      {
+        "id": "m1-ayran",
+        "name": "Ayran",
+        "price": 0,
+        "isAvailable": true
+      },
+      {
+        "id": "m1-kutu-kola",
+        "name": "Kutu Kola",
+        "price": 20,
+        "isAvailable": true
+      }
+    ]
   }
 }

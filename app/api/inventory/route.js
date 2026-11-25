@@ -35,7 +35,7 @@ async function getAllProductsFromPgOrLocal() {
       [],
       () => pgRows.length
     );
-    if (Array.isArray(pgRows) && pgRows.length > 0) {
+    if (Array.isArray(pgRows)) {
       return pgRows.map((r) => formatPrismaProduct(r));
     }
   } catch (err) {

@@ -16,11 +16,9 @@ export default function HikayePage() {
         setStory({
           ...DEFAULT_SITE_CONTENT.storySection,
           ...json.data.storySection,
-          images:
-            Array.isArray(json.data.storySection.images) &&
-            json.data.storySection.images.length > 0
-              ? json.data.storySection.images
-              : DEFAULT_SITE_CONTENT.storySection.images,
+          images: Array.isArray(json.data.storySection.images)
+            ? json.data.storySection.images
+            : DEFAULT_SITE_CONTENT.storySection.images,
         });
       }
     } catch {}
@@ -37,10 +35,9 @@ export default function HikayePage() {
     return () => window.removeEventListener('storage', handleStorage);
   }, []);
 
-  const slides =
-    Array.isArray(story?.images) && story.images.length > 0
-      ? story.images
-      : DEFAULT_SITE_CONTENT.storySection.images;
+  const slides = Array.isArray(story?.images)
+    ? story.images
+    : DEFAULT_SITE_CONTENT.storySection.images;
 
   const safeIndex = activeIndex >= slides.length ? 0 : activeIndex;
 
@@ -112,6 +109,12 @@ export default function HikayePage() {
             onMouseEnter={() => setIsPaused(true)}
             onMouseLeave={() => setIsPaused(false)}
           >
+            {!currentSlide ? (
+              <div className="relative rounded-3xl overflow-hidden border border-stone-200/80 bg-stone-100 h-[340px] sm:h-[410px] flex flex-col items-center justify-center text-center p-6 text-stone-400 space-y-2">
+                <i className="fa-solid fa-images text-3xl"></i>
+                <p className="text-xs font-semibold">Henüz galeri görseli eklenmemiş.</p>
+              </div>
+            ) : (
             <div className="relative rounded-3xl overflow-hidden shadow-xl border border-stone-200/80 bg-stone-900 h-[340px] sm:h-[410px] group">
               <img
                 key={currentSlide.url}
@@ -180,6 +183,7 @@ export default function HikayePage() {
                 )}
               </div>
             </div>
+            )}
 
             {/* Alt Küçük Önizleme Şeridi (Thumbnail Strip) */}
             {slides.length > 1 && (

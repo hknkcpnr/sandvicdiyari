@@ -1,8 +1,7 @@
 import { createSlice } from '@reduxjs/toolkit';
-import { initialProducts } from '@/data/initialData';
 
 const initialState = {
-  items: initialProducts,
+  items: [],
   category: 'all',
   searchQuery: '',
 };

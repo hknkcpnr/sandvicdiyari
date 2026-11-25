@@ -83,8 +83,8 @@ export function formatPrismaOrder(o: Record<string, unknown> | null) {
       typeof it.details === 'string' && it.details
         ? it.details
         : selectedOpts.length > 0
-        ? selectedOpts.join(', ')
-        : '';
+          ? selectedOpts.join(', ')
+          : '';
 
     let itemAudioUrl = typeof it.audioUrl === 'string' ? it.audioUrl : '';
     const relProd = it.product as Record<string, unknown> | null | undefined;
@@ -302,19 +302,17 @@ export const prisma = {
           where: whereClause,
           orderBy: { createdAt: 'desc' }
         });
-        if (rows && rows.length > 0) {
-          return rows.map((r: any) => ({
-            id: r.id,
-            name: r.name,
-            initials: r.initials || (r.name ? r.name.substring(0, 2).toUpperCase() : 'SD'),
-            location: r.location || 'Torbalı, İzmir',
-            rating: Number(r.rating || 5),
-            comment: r.comment,
-            isApproved: Boolean(r.isApproved),
-            date: r.createdAt ? new Date(r.createdAt).toLocaleDateString('tr-TR') : 'Bugün',
-            createdAt: r.createdAt
-          }));
-        }
+        return (rows || []).map((r: any) => ({
+          id: r.id,
+          name: r.name,
+          initials: r.initials || (r.name ? r.name.substring(0, 2).toUpperCase() : 'SD'),
+          location: r.location || 'Torbalı, İzmir',
+          rating: Number(r.rating || 5),
+          comment: r.comment,
+          isApproved: Boolean(r.isApproved),
+          date: r.createdAt ? new Date(r.createdAt).toLocaleDateString('tr-TR') : 'Bugün',
+          createdAt: r.createdAt
+        }));
       } catch (err) {
         console.warn('Prisma review.findMany fallback to local db:', err);
       }
@@ -324,6 +322,14 @@ export const prisma = {
         return list.filter((r: any) => r.isApproved === true);
       }
       return list;
+    },
+
+    findFirst: async (args?: Prisma.ReviewFindFirstArgs) => {
+      try {
+        return await rawPrisma.review.findFirst(args);
+      } catch {
+        return null;
+      }
     },
 
     update: async (args: { where: { id: number | string }; data: { isApproved?: boolean } }) => {
@@ -396,6 +402,14 @@ export const prisma = {
         return rows;
       } catch {
         return db.getFeedbacks();
+      }
+    },
+
+    findFirst: async (args?: Prisma.FeedbackFindFirstArgs) => {
+      try {
+        return await rawPrisma.feedback.findFirst(args);
+      } catch {
+        return null;
       }
     },
 
@@ -612,15 +626,15 @@ export const prisma = {
           const existingProducts =
             orderedProductIds.length > 0
               ? await tx.product.findMany({
-                  where: { id: { in: orderedProductIds } },
-                  select: {
-                    id: true,
-                    name: true,
-                    stock: true,
-                    trackStock: true,
-                    isAvailable: true
-                  }
-                })
+                where: { id: { in: orderedProductIds } },
+                select: {
+                  id: true,
+                  name: true,
+                  stock: true,
+                  trackStock: true,
+                  isAvailable: true
+                }
+              })
               : [];
           const productMap = new Map(existingProducts.map((p) => [p.id, p]));
 
@@ -693,8 +707,8 @@ export const prisma = {
                   const opts = Array.isArray(it.selectedOptions)
                     ? it.selectedOptions
                     : typeof it.details === 'string' && it.details
-                    ? [it.details]
-                    : [];
+                      ? [it.details]
+                      : [];
                   return {
                     productId: safeProductId,
                     name: String(it.name || 'Ürün'),
