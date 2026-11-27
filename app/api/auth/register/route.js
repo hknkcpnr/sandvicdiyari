@@ -1,5 +1,6 @@
 import { db } from '@/lib/db';
 import { rawPrisma } from '@/lib/prisma';
+import { invalidateAdminUsersServerCache } from '@/lib/productCache';
 import {
   ConflictError,
   ValidationError,
@@ -126,6 +127,7 @@ export async function POST(request) {
       phoneVerified: false
     };
     const { pass: _, passHash: __, ...userSafe } = finalRecord;
+    invalidateAdminUsersServerCache();
 
     return jsonSuccess(
       {

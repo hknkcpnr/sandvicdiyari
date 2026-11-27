@@ -5,11 +5,20 @@ import { useDispatch } from 'react-redux';
 import { showMessageModal } from '@/store/slices/uiSlice';
 import { formatTurkishPhoneInput, toWhatsAppPhone } from '@/lib/phoneUtils';
 import AdminPagination from './AdminPagination';
+import {
+  fetchAdminUsersCached,
+  getCachedAdminUsersData,
+  setCachedAdminUsersData,
+  invalidateAdminUsersCache
+} from '@/lib/adminUsersCache';
 
 export default function MembersTab({ onCustomerUpdated }) {
   const dispatch = useDispatch();
-  const [members, setMembers] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const initialCached = getCachedAdminUsersData();
+  const [members, setMembers] = useState(
+    Array.isArray(initialCached?.customers) ? initialCached.customers : []
+  );
+  const [loading, setLoading] = useState(!initialCached?.loadedScopes?.customers);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all'); // 'all' | 'pending' | 'active' | 'blocked'
   const [approvingId, setApprovingId] = useState(null);
@@ -42,12 +51,18 @@ export default function MembersTab({ onCustomerUpdated }) {
   const [custFormError, setCustFormError] = useState('');
   const [isSavingCustomer, setIsSavingCustomer] = useState(false);
 
-  // API'den üyeleri çek
-  const fetchMembers = async () => {
+  // API'den üyeleri çek (önbellek varsa DB'ye gitmeden tarayıcıdan sunar)
+  const fetchMembers = async (force = false) => {
+    const cached = getCachedAdminUsersData();
+    if (!force && cached?.loadedScopes?.customers && Array.isArray(cached.customers)) {
+      setMembers(cached.customers);
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
     try {
-      const res = await fetch('/api/admin/users');
-      const json = await res.json();
+      const json = await fetchAdminUsersCached({ force: force === true, scope: 'customers' });
       if (json.success && json.data) {
         setMembers(json.data.customers || []);
       }
@@ -59,7 +74,27 @@ export default function MembersTab({ onCustomerUpdated }) {
   };
 
   useEffect(() => {
-    fetchMembers();
+    fetchMembers(false);
+
+    const handleUsersUpdated = (e) => {
+      if (Array.isArray(e?.detail?.customers)) {
+        setMembers(e.detail.customers);
+        setLoading(false);
+      }
+    };
+    const handleStorage = (e) => {
+      if (e.key === 'sandwich_users_updated') {
+        invalidateAdminUsersCache();
+        fetchMembers(true);
+      }
+    };
+
+    window.addEventListener('sandwich_users_updated', handleUsersUpdated);
+    window.addEventListener('storage', handleStorage);
+    return () => {
+      window.removeEventListener('sandwich_users_updated', handleUsersUpdated);
+      window.removeEventListener('storage', handleStorage);
+    };
   }, []);
 
   // Filtrelenmiş Üyeler
@@ -154,7 +189,12 @@ export default function MembersTab({ onCustomerUpdated }) {
       }
 
       setIsNotifyModalOpen(false);
-      setMembers(Array.isArray(json.data?.customers) ? json.data.customers : members);
+      if (Array.isArray(json.data?.customers)) {
+        setMembers(json.data.customers);
+        setCachedAdminUsersData({ customers: json.data.customers }, { broadcast: true });
+      } else {
+        invalidateAdminUsersCache({ broadcast: true });
+      }
       if (onCustomerUpdated) onCustomerUpdated(json.data?.customers);
 
       try {
@@ -259,8 +299,10 @@ export default function MembersTab({ onCustomerUpdated }) {
 
       if (Array.isArray(json.data?.customers)) {
         setMembers(json.data.customers);
+        setCachedAdminUsersData({ customers: json.data.customers }, { broadcast: true });
       } else {
-        await fetchMembers();
+        invalidateAdminUsersCache({ broadcast: true });
+        await fetchMembers(true);
       }
       if (onCustomerUpdated) onCustomerUpdated(json.data?.customers);
 
@@ -304,14 +346,15 @@ export default function MembersTab({ onCustomerUpdated }) {
 
       if (Array.isArray(json.data?.customers)) {
         setMembers(json.data.customers);
+        setCachedAdminUsersData({ customers: json.data.customers }, { broadcast: true });
       } else {
-        setMembers((prev) =>
-          prev.map((m) =>
-            m.id === member.id || m.email === member.email
-              ? { ...m, phoneVerified: true, phoneVerifiedAt: new Date().toISOString(), isBlocked: false }
-              : m
-          )
+        const nextMembers = members.map((m) =>
+          m.id === member.id || m.email === member.email
+            ? { ...m, phoneVerified: true, phoneVerifiedAt: new Date().toISOString(), isBlocked: false }
+            : m
         );
+        setMembers(nextMembers);
+        setCachedAdminUsersData({ customers: nextMembers }, { broadcast: true });
       }
       if (onCustomerUpdated) onCustomerUpdated(json.data?.customers);
 
@@ -362,6 +405,9 @@ export default function MembersTab({ onCustomerUpdated }) {
       setIsBlockModalOpen(false);
       if (Array.isArray(json.data?.customers)) {
         setMembers(json.data.customers);
+        setCachedAdminUsersData({ customers: json.data.customers }, { broadcast: true });
+      } else {
+        invalidateAdminUsersCache({ broadcast: true });
       }
       if (onCustomerUpdated) onCustomerUpdated(json.data?.customers);
 
@@ -417,6 +463,9 @@ export default function MembersTab({ onCustomerUpdated }) {
 
       if (Array.isArray(json.data?.customers)) {
         setMembers(json.data.customers);
+        setCachedAdminUsersData({ customers: json.data.customers }, { broadcast: true });
+      } else {
+        invalidateAdminUsersCache({ broadcast: true });
       }
       if (onCustomerUpdated) onCustomerUpdated(json.data?.customers);
 
@@ -449,8 +498,11 @@ export default function MembersTab({ onCustomerUpdated }) {
 
       if (Array.isArray(json.data?.customers)) {
         setMembers(json.data.customers);
+        setCachedAdminUsersData({ customers: json.data.customers }, { broadcast: true });
       } else {
-        setMembers((prev) => prev.filter((m) => m.id !== member.id && m.email !== member.email));
+        const nextMembers = members.filter((m) => m.id !== member.id && m.email !== member.email);
+        setMembers(nextMembers);
+        setCachedAdminUsersData({ customers: nextMembers }, { broadcast: true });
       }
       if (onCustomerUpdated) onCustomerUpdated(json.data?.customers);
 
@@ -667,7 +719,7 @@ export default function MembersTab({ onCustomerUpdated }) {
 
           <button
             type="button"
-            onClick={fetchMembers}
+            onClick={() => fetchMembers(true)}
             title="Listeyi Yenile"
             className="p-2.5 rounded-xl text-stone-600 hover:text-stone-900 bg-stone-50 hover:bg-stone-100 border border-stone-200 transition-colors cursor-pointer shrink-0"
           >

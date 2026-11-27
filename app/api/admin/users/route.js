@@ -1,6 +1,11 @@
 import { db } from '@/lib/db';
 import { orm } from '@/lib/orm/postgresEngine';
 import { rawPrisma } from '@/lib/prisma';
+import {
+  getCachedAdminUsers,
+  setCachedAdminUsers,
+  invalidateAdminUsersServerCache
+} from '@/lib/productCache';
 import { assertProtectedApiAccess, getOptionalAuthFromRequest, hashPassword } from '@/lib/security/auth';
 import { logUserActivity } from '@/lib/activityLogger';
 import {
@@ -60,41 +65,32 @@ async function getSyncedCustomers() {
       });
 
       if (Array.isArray(pgCustomers)) {
-        return pgCustomers.map((u) => {
-          const localUser = db.findUserByEmail(u.email) || {};
-          return {
-            id: u.id,
-            name: u.name,
-            email: u.email,
-            phone: u.phone || '',
-            address: u.address || '',
-            phoneVerified: Boolean(u.phoneVerified),
-            phoneVerifiedAt: u.phoneVerifiedAt || null,
-            isBlocked: Boolean(u.isBlocked),
-            blockReason: u.blockReason || '',
-            blockedAt: u.blockedAt || null,
-            notifications: Array.isArray(u.notifications)
-              ? u.notifications
-              : Array.isArray(localUser.notifications)
-              ? localUser.notifications
-              : [],
-            orders: Array.isArray(u.orders)
-              ? u.orders.map((o) => ({
-                  id: o.id,
-                  orderNumber: o.orderNumber,
-                  total:
-                    typeof o.total === 'object' && o.total !== null
-                      ? Number(o.total)
-                      : Number(o.total ?? 0),
-                  status: o.status,
-                  createdAt: o.createdAt
-                }))
-              : Array.isArray(localUser.orders)
-              ? localUser.orders
-              : [],
-            createdAt: u.createdAt
-          };
-        });
+        return pgCustomers.map((u) => ({
+          id: u.id,
+          name: u.name,
+          email: u.email,
+          phone: u.phone || '',
+          address: u.address || '',
+          phoneVerified: Boolean(u.phoneVerified),
+          phoneVerifiedAt: u.phoneVerifiedAt || null,
+          isBlocked: Boolean(u.isBlocked),
+          blockReason: u.blockReason || '',
+          blockedAt: u.blockedAt || null,
+          notifications: Array.isArray(u.notifications) ? u.notifications : [],
+          orders: Array.isArray(u.orders)
+            ? u.orders.map((o) => ({
+                id: o.id,
+                orderNumber: o.orderNumber,
+                total:
+                  typeof o.total === 'object' && o.total !== null
+                    ? Number(o.total)
+                    : Number(o.total ?? 0),
+                status: o.status,
+                createdAt: o.createdAt
+              }))
+            : [],
+          createdAt: u.createdAt
+        }));
       }
     }
   } catch (pgErr) {
@@ -180,17 +176,37 @@ async function getSyncedRolesAndAdmins() {
 export async function GET(request) {
   try {
     assertProtectedApiAccess(request, { endpoint: '/api/admin/users' });
-    const [{ roles, adminUsers }, customers] = await Promise.all([
-      getSyncedRolesAndAdmins(),
-      getSyncedCustomers()
-    ]);
+    const { searchParams } = new URL(request.url);
+    const rawScope = searchParams.get('scope') || 'all';
+    const scope = rawScope === 'staff' || rawScope === 'customers' ? rawScope : 'all';
+
+    const cached = getCachedAdminUsers(scope);
+    if (cached) {
+      return jsonSuccess({
+        data: cached,
+        cached: true
+      });
+    }
+
+    let responseData;
+    if (scope === 'staff') {
+      const { roles, adminUsers } = await getSyncedRolesAndAdmins();
+      responseData = { adminUsers, roles };
+    } else if (scope === 'customers') {
+      const customers = await getSyncedCustomers();
+      responseData = { customers };
+    } else {
+      const [{ roles, adminUsers }, customers] = await Promise.all([
+        getSyncedRolesAndAdmins(),
+        getSyncedCustomers()
+      ]);
+      responseData = { adminUsers, roles, customers };
+    }
+
+    setCachedAdminUsers(scope, responseData);
 
     return jsonSuccess({
-      data: {
-        adminUsers,
-        roles,
-        customers
-      }
+      data: responseData
     });
   } catch (error) {
     return handleApiError(error, '/api/admin/users', request);
@@ -301,6 +317,7 @@ export async function POST(request) {
           details: { name, email, phone }
         });
 
+        invalidateAdminUsersServerCache();
         return jsonSuccess(
           {
             message: 'Yeni müşteri başarıyla eklendi.',
@@ -394,6 +411,7 @@ export async function POST(request) {
           details: { title, target: customerId || 'all' }
         });
 
+        invalidateAdminUsersServerCache();
         return jsonSuccess({
           message:
             !customerId || customerId === 'all'
@@ -449,6 +467,7 @@ export async function POST(request) {
           details: { customerId, verified: nextVerified }
         });
 
+        invalidateAdminUsersServerCache();
         return jsonSuccess({
           message: nextVerified
             ? 'Müşteri hesabı başarıyla onaylandı ve oturum açma izni verildi.'
@@ -490,6 +509,7 @@ export async function POST(request) {
           details: { customerId }
         });
 
+        invalidateAdminUsersServerCache();
         return jsonSuccess({
           message: 'Müşteri kaydı sistemden silindi.',
           data: {
@@ -539,6 +559,7 @@ export async function POST(request) {
           details: { customerId, isBlocked, reason }
         });
 
+        invalidateAdminUsersServerCache();
         return jsonSuccess({
           message: isBlocked ? 'Üye başarıyla engellendi.' : 'Üyenin engeli kaldırıldı.',
           data: {
@@ -640,6 +661,7 @@ export async function POST(request) {
           details: { customerId, updates: pgUpdates }
         });
 
+        invalidateAdminUsersServerCache();
         return jsonSuccess({
           message: 'Müşteri bilgileri başarıyla güncellendi.',
           data: {
@@ -716,6 +738,7 @@ export async function POST(request) {
         details: { roleId: savedRole.id, name: savedRole.name }
       });
 
+      invalidateAdminUsersServerCache();
       return jsonSuccess({
         message: 'Rol modeli başarıyla kaydedildi.',
         data: {
@@ -860,6 +883,7 @@ export async function POST(request) {
       details: { userId: savedUser.id, name, email, roleId }
     });
 
+    invalidateAdminUsersServerCache();
     return jsonSuccess({
       message: 'Kullanıcı başarıyla kaydedildi.',
       data: {
@@ -935,6 +959,7 @@ export async function DELETE(request) {
         details: { roleId: id }
       });
 
+      invalidateAdminUsersServerCache();
       return jsonSuccess({
         message: 'Rol modeli başarıyla silindi.',
         data: {
@@ -985,6 +1010,7 @@ export async function DELETE(request) {
         details: { customerId: id }
       });
 
+      invalidateAdminUsersServerCache();
       return jsonSuccess({
         message: 'Müşteri kaydı silindi.',
         data: {
@@ -1031,6 +1057,7 @@ export async function DELETE(request) {
       details: { userId: id }
     });
 
+    invalidateAdminUsersServerCache();
     return jsonSuccess({
       message: 'Kullanıcı silindi.',
       data: {

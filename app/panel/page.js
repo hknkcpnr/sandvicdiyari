@@ -21,6 +21,7 @@ import AdminPagination from '@/components/admin/AdminPagination';
 import { buildWhatsAppOrderConfirmUrl } from '@/lib/phoneUtils';
 import { getOrderPauseState } from '@/lib/orderPause';
 import { printThermalReceipt, generateReceiptHtml } from '@/lib/thermalReceipt';
+import { fetchAdminUsersCached, invalidateAdminUsersCache } from '@/lib/adminUsersCache';
 
 // Status styling and Turkish badge helpers
 const STATUS_CONFIG = {
@@ -358,12 +359,11 @@ export default function AdminDashboardPage() {
     'Dış Kurye'
   ]);
 
-  const loadCouriers = useCallback(async () => {
+  const loadCouriers = useCallback(async (force = false) => {
     try {
-      const res = await fetch('/api/admin/users');
-      if (!res.ok) return;
-      const json = await res.json();
-      const payload = json?.data || json || {};
+      const json = await fetchAdminUsersCached({ force, scope: 'staff' });
+      if (!json?.success) return;
+      const payload = json?.data || {};
       const adminUsers = Array.isArray(payload.adminUsers) ? payload.adminUsers : [];
       const roles = Array.isArray(payload.roles) ? payload.roles : [];
 
@@ -434,23 +434,22 @@ export default function AdminDashboardPage() {
     loadCouriers();
 
     const handleUsersUpdated = () => {
-      loadCouriers();
+      loadCouriers(false);
     };
 
     const handleStorage = (e) => {
       if (e.key === 'sandwich_users_updated') {
-        loadCouriers();
+        invalidateAdminUsersCache();
+        loadCouriers(true);
       }
     };
 
     window.addEventListener('sandwich_users_updated', handleUsersUpdated);
     window.addEventListener('storage', handleStorage);
-    window.addEventListener('focus', handleUsersUpdated);
 
     return () => {
       window.removeEventListener('sandwich_users_updated', handleUsersUpdated);
       window.removeEventListener('storage', handleStorage);
-      window.removeEventListener('focus', handleUsersUpdated);
     };
   }, [loadCouriers]);
   const knownOrderIdsRef = useRef(new Set());
@@ -984,6 +983,7 @@ export default function AdminDashboardPage() {
     setAdminUser(null);
     sessionStorage.removeItem('sd_admin_session');
     localStorage.removeItem('sd_admin_session');
+    invalidateAdminUsersCache();
   };
 
   // Open Order Detail & View Tracker (Mark Viewed, but DO NOT Accept!)

@@ -7,6 +7,7 @@ import SiteContentEditorTab from '@/components/admin/SiteContentEditorTab';
 import SettingsTab from '@/components/admin/SettingsTab';
 import ThemeColorPicker from '@/components/admin/ThemeColorPicker';
 import { applyPanelTheme, getSavedTheme } from '@/lib/themeColors';
+import { fetchAdminUsersCached, invalidateAdminUsersCache } from '@/lib/adminUsersCache';
 
 const ADMIN_SESSION_KEY = 'sandwich_admin_session';
 const ADMIN_SETTINGS_KEY = 'sandwich_admin_settings';
@@ -140,19 +141,18 @@ export default function YoneticiPage() {
     };
   }, []);
 
-  const fetchFinanceData = async () => {
+  const fetchFinanceData = async (forceUsers = false) => {
     setLoadingFinance(true);
     try {
-      const [ordersRes, finRes, usersRes, visitorsRes, productsRes] = await Promise.all([
+      const [ordersRes, finRes, usersJson, visitorsRes, productsRes] = await Promise.all([
         fetch('/api/orders', { cache: 'no-store' }),
         fetch('/api/finance', { cache: 'no-store' }),
-        fetch('/api/admin/users', { cache: 'no-store' }),
+        fetchAdminUsersCached({ force: forceUsers === true, scope: 'staff' }),
         fetch('/api/visitors', { cache: 'no-store' }),
         fetch('/api/products', { cache: 'no-store' })
       ]);
       const ordersJson = await ordersRes.json();
       const finJson = await finRes.json();
-      const usersJson = await usersRes.json();
       const visitorsJson = await visitorsRes.json().catch(() => ({}));
       const productsJson = await productsRes.json().catch(() => ({}));
       if (ordersJson.success && Array.isArray(ordersJson.data)) {
@@ -232,6 +232,7 @@ export default function YoneticiPage() {
   const handleLogout = () => {
     sessionStorage.removeItem(ADMIN_SESSION_KEY);
     localStorage.removeItem(ADMIN_SESSION_KEY);
+    invalidateAdminUsersCache();
     setAdminUser(null);
   };
 
@@ -1179,7 +1180,7 @@ export default function YoneticiPage() {
 
             <button
               type="button"
-              onClick={fetchFinanceData}
+              onClick={() => fetchFinanceData(true)}
               className="w-8 h-8 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-600 flex items-center justify-center text-xs cursor-pointer"
               title="Verileri Yenile"
             >
@@ -1246,7 +1247,7 @@ export default function YoneticiPage() {
                   <button
                     type="button"
                     onClick={() => {
-                      fetchFinanceData();
+                      fetchFinanceData(true);
                       setMobileActionsOpen(false);
                     }}
                     className="w-full flex items-center justify-between px-3 py-2 rounded-xl bg-stone-50 hover:bg-stone-100 border border-stone-200/70 transition-colors cursor-pointer"

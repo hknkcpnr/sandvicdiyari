@@ -4,6 +4,12 @@ import { useState, useEffect } from 'react';
 import { useDispatch } from 'react-redux';
 import { showMessageModal } from '@/store/slices/uiSlice';
 import { formatTurkishPhoneInput } from '@/lib/phoneUtils';
+import {
+  fetchAdminUsersCached,
+  getCachedAdminUsersData,
+  setCachedAdminUsersData,
+  invalidateAdminUsersCache
+} from '@/lib/adminUsersCache';
 
 // Sistemde kategorize edilmiş tüm yetki modülleri
 export const PERMISSION_GROUPS = [
@@ -76,11 +82,21 @@ const ROLE_COLORS = {
  */
 export default function UsersRolesTab({ currentAdmin, onRolesOrUsersUpdated }) {
   const dispatch = useDispatch();
+  const initialCached = getCachedAdminUsersData();
+  const hasFullCache = Boolean(
+    initialCached?.loadedScopes?.staff && initialCached?.loadedScopes?.customers
+  );
   const [subTab, setSubTab] = useState('panel'); // 'panel' | 'kurye' | 'yonetici' | 'customers' | 'roles'
-  const [adminUsers, setAdminUsers] = useState([]);
-  const [roles, setRoles] = useState([]);
-  const [customers, setCustomers] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [adminUsers, setAdminUsers] = useState(
+    Array.isArray(initialCached?.adminUsers) ? initialCached.adminUsers : []
+  );
+  const [roles, setRoles] = useState(
+    Array.isArray(initialCached?.roles) ? initialCached.roles : []
+  );
+  const [customers, setCustomers] = useState(
+    Array.isArray(initialCached?.customers) ? initialCached.customers : []
+  );
+  const [loading, setLoading] = useState(!hasFullCache);
   const [searchQuery, setSearchQuery] = useState('');
 
   // Kullanıcı Modal Durumları
@@ -181,12 +197,30 @@ export default function UsersRolesTab({ currentAdmin, onRolesOrUsersUpdated }) {
     } catch (e) {}
   };
 
-  // API'den verileri getir
-  const fetchData = async () => {
+  // API'den verileri getir (tarayıcı önbelleği doluysa DB'ye gitmeden anında sunar)
+  const fetchData = async (force = false) => {
+    const cached = getCachedAdminUsersData();
+    if (
+      !force &&
+      cached?.loadedScopes?.staff &&
+      cached?.loadedScopes?.customers &&
+      Array.isArray(cached.adminUsers) &&
+      Array.isArray(cached.roles) &&
+      Array.isArray(cached.customers)
+    ) {
+      setAdminUsers(cached.adminUsers);
+      setRoles(cached.roles);
+      setCustomers(cached.customers);
+      if (!userRoleId && cached.roles.length > 0) {
+        setUserRoleId(cached.roles[0].id);
+      }
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
     try {
-      const res = await fetch('/api/admin/users');
-      const json = await res.json();
+      const json = await fetchAdminUsersCached({ force: force === true, scope: 'all' });
       if (json.success && json.data) {
         setAdminUsers(json.data.adminUsers || []);
         setRoles(json.data.roles || []);
@@ -194,7 +228,6 @@ export default function UsersRolesTab({ currentAdmin, onRolesOrUsersUpdated }) {
         if (!userRoleId && json.data.roles?.length > 0) {
           setUserRoleId(json.data.roles[0].id);
         }
-        notifyUsersChanged(json.data);
       }
     } catch (err) {
       console.error('Kullanıcı ve rol verileri alınamadı:', err);
@@ -204,7 +237,29 @@ export default function UsersRolesTab({ currentAdmin, onRolesOrUsersUpdated }) {
   };
 
   useEffect(() => {
-    fetchData();
+    fetchData(false);
+
+    const handleUsersUpdated = (e) => {
+      const detail = e?.detail;
+      if (!detail || typeof detail !== 'object') return;
+      if (Array.isArray(detail.adminUsers)) setAdminUsers(detail.adminUsers);
+      if (Array.isArray(detail.roles)) setRoles(detail.roles);
+      if (Array.isArray(detail.customers)) setCustomers(detail.customers);
+      setLoading(false);
+    };
+    const handleStorage = (e) => {
+      if (e.key === 'sandwich_users_updated') {
+        invalidateAdminUsersCache();
+        fetchData(true);
+      }
+    };
+
+    window.addEventListener('sandwich_users_updated', handleUsersUpdated);
+    window.addEventListener('storage', handleStorage);
+    return () => {
+      window.removeEventListener('sandwich_users_updated', handleUsersUpdated);
+      window.removeEventListener('storage', handleStorage);
+    };
   }, []);
 
   // Helper: Bir personelin veya rolün hangi panele (/yonetici, /panel, /kurye) ait olduğunu belirle
@@ -304,8 +359,8 @@ export default function UsersRolesTab({ currentAdmin, onRolesOrUsersUpdated }) {
       setAdminUsers(json.data.adminUsers || []);
       setRoles(json.data.roles || []);
       setIsUserModalOpen(false);
-      if (onRolesOrUsersUpdated) onRolesOrUsersUpdated(json.data);
-      notifyUsersChanged(json.data);
+      const mergedCache = setCachedAdminUsersData(json.data, { broadcast: true });
+      if (onRolesOrUsersUpdated) onRolesOrUsersUpdated(mergedCache);
 
       dispatch(
         showMessageModal({
@@ -342,8 +397,8 @@ export default function UsersRolesTab({ currentAdmin, onRolesOrUsersUpdated }) {
       const json = await res.json();
       if (json.success && json.data) {
         setAdminUsers(json.data.adminUsers || []);
-        if (onRolesOrUsersUpdated) onRolesOrUsersUpdated(json.data);
-        notifyUsersChanged(json.data);
+        const mergedCache = setCachedAdminUsersData(json.data, { broadcast: true });
+        if (onRolesOrUsersUpdated) onRolesOrUsersUpdated(mergedCache);
       }
     } catch (err) {
       console.error(err);
@@ -365,8 +420,8 @@ export default function UsersRolesTab({ currentAdmin, onRolesOrUsersUpdated }) {
       const json = await res.json();
       if (json.success) {
         setAdminUsers(json.data.adminUsers || []);
-        if (onRolesOrUsersUpdated) onRolesOrUsersUpdated(json.data);
-        notifyUsersChanged(json.data);
+        const mergedCache = setCachedAdminUsersData(json.data, { broadcast: true });
+        if (onRolesOrUsersUpdated) onRolesOrUsersUpdated(mergedCache);
         dispatch(
           showMessageModal({
             title: 'Kullanıcı Silindi',
@@ -499,7 +554,8 @@ export default function UsersRolesTab({ currentAdmin, onRolesOrUsersUpdated }) {
       setRoles(json.data.roles || []);
       setAdminUsers(json.data.adminUsers || []);
       setIsRoleModalOpen(false);
-      if (onRolesOrUsersUpdated) onRolesOrUsersUpdated(json.data);
+      const mergedCache = setCachedAdminUsersData(json.data, { broadcast: true });
+      if (onRolesOrUsersUpdated) onRolesOrUsersUpdated(mergedCache);
 
       dispatch(
         showMessageModal({
@@ -535,7 +591,8 @@ export default function UsersRolesTab({ currentAdmin, onRolesOrUsersUpdated }) {
       if (json.success) {
         setRoles(json.data.roles || []);
         setAdminUsers(json.data.adminUsers || []);
-        if (onRolesOrUsersUpdated) onRolesOrUsersUpdated(json.data);
+        const mergedCache = setCachedAdminUsersData(json.data, { broadcast: true });
+        if (onRolesOrUsersUpdated) onRolesOrUsersUpdated(mergedCache);
 
         dispatch(
           showMessageModal({
@@ -620,8 +677,10 @@ export default function UsersRolesTab({ currentAdmin, onRolesOrUsersUpdated }) {
 
       if (Array.isArray(json.data?.customers)) {
         setCustomers(json.data.customers);
+        setCachedAdminUsersData({ customers: json.data.customers }, { broadcast: true });
       } else {
-        await fetchData();
+        invalidateAdminUsersCache({ broadcast: true });
+        await fetchData(true);
       }
       setIsCustomerModalOpen(false);
       dispatch(
@@ -654,6 +713,9 @@ export default function UsersRolesTab({ currentAdmin, onRolesOrUsersUpdated }) {
       if (json.success) {
         if (Array.isArray(json.data?.customers)) {
           setCustomers(json.data.customers);
+          setCachedAdminUsersData({ customers: json.data.customers }, { broadcast: true });
+        } else {
+          invalidateAdminUsersCache({ broadcast: true });
         }
         dispatch(
           showMessageModal({
@@ -682,7 +744,9 @@ export default function UsersRolesTab({ currentAdmin, onRolesOrUsersUpdated }) {
       });
       const json = await res.json();
       if (json.success) {
-        setCustomers(Array.isArray(json.data?.customers) ? json.data.customers : []);
+        const nextCustomers = Array.isArray(json.data?.customers) ? json.data.customers : [];
+        setCustomers(nextCustomers);
+        setCachedAdminUsersData({ customers: nextCustomers }, { broadcast: true });
 
         try {
           if (typeof window !== 'undefined') {
@@ -999,7 +1063,7 @@ export default function UsersRolesTab({ currentAdmin, onRolesOrUsersUpdated }) {
           {/* Yenile */}
           <button
             type="button"
-            onClick={fetchData}
+            onClick={() => fetchData(true)}
             title="Listeyi Yenile"
             className="p-2 rounded-xl text-stone-600 hover:text-stone-900 bg-stone-50 hover:bg-stone-100 border border-stone-200 transition-colors cursor-pointer shrink-0"
           >
