@@ -6,8 +6,11 @@ import { showMessageModal } from '@/store/slices/uiSlice';
 import {
   DEFAULT_PRODUCT_OPTIONS,
   DEFAULT_MENU_DRINK_GROUPS,
+  DEFAULT_MENU_COLA_EXTRA_PRICE,
   MENU_DRINK_TIER_META,
-  normalizeMenuDrinkGroups
+  normalizeMenuDrinkGroups,
+  applyGlobalColaPriceToMenuGroups,
+  normalizeMenuColaExtraPrice,
 } from '@/lib/productOptionsDefaults';
 import {
   getBrowserCache,
@@ -41,6 +44,18 @@ export default function OptionsManagementTab() {
       ? initialCached.extraSaucePrice
       : DEFAULT_PRODUCT_OPTIONS.extraSaucePrice ?? 5
   );
+  const [menuColaExtraPrice, setMenuColaExtraPrice] = useState(
+    typeof initialCached?.menuColaExtraPrice === 'number'
+      ? normalizeMenuColaExtraPrice(initialCached.menuColaExtraPrice)
+      : DEFAULT_MENU_COLA_EXTRA_PRICE
+  );
+  const [globalColaInput, setGlobalColaInput] = useState(
+    String(
+      typeof initialCached?.menuColaExtraPrice === 'number'
+        ? normalizeMenuColaExtraPrice(initialCached.menuColaExtraPrice)
+        : DEFAULT_MENU_COLA_EXTRA_PRICE
+    )
+  );
   const [extras, setExtras] = useState(
     Array.isArray(initialCached?.extras) ? initialCached.extras : []
   );
@@ -68,6 +83,11 @@ export default function OptionsManagementTab() {
     if (!data || typeof data !== 'object') return;
     if (typeof data.freeSauceLimit === 'number') setFreeSauceLimit(data.freeSauceLimit);
     if (typeof data.extraSaucePrice === 'number') setExtraSaucePrice(data.extraSaucePrice);
+    if (typeof data.menuColaExtraPrice === 'number') {
+      const safeCola = normalizeMenuColaExtraPrice(data.menuColaExtraPrice);
+      setMenuColaExtraPrice(safeCola);
+      setGlobalColaInput(String(safeCola));
+    }
     if (Array.isArray(data.sauces)) setSauces(data.sauces);
     if (Array.isArray(data.extras)) setExtras(data.extras);
     if (Array.isArray(data.drinks)) setDrinks(data.drinks);
@@ -123,12 +143,18 @@ export default function OptionsManagementTab() {
     updatedDrinks,
     limitOverride,
     priceOverride,
-    menuDrinkGroupsOverride
+    menuDrinkGroupsOverride,
+    colaPriceOverride
   ) => {
     const nextGroups = menuDrinkGroupsOverride || menuDrinkGroups;
+    const nextColaPrice =
+      typeof colaPriceOverride === 'number'
+        ? normalizeMenuColaExtraPrice(colaPriceOverride)
+        : menuColaExtraPrice;
     const payload = {
       freeSauceLimit: typeof limitOverride === 'number' ? limitOverride : freeSauceLimit,
       extraSaucePrice: typeof priceOverride === 'number' ? priceOverride : extraSaucePrice,
+      menuColaExtraPrice: nextColaPrice,
       sauces: updatedSauces || sauces,
       extras: updatedExtras || extras,
       drinks: updatedDrinks || nextGroups?.['1'] || drinks,
@@ -345,6 +371,8 @@ export default function OptionsManagementTab() {
     if (!confirm('Tüm sos ve ekstraları varsayılan fabrika ayarlarına sıfırlamak istiyor musunuz?')) return;
     setFreeSauceLimit(DEFAULT_PRODUCT_OPTIONS.freeSauceLimit ?? 2);
     setExtraSaucePrice(DEFAULT_PRODUCT_OPTIONS.extraSaucePrice ?? 5);
+    setMenuColaExtraPrice(DEFAULT_MENU_COLA_EXTRA_PRICE);
+    setGlobalColaInput(String(DEFAULT_MENU_COLA_EXTRA_PRICE));
     setSauces(DEFAULT_PRODUCT_OPTIONS.sauces);
     setExtras(DEFAULT_PRODUCT_OPTIONS.extras);
     setDrinks(DEFAULT_PRODUCT_OPTIONS.drinks);
@@ -355,13 +383,52 @@ export default function OptionsManagementTab() {
       DEFAULT_PRODUCT_OPTIONS.drinks,
       DEFAULT_PRODUCT_OPTIONS.freeSauceLimit ?? 2,
       DEFAULT_PRODUCT_OPTIONS.extraSaucePrice ?? 5,
-      DEFAULT_MENU_DRINK_GROUPS
+      DEFAULT_MENU_DRINK_GROUPS,
+      DEFAULT_MENU_COLA_EXTRA_PRICE
     );
     if (ok) {
       dispatch(
         showMessageModal({
           title: 'Varsayılanlara Sıfırlandı',
           text: 'Tüm soslar, ekstra malzemeler ve menü içecekleri fabrika ayarlarına döndürüldü.',
+          type: 'success',
+        })
+      );
+    }
+  };
+
+  // Genel menü kola farkını tüm menü boyutlarına (1-4 kişilik) tek seferde uygula
+  const handleApplyGlobalColaPrice = async () => {
+    const parsed = Number(globalColaInput);
+    if (!Number.isFinite(parsed) || parsed < 0 || parsed > 500) {
+      dispatch(
+        showMessageModal({
+          title: 'Geçersiz Tutar',
+          text: 'Lütfen ₺0 ile ₺500 arasında geçerli bir kola farkı girin.',
+          type: 'warning',
+        })
+      );
+      return;
+    }
+    const cleanPrice = normalizeMenuColaExtraPrice(parsed);
+    const nextGroups = applyGlobalColaPriceToMenuGroups(menuDrinkGroups, cleanPrice);
+    setMenuColaExtraPrice(cleanPrice);
+    setGlobalColaInput(String(cleanPrice));
+    setMenuDrinkGroups(nextGroups);
+    const ok = await persistOptions(
+      sauces,
+      extras,
+      nextGroups['1'],
+      freeSauceLimit,
+      extraSaucePrice,
+      nextGroups,
+      cleanPrice
+    );
+    if (ok) {
+      dispatch(
+        showMessageModal({
+          title: 'Genel Kola Farkı Güncellendi! 🥤',
+          text: `Tüm menü boyutlarında (1-4 kişilik) standart fiyat Ayran ile (+₺0.00) geçerli, Kola seçimi ise +₺${cleanPrice.toFixed(2)} farkla güncellendi.`,
           type: 'success',
         })
       );
@@ -885,6 +952,55 @@ export default function OptionsManagementTab() {
             {saving && (
               <span className="text-[11px] font-bold text-sky-700 shrink-0">Kaydediliyor...</span>
             )}
+          </div>
+
+          {/* Genel Menü Fiyat Kuralı: Ayran Dahil / Kola Farkı */}
+          <div className="bg-gradient-to-r from-amber-50 via-orange-50/70 to-white border border-amber-200 rounded-2xl p-4 flex flex-col lg:flex-row lg:items-center justify-between gap-3.5 shadow-2xs">
+            <div className="space-y-1">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="w-7 h-7 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center text-xs font-black">
+                  🥤
+                </span>
+                <h4 className="text-xs sm:text-sm font-extrabold text-stone-900">
+                  Genel Menü Kola Farkı (Tüm 1–4 Kişilik Menüler)
+                </h4>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200">
+                  Ayran: Standart Fiyata Dahil (+₺0)
+                </span>
+              </div>
+              <p className="text-[11px] text-stone-600 leading-relaxed">
+                Menülerin standart fiyatı <strong>Ayran</strong> ile birlikte geçerlidir. Müşteri <strong>Kola</strong> seçtiğinde tüm 1–4 kişilik menü fiyatlarına otomatik eklenecek tutarı buradan belirleyebilirsiniz (şu an: <strong>+₺{Number(menuColaExtraPrice).toFixed(2)}</strong>).
+              </p>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-stone-500">+₺</span>
+                <input
+                  type="number"
+                  min="0"
+                  max="500"
+                  step="1"
+                  value={globalColaInput}
+                  onChange={(e) => setGlobalColaInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      handleApplyGlobalColaPrice();
+                    }
+                  }}
+                  aria-label="Genel menü kola farkı (TL)"
+                  className="w-28 bg-white border border-amber-300 rounded-xl pl-8 pr-2.5 py-2 text-xs sm:text-sm font-extrabold text-stone-900 focus:outline-none focus:border-brand-500"
+                />
+              </div>
+              <button
+                type="button"
+                disabled={saving}
+                onClick={handleApplyGlobalColaPrice}
+                className="bg-brand-600 hover:bg-brand-700 disabled:opacity-60 text-white text-xs font-bold px-4 py-2 rounded-xl cursor-pointer transition-all shadow-2xs active:scale-95 whitespace-nowrap"
+              >
+                {saving ? 'Kaydediliyor...' : 'Tüm Menülere Uygula'}
+              </button>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

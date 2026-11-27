@@ -22,6 +22,17 @@ import { buildWhatsAppOrderConfirmUrl } from '@/lib/phoneUtils';
 import { getOrderPauseState } from '@/lib/orderPause';
 import { printThermalReceipt, generateReceiptHtml } from '@/lib/thermalReceipt';
 import { fetchAdminUsersCached, invalidateAdminUsersCache } from '@/lib/adminUsersCache';
+import {
+  getBrowserCache,
+  setBrowserCache,
+  invalidateBrowserCache,
+  fetchWithBrowserCache,
+  CACHE_TTL_LONG,
+} from '@/lib/browserDataCache';
+import {
+  DEFAULT_MENU_COLA_EXTRA_PRICE,
+  normalizeMenuColaExtraPrice,
+} from '@/lib/productOptionsDefaults';
 
 // Status styling and Turkish badge helpers
 const STATUS_CONFIG = {
@@ -499,6 +510,9 @@ export default function AdminDashboardPage() {
   const [imageInputMode, setImageInputMode] = useState('upload'); // 'upload' | 'presets' | 'url'
   const [dragActive, setDragActive] = useState(false);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const [menuColaExtraPrice, setMenuColaExtraPrice] = useState(DEFAULT_MENU_COLA_EXTRA_PRICE);
+  const [menuColaPriceInput, setMenuColaPriceInput] = useState(String(DEFAULT_MENU_COLA_EXTRA_PRICE));
+  const [savingColaPrice, setSavingColaPrice] = useState(false);
   const fileInputRef = useRef(null);
   const prodAudioInputRef = useRef(null);
 
@@ -1240,6 +1254,8 @@ export default function AdminDashboardPage() {
       const json = await res.json();
       if (json.success && json.products) {
         dispatch(setProducts(json.products));
+        invalidateBrowserCache('products_');
+        invalidateBrowserCache('inventory_');
         if (typeof window !== 'undefined') {
           try {
             localStorage.setItem('sandwich_inventory_updated', Date.now().toString());
@@ -1367,6 +1383,8 @@ export default function AdminDashboardPage() {
         if (json.success && json.data) {
           dispatch(updateProduct(json.data));
           fetchProducts();
+          invalidateBrowserCache('products_');
+          invalidateBrowserCache('inventory_');
           if (typeof window !== 'undefined') {
             localStorage.setItem('sandwich_inventory_updated', String(Date.now()));
           }
@@ -1391,6 +1409,8 @@ export default function AdminDashboardPage() {
         if (json.success && json.data) {
           dispatch(addProduct(json.data));
           fetchProducts();
+          invalidateBrowserCache('products_');
+          invalidateBrowserCache('inventory_');
           if (typeof window !== 'undefined') {
             localStorage.setItem('sandwich_inventory_updated', String(Date.now()));
           }
@@ -1417,6 +1437,13 @@ export default function AdminDashboardPage() {
         await fetch(`/api/products/${id}`, { method: 'DELETE' });
       } catch (e) {}
       dispatch(deleteProduct(id));
+      invalidateBrowserCache('products_');
+      invalidateBrowserCache('inventory_');
+      if (typeof window !== 'undefined') {
+        try {
+          localStorage.setItem('sandwich_inventory_updated', String(Date.now()));
+        } catch (e) {}
+      }
       dispatch(
         showMessageModal({
           title: 'Ürün Silindi',
@@ -1483,6 +1510,103 @@ export default function AdminDashboardPage() {
   const canManagePrices = hasPerm('manage_prices');
   const canUpdateStock = hasPerm('stock_update');
   const canDeleteOrder = hasPerm('delete_order');
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const applyOpts = (data) => {
+      if (!data || typeof data !== 'object') return;
+      if (typeof data.menuColaExtraPrice === 'number') {
+        const val = normalizeMenuColaExtraPrice(data.menuColaExtraPrice);
+        setMenuColaExtraPrice(val);
+        setMenuColaPriceInput(String(val));
+      }
+    };
+    const cached = getBrowserCache('options_all');
+    if (cached?.data) {
+      applyOpts(cached.data);
+    }
+    fetchWithBrowserCache('options_all', '/api/options', {
+      maxAgeMs: CACHE_TTL_LONG,
+      persist: true,
+      extract: (json) => json.data,
+    })
+      .then((res) => {
+        if (res?.ok && res.data) applyOpts(res.data);
+      })
+      .catch(() => {});
+
+    const onStorage = (e) => {
+      if (e.key === 'sandwich_options_updated') {
+        fetchWithBrowserCache('options_all', '/api/options', {
+          force: true,
+          persist: true,
+          extract: (json) => json.data,
+        })
+          .then((res) => {
+            if (res?.ok && res.data) applyOpts(res.data);
+          })
+          .catch(() => {});
+      }
+    };
+    window.addEventListener('storage', onStorage);
+    return () => {
+      window.removeEventListener('storage', onStorage);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const fresh = getBrowserCache('options_all')?.data;
+    if (fresh && typeof fresh.menuColaExtraPrice === 'number') {
+      const val = normalizeMenuColaExtraPrice(fresh.menuColaExtraPrice);
+      setMenuColaExtraPrice(val);
+      setMenuColaPriceInput(String(val));
+    }
+  }, [currentTab, isAddProductOpen]);
+
+  const handleSaveMenuColaExtraPrice = async (overrideVal) => {
+    if (!canManagePrices && !canManageOptions) {
+      showToast('Kola farkını değiştirmek için Fiyat Yönetimi veya Sos/Ekstra Yönetimi yetkisi gereklidir.', 'error');
+      return;
+    }
+    const parsed = Number(overrideVal !== undefined ? overrideVal : menuColaPriceInput);
+    if (!Number.isFinite(parsed) || parsed < 0 || parsed > 500) {
+      showToast('Lütfen ₺0 ile ₺500 arasında geçerli bir kola farkı girin.', 'error');
+      return;
+    }
+    const cleanPrice = normalizeMenuColaExtraPrice(parsed);
+    setSavingColaPrice(true);
+    try {
+      const res = await fetch('/api/options', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'update_menu_cola_price',
+          menuColaExtraPrice: cleanPrice,
+        }),
+      });
+      const json = await res.json();
+      if (!json.success) {
+        throw new Error(json.error || 'Kola farkı güncellenemedi.');
+      }
+      setMenuColaExtraPrice(cleanPrice);
+      setMenuColaPriceInput(String(cleanPrice));
+      if (json.data) {
+        setBrowserCache('options_all', json.data, {
+          persist: true,
+          broadcastKey: 'sandwich_options_updated',
+        });
+      }
+      showToast(
+        `Tüm menüler için Kola farkı +₺${cleanPrice.toFixed(2)} olarak güncellendi! (Ayran +₺0.00 dahil)`,
+        'success'
+      );
+    } catch (err) {
+      showToast(err.message || 'Kola farkı kaydedilirken hata oluştu.', 'error');
+    } finally {
+      setSavingColaPrice(false);
+    }
+  };
 
   const canEditSiteContent = Boolean(
     adminUser && (
@@ -3192,6 +3316,57 @@ export default function AdminDashboardPage() {
               </div>
             </div>
 
+            {/* Menü İçecek Kuralı (Ayran Dahil / Kola Farkı) */}
+            <div className="bg-gradient-to-r from-amber-50/90 via-orange-50/60 to-white border border-amber-200/90 rounded-2xl p-4 flex flex-col lg:flex-row lg:items-center justify-between gap-3.5 shadow-2xs">
+              <div className="space-y-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="w-7 h-7 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center text-xs font-black">
+                    🥤
+                  </span>
+                  <h4 className="text-xs sm:text-sm font-extrabold text-stone-900">
+                    Menü İçecek Fiyat Kuralı (Tüm Menüler İçin Geçerli)
+                  </h4>
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200">
+                    Ayran: Standart Fiyata Dahil (+₺0)
+                  </span>
+                </div>
+                <p className="text-[11px] text-stone-600 leading-relaxed">
+                  Tüm menülerin standart liste fiyatı <strong>Ayran</strong> ile birlikte geçerlidir. Müşteri menüde <strong>Kola</strong> seçerse tüm boyutlarda (1–4 kişilik) şu an{' '}
+                  <strong className="text-amber-800">+₺{menuColaExtraPrice.toFixed(2)}</strong> eklenir.
+                </p>
+              </div>
+              <div className="flex flex-wrap items-center gap-2 shrink-0">
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-stone-500">+₺</span>
+                  <input
+                    type="number"
+                    min="0"
+                    max="500"
+                    step="1"
+                    disabled={!canManagePrices && !canManageOptions}
+                    value={menuColaPriceInput}
+                    onChange={(e) => setMenuColaPriceInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleSaveMenuColaExtraPrice();
+                      }
+                    }}
+                    aria-label="Genel menü kola farkı (TL)"
+                    className="w-28 bg-white border border-amber-300 rounded-xl pl-8 pr-2.5 py-2 text-xs sm:text-sm font-extrabold text-stone-900 focus:outline-none focus:border-brand-500 disabled:opacity-60 disabled:cursor-not-allowed"
+                  />
+                </div>
+                <button
+                  type="button"
+                  disabled={savingColaPrice || (!canManagePrices && !canManageOptions)}
+                  onClick={() => handleSaveMenuColaExtraPrice()}
+                  className="bg-brand-600 hover:bg-brand-700 disabled:opacity-50 text-white text-xs font-bold px-4 py-2 rounded-xl cursor-pointer transition-all shadow-2xs active:scale-95 whitespace-nowrap"
+                >
+                  {savingColaPrice ? 'Kaydediliyor...' : 'Kola Farkını Güncelle'}
+                </button>
+              </div>
+            </div>
+
             {/* Products List */}
             <div className="bg-white rounded-2xl border border-stone-200 divide-y divide-stone-100 overflow-hidden shadow-xs">
               {paginatedProducts.map((p) => (
@@ -3266,7 +3441,21 @@ export default function AdminDashboardPage() {
                   </div>
 
                   <div className="flex items-center justify-between sm:justify-end gap-2 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-stone-100">
-                    <span className="font-bold text-stone-900 text-sm mr-2">₺{p.price.toFixed(2)}</span>
+                    {p.category === 'menu' ? (
+                      <div className="text-left sm:text-right mr-2">
+                        <div className="flex items-center sm:justify-end gap-1.5">
+                          <span className="font-bold text-stone-900 text-sm">₺{p.price.toFixed(2)}</span>
+                          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200">
+                            Ayran Dahil
+                          </span>
+                        </div>
+                        <span className="text-[10px] font-semibold text-amber-700 block">
+                          Kola ile: ₺{(Number(p.price) + menuColaExtraPrice).toFixed(2)} (+₺{menuColaExtraPrice.toFixed(0)})
+                        </span>
+                      </div>
+                    ) : (
+                      <span className="font-bold text-stone-900 text-sm mr-2">₺{p.price.toFixed(2)}</span>
+                    )}
                     <div className="flex items-center gap-1.5">
                       <button
                         onClick={() => openEditProductModal(p)}
@@ -4155,7 +4344,8 @@ export default function AdminDashboardPage() {
                       </div>
                       <div>
                         <label className="block text-[11px] font-bold text-stone-700 uppercase tracking-wide mb-1">
-                          Fiyat (₺) <span className="text-red-500">*</span>
+                          {prodCategory === 'menu' ? 'Standart Fiyat (Ayran Dahil) (₺)' : 'Fiyat (₺)'}{' '}
+                          <span className="text-red-500">*</span>
                           {editingProduct && !canManagePrices && (
                             <span className="ml-1 text-[10px] text-amber-600 font-semibold normal-case">
                               (Yetki Gerekli)
@@ -4174,6 +4364,60 @@ export default function AdminDashboardPage() {
                         />
                       </div>
                     </div>
+
+                    {prodCategory === 'menu' && (
+                      <div className="bg-amber-50/80 border border-amber-200 rounded-xl p-3 space-y-2.5">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <span className="text-[11px] font-extrabold text-stone-900 flex items-center gap-1.5">
+                            <span>🥤</span>
+                            <span>Menü İçecek Fiyatlandırması</span>
+                          </span>
+                          <div className="flex flex-wrap items-center gap-1.5 text-[10px] font-bold">
+                            <span className="px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800 border border-emerald-200">
+                              Ayran: ₺{(parseFloat(prodPrice) || 0).toFixed(2)} (Dahil)
+                            </span>
+                            <span className="px-2 py-0.5 rounded-md bg-amber-100 text-amber-900 border border-amber-300">
+                              Kola ile: ₺{((parseFloat(prodPrice) || 0) + menuColaExtraPrice).toFixed(2)} (+₺{menuColaExtraPrice.toFixed(2)})
+                            </span>
+                          </div>
+                        </div>
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-1 border-t border-amber-200/70">
+                          <p className="text-[10px] text-stone-600 leading-snug">
+                            Tüm menülerde Kola seçildiğinde eklenecek genel ek ücreti buradan güncelleyebilirsiniz:
+                          </p>
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            <div className="relative">
+                              <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[11px] font-bold text-stone-500">+₺</span>
+                              <input
+                                type="number"
+                                min="0"
+                                max="500"
+                                step="1"
+                                disabled={!canManagePrices && !canManageOptions}
+                                value={menuColaPriceInput}
+                                onChange={(e) => setMenuColaPriceInput(e.target.value)}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') {
+                                    e.preventDefault();
+                                    handleSaveMenuColaExtraPrice();
+                                  }
+                                }}
+                                aria-label="Menü Kola Ek Ücreti (TL)"
+                                className="w-24 bg-white border border-amber-300 rounded-lg pl-7 pr-2 py-1.5 text-xs font-extrabold text-stone-900 focus:outline-none focus:border-brand-500 disabled:opacity-60"
+                              />
+                            </div>
+                            <button
+                              type="button"
+                              disabled={savingColaPrice || (!canManagePrices && !canManageOptions)}
+                              onClick={() => handleSaveMenuColaExtraPrice()}
+                              className="bg-amber-600 hover:bg-amber-700 disabled:opacity-50 text-white text-[11px] font-bold px-3 py-1.5 rounded-lg cursor-pointer transition-all whitespace-nowrap"
+                            >
+                              {savingColaPrice ? 'Kaydediliyor...' : 'Kola Farkını Güncelle'}
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    )}
 
                     {/* STOK ADEDİ, DURUMU VE ROZET */}
                     <div className="grid grid-cols-3 gap-2.5">

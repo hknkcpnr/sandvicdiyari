@@ -1,6 +1,11 @@
 import { NextResponse } from 'next/server';
 import { db, DEFAULT_PRODUCT_OPTIONS } from '@/lib/db';
-import { normalizeMenuDrinkGroups } from '@/lib/productOptionsDefaults';
+import {
+  normalizeMenuDrinkGroups,
+  applyGlobalColaPriceToMenuGroups,
+  normalizeMenuColaExtraPrice,
+  isColaDrinkName,
+} from '@/lib/productOptionsDefaults';
 import { rawPrisma } from '@/lib/prisma';
 import { assertProtectedApiAccess, checkRateLimit } from '@/lib/security/auth';
 import { sanitizeText } from '@/lib/security/validation';
@@ -9,6 +14,78 @@ import { getCachedOptions, setCachedOptions, invalidateOptionsCache } from '@/li
 export const dynamic = 'force-dynamic';
 
 const PRODUCT_OPTIONS_KEY = 'custom_options';
+
+function resolveMenuColaExtraPrice(val) {
+  if (typeof val?.menuColaExtraPrice === 'number') {
+    return normalizeMenuColaExtraPrice(val.menuColaExtraPrice);
+  }
+  const groups = normalizeMenuDrinkGroups(val?.menuDrinkGroups);
+  const tier1Cola = (groups['1'] || []).find((d) => isColaDrinkName(d?.name));
+  if (tier1Cola && typeof tier1Cola.price === 'number') {
+    return normalizeMenuColaExtraPrice(tier1Cola.price);
+  }
+  return DEFAULT_PRODUCT_OPTIONS.menuColaExtraPrice;
+}
+
+function hydrateOptionsRecord(val) {
+  const safeVal = val && typeof val === 'object' ? val : {};
+  const menuDrinkGroups = normalizeMenuDrinkGroups(safeVal.menuDrinkGroups);
+  return {
+    freeSauceLimit:
+      typeof safeVal.freeSauceLimit === 'number'
+        ? safeVal.freeSauceLimit
+        : DEFAULT_PRODUCT_OPTIONS.freeSauceLimit,
+    extraSaucePrice:
+      typeof safeVal.extraSaucePrice === 'number'
+        ? safeVal.extraSaucePrice
+        : DEFAULT_PRODUCT_OPTIONS.extraSaucePrice,
+    menuColaExtraPrice: resolveMenuColaExtraPrice(safeVal),
+    sauces: Array.isArray(safeVal.sauces) ? safeVal.sauces : DEFAULT_PRODUCT_OPTIONS.sauces,
+    extras: Array.isArray(safeVal.extras) ? safeVal.extras : DEFAULT_PRODUCT_OPTIONS.extras,
+    drinks: Array.isArray(safeVal.drinks) ? safeVal.drinks : menuDrinkGroups['1'] || DEFAULT_PRODUCT_OPTIONS.drinks,
+    menuDrinkGroups,
+  };
+}
+
+async function readCurrentOptionsFromStore() {
+  if (rawPrisma && rawPrisma.systemSetting) {
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        const rec = await rawPrisma.systemSetting.findUnique({
+          where: { key: PRODUCT_OPTIONS_KEY }
+        });
+        if (rec && rec.value && typeof rec.value === 'object') {
+          return hydrateOptionsRecord(rec.value);
+        }
+        break;
+      } catch (pgErr) {
+        if (attempt === 0) {
+          await new Promise((r) => setTimeout(r, 150));
+        } else {
+          console.warn('Prisma custom_options read fallback:', pgErr.message);
+        }
+      }
+    }
+  }
+  return hydrateOptionsRecord(db.getProductOptions() || DEFAULT_PRODUCT_OPTIONS);
+}
+
+async function persistOptionsToStore(payloadToSave) {
+  const updated = db.saveProductOptions(payloadToSave);
+  try {
+    if (rawPrisma && rawPrisma.systemSetting) {
+      await rawPrisma.systemSetting.upsert({
+        where: { key: PRODUCT_OPTIONS_KEY },
+        update: { value: payloadToSave },
+        create: { key: PRODUCT_OPTIONS_KEY, value: payloadToSave }
+      });
+    }
+  } catch (pgErr) {
+    console.warn('Prisma custom_options write warning:', pgErr.message);
+  }
+  invalidateOptionsCache();
+  return updated;
+}
 
 export async function GET() {
   try {
@@ -21,44 +98,11 @@ export async function GET() {
       });
     }
 
-    if (rawPrisma && rawPrisma.systemSetting) {
-      for (let attempt = 0; attempt < 2; attempt++) {
-        try {
-          const rec = await rawPrisma.systemSetting.findUnique({
-            where: { key: PRODUCT_OPTIONS_KEY }
-          });
-          if (rec && rec.value && typeof rec.value === 'object') {
-            const val = rec.value;
-            const resData = {
-              freeSauceLimit: typeof val.freeSauceLimit === 'number' ? val.freeSauceLimit : DEFAULT_PRODUCT_OPTIONS.freeSauceLimit,
-              extraSaucePrice: typeof val.extraSaucePrice === 'number' ? val.extraSaucePrice : DEFAULT_PRODUCT_OPTIONS.extraSaucePrice,
-              sauces: Array.isArray(val.sauces) ? val.sauces : DEFAULT_PRODUCT_OPTIONS.sauces,
-              extras: Array.isArray(val.extras) ? val.extras : DEFAULT_PRODUCT_OPTIONS.extras,
-              drinks: Array.isArray(val.drinks) ? val.drinks : DEFAULT_PRODUCT_OPTIONS.drinks,
-              menuDrinkGroups: normalizeMenuDrinkGroups(val.menuDrinkGroups)
-            };
-            setCachedOptions(resData);
-            return NextResponse.json({
-              success: true,
-              data: resData
-            });
-          }
-          break;
-        } catch (pgErr) {
-          if (attempt === 0) {
-            await new Promise((r) => setTimeout(r, 150));
-          } else {
-            console.warn('Prisma custom_options read fallback:', pgErr.message);
-          }
-        }
-      }
-    }
-
-    const data = db.getProductOptions() || DEFAULT_PRODUCT_OPTIONS;
-    setCachedOptions(data);
+    const resData = await readCurrentOptionsFromStore();
+    setCachedOptions(resData);
     return NextResponse.json({
       success: true,
-      data
+      data: resData
     });
   } catch (error) {
     console.error('GET /api/options error:', error);
@@ -86,6 +130,28 @@ export async function POST(request) {
       );
     }
 
+    // Hızlı genel menü kola farkı güncellemesi (Menü & Ürünler veya Menü Düzenleme modalından)
+    if (body.action === 'update_menu_cola_price') {
+      const current = await readCurrentOptionsFromStore();
+      const nextColaPrice = normalizeMenuColaExtraPrice(body.menuColaExtraPrice);
+      const nextMenuDrinkGroups = applyGlobalColaPriceToMenuGroups(current.menuDrinkGroups, nextColaPrice);
+      const payloadToSave = {
+        freeSauceLimit: current.freeSauceLimit,
+        extraSaucePrice: current.extraSaucePrice,
+        menuColaExtraPrice: nextColaPrice,
+        sauces: current.sauces,
+        extras: current.extras,
+        drinks: nextMenuDrinkGroups['1'] || current.drinks,
+        menuDrinkGroups: nextMenuDrinkGroups,
+      };
+      const updated = await persistOptionsToStore(payloadToSave);
+      return NextResponse.json({
+        success: true,
+        message: `Menü kola farkı +₺${nextColaPrice.toFixed(2)} olarak güncellendi.`,
+        data: updated,
+      });
+    }
+
     // Sanitize sauces
     const cleanSauces = Array.isArray(body.sauces)
       ? body.sauces.map((s, idx) => ({
@@ -111,6 +177,7 @@ export async function POST(request) {
       ? body.drinks.map((d, idx) => ({
           id: d.id ? String(d.id).trim().slice(0, 50) : `drink-${Date.now()}-${idx}`,
           name: sanitizeText(typeof d === 'string' ? d : (d.name || ''), 60, 'İçecek Adı', '/api/options'),
+          price: typeof d === 'object' && typeof d.price === 'number' ? Math.max(0, Math.min(500, Number(d.price) || 0)) : 0,
           isAvailable: typeof d === 'object' && d.isAvailable === false ? false : true
         })).filter(d => d.name.length > 0)
       : DEFAULT_PRODUCT_OPTIONS.drinks;
@@ -142,30 +209,29 @@ export async function POST(request) {
       ? Math.max(0, Math.min(100, Number(body.extraSaucePrice)))
       : DEFAULT_PRODUCT_OPTIONS.extraSaucePrice;
 
+    const menuColaExtraPrice = typeof body.menuColaExtraPrice === 'number'
+      ? normalizeMenuColaExtraPrice(body.menuColaExtraPrice)
+      : resolveMenuColaExtraPrice({ menuDrinkGroups: cleanMenuDrinkGroups });
+
+    const finalMenuDrinkGroups = body.applyColaPriceToAllTiers === true
+      ? applyGlobalColaPriceToMenuGroups(cleanMenuDrinkGroups, menuColaExtraPrice)
+      : cleanMenuDrinkGroups;
+
+    const finalDrinks = body.applyColaPriceToAllTiers === true
+      ? (finalMenuDrinkGroups['1'] || cleanDrinks)
+      : cleanDrinks;
+
     const payloadToSave = {
       freeSauceLimit,
       extraSaucePrice,
+      menuColaExtraPrice,
       sauces: cleanSauces,
       extras: cleanExtras,
-      drinks: cleanDrinks,
-      menuDrinkGroups: cleanMenuDrinkGroups
+      drinks: finalDrinks,
+      menuDrinkGroups: finalMenuDrinkGroups
     };
 
-    const updated = db.saveProductOptions(payloadToSave);
-
-    try {
-      if (rawPrisma && rawPrisma.systemSetting) {
-        await rawPrisma.systemSetting.upsert({
-          where: { key: PRODUCT_OPTIONS_KEY },
-          update: { value: payloadToSave },
-          create: { key: PRODUCT_OPTIONS_KEY, value: payloadToSave }
-        });
-      }
-    } catch (pgErr) {
-      console.warn('Prisma custom_options write warning:', pgErr.message);
-    }
-
-    invalidateOptionsCache();
+    const updated = await persistOptionsToStore(payloadToSave);
 
     return NextResponse.json({
       success: true,
