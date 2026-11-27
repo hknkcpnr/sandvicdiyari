@@ -8,7 +8,10 @@ import {
   fetchAdminUsersCached,
   getCachedAdminUsersData,
   setCachedAdminUsersData,
-  invalidateAdminUsersCache
+  invalidateAdminUsersCache,
+  isAdminUsersCacheStale,
+  DEFAULT_STALE_MS,
+  FOCUS_STALE_MS
 } from '@/lib/adminUsersCache';
 
 // Sistemde kategorize edilmiş tüm yetki modülleri
@@ -197,17 +200,18 @@ export default function UsersRolesTab({ currentAdmin, onRolesOrUsersUpdated }) {
     } catch (e) {}
   };
 
-  // API'den verileri getir (tarayıcı önbelleği doluysa DB'ye gitmeden anında sunar)
-  const fetchData = async (force = false) => {
+  // API'den verileri getir (tarayıcı önbelleği tazeyse DB'ye gitmez, bayatladıysa sessiz yeniler)
+  const fetchData = async (force = false, { silent = false } = {}) => {
     const cached = getCachedAdminUsersData();
-    if (
-      !force &&
+    const hasFullCache = Boolean(
       cached?.loadedScopes?.staff &&
-      cached?.loadedScopes?.customers &&
-      Array.isArray(cached.adminUsers) &&
-      Array.isArray(cached.roles) &&
-      Array.isArray(cached.customers)
-    ) {
+        cached?.loadedScopes?.customers &&
+        Array.isArray(cached.adminUsers) &&
+        Array.isArray(cached.roles) &&
+        Array.isArray(cached.customers)
+    );
+
+    if (!force && hasFullCache && !isAdminUsersCacheStale('all', DEFAULT_STALE_MS)) {
       setAdminUsers(cached.adminUsers);
       setRoles(cached.roles);
       setCustomers(cached.customers);
@@ -218,9 +222,15 @@ export default function UsersRolesTab({ currentAdmin, onRolesOrUsersUpdated }) {
       return;
     }
 
-    setLoading(true);
+    if (!silent) {
+      setLoading(true);
+    }
     try {
-      const json = await fetchAdminUsersCached({ force: force === true, scope: 'all' });
+      const json = await fetchAdminUsersCached({
+        force: force === true,
+        scope: 'all',
+        maxAgeMs: force ? null : DEFAULT_STALE_MS
+      });
       if (json.success && json.data) {
         setAdminUsers(json.data.adminUsers || []);
         setRoles(json.data.roles || []);
@@ -232,12 +242,36 @@ export default function UsersRolesTab({ currentAdmin, onRolesOrUsersUpdated }) {
     } catch (err) {
       console.error('Kullanıcı ve rol verileri alınamadı:', err);
     } finally {
-      setLoading(false);
+      if (!silent) {
+        setLoading(false);
+      }
     }
   };
 
   useEffect(() => {
-    fetchData(false);
+    const cached = getCachedAdminUsersData();
+    const hasFullCache = Boolean(
+      cached?.loadedScopes?.staff &&
+        cached?.loadedScopes?.customers &&
+        Array.isArray(cached.adminUsers) &&
+        Array.isArray(cached.roles) &&
+        Array.isArray(cached.customers)
+    );
+
+    if (hasFullCache) {
+      setAdminUsers(cached.adminUsers);
+      setRoles(cached.roles);
+      setCustomers(cached.customers);
+      if (!userRoleId && cached.roles.length > 0) {
+        setUserRoleId(cached.roles[0].id);
+      }
+      setLoading(false);
+      if (isAdminUsersCacheStale('all', DEFAULT_STALE_MS)) {
+        fetchData(true, { silent: true });
+      }
+    } else {
+      fetchData(false);
+    }
 
     const handleUsersUpdated = (e) => {
       const detail = e?.detail;
@@ -250,15 +284,25 @@ export default function UsersRolesTab({ currentAdmin, onRolesOrUsersUpdated }) {
     const handleStorage = (e) => {
       if (e.key === 'sandwich_users_updated') {
         invalidateAdminUsersCache();
-        fetchData(true);
+        fetchData(true, { silent: true });
+      }
+    };
+    const handleFocusOrVisible = () => {
+      if (typeof document !== 'undefined' && document.hidden) return;
+      if (isAdminUsersCacheStale('all', FOCUS_STALE_MS)) {
+        fetchData(true, { silent: true });
       }
     };
 
     window.addEventListener('sandwich_users_updated', handleUsersUpdated);
     window.addEventListener('storage', handleStorage);
+    window.addEventListener('focus', handleFocusOrVisible);
+    document.addEventListener('visibilitychange', handleFocusOrVisible);
     return () => {
       window.removeEventListener('sandwich_users_updated', handleUsersUpdated);
       window.removeEventListener('storage', handleStorage);
+      window.removeEventListener('focus', handleFocusOrVisible);
+      document.removeEventListener('visibilitychange', handleFocusOrVisible);
     };
   }, []);
 

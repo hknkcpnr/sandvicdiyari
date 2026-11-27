@@ -9,7 +9,10 @@ import {
   fetchAdminUsersCached,
   getCachedAdminUsersData,
   setCachedAdminUsersData,
-  invalidateAdminUsersCache
+  invalidateAdminUsersCache,
+  isAdminUsersCacheStale,
+  DEFAULT_STALE_MS,
+  FOCUS_STALE_MS
 } from '@/lib/adminUsersCache';
 
 export default function MembersTab({ onCustomerUpdated }) {
@@ -51,30 +54,51 @@ export default function MembersTab({ onCustomerUpdated }) {
   const [custFormError, setCustFormError] = useState('');
   const [isSavingCustomer, setIsSavingCustomer] = useState(false);
 
-  // API'den üyeleri çek (önbellek varsa DB'ye gitmeden tarayıcıdan sunar)
-  const fetchMembers = async (force = false) => {
+  // API'den üyeleri çek (önbellek tazeyse DB'ye gitmeden tarayıcıdan sunar, bayatladıysa sessiz yeniler)
+  const fetchMembers = async (force = false, { silent = false } = {}) => {
     const cached = getCachedAdminUsersData();
-    if (!force && cached?.loadedScopes?.customers && Array.isArray(cached.customers)) {
+    const hasCache = Boolean(cached?.loadedScopes?.customers && Array.isArray(cached.customers));
+
+    if (!force && hasCache && !isAdminUsersCacheStale('customers', DEFAULT_STALE_MS)) {
       setMembers(cached.customers);
       setLoading(false);
       return;
     }
 
-    setLoading(true);
+    if (!silent) {
+      setLoading(true);
+    }
     try {
-      const json = await fetchAdminUsersCached({ force: force === true, scope: 'customers' });
+      const json = await fetchAdminUsersCached({
+        force: force === true,
+        scope: 'customers',
+        maxAgeMs: force ? null : DEFAULT_STALE_MS
+      });
       if (json.success && json.data) {
         setMembers(json.data.customers || []);
       }
     } catch (err) {
       console.error('Üye listesi yüklenemedi:', err);
     } finally {
-      setLoading(false);
+      if (!silent) {
+        setLoading(false);
+      }
     }
   };
 
   useEffect(() => {
-    fetchMembers(false);
+    const cached = getCachedAdminUsersData();
+    const hasCache = Boolean(cached?.loadedScopes?.customers && Array.isArray(cached.customers));
+
+    if (hasCache) {
+      setMembers(cached.customers);
+      setLoading(false);
+      if (isAdminUsersCacheStale('customers', DEFAULT_STALE_MS)) {
+        fetchMembers(true, { silent: true });
+      }
+    } else {
+      fetchMembers(false);
+    }
 
     const handleUsersUpdated = (e) => {
       if (Array.isArray(e?.detail?.customers)) {
@@ -85,15 +109,25 @@ export default function MembersTab({ onCustomerUpdated }) {
     const handleStorage = (e) => {
       if (e.key === 'sandwich_users_updated') {
         invalidateAdminUsersCache();
-        fetchMembers(true);
+        fetchMembers(true, { silent: true });
+      }
+    };
+    const handleFocusOrVisible = () => {
+      if (typeof document !== 'undefined' && document.hidden) return;
+      if (isAdminUsersCacheStale('customers', FOCUS_STALE_MS)) {
+        fetchMembers(true, { silent: true });
       }
     };
 
     window.addEventListener('sandwich_users_updated', handleUsersUpdated);
     window.addEventListener('storage', handleStorage);
+    window.addEventListener('focus', handleFocusOrVisible);
+    document.addEventListener('visibilitychange', handleFocusOrVisible);
     return () => {
       window.removeEventListener('sandwich_users_updated', handleUsersUpdated);
       window.removeEventListener('storage', handleStorage);
+      window.removeEventListener('focus', handleFocusOrVisible);
+      document.removeEventListener('visibilitychange', handleFocusOrVisible);
     };
   }, []);
 
