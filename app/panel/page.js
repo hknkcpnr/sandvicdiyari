@@ -4728,11 +4728,11 @@ export default function AdminDashboardPage() {
                           </div>
                         </div>
 
-                        <div className="flex items-center gap-2.5">
-                          <div className="relative w-11 h-11 rounded-lg overflow-hidden bg-stone-200 border border-stone-300 shrink-0">
+                        <div className="flex items-center gap-3">
+                          <div className="relative w-20 h-20 rounded-xl overflow-hidden bg-stone-200 border border-stone-300 shadow-xs shrink-0">
                             {isUploadingImage ? (
                               <div className="w-full h-full flex items-center justify-center bg-stone-900/70 text-white">
-                                <i className="fa-solid fa-spinner fa-spin text-xs text-brand-400"></i>
+                                <i className="fa-solid fa-spinner fa-spin text-sm text-brand-400"></i>
                               </div>
                             ) : (
                               <img
@@ -4756,10 +4756,10 @@ export default function AdminDashboardPage() {
                             {imageInputMode === 'upload' && (
                               <div
                                 onClick={() => fileInputRef.current?.click()}
-                                className="border border-dashed border-stone-300 hover:border-brand-400 rounded-lg px-2.5 py-1.5 text-center cursor-pointer bg-stone-50/70 hover:bg-brand-50/30 transition-all"
+                                className="border border-dashed border-stone-300 hover:border-brand-400 rounded-xl px-3 py-4 text-center cursor-pointer bg-stone-50/70 hover:bg-brand-50/30 transition-all"
                               >
-                                <p className="text-[11px] font-bold text-stone-700 truncate">
-                                  <i className="fa-solid fa-cloud-arrow-up text-brand-600 mr-1"></i>
+                                <p className="text-xs font-bold text-stone-700 truncate">
+                                  <i className="fa-solid fa-cloud-arrow-up text-brand-600 mr-1.5"></i>
                                   Görsel Seç / Değiştir
                                 </p>
                               </div>
@@ -4978,7 +4978,7 @@ export default function AdminDashboardPage() {
                                         if (e.key === 'Enter') e.preventDefault();
                                       }}
                                       aria-label={`${dr.name} ek ücreti`}
-                                      className="w-16 bg-stone-50 focus:bg-white border border-amber-300 rounded-md pl-5 pr-1 py-1 text-[11px] font-extrabold text-stone-900 focus:outline-none focus:border-brand-500 disabled:opacity-60"
+                                      className="w-[70px] bg-stone-50 focus:bg-white border border-amber-300 rounded-md pl-6 pr-1.5 py-1 text-[11px] font-extrabold text-stone-900 focus:outline-none focus:border-brand-500 disabled:opacity-60"
                                     />
                                   </div>
                                   <span className="text-[10px] font-extrabold text-stone-700 w-16 text-right shrink-0">
@@ -5057,7 +5057,7 @@ export default function AdminDashboardPage() {
                                     }
                                   }}
                                   aria-label="Yeni içecek ek ücreti (TL)"
-                                  className="w-16 bg-white border border-amber-300 rounded-lg pl-5 pr-1 py-1 text-[11px] font-extrabold text-stone-900 focus:outline-none focus:border-brand-500"
+                                  className="w-[70px] bg-white border border-amber-300 rounded-lg pl-6 pr-1.5 py-1 text-[11px] font-extrabold text-stone-900 focus:outline-none focus:border-brand-500"
                                 />
                               </div>
                               <button
