@@ -31,7 +31,12 @@ import {
 } from '@/lib/browserDataCache';
 import {
   DEFAULT_MENU_COLA_EXTRA_PRICE,
+  DEFAULT_MENU_DRINK_GROUPS,
   normalizeMenuColaExtraPrice,
+  normalizeMenuDrinkGroups,
+  normalizeProductMenuDrinks,
+  getMenuSizeTier,
+  getEffectiveMenuDrinks,
 } from '@/lib/productOptionsDefaults';
 
 // Status styling and Turkish badge helpers
@@ -513,6 +518,13 @@ export default function AdminDashboardPage() {
   const [menuColaExtraPrice, setMenuColaExtraPrice] = useState(DEFAULT_MENU_COLA_EXTRA_PRICE);
   const [menuColaPriceInput, setMenuColaPriceInput] = useState(String(DEFAULT_MENU_COLA_EXTRA_PRICE));
   const [savingColaPrice, setSavingColaPrice] = useState(false);
+  const [menuDrinkGroups, setMenuDrinkGroups] = useState(DEFAULT_MENU_DRINK_GROUPS);
+  const [productMenuDrinks, setProductMenuDrinks] = useState({});
+  const [prodMenuDrinks, setProdMenuDrinks] = useState([]);
+  const [prodMenuDrinksCustomized, setProdMenuDrinksCustomized] = useState(false);
+  const [newModalDrinkName, setNewModalDrinkName] = useState('');
+  const [newModalDrinkPrice, setNewModalDrinkPrice] = useState('0');
+  const [savingModalDrinks, setSavingModalDrinks] = useState(false);
   const fileInputRef = useRef(null);
   const prodAudioInputRef = useRef(null);
 
@@ -1207,6 +1219,11 @@ export default function AdminDashboardPage() {
       return;
     }
     resetProductForm();
+    const defaultTierDrinks = (menuDrinkGroups?.['1'] || DEFAULT_MENU_DRINK_GROUPS['1']).map((d) => ({ ...d }));
+    setProdMenuDrinks(defaultTierDrinks);
+    setProdMenuDrinksCustomized(false);
+    setNewModalDrinkName('');
+    setNewModalDrinkPrice('0');
     setIsAddProductOpen(true);
   };
 
@@ -1231,6 +1248,18 @@ export default function AdminDashboardPage() {
     setProdAudioFileName(product.audioUrl ? 'Özel Ürün Sesi' : '');
     setSelectedFileName(product.image?.startsWith('/uploads/') ? 'Yüklenmiş Dosya' : '');
     setImageInputMode(product.image?.startsWith('http') ? 'url' : 'upload');
+
+    const tier = getMenuSizeTier(product);
+    const customList = productMenuDrinks?.[String(product.id)];
+    const hasCustom = Array.isArray(customList) && customList.length > 0;
+    const sourceDrinks = hasCustom
+      ? customList
+      : menuDrinkGroups?.[tier] || DEFAULT_MENU_DRINK_GROUPS[tier];
+    setProdMenuDrinks((sourceDrinks || []).map((d) => ({ ...d })));
+    setProdMenuDrinksCustomized(hasCustom);
+    setNewModalDrinkName('');
+    setNewModalDrinkPrice('0');
+
     setIsAddProductOpen(true);
   };
 
@@ -1371,6 +1400,25 @@ export default function AdminDashboardPage() {
       audioUrl: prodAudioUrl || '',
     };
 
+    const syncCustomMenuDrinks = async (savedProd) => {
+      if (
+        savedProd?.id != null &&
+        payload.category === 'menu' &&
+        prodMenuDrinksCustomized &&
+        prodMenuDrinks.length > 0 &&
+        (canManagePrices || canManageOptions)
+      ) {
+        try {
+          await saveProductCustomDrinks(savedProd.id, prodMenuDrinks);
+        } catch (drinkErr) {
+          showToast(
+            drinkErr.message || 'Ürün kaydedildi ancak özel içecek fiyatları kaydedilemedi.',
+            'error'
+          );
+        }
+      }
+    };
+
     if (editingProduct) {
       // Edit existing product
       try {
@@ -1382,6 +1430,7 @@ export default function AdminDashboardPage() {
         const json = await res.json();
         if (json.success && json.data) {
           dispatch(updateProduct(json.data));
+          await syncCustomMenuDrinks(json.data);
           fetchProducts();
           invalidateBrowserCache('products_');
           invalidateBrowserCache('inventory_');
@@ -1408,6 +1457,7 @@ export default function AdminDashboardPage() {
         const json = await res.json();
         if (json.success && json.data) {
           dispatch(addProduct(json.data));
+          await syncCustomMenuDrinks(json.data);
           fetchProducts();
           invalidateBrowserCache('products_');
           invalidateBrowserCache('inventory_');
@@ -1511,19 +1561,26 @@ export default function AdminDashboardPage() {
   const canUpdateStock = hasPerm('stock_update');
   const canDeleteOrder = hasPerm('delete_order');
 
+  const applyPanelOptionsData = (data) => {
+    if (!data || typeof data !== 'object') return;
+    if (typeof data.menuColaExtraPrice === 'number') {
+      const val = normalizeMenuColaExtraPrice(data.menuColaExtraPrice);
+      setMenuColaExtraPrice(val);
+      setMenuColaPriceInput(String(val));
+    }
+    if (data.menuDrinkGroups && typeof data.menuDrinkGroups === 'object') {
+      setMenuDrinkGroups(normalizeMenuDrinkGroups(data.menuDrinkGroups));
+    }
+    if (data.productMenuDrinks && typeof data.productMenuDrinks === 'object') {
+      setProductMenuDrinks(normalizeProductMenuDrinks(data.productMenuDrinks));
+    }
+  };
+
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    const applyOpts = (data) => {
-      if (!data || typeof data !== 'object') return;
-      if (typeof data.menuColaExtraPrice === 'number') {
-        const val = normalizeMenuColaExtraPrice(data.menuColaExtraPrice);
-        setMenuColaExtraPrice(val);
-        setMenuColaPriceInput(String(val));
-      }
-    };
     const cached = getBrowserCache('options_all');
     if (cached?.data) {
-      applyOpts(cached.data);
+      applyPanelOptionsData(cached.data);
     }
     fetchWithBrowserCache('options_all', '/api/options', {
       maxAgeMs: CACHE_TTL_LONG,
@@ -1531,7 +1588,7 @@ export default function AdminDashboardPage() {
       extract: (json) => json.data,
     })
       .then((res) => {
-        if (res?.ok && res.data) applyOpts(res.data);
+        if (res?.ok && res.data) applyPanelOptionsData(res.data);
       })
       .catch(() => {});
 
@@ -1543,7 +1600,7 @@ export default function AdminDashboardPage() {
           extract: (json) => json.data,
         })
           .then((res) => {
-            if (res?.ok && res.data) applyOpts(res.data);
+            if (res?.ok && res.data) applyPanelOptionsData(res.data);
           })
           .catch(() => {});
       }
@@ -1557,12 +1614,17 @@ export default function AdminDashboardPage() {
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const fresh = getBrowserCache('options_all')?.data;
-    if (fresh && typeof fresh.menuColaExtraPrice === 'number') {
-      const val = normalizeMenuColaExtraPrice(fresh.menuColaExtraPrice);
-      setMenuColaExtraPrice(val);
-      setMenuColaPriceInput(String(val));
+    if (fresh) {
+      applyPanelOptionsData(fresh);
     }
   }, [currentTab, isAddProductOpen]);
+
+  useEffect(() => {
+    if (!isAddProductOpen || prodCategory !== 'menu' || prodMenuDrinksCustomized) return;
+    const tier = getMenuSizeTier({ name: prodName });
+    const tierList = menuDrinkGroups?.[tier] || DEFAULT_MENU_DRINK_GROUPS[tier] || DEFAULT_MENU_DRINK_GROUPS['1'];
+    setProdMenuDrinks(tierList.map((d) => ({ ...d })));
+  }, [isAddProductOpen, prodCategory, prodName, prodMenuDrinksCustomized, menuDrinkGroups]);
 
   const handleSaveMenuColaExtraPrice = async (overrideVal) => {
     if (!canManagePrices && !canManageOptions) {
@@ -1592,6 +1654,7 @@ export default function AdminDashboardPage() {
       setMenuColaExtraPrice(cleanPrice);
       setMenuColaPriceInput(String(cleanPrice));
       if (json.data) {
+        applyPanelOptionsData(json.data);
         setBrowserCache('options_all', json.data, {
           persist: true,
           broadcastKey: 'sandwich_options_updated',
@@ -1606,6 +1669,170 @@ export default function AdminDashboardPage() {
     } finally {
       setSavingColaPrice(false);
     }
+  };
+
+  const saveProductCustomDrinks = async (productId, drinksList) => {
+    const res = await fetch('/api/options', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'update_product_menu_drinks',
+        productId,
+        drinks: drinksList,
+      }),
+    });
+    const json = await res.json();
+    if (!json.success) {
+      throw new Error(json.error || 'Menü içecekleri kaydedilemedi.');
+    }
+    if (json.data) {
+      applyPanelOptionsData(json.data);
+      setBrowserCache('options_all', json.data, {
+        persist: true,
+        broadcastKey: 'sandwich_options_updated',
+      });
+    }
+    return json.data;
+  };
+
+  const handleAddModalDrink = (customName, customPrice) => {
+    if (!canManagePrices && !canManageOptions) {
+      showToast('Menü içeceklerini değiştirmek için Fiyat veya Sos/Ekstra Yönetimi yetkisi gereklidir.', 'error');
+      return;
+    }
+    const cleanName = String(customName !== undefined ? customName : newModalDrinkName).trim();
+    if (!cleanName) {
+      showToast('Lütfen eklenecek içecek adını girin.', 'error');
+      return;
+    }
+    const rawPrice = Number(customPrice !== undefined ? customPrice : newModalDrinkPrice);
+    const cleanPrice = Number.isFinite(rawPrice)
+      ? Math.round(Math.max(0, Math.min(500, rawPrice)) * 100) / 100
+      : 0;
+    const exists = prodMenuDrinks.some(
+      (d) => (d.name || '').trim().toLocaleLowerCase('tr-TR') === cleanName.toLocaleLowerCase('tr-TR')
+    );
+    if (exists) {
+      showToast(`"${cleanName}" zaten bu menünün içecek listesinde bulunuyor.`, 'error');
+      return;
+    }
+    setProdMenuDrinks((prev) => [
+      ...prev,
+      {
+        id: `md-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+        name: cleanName,
+        price: cleanPrice,
+        isAvailable: true,
+      },
+    ]);
+    setProdMenuDrinksCustomized(true);
+    if (customName === undefined) {
+      setNewModalDrinkName('');
+      setNewModalDrinkPrice('0');
+    }
+  };
+
+  const handleUpdateModalDrink = (drinkId, patch) => {
+    if (!canManagePrices && !canManageOptions) {
+      showToast('Menü içecek fiyatlarını değiştirmek için Fiyat veya Sos/Ekstra Yönetimi yetkisi gereklidir.', 'error');
+      return;
+    }
+    setProdMenuDrinks((prev) =>
+      prev.map((d) => {
+        if (d.id !== drinkId) return d;
+        const next = { ...d, ...patch };
+        if (Object.prototype.hasOwnProperty.call(patch, 'price')) {
+          const parsed = Number(patch.price);
+          next.price = Number.isFinite(parsed)
+            ? Math.round(Math.max(0, Math.min(500, parsed)) * 100) / 100
+            : 0;
+        }
+        return next;
+      })
+    );
+    setProdMenuDrinksCustomized(true);
+  };
+
+  const handleRemoveModalDrink = (drinkId) => {
+    if (!canManagePrices && !canManageOptions) {
+      showToast('Menü içeceklerini değiştirmek için Fiyat veya Sos/Ekstra Yönetimi yetkisi gereklidir.', 'error');
+      return;
+    }
+    if (prodMenuDrinks.length <= 1) {
+      showToast('Her menüde en az 1 içecek seçeneği kalmalıdır.', 'error');
+      return;
+    }
+    setProdMenuDrinks((prev) => prev.filter((d) => d.id !== drinkId));
+    setProdMenuDrinksCustomized(true);
+  };
+
+  const handleApplyModalDrinksToTier = async () => {
+    if (!canManagePrices && !canManageOptions) {
+      showToast('Menü içeceklerini kaydetmek için Fiyat veya Sos/Ekstra Yönetimi yetkisi gereklidir.', 'error');
+      return;
+    }
+    const cleanList = prodMenuDrinks
+      .map((d) => ({ ...d, name: String(d.name || '').trim() }))
+      .filter((d) => d.name.length > 0);
+    if (cleanList.length === 0) {
+      showToast('En az 1 geçerli içecek olmalıdır.', 'error');
+      return;
+    }
+    const tier = getMenuSizeTier({ name: prodName });
+    setSavingModalDrinks(true);
+    try {
+      const res = await fetch('/api/options', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'update_tier_menu_drinks',
+          tier,
+          drinks: cleanList,
+          clearProductId: editingProduct?.id ?? null,
+        }),
+      });
+      const json = await res.json();
+      if (!json.success) {
+        throw new Error(json.error || 'Menü içecekleri güncellenemedi.');
+      }
+      if (json.data) {
+        applyPanelOptionsData(json.data);
+        setBrowserCache('options_all', json.data, {
+          persist: true,
+          broadcastKey: 'sandwich_options_updated',
+        });
+      }
+      setProdMenuDrinksCustomized(false);
+      showToast(`${tier} kişilik tüm menüler için içecekler ve fiyatlar kaydedildi!`, 'success');
+    } catch (err) {
+      showToast(err.message || 'Menü içecekleri kaydedilirken hata oluştu.', 'error');
+    } finally {
+      setSavingModalDrinks(false);
+    }
+  };
+
+  const handleResetModalDrinksToTier = async () => {
+    if (!canManagePrices && !canManageOptions) {
+      showToast('Yetkiniz bulunmuyor.', 'error');
+      return;
+    }
+    const tier = getMenuSizeTier({ name: prodName });
+    if (editingProduct?.id != null && productMenuDrinks?.[String(editingProduct.id)]) {
+      setSavingModalDrinks(true);
+      try {
+        await saveProductCustomDrinks(editingProduct.id, null);
+      } catch (err) {
+        showToast(err.message || 'Sıfırlama sırasında hata oluştu.', 'error');
+        setSavingModalDrinks(false);
+        return;
+      } finally {
+        setSavingModalDrinks(false);
+      }
+    }
+    const baseList = menuDrinkGroups?.[tier] || DEFAULT_MENU_DRINK_GROUPS[tier] || DEFAULT_MENU_DRINK_GROUPS['1'];
+    setProdMenuDrinks(baseList.map((d) => ({ ...d })));
+    setProdMenuDrinksCustomized(false);
+    showToast(`İçecek listesi genel ${tier} kişilik şablona döndürüldü.`, 'info');
   };
 
   const canEditSiteContent = Boolean(
@@ -3441,19 +3668,46 @@ export default function AdminDashboardPage() {
                   </div>
 
                   <div className="flex items-center justify-between sm:justify-end gap-2 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-stone-100">
-                    {p.category === 'menu' ? (
-                      <div className="text-left sm:text-right mr-2">
-                        <div className="flex items-center sm:justify-end gap-1.5">
-                          <span className="font-bold text-stone-900 text-sm">₺{p.price.toFixed(2)}</span>
-                          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200">
-                            Ayran Dahil
-                          </span>
+                    {p.category === 'menu' ? (() => {
+                      const effectiveDrinks = getEffectiveMenuDrinks(p, menuDrinkGroups, productMenuDrinks);
+                      const hasCustomDrinks = Boolean(productMenuDrinks?.[String(p.id)]?.length);
+                      return (
+                        <div className="text-left sm:text-right mr-2 max-w-[320px]">
+                          <div className="flex items-center sm:justify-end gap-1.5">
+                            <span className="font-bold text-stone-900 text-sm">₺{p.price.toFixed(2)}</span>
+                            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-stone-100 text-stone-600 border border-stone-200">
+                              Baz Fiyat
+                            </span>
+                            {hasCustomDrinks && (
+                              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-indigo-50 text-indigo-700 border border-indigo-200">
+                                Özel İçecek
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex flex-wrap sm:justify-end gap-1 mt-1">
+                            {effectiveDrinks.map((dr) => {
+                              const dPrice = Math.max(0, Number(dr.price) || 0);
+                              const extraLabel = Number.isInteger(dPrice) ? dPrice.toFixed(0) : dPrice.toFixed(2);
+                              return (
+                                <span
+                                  key={dr.id || dr.name}
+                                  className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-md border ${
+                                    dPrice > 0
+                                      ? 'bg-amber-50 text-amber-800 border-amber-200'
+                                      : 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                  }`}
+                                >
+                                  {dr.name}:{' '}
+                                  {dPrice > 0
+                                    ? `₺${(Number(p.price) + dPrice).toFixed(2)} (+₺${extraLabel})`
+                                    : 'Dahil'}
+                                </span>
+                              );
+                            })}
+                          </div>
                         </div>
-                        <span className="text-[10px] font-semibold text-amber-700 block">
-                          Kola ile: ₺{(Number(p.price) + menuColaExtraPrice).toFixed(2)} (+₺{menuColaExtraPrice.toFixed(0)})
-                        </span>
-                      </div>
-                    ) : (
+                      );
+                    })() : (
                       <span className="font-bold text-stone-900 text-sm mr-2">₺{p.price.toFixed(2)}</span>
                     )}
                     <div className="flex items-center gap-1.5">
@@ -4344,7 +4598,7 @@ export default function AdminDashboardPage() {
                       </div>
                       <div>
                         <label className="block text-[11px] font-bold text-stone-700 uppercase tracking-wide mb-1">
-                          {prodCategory === 'menu' ? 'Standart Fiyat (Ayran Dahil) (₺)' : 'Fiyat (₺)'}{' '}
+                          {prodCategory === 'menu' ? 'Standart Baz Fiyat (₺)' : 'Fiyat (₺)'}{' '}
                           <span className="text-red-500">*</span>
                           {editingProduct && !canManagePrices && (
                             <span className="ml-1 text-[10px] text-amber-600 font-semibold normal-case">
@@ -4362,62 +4616,267 @@ export default function AdminDashboardPage() {
                           placeholder="199.99"
                           className="w-full bg-white border border-stone-200 rounded-xl px-3.5 py-2 text-xs sm:text-sm text-stone-900 focus:outline-none focus:border-brand-500 font-semibold transition-all disabled:opacity-60 disabled:cursor-not-allowed"
                         />
+                        {prodCategory === 'menu' && (
+                          <span className="text-[10px] text-stone-500 font-medium block mt-1">
+                            Ek ücreti +₺0 olan içecekler bu baz fiyata dahildir.
+                          </span>
+                        )}
                       </div>
                     </div>
 
-                    {prodCategory === 'menu' && (
-                      <div className="bg-amber-50/80 border border-amber-200 rounded-xl p-3 space-y-2.5">
-                        <div className="flex flex-wrap items-center justify-between gap-2">
-                          <span className="text-[11px] font-extrabold text-stone-900 flex items-center gap-1.5">
-                            <span>🥤</span>
-                            <span>Menü İçecek Fiyatlandırması</span>
-                          </span>
-                          <div className="flex flex-wrap items-center gap-1.5 text-[10px] font-bold">
-                            <span className="px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800 border border-emerald-200">
-                              Ayran: ₺{(parseFloat(prodPrice) || 0).toFixed(2)} (Dahil)
-                            </span>
-                            <span className="px-2 py-0.5 rounded-md bg-amber-100 text-amber-900 border border-amber-300">
-                              Kola ile: ₺{((parseFloat(prodPrice) || 0) + menuColaExtraPrice).toFixed(2)} (+₺{menuColaExtraPrice.toFixed(2)})
-                            </span>
+                    {prodCategory === 'menu' && (() => {
+                      const modalMenuTier = getMenuSizeTier({ name: prodName });
+                      const basePriceNum = parseFloat(prodPrice) || 0;
+                      const canEditDrinks = canManagePrices || canManageOptions;
+                      const existingLower = new Set(
+                        prodMenuDrinks.map((d) => String(d.name || '').trim().toLocaleLowerCase('tr-TR'))
+                      );
+                      const candidateNames = [
+                        ...(products || [])
+                          .filter((pr) => pr.category === 'drink' && pr.isAvailable !== false)
+                          .map((pr) => pr.name),
+                        'Ayran',
+                        'Kutu Kola',
+                        '1 Litre Kola',
+                        '2.5 Litre Kola',
+                        'Fanta',
+                        'Sprite',
+                        'Şalgam',
+                        'Ice Tea',
+                        'Su',
+                        'Soda',
+                      ];
+                      const quickDrinkSuggestions = [];
+                      const seenSuggestions = new Set();
+                      candidateNames.forEach((rawName) => {
+                        const clean = String(rawName || '').trim();
+                        const lower = clean.toLocaleLowerCase('tr-TR');
+                        if (!clean || existingLower.has(lower) || seenSuggestions.has(lower)) return;
+                        seenSuggestions.add(lower);
+                        quickDrinkSuggestions.push(clean);
+                      });
+
+                      return (
+                        <div className="bg-amber-50/70 border border-amber-200 rounded-2xl p-3.5 space-y-3">
+                          <div className="flex flex-wrap items-center justify-between gap-2">
+                            <div className="flex flex-wrap items-center gap-1.5">
+                              <span className="text-[11px] font-extrabold text-stone-900 flex items-center gap-1.5">
+                                <span>🥤</span>
+                                <span>Menü İçecek Fiyatlandırması ({modalMenuTier} Kişilik)</span>
+                              </span>
+                              <span
+                                className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                                  prodMenuDrinksCustomized
+                                    ? 'bg-indigo-50 text-indigo-700 border-indigo-200'
+                                    : 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                }`}
+                              >
+                                {prodMenuDrinksCustomized ? 'Bu Menüye Özel' : `Genel ${modalMenuTier}K Listesi`}
+                              </span>
+                            </div>
+                            {prodMenuDrinksCustomized && canEditDrinks && (
+                              <button
+                                type="button"
+                                disabled={savingModalDrinks}
+                                onClick={handleResetModalDrinksToTier}
+                                className="text-[10px] font-bold text-stone-600 hover:text-stone-900 bg-white border border-stone-200 hover:border-stone-300 px-2.5 py-1 rounded-lg cursor-pointer transition-colors"
+                              >
+                                Genel Listeye Sıfırla
+                              </button>
+                            )}
                           </div>
-                        </div>
-                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-1 border-t border-amber-200/70">
-                          <p className="text-[10px] text-stone-600 leading-snug">
-                            Tüm menülerde Kola seçildiğinde eklenecek genel ek ücreti buradan güncelleyebilirsiniz:
-                          </p>
-                          <div className="flex items-center gap-1.5 shrink-0">
-                            <div className="relative">
-                              <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[11px] font-bold text-stone-500">+₺</span>
+
+                          {/* Canlı Müşteri Fiyat Özeti */}
+                          <div className="flex flex-wrap gap-1.5">
+                            {prodMenuDrinks
+                              .filter((d) => d.isAvailable !== false)
+                              .map((dr) => {
+                                const dPrice = Math.max(0, Number(dr.price) || 0);
+                                const extraStr = Number.isInteger(dPrice) ? dPrice.toFixed(0) : dPrice.toFixed(2);
+                                return (
+                                  <span
+                                    key={`preview-${dr.id || dr.name}`}
+                                    className={`text-[10px] font-bold px-2 py-0.5 rounded-md border ${
+                                      dPrice > 0
+                                        ? 'bg-amber-100 text-amber-900 border-amber-300'
+                                        : 'bg-emerald-100 text-emerald-800 border-emerald-200'
+                                    }`}
+                                  >
+                                    {dr.name}: ₺{(basePriceNum + dPrice).toFixed(2)} (
+                                    {dPrice > 0 ? `+₺${extraStr}` : 'Dahil'})
+                                  </span>
+                                );
+                              })}
+                          </div>
+
+                          {/* İçecek Satırları */}
+                          <div className="space-y-1.5 max-h-52 overflow-y-auto pr-0.5">
+                            {prodMenuDrinks.map((dr) => {
+                              const dPrice = Math.max(0, Number(dr.price) || 0);
+                              const isActive = dr.isAvailable !== false;
+                              return (
+                                <div
+                                  key={dr.id || dr.name}
+                                  className={`flex flex-wrap sm:flex-nowrap items-center gap-1.5 p-2 rounded-xl border transition-colors ${
+                                    isActive
+                                      ? 'bg-white border-amber-200/80'
+                                      : 'bg-stone-100/80 border-stone-200 opacity-75'
+                                  }`}
+                                >
+                                  <button
+                                    type="button"
+                                    disabled={!canEditDrinks}
+                                    onClick={() => handleUpdateModalDrink(dr.id, { isAvailable: !isActive })}
+                                    className={`px-2 py-1 rounded-lg text-[10px] font-bold shrink-0 cursor-pointer border transition-colors ${
+                                      isActive
+                                        ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100'
+                                        : 'bg-stone-200 text-stone-600 border-stone-300 hover:bg-stone-300'
+                                    }`}
+                                    title={isActive ? 'Müşterilere açık (kapatmak için tıklayın)' : 'Pasif (açmak için tıklayın)'}
+                                  >
+                                    {isActive ? 'Aktif' : 'Pasif'}
+                                  </button>
+                                  <input
+                                    type="text"
+                                    disabled={!canEditDrinks}
+                                    value={dr.name}
+                                    onChange={(e) => handleUpdateModalDrink(dr.id, { name: e.target.value })}
+                                    onKeyDown={(e) => {
+                                      if (e.key === 'Enter') e.preventDefault();
+                                    }}
+                                    placeholder="İçecek adı"
+                                    className="flex-1 min-w-[110px] bg-stone-50 focus:bg-white border border-stone-200 rounded-lg px-2.5 py-1 text-xs font-bold text-stone-900 focus:outline-none focus:border-brand-500 disabled:opacity-60"
+                                  />
+                                  <div className="relative shrink-0">
+                                    <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] font-bold text-stone-500">
+                                      +₺
+                                    </span>
+                                    <input
+                                      type="number"
+                                      min="0"
+                                      max="500"
+                                      step="1"
+                                      disabled={!canEditDrinks}
+                                      value={dr.price ?? 0}
+                                      onChange={(e) => handleUpdateModalDrink(dr.id, { price: e.target.value })}
+                                      onKeyDown={(e) => {
+                                        if (e.key === 'Enter') e.preventDefault();
+                                      }}
+                                      aria-label={`${dr.name} ek ücreti`}
+                                      className="w-20 bg-stone-50 focus:bg-white border border-amber-300 rounded-lg pl-6 pr-1.5 py-1 text-xs font-extrabold text-stone-900 focus:outline-none focus:border-brand-500 disabled:opacity-60"
+                                    />
+                                  </div>
+                                  <span className="text-[11px] font-extrabold text-stone-700 w-20 text-right shrink-0">
+                                    ₺{(basePriceNum + dPrice).toFixed(2)}
+                                  </span>
+                                  <button
+                                    type="button"
+                                    disabled={!canEditDrinks}
+                                    onClick={() => handleRemoveModalDrink(dr.id)}
+                                    className="p-1.5 text-stone-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer disabled:opacity-40 shrink-0"
+                                    title="Bu içeceği menüden kaldır"
+                                  >
+                                    <i className="fa-solid fa-trash-can text-xs"></i>
+                                  </button>
+                                </div>
+                              );
+                            })}
+                          </div>
+
+                          {/* Hızlı İçecek Ekleme Etiketleri */}
+                          {canEditDrinks && quickDrinkSuggestions.length > 0 && (
+                            <div className="pt-1">
+                              <span className="text-[10px] font-bold text-stone-500 block mb-1">
+                                Hızlı İçecek Ekle:
+                              </span>
+                              <div className="flex flex-wrap gap-1">
+                                {quickDrinkSuggestions.slice(0, 10).map((suggName) => (
+                                  <button
+                                    key={suggName}
+                                    type="button"
+                                    onClick={() =>
+                                      handleAddModalDrink(
+                                        suggName,
+                                        /kola|cola/i.test(suggName) ? menuColaExtraPrice : 0
+                                      )
+                                    }
+                                    className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-white hover:bg-amber-100 text-stone-700 hover:text-amber-900 border border-amber-200 cursor-pointer transition-colors"
+                                  >
+                                    + {suggName}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Manuel İçecek Ekleme Satırı */}
+                          {canEditDrinks && (
+                            <div className="flex flex-wrap sm:flex-nowrap items-center gap-1.5 pt-2 border-t border-amber-200/70">
                               <input
-                                type="number"
-                                min="0"
-                                max="500"
-                                step="1"
-                                disabled={!canManagePrices && !canManageOptions}
-                                value={menuColaPriceInput}
-                                onChange={(e) => setMenuColaPriceInput(e.target.value)}
+                                type="text"
+                                value={newModalDrinkName}
+                                onChange={(e) => setNewModalDrinkName(e.target.value)}
                                 onKeyDown={(e) => {
                                   if (e.key === 'Enter') {
                                     e.preventDefault();
-                                    handleSaveMenuColaExtraPrice();
+                                    handleAddModalDrink();
                                   }
                                 }}
-                                aria-label="Menü Kola Ek Ücreti (TL)"
-                                className="w-24 bg-white border border-amber-300 rounded-lg pl-7 pr-2 py-1.5 text-xs font-extrabold text-stone-900 focus:outline-none focus:border-brand-500 disabled:opacity-60"
+                                placeholder="İçecek adı (ör. Fanta, Şalgam...)"
+                                className="flex-1 min-w-[130px] bg-white border border-stone-200 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-stone-900 focus:outline-none focus:border-brand-500"
                               />
+                              <div className="relative shrink-0">
+                                <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] font-bold text-stone-500">
+                                  +₺
+                                </span>
+                                <input
+                                  type="number"
+                                  min="0"
+                                  max="500"
+                                  step="1"
+                                  value={newModalDrinkPrice}
+                                  onChange={(e) => setNewModalDrinkPrice(e.target.value)}
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter') {
+                                      e.preventDefault();
+                                      handleAddModalDrink();
+                                    }
+                                  }}
+                                  aria-label="Yeni içecek ek ücreti (TL)"
+                                  className="w-20 bg-white border border-amber-300 rounded-lg pl-6 pr-1.5 py-1.5 text-xs font-extrabold text-stone-900 focus:outline-none focus:border-brand-500"
+                                />
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => handleAddModalDrink()}
+                                className="bg-stone-800 hover:bg-stone-900 text-white text-[11px] font-bold px-3 py-1.5 rounded-lg cursor-pointer transition-colors shrink-0"
+                              >
+                                + Ekle
+                              </button>
                             </div>
-                            <button
-                              type="button"
-                              disabled={savingColaPrice || (!canManagePrices && !canManageOptions)}
-                              onClick={() => handleSaveMenuColaExtraPrice()}
-                              className="bg-amber-600 hover:bg-amber-700 disabled:opacity-50 text-white text-[11px] font-bold px-3 py-1.5 rounded-lg cursor-pointer transition-all whitespace-nowrap"
-                            >
-                              {savingColaPrice ? 'Kaydediliyor...' : 'Kola Farkını Güncelle'}
-                            </button>
+                          )}
+
+                          {/* Toplu Kategori Şablonuna Kaydet / Açıklama */}
+                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-2 border-t border-amber-200/70">
+                            <p className="text-[10px] text-stone-600 leading-snug">
+                              Yaptığınız değişiklikler ürünü kaydettiğinizde <strong>bu menüye özel</strong> uygulanır veya yandaki butonla tüm {modalMenuTier} kişilik menülere kaydedilir.
+                            </p>
+                            {canEditDrinks && (
+                              <button
+                                type="button"
+                                disabled={savingModalDrinks}
+                                onClick={handleApplyModalDrinksToTier}
+                                className="bg-amber-600 hover:bg-amber-700 disabled:opacity-50 text-white text-[11px] font-bold px-3 py-1.5 rounded-lg cursor-pointer transition-all whitespace-nowrap shrink-0"
+                              >
+                                {savingModalDrinks
+                                  ? 'Kaydediliyor...'
+                                  : `Tüm ${modalMenuTier} Kişilik Menülere Uygula`}
+                              </button>
+                            )}
                           </div>
                         </div>
-                      </div>
-                    )}
+                      );
+                    })()}
 
                     {/* STOK ADEDİ, DURUMU VE ROZET */}
                     <div className="grid grid-cols-3 gap-2.5">

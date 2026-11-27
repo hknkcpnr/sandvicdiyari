@@ -13,7 +13,9 @@ import {
   DEFAULT_PRODUCT_OPTIONS,
   DEFAULT_MENU_DRINK_GROUPS,
   getMenuSizeTier,
-  normalizeMenuDrinkGroups
+  normalizeMenuDrinkGroups,
+  normalizeProductMenuDrinks,
+  getEffectiveMenuDrinks,
 } from '@/lib/productOptionsDefaults';
 import {
   getBrowserCache,
@@ -85,6 +87,7 @@ export default function OptionsModal() {
     DEFAULT_PRODUCT_OPTIONS.drinks.map((d) => (typeof d === 'string' ? d : d.name))
   );
   const [menuDrinkGroups, setMenuDrinkGroups] = useState(DEFAULT_MENU_DRINK_GROUPS);
+  const [productMenuDrinks, setProductMenuDrinks] = useState({});
   const [optionsLoaded, setOptionsLoaded] = useState(false);
   const [note, setNote] = useState('');
   const [removedIngredients, setRemovedIngredients] = useState([]);
@@ -94,8 +97,11 @@ export default function OptionsModal() {
       setRemovedIngredients([]);
       setSelectedSuggestedDrinkIds([]);
       if (selectedProductForOptions?.category === 'menu') {
-        const tier = getMenuSizeTier(selectedProductForOptions);
-        const tierDrinks = (menuDrinkGroups?.[tier] || []).filter((d) => d.isAvailable !== false);
+        const tierDrinks = getEffectiveMenuDrinks(
+          selectedProductForOptions,
+          menuDrinkGroups,
+          productMenuDrinks
+        );
         setSelectedDrink(tierDrinks[0]?.name || 'Ayran');
       }
     }
@@ -137,6 +143,9 @@ export default function OptionsModal() {
       }
       if (data.menuDrinkGroups && typeof data.menuDrinkGroups === 'object') {
         setMenuDrinkGroups(normalizeMenuDrinkGroups(data.menuDrinkGroups));
+      }
+      if (data.productMenuDrinks && typeof data.productMenuDrinks === 'object') {
+        setProductMenuDrinks(normalizeProductMenuDrinks(data.productMenuDrinks));
       }
       setOptionsLoaded(true);
     };
@@ -199,18 +208,19 @@ export default function OptionsModal() {
     };
   }, [isOptionsModalOpen]);
 
-  // Menü boyutu değiştiğinde (1/2/3/4 kişilik) ilgili menünün ilk içeceğini otomatik seç
+  // Menü boyutu veya ürüne özel liste değiştiğinde ilk uygun içeceği otomatik seç
   useEffect(() => {
     if (!isOptionsModalOpen || !selectedProductForOptions || selectedProductForOptions.category !== 'menu') return;
-    const tier = getMenuSizeTier(selectedProductForOptions);
-    const tierList = (menuDrinkGroups?.[tier] || [])
-      .filter((d) => d.isAvailable !== false)
-      .map((d) => d.name);
+    const tierList = getEffectiveMenuDrinks(
+      selectedProductForOptions,
+      menuDrinkGroups,
+      productMenuDrinks
+    ).map((d) => d.name);
     const fallbackList = tierList.length > 0 ? tierList : drinkOptions;
     if (fallbackList.length > 0 && !fallbackList.includes(selectedDrink)) {
       setSelectedDrink(fallbackList[0]);
     }
-  }, [isOptionsModalOpen, selectedProductForOptions, menuDrinkGroups, drinkOptions, selectedDrink]);
+  }, [isOptionsModalOpen, selectedProductForOptions, menuDrinkGroups, productMenuDrinks, drinkOptions, selectedDrink]);
 
   if (!isOptionsModalOpen || !selectedProductForOptions) return null;
 
@@ -219,7 +229,11 @@ export default function OptionsModal() {
   const menuTier = isMenu ? getMenuSizeTier(selectedProductForOptions) : '1';
   const activeMenuDrinkItems = isMenu
     ? (() => {
-        const tierList = (menuDrinkGroups?.[menuTier] || []).filter((d) => d.isAvailable !== false);
+        const tierList = getEffectiveMenuDrinks(
+          selectedProductForOptions,
+          menuDrinkGroups,
+          productMenuDrinks
+        );
         if (tierList.length > 0) return tierList;
         return drinkOptions.map((name, i) => ({ id: `dr-${i}`, name, price: 0, isAvailable: true }));
       })()
@@ -666,10 +680,13 @@ export default function OptionsModal() {
                 <label className="block text-[11px] font-extrabold text-stone-800 uppercase mb-1.5 flex items-center justify-between gap-1.5">
                   <span className="flex items-center gap-1.5">
                     <i className="fa-solid fa-cup-straw text-brand-500"></i>
-                    Menü İçeceği ({menuTier} Kişilik • Dahil)
+                    Menü İçeceği ({menuTier} Kişilik)
+                  </span>
+                  <span className="text-[10px] font-semibold text-stone-400 normal-case">
+                    Fiyata dahil veya +₺ ek seçim
                   </span>
                 </label>
-                {activeMenuDrinkItems.length <= 3 ? (
+                {activeMenuDrinkItems.length <= 6 ? (
                   <div className="grid grid-cols-2 gap-1.5">
                     {activeMenuDrinkItems.map((dr) => {
                       const isSelected = selectedDrink === dr.name;

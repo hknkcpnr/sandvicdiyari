@@ -52,9 +52,12 @@ export const cartSlice = createSlice({
         descriptionDetails.push(`Çıkarılanlar: ${removedIngredients.join(', ')}`);
       }
       const drinkExtraPrice = Math.max(0, Number(drinkPrice) || 0);
+      const formattedDrinkPrice = Number.isInteger(drinkExtraPrice)
+        ? drinkExtraPrice.toFixed(0)
+        : drinkExtraPrice.toFixed(2);
       if (drink) {
         descriptionDetails.push(
-          drinkExtraPrice > 0 ? `İçecek: ${drink} (+₺${drinkExtraPrice.toFixed(0)})` : `İçecek: ${drink}`
+          drinkExtraPrice > 0 ? `İçecek: ${drink} (+₺${formattedDrinkPrice})` : `İçecek: ${drink}`
         );
       }
       const sauceEntries = Object.entries(sauces || {}).filter(([_, count]) => count > 0);

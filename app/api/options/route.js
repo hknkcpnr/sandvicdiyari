@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { db, DEFAULT_PRODUCT_OPTIONS } from '@/lib/db';
 import {
   normalizeMenuDrinkGroups,
+  normalizeMenuDrinkList,
+  normalizeProductMenuDrinks,
   applyGlobalColaPriceToMenuGroups,
   normalizeMenuColaExtraPrice,
   isColaDrinkName,
@@ -14,6 +16,17 @@ import { getCachedOptions, setCachedOptions, invalidateOptionsCache } from '@/li
 export const dynamic = 'force-dynamic';
 
 const PRODUCT_OPTIONS_KEY = 'custom_options';
+
+function sanitizeDrinkList(rawList, prefix) {
+  if (!Array.isArray(rawList)) return [];
+  const preCleaned = rawList.map((d) => ({
+    id: d?.id,
+    name: sanitizeText(typeof d === 'string' ? d : (d?.name || ''), 80, 'Menü İçeceği', '/api/options'),
+    price: typeof d === 'object' ? d?.price : 0,
+    isAvailable: typeof d === 'object' && d?.isAvailable === false ? false : true,
+  }));
+  return normalizeMenuDrinkList(preCleaned, prefix);
+}
 
 function resolveMenuColaExtraPrice(val) {
   if (typeof val?.menuColaExtraPrice === 'number') {
@@ -44,6 +57,7 @@ function hydrateOptionsRecord(val) {
     extras: Array.isArray(safeVal.extras) ? safeVal.extras : DEFAULT_PRODUCT_OPTIONS.extras,
     drinks: Array.isArray(safeVal.drinks) ? safeVal.drinks : menuDrinkGroups['1'] || DEFAULT_PRODUCT_OPTIONS.drinks,
     menuDrinkGroups,
+    productMenuDrinks: normalizeProductMenuDrinks(safeVal.productMenuDrinks),
   };
 }
 
@@ -143,11 +157,111 @@ export async function POST(request) {
         extras: current.extras,
         drinks: nextMenuDrinkGroups['1'] || current.drinks,
         menuDrinkGroups: nextMenuDrinkGroups,
+        productMenuDrinks: current.productMenuDrinks || {},
       };
       const updated = await persistOptionsToStore(payloadToSave);
       return NextResponse.json({
         success: true,
         message: `Menü kola farkı +₺${nextColaPrice.toFixed(2)} olarak güncellendi.`,
+        data: updated,
+      });
+    }
+
+    // Ürüne özel menü içecekleri ve fiyatları güncellemesi (Menü Ekle / Düzenle modalından)
+    if (body.action === 'update_product_menu_drinks') {
+      const rawProductId = body.productId;
+      if (rawProductId === undefined || rawProductId === null || String(rawProductId).trim() === '') {
+        return NextResponse.json(
+          { success: false, error: 'Geçerli ürün kimliği gereklidir.' },
+          { status: 400 }
+        );
+      }
+      const productIdKey = String(rawProductId).trim();
+      const current = await readCurrentOptionsFromStore();
+      const nextProductMenuDrinks = { ...(current.productMenuDrinks || {}) };
+
+      if (body.drinks === null || (Array.isArray(body.drinks) && body.drinks.length === 0)) {
+        delete nextProductMenuDrinks[productIdKey];
+      } else if (Array.isArray(body.drinks)) {
+        const cleanList = sanitizeDrinkList(body.drinks, `pm-${productIdKey}`);
+        if (cleanList.length === 0) {
+          return NextResponse.json(
+            { success: false, error: 'En az 1 geçerli içecek adı gereklidir.' },
+            { status: 400 }
+          );
+        }
+        nextProductMenuDrinks[productIdKey] = cleanList;
+      } else {
+        return NextResponse.json(
+          { success: false, error: 'Geçersiz içecek listesi gönderildi.' },
+          { status: 400 }
+        );
+      }
+
+      const payloadToSave = {
+        freeSauceLimit: current.freeSauceLimit,
+        extraSaucePrice: current.extraSaucePrice,
+        menuColaExtraPrice: current.menuColaExtraPrice,
+        sauces: current.sauces,
+        extras: current.extras,
+        drinks: current.drinks,
+        menuDrinkGroups: current.menuDrinkGroups,
+        productMenuDrinks: nextProductMenuDrinks,
+      };
+      const updated = await persistOptionsToStore(payloadToSave);
+      return NextResponse.json({
+        success: true,
+        message: body.drinks === null
+          ? 'Menü içecekleri genel kategori listesine sıfırlandı.'
+          : 'Menüye özel içecekler ve fiyatlar kaydedildi.',
+        data: updated,
+      });
+    }
+
+    // Menü boyutuna (1-4 kişilik) ait tüm içecekleri ve fiyatları toplu güncelle
+    if (body.action === 'update_tier_menu_drinks') {
+      const tier = String(body.tier || '');
+      if (!['1', '2', '3', '4'].includes(tier) || !Array.isArray(body.drinks)) {
+        return NextResponse.json(
+          { success: false, error: 'Geçerli menü boyutu (1-4) ve içecek listesi gereklidir.' },
+          { status: 400 }
+        );
+      }
+      const cleanTierDrinks = sanitizeDrinkList(body.drinks, `m${tier}`);
+      if (cleanTierDrinks.length === 0) {
+        return NextResponse.json(
+          { success: false, error: 'Her menü boyutu için en az 1 içecek gereklidir.' },
+          { status: 400 }
+        );
+      }
+      const current = await readCurrentOptionsFromStore();
+      const nextMenuDrinkGroups = {
+        ...current.menuDrinkGroups,
+        [tier]: cleanTierDrinks,
+      };
+      const nextDrinks = tier === '1' ? cleanTierDrinks : current.drinks;
+      const tier1Cola = tier === '1' ? cleanTierDrinks.find((d) => isColaDrinkName(d?.name)) : null;
+      const nextColaPrice = tier1Cola
+        ? normalizeMenuColaExtraPrice(tier1Cola.price)
+        : current.menuColaExtraPrice;
+      const nextProductMenuDrinks = { ...(current.productMenuDrinks || {}) };
+      if (body.clearProductId !== undefined && body.clearProductId !== null && String(body.clearProductId).trim() !== '') {
+        delete nextProductMenuDrinks[String(body.clearProductId).trim()];
+      }
+      const payloadToSave = {
+        freeSauceLimit: current.freeSauceLimit,
+        extraSaucePrice: current.extraSaucePrice,
+        menuColaExtraPrice: nextColaPrice,
+        sauces: current.sauces,
+        extras: current.extras,
+        drinks: nextDrinks,
+        menuDrinkGroups: nextMenuDrinkGroups,
+        productMenuDrinks: nextProductMenuDrinks,
+      };
+      const updated = await persistOptionsToStore(payloadToSave);
+      return NextResponse.json({
+        success: true,
+        message: `${tier} kişilik tüm menülerin içecek ve ek fiyat listesi güncellendi.`,
         data: updated,
       });
     }
@@ -221,6 +335,20 @@ export async function POST(request) {
       ? (finalMenuDrinkGroups['1'] || cleanDrinks)
       : cleanDrinks;
 
+    let finalProductMenuDrinks = {};
+    if (body.productMenuDrinks && typeof body.productMenuDrinks === 'object' && !Array.isArray(body.productMenuDrinks)) {
+      const preCleanMap = {};
+      Object.entries(body.productMenuDrinks).forEach(([pid, list]) => {
+        if (Array.isArray(list)) {
+          preCleanMap[pid] = sanitizeDrinkList(list, `pm-${pid}`);
+        }
+      });
+      finalProductMenuDrinks = normalizeProductMenuDrinks(preCleanMap);
+    } else {
+      const existing = await readCurrentOptionsFromStore();
+      finalProductMenuDrinks = existing.productMenuDrinks || {};
+    }
+
     const payloadToSave = {
       freeSauceLimit,
       extraSaucePrice,
@@ -228,7 +356,8 @@ export async function POST(request) {
       sauces: cleanSauces,
       extras: cleanExtras,
       drinks: finalDrinks,
-      menuDrinkGroups: finalMenuDrinkGroups
+      menuDrinkGroups: finalMenuDrinkGroups,
+      productMenuDrinks: finalProductMenuDrinks
     };
 
     const updated = await persistOptionsToStore(payloadToSave);
