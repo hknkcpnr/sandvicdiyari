@@ -3,6 +3,12 @@
 import { useState, useEffect, useRef } from 'react';
 import { useSelector } from 'react-redux';
 import { getRestaurantStatus } from '@/lib/openingHours';
+import {
+  getBrowserCache,
+  isBrowserCacheStale,
+  fetchWithBrowserCache,
+  CACHE_TTL_LONG
+} from '@/lib/browserDataCache';
 
 export default function DraggableContactButton() {
   const { currentUser } = useSelector((state) => state.auth);
@@ -50,13 +56,22 @@ export default function DraggableContactButton() {
     }
   }, []);
 
-  // İletişim verisini yükle
+  // İletişim verisini yükle (TopBar ile paylaşılan önbellek — aynı anda tek istek atar)
   useEffect(() => {
-    fetch('/api/site-content?section=contactBar')
-      .then((res) => res.json())
+    const cached = getBrowserCache('site_content_contactBar');
+    if (cached?.data) {
+      setContact(cached.data);
+      if (!isBrowserCacheStale('site_content_contactBar', CACHE_TTL_LONG)) return;
+    }
+
+    fetchWithBrowserCache('site_content_contactBar', '/api/site-content?section=contactBar', {
+      maxAgeMs: CACHE_TTL_LONG,
+      persist: true,
+      extract: (res) => res.data?.contactBar
+    })
       .then((res) => {
-        if (res.success && res.data?.contactBar) {
-          setContact(res.data.contactBar);
+        if (res.ok && res.data) {
+          setContact(res.data);
         }
       })
       .catch(() => {});

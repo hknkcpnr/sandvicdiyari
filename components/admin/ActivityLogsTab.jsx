@@ -1,6 +1,13 @@
 'use client';
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
+import {
+  getBrowserCache,
+  invalidateBrowserCache,
+  isBrowserCacheStale,
+  fetchWithBrowserCache,
+  CACHE_TTL_SHORT
+} from '@/lib/browserDataCache';
 
 const CATEGORY_TABS = [
   { id: 'ALL', label: 'Tüm İşlemler', icon: 'fa-solid fa-list-ul', statKey: 'total' },
@@ -51,17 +58,48 @@ function formatRelativeTime(isoString) {
 }
 
 export default function ActivityLogsTab({ showToast, currentAdmin }) {
-  const [logs, setLogs] = useState([]);
-  const [stats, setStats] = useState({ total: 0, orders: 0, menu: 0, users: 0, system: 0 });
-  const [loading, setLoading] = useState(true);
+  const initialCached = getBrowserCache('activity_logs_ALL')?.data;
+  const [logs, setLogs] = useState(
+    Array.isArray(initialCached?.logs) ? initialCached.logs : []
+  );
+  const [stats, setStats] = useState(
+    initialCached?.stats || { total: 0, orders: 0, menu: 0, users: 0, system: 0 }
+  );
+  const [loading, setLoading] = useState(!initialCached);
   const [activeCategory, setActiveCategory] = useState('ALL');
   const [searchQuery, setSearchQuery] = useState('');
   const [autoRefresh, setAutoRefresh] = useState(true);
   const [expandedLogId, setExpandedLogId] = useState(null);
   const [isClearing, setIsClearing] = useState(false);
 
-  const fetchLogs = useCallback(async () => {
+  const fetchLogs = useCallback(async (force = false, { silent = false } = {}) => {
+    const isDefaultView = activeCategory === 'ALL' && !searchQuery.trim();
     try {
+      if (isDefaultView) {
+        const cached = getBrowserCache('activity_logs_ALL');
+        if (!force && cached?.data && !isBrowserCacheStale('activity_logs_ALL', CACHE_TTL_SHORT)) {
+          setLogs(cached.data.logs || []);
+          if (cached.data.stats) setStats(cached.data.stats);
+          setLoading(false);
+          return;
+        }
+        const res = await fetchWithBrowserCache(
+          'activity_logs_ALL',
+          '/api/admin/logs?limit=200',
+          {
+            force: force === true,
+            maxAgeMs: CACHE_TTL_SHORT,
+            persist: true,
+            extract: (json) => json.data
+          }
+        );
+        if (res.ok && res.data) {
+          setLogs(res.data.logs || []);
+          if (res.data.stats) setStats(res.data.stats);
+        }
+        return;
+      }
+
       const params = new URLSearchParams();
       if (activeCategory !== 'ALL') params.set('category', activeCategory);
       if (searchQuery.trim()) params.set('search', searchQuery.trim());
@@ -76,20 +114,31 @@ export default function ActivityLogsTab({ showToast, currentAdmin }) {
     } catch (err) {
       console.warn('Log verisi alınamadı:', err);
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   }, [activeCategory, searchQuery]);
 
   useEffect(() => {
-    fetchLogs();
-  }, [fetchLogs]);
+    const isDefaultView = activeCategory === 'ALL' && !searchQuery.trim();
+    const cached = isDefaultView ? getBrowserCache('activity_logs_ALL') : null;
+    if (cached?.data) {
+      setLogs(cached.data.logs || []);
+      if (cached.data.stats) setStats(cached.data.stats);
+      setLoading(false);
+      if (isBrowserCacheStale('activity_logs_ALL', CACHE_TTL_SHORT)) {
+        fetchLogs(true, { silent: true });
+      }
+    } else {
+      fetchLogs(false);
+    }
+  }, [fetchLogs, activeCategory, searchQuery]);
 
   // Canlı Otomatik Yenileme (Sekme açıkken 45 saniyede bir - kota dostu)
   useEffect(() => {
     if (!autoRefresh) return;
     const interval = setInterval(() => {
       if (typeof document !== 'undefined' && document.hidden) return;
-      fetchLogs();
+      fetchLogs(true, { silent: true });
     }, 45000);
     return () => clearInterval(interval);
   }, [autoRefresh, fetchLogs]);
@@ -104,6 +153,7 @@ export default function ActivityLogsTab({ showToast, currentAdmin }) {
       if (json.success) {
         setLogs([]);
         setStats({ total: 0, orders: 0, menu: 0, users: 0, system: 0 });
+        invalidateBrowserCache('activity_logs_');
         if (showToast) showToast('İşlem logları temizlendi.', 'success');
       } else {
         if (showToast) showToast(json.error || 'Temizlenemedi.', 'error');
@@ -214,7 +264,7 @@ export default function ActivityLogsTab({ showToast, currentAdmin }) {
             {/* Yenile */}
             <button
               type="button"
-              onClick={fetchLogs}
+              onClick={() => fetchLogs(true)}
               title="Listeyi Yenile"
               className="p-2 rounded-xl text-stone-600 hover:text-stone-900 bg-stone-50 hover:bg-stone-100 border border-stone-200 transition-colors cursor-pointer"
             >

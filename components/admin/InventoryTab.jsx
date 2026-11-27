@@ -5,11 +5,22 @@ import { useDispatch } from 'react-redux';
 import { setProducts } from '@/store/slices/productSlice';
 import { showMessageModal } from '@/store/slices/uiSlice';
 import AdminPagination from './AdminPagination';
+import {
+  getBrowserCache,
+  setBrowserCache,
+  invalidateBrowserCache,
+  isBrowserCacheStale,
+  fetchWithBrowserCache,
+  CACHE_TTL_MEDIUM
+} from '@/lib/browserDataCache';
 
 export default function InventoryTab({ products = [], onRefreshProducts, canUpdateStock = true }) {
   const dispatch = useDispatch();
-  const [items, setItems] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const initialCached = getBrowserCache('inventory_all')?.data;
+  const [items, setItems] = useState(
+    Array.isArray(initialCached?.items) ? initialCached.items : []
+  );
+  const [loading, setLoading] = useState(!initialCached);
   const [updatingId, setUpdatingId] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
@@ -19,34 +30,75 @@ export default function InventoryTab({ products = [], onRefreshProducts, canUpda
   const [pageSize, setPageSize] = useState(6);
 
   // Summary counts
-  const [summary, setSummary] = useState({
-    total: 0,
-    inStock: 0,
-    lowStock: 0,
-    outOfStock: 0,
-    activeCount: 0,
-    closedCount: 0,
-  });
+  const [summary, setSummary] = useState(
+    initialCached?.summary || {
+      total: 0,
+      inStock: 0,
+      lowStock: 0,
+      outOfStock: 0,
+      activeCount: 0,
+      closedCount: 0,
+    }
+  );
 
-  // Fetch inventory (products with stock & status)
-  const fetchInventory = async () => {
+  // Fetch inventory (önbellek tazeyse anında sunar, bayatladıysa sessiz günceller)
+  const fetchInventory = async (force = false, { silent = false } = {}) => {
+    const cached = getBrowserCache('inventory_all');
+    if (!force && cached?.data && !isBrowserCacheStale('inventory_all', CACHE_TTL_MEDIUM)) {
+      if (Array.isArray(cached.data.items)) setItems(cached.data.items);
+      if (cached.data.summary) setSummary(cached.data.summary);
+      setLoading(false);
+      return;
+    }
+
     try {
-      setLoading(true);
-      const res = await fetch('/api/inventory');
-      const json = await res.json();
-      if (json.success && Array.isArray(json.data)) {
-        setItems(json.data);
-        if (json.summary) setSummary(json.summary);
+      if (!silent) setLoading(true);
+      const res = await fetchWithBrowserCache('inventory_all', '/api/inventory', {
+        force: force === true,
+        maxAgeMs: CACHE_TTL_MEDIUM,
+        persist: true,
+        extract: (json) => ({
+          items: Array.isArray(json.data) ? json.data : [],
+          summary: json.summary || null
+        })
+      });
+      if (res.ok && res.data) {
+        setItems(res.data.items);
+        if (res.data.summary) setSummary(res.data.summary);
       }
     } catch (err) {
       console.error('Stok bilgileri alınamadı:', err);
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchInventory();
+    const cached = getBrowserCache('inventory_all');
+    if (cached?.data) {
+      if (Array.isArray(cached.data.items)) setItems(cached.data.items);
+      if (cached.data.summary) setSummary(cached.data.summary);
+      setLoading(false);
+      if (isBrowserCacheStale('inventory_all', CACHE_TTL_MEDIUM)) {
+        fetchInventory(true, { silent: true });
+      }
+    } else {
+      fetchInventory(false);
+    }
+
+    const handleFocusOrVisible = () => {
+      if (typeof document !== 'undefined' && document.hidden) return;
+      if (isBrowserCacheStale('inventory_all', CACHE_TTL_MEDIUM)) {
+        fetchInventory(true, { silent: true });
+      }
+    };
+
+    window.addEventListener('focus', handleFocusOrVisible);
+    document.addEventListener('visibilitychange', handleFocusOrVisible);
+    return () => {
+      window.removeEventListener('focus', handleFocusOrVisible);
+      document.removeEventListener('visibilitychange', handleFocusOrVisible);
+    };
   }, []);
 
   // Sync to customer window, local state & Redux immediately without extra network flicker
@@ -54,6 +106,12 @@ export default function InventoryTab({ products = [], onRefreshProducts, canUpda
     if (json?.products && Array.isArray(json.products)) {
       setItems(json.products);
       dispatch(setProducts(json.products));
+      setBrowserCache(
+        'inventory_all',
+        { items: json.products, summary: json.summary || summary },
+        { persist: true }
+      );
+      invalidateBrowserCache('products_public');
     }
     if (json?.summary) {
       setSummary(json.summary);
@@ -361,7 +419,7 @@ export default function InventoryTab({ products = [], onRefreshProducts, canUpda
           </button>
           <button
             type="button"
-            onClick={fetchInventory}
+            onClick={() => fetchInventory(true)}
             className="w-8 h-8 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-600 border border-stone-200 flex items-center justify-center text-xs transition-colors cursor-pointer"
             title="Listeyi Yenile"
           >

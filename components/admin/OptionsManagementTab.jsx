@@ -9,23 +9,49 @@ import {
   MENU_DRINK_TIER_META,
   normalizeMenuDrinkGroups
 } from '@/lib/productOptionsDefaults';
+import {
+  getBrowserCache,
+  setBrowserCache,
+  isBrowserCacheStale,
+  fetchWithBrowserCache,
+  CACHE_TTL_LONG
+} from '@/lib/browserDataCache';
 
 export default function OptionsManagementTab() {
   const dispatch = useDispatch();
+  const initialCached = getBrowserCache('options_all')?.data;
 
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!initialCached);
   const [saving, setSaving] = useState(false);
   const [activeSubTab, setActiveSubTab] = useState('sauces'); // 'sauces' | 'extras' | 'drinks'
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all'); // 'all' | 'active' | 'inactive'
 
   // Data state
-  const [sauces, setSauces] = useState([]);
-  const [freeSauceLimit, setFreeSauceLimit] = useState(DEFAULT_PRODUCT_OPTIONS.freeSauceLimit ?? 20);
-  const [extraSaucePrice, setExtraSaucePrice] = useState(DEFAULT_PRODUCT_OPTIONS.extraSaucePrice ?? 5);
-  const [extras, setExtras] = useState([]);
-  const [drinks, setDrinks] = useState(DEFAULT_PRODUCT_OPTIONS.drinks);
-  const [menuDrinkGroups, setMenuDrinkGroups] = useState(DEFAULT_MENU_DRINK_GROUPS);
+  const [sauces, setSauces] = useState(
+    Array.isArray(initialCached?.sauces) ? initialCached.sauces : []
+  );
+  const [freeSauceLimit, setFreeSauceLimit] = useState(
+    typeof initialCached?.freeSauceLimit === 'number'
+      ? initialCached.freeSauceLimit
+      : DEFAULT_PRODUCT_OPTIONS.freeSauceLimit ?? 20
+  );
+  const [extraSaucePrice, setExtraSaucePrice] = useState(
+    typeof initialCached?.extraSaucePrice === 'number'
+      ? initialCached.extraSaucePrice
+      : DEFAULT_PRODUCT_OPTIONS.extraSaucePrice ?? 5
+  );
+  const [extras, setExtras] = useState(
+    Array.isArray(initialCached?.extras) ? initialCached.extras : []
+  );
+  const [drinks, setDrinks] = useState(
+    Array.isArray(initialCached?.drinks) ? initialCached.drinks : DEFAULT_PRODUCT_OPTIONS.drinks
+  );
+  const [menuDrinkGroups, setMenuDrinkGroups] = useState(
+    initialCached?.menuDrinkGroups && typeof initialCached.menuDrinkGroups === 'object'
+      ? normalizeMenuDrinkGroups(initialCached.menuDrinkGroups)
+      : DEFAULT_MENU_DRINK_GROUPS
+  );
   const [newTierDrinkInput, setNewTierDrinkInput] = useState({ '1': '', '2': '', '3': '', '4': '' });
   const [newTierDrinkPrice, setNewTierDrinkPrice] = useState({ '1': '0', '2': '0', '3': '0', '4': '0' });
 
@@ -38,31 +64,56 @@ export default function OptionsManagementTab() {
   const [editingExtra, setEditingExtra] = useState(null);
   const [extraForm, setExtraForm] = useState({ name: '', price: 20, isAvailable: true });
 
-  // Fetch current options from server
-  const fetchOptions = async () => {
+  const applyOptionsPayload = (data) => {
+    if (!data || typeof data !== 'object') return;
+    if (typeof data.freeSauceLimit === 'number') setFreeSauceLimit(data.freeSauceLimit);
+    if (typeof data.extraSaucePrice === 'number') setExtraSaucePrice(data.extraSaucePrice);
+    if (Array.isArray(data.sauces)) setSauces(data.sauces);
+    if (Array.isArray(data.extras)) setExtras(data.extras);
+    if (Array.isArray(data.drinks)) setDrinks(data.drinks);
+    if (data.menuDrinkGroups && typeof data.menuDrinkGroups === 'object') {
+      setMenuDrinkGroups(normalizeMenuDrinkGroups(data.menuDrinkGroups));
+    }
+  };
+
+  // Fetch current options from server (önbellek tazeyse DB'ye gitmeden tarayıcıdan sunar)
+  const fetchOptions = async (force = false, { silent = false } = {}) => {
+    const cached = getBrowserCache('options_all');
+    if (!force && cached?.data && !isBrowserCacheStale('options_all', CACHE_TTL_LONG)) {
+      applyOptionsPayload(cached.data);
+      setLoading(false);
+      return;
+    }
+
     try {
-      setLoading(true);
-      const res = await fetch('/api/options');
-      const json = await res.json();
-      if (json.success && json.data) {
-        if (typeof json.data.freeSauceLimit === 'number') setFreeSauceLimit(json.data.freeSauceLimit);
-        if (typeof json.data.extraSaucePrice === 'number') setExtraSaucePrice(json.data.extraSaucePrice);
-        if (Array.isArray(json.data.sauces)) setSauces(json.data.sauces);
-        if (Array.isArray(json.data.extras)) setExtras(json.data.extras);
-        if (Array.isArray(json.data.drinks)) setDrinks(json.data.drinks);
-        if (json.data.menuDrinkGroups && typeof json.data.menuDrinkGroups === 'object') {
-          setMenuDrinkGroups(normalizeMenuDrinkGroups(json.data.menuDrinkGroups));
-        }
+      if (!silent) setLoading(true);
+      const res = await fetchWithBrowserCache('options_all', '/api/options', {
+        force: force === true,
+        maxAgeMs: CACHE_TTL_LONG,
+        persist: true,
+        extract: (json) => json.data
+      });
+      if (res.ok && res.data) {
+        applyOptionsPayload(res.data);
       }
     } catch (err) {
       console.error('Seçenekler yüklenemedi:', err);
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchOptions();
+    const cached = getBrowserCache('options_all');
+    if (cached?.data) {
+      applyOptionsPayload(cached.data);
+      setLoading(false);
+      if (isBrowserCacheStale('options_all', CACHE_TTL_LONG)) {
+        fetchOptions(true, { silent: true });
+      }
+    } else {
+      fetchOptions(false);
+    }
   }, []);
 
   // Save all options to server
@@ -94,6 +145,10 @@ export default function OptionsManagementTab() {
       if (!json.success) {
         throw new Error(json.error || 'Kaydedilemedi');
       }
+      setBrowserCache('options_all', json.data || payload, {
+        persist: true,
+        broadcastKey: 'sandwich_options_updated'
+      });
       return true;
     } catch (err) {
       console.error('Kaydetme hatası:', err);
@@ -443,7 +498,7 @@ export default function OptionsManagementTab() {
         <div className="flex items-center gap-2 shrink-0">
           <button
             type="button"
-            onClick={fetchOptions}
+            onClick={() => fetchOptions(true)}
             disabled={loading}
             className="bg-stone-50 hover:bg-stone-100 text-stone-700 text-xs font-semibold px-3 py-2 rounded-xl flex items-center gap-1.5 transition-colors cursor-pointer border border-stone-200"
             title="Yenile"

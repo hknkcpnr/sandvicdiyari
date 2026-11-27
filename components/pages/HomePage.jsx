@@ -11,6 +11,13 @@ import {
 import ProductCard from '@/components/ProductCard';
 import { DEFAULT_SITE_CONTENT } from '@/lib/siteContentDefaults';
 import { getRestaurantStatus, CLOSED_MESSAGE } from '@/lib/openingHours';
+import {
+  getBrowserCache,
+  isBrowserCacheStale,
+  fetchWithBrowserCache,
+  CACHE_TTL_LONG,
+  CACHE_TTL_MEDIUM
+} from '@/lib/browserDataCache';
 
 export default function HomePage() {
   const dispatch = useDispatch();
@@ -38,12 +45,22 @@ export default function HomePage() {
     }
   }, [activeReviewIndex, approvedReviews.length]);
 
-  // Müşteri sayfası vitrin ve içerik ayarlarını getir
-  const loadSiteContent = () => {
-    fetch('/api/site-content?scope=home')
-      .then((res) => res.json())
+  // Müşteri sayfası vitrin ve içerik ayarlarını getir (önbellek tazeyse anında tarayıcıdan sunar)
+  const loadSiteContent = (force = false) => {
+    const cached = getBrowserCache('site_content_home');
+    if (!force && cached?.data) {
+      setSiteContent(cached.data);
+      if (!isBrowserCacheStale('site_content_home', CACHE_TTL_LONG)) return;
+    }
+
+    fetchWithBrowserCache('site_content_home', '/api/site-content?scope=home', {
+      force: force === true,
+      maxAgeMs: CACHE_TTL_LONG,
+      persist: true,
+      extract: (res) => res.data
+    })
       .then((res) => {
-        if (res.success && res.data) {
+        if (res.ok && res.data) {
           setSiteContent(res.data);
         }
       })
@@ -51,11 +68,21 @@ export default function HomePage() {
   };
 
   // Sadece yönetici tarafından ONAYLANMIŞ müşteri değerlendirmelerini getir
-  const loadApprovedReviews = () => {
-    fetch('/api/reviews')
-      .then((res) => res.json())
+  const loadApprovedReviews = (force = false) => {
+    const cached = getBrowserCache('reviews_approved');
+    if (!force && cached?.data && Array.isArray(cached.data)) {
+      dispatch(setReviews(cached.data));
+      if (!isBrowserCacheStale('reviews_approved', CACHE_TTL_LONG)) return;
+    }
+
+    fetchWithBrowserCache('reviews_approved', '/api/reviews', {
+      force: force === true,
+      maxAgeMs: CACHE_TTL_LONG,
+      persist: true,
+      extract: (res) => res.data
+    })
       .then((res) => {
-        if (res.success && Array.isArray(res.data)) {
+        if (res.ok && Array.isArray(res.data)) {
           dispatch(setReviews(res.data));
         }
       })
@@ -63,24 +90,26 @@ export default function HomePage() {
   };
 
   useEffect(() => {
-    loadSiteContent();
-    loadApprovedReviews();
+    loadSiteContent(false);
+    loadApprovedReviews(false);
 
-    let lastFocusFetchAt = Date.now();
     const handleFocus = () => {
-      const now = Date.now();
-      if (now - lastFocusFetchAt < 60000) return;
-      lastFocusFetchAt = now;
-      loadSiteContent();
-      loadApprovedReviews();
+      if (typeof document !== 'undefined' && document.hidden) return;
+      if (isBrowserCacheStale('site_content_home', CACHE_TTL_MEDIUM)) {
+        loadSiteContent(true);
+      }
+      if (isBrowserCacheStale('reviews_approved', CACHE_TTL_MEDIUM)) {
+        loadApprovedReviews(true);
+      }
     };
 
     // Admin panelinden içerik kaydedildiğinde anında canlı güncelleme
     const handleStorageChange = (e) => {
-      if (e.key === 'sandwich_site_content_updated' || e.key === 'sandwich_reviews_updated') {
-        lastFocusFetchAt = Date.now();
-        loadSiteContent();
-        loadApprovedReviews();
+      if (e.key === 'sandwich_site_content_updated') {
+        loadSiteContent(true);
+      }
+      if (e.key === 'sandwich_reviews_updated') {
+        loadApprovedReviews(true);
       }
     };
 

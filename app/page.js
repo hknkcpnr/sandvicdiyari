@@ -13,6 +13,12 @@ import {
 } from '@/store/slices/uiSlice';
 import TopBar from '@/components/TopBar';
 import Navbar from '@/components/Navbar';
+import {
+  getBrowserCache,
+  isBrowserCacheStale,
+  fetchWithBrowserCache,
+  CACHE_TTL_LONG
+} from '@/lib/browserDataCache';
 import CustomerAnnouncementBanner from '@/components/CustomerAnnouncementBanner';
 import Footer from '@/components/Footer';
 
@@ -180,18 +186,30 @@ export default function Home() {
       } catch {}
     }, 30000);
 
-    const loadProducts = () => {
-      fetch('/api/products')
-        .then((res) => res.json())
+    const loadProducts = (force = false) => {
+      const cached = getBrowserCache('products_public');
+      if (!force && cached?.data && Array.isArray(cached.data)) {
+        dispatch(setProducts(cached.data));
+        if (!isBrowserCacheStale('products_public', CACHE_TTL_LONG)) {
+          return;
+        }
+      }
+
+      fetchWithBrowserCache('products_public', '/api/products', {
+        force: force === true,
+        maxAgeMs: CACHE_TTL_LONG,
+        persist: true,
+        extract: (res) => res.data
+      })
         .then((res) => {
-          if (res.success && Array.isArray(res.data)) {
+          if (res.ok && Array.isArray(res.data)) {
             dispatch(setProducts(res.data));
           }
         })
         .catch((err) => console.error('Ürünler yüklenirken hata:', err));
     };
 
-    loadProducts();
+    loadProducts(false);
 
     // Günlük tekil cihaz ziyaretçi sayacı (Aynı cihaz aynı gün içinde yalnızca 1 kez sayılır)
     try {
@@ -230,7 +248,7 @@ export default function Home() {
     // Cross-tab real-time sync when admin changes inventory or revokes user session
     const handleStorageChange = (e) => {
       if (e.key === 'sandwich_inventory_updated') {
-        loadProducts();
+        loadProducts(true);
       }
       if (e.key === 'sandwich_session_event') {
         verifyCurrentSession();
@@ -239,7 +257,7 @@ export default function Home() {
 
     const handleWindowFocus = () => {
       if (typeof document !== 'undefined' && document.hidden) return;
-      loadProducts();
+      loadProducts(false);
       verifyCurrentSession();
     };
 
@@ -248,10 +266,10 @@ export default function Home() {
     window.addEventListener('visibilitychange', handleWindowFocus);
 
     // Akıllı ve kaynak tasarruflu senkronizasyon:
-    // Sadece sekme aktif ve görünür durumdayken 45 saniyede bir arka plan doğrulaması yapar
+    // Sadece sekme aktif ve görünür durumdayken 45 saniyede bir kontrol (önbellek 2 dk tazeyse ağa gitmez)
     const pollInterval = setInterval(() => {
       if (typeof document !== 'undefined' && !document.hidden) {
-        loadProducts();
+        loadProducts(false);
         verifyCurrentSession();
       }
     }, 45000);

@@ -2,33 +2,55 @@
 
 import { useState, useEffect } from 'react';
 import { DEFAULT_SITE_CONTENT } from '@/lib/siteContentDefaults';
+import {
+  getBrowserCache,
+  isBrowserCacheStale,
+  fetchWithBrowserCache,
+  CACHE_TTL_LONG
+} from '@/lib/browserDataCache';
 
 export default function HikayePage() {
   const [story, setStory] = useState(DEFAULT_SITE_CONTENT.storySection);
   const [activeIndex, setActiveIndex] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
 
-  const fetchStoryContent = async () => {
+  const applyStoryData = (data) => {
+    if (data?.storySection) {
+      setStory({
+        ...DEFAULT_SITE_CONTENT.storySection,
+        ...data.storySection,
+        images: Array.isArray(data.storySection.images)
+          ? data.storySection.images
+          : DEFAULT_SITE_CONTENT.storySection.images,
+      });
+    }
+  };
+
+  const fetchStoryContent = async (force = false) => {
     try {
-      const res = await fetch('/api/site-content', { cache: 'no-store' });
-      const json = await res.json();
-      if (json.success && json.data?.storySection) {
-        setStory({
-          ...DEFAULT_SITE_CONTENT.storySection,
-          ...json.data.storySection,
-          images: Array.isArray(json.data.storySection.images)
-            ? json.data.storySection.images
-            : DEFAULT_SITE_CONTENT.storySection.images,
-        });
+      const cached = getBrowserCache('site_content_full');
+      if (!force && cached?.data) {
+        applyStoryData(cached.data);
+        if (!isBrowserCacheStale('site_content_full', CACHE_TTL_LONG)) return;
+      }
+
+      const res = await fetchWithBrowserCache('site_content_full', '/api/site-content', {
+        force: force === true,
+        maxAgeMs: CACHE_TTL_LONG,
+        persist: false,
+        extract: (json) => json.data
+      });
+      if (res.ok && res.data) {
+        applyStoryData(res.data);
       }
     } catch {}
   };
 
   useEffect(() => {
-    fetchStoryContent();
+    fetchStoryContent(false);
     const handleStorage = (e) => {
       if (e.key === 'sandwich_site_content_updated') {
-        fetchStoryContent();
+        fetchStoryContent(true);
       }
     };
     window.addEventListener('storage', handleStorage);

@@ -4,6 +4,12 @@ import { useState, useEffect } from 'react';
 import { useDispatch } from 'react-redux';
 import { openTrackOrderModal } from '@/store/slices/uiSlice';
 import { getRestaurantStatus } from '@/lib/openingHours';
+import {
+  getBrowserCache,
+  isBrowserCacheStale,
+  fetchWithBrowserCache,
+  CACHE_TTL_LONG
+} from '@/lib/browserDataCache';
 
 export default function TopBar() {
   const dispatch = useDispatch();
@@ -14,21 +20,31 @@ export default function TopBar() {
     visible: true,
   });
 
-  const loadContact = () => {
-    fetch('/api/site-content?section=contactBar')
-      .then((res) => res.json())
+  const loadContact = (force = false) => {
+    const cached = getBrowserCache('site_content_contactBar');
+    if (!force && cached?.data) {
+      setContact(cached.data);
+      if (!isBrowserCacheStale('site_content_contactBar', CACHE_TTL_LONG)) return;
+    }
+
+    fetchWithBrowserCache('site_content_contactBar', '/api/site-content?section=contactBar', {
+      force: force === true,
+      maxAgeMs: CACHE_TTL_LONG,
+      persist: true,
+      extract: (res) => res.data?.contactBar
+    })
       .then((res) => {
-        if (res.success && res.data?.contactBar) {
-          setContact(res.data.contactBar);
+        if (res.ok && res.data) {
+          setContact(res.data);
         }
       })
       .catch(() => {});
   };
 
   useEffect(() => {
-    loadContact();
+    loadContact(false);
     const handleStorage = (e) => {
-      if (e.key === 'sandwich_site_content_updated') loadContact();
+      if (e.key === 'sandwich_site_content_updated') loadContact(true);
     };
     window.addEventListener('storage', handleStorage);
     return () => window.removeEventListener('storage', handleStorage);

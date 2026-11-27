@@ -15,6 +15,13 @@ import {
   getMenuSizeTier,
   normalizeMenuDrinkGroups
 } from '@/lib/productOptionsDefaults';
+import {
+  getBrowserCache,
+  invalidateBrowserCache,
+  isBrowserCacheStale,
+  fetchWithBrowserCache,
+  CACHE_TTL_LONG
+} from '@/lib/browserDataCache';
 
 function extractProductIngredients(product) {
   if (!product) return [];
@@ -94,50 +101,70 @@ export default function OptionsModal() {
     }
   }, [isOptionsModalOpen, selectedProductForOptions?.id]);
 
-  // Fetch dynamic options from backend API on mount and when modal opens
+  // Fetch dynamic options using browser cache (instant open, syncs on updates or >2 min stale)
   useEffect(() => {
     let isMounted = true;
-    async function fetchDynamicOptions() {
+
+    const applyOptionsData = (data) => {
+      if (!isMounted || !data) return;
+      if (typeof data.freeSauceLimit === 'number') {
+        setFreeSauceLimit(data.freeSauceLimit);
+      }
+      if (typeof data.extraSaucePrice === 'number') {
+        setExtraSaucePrice(data.extraSaucePrice);
+      }
+      if (Array.isArray(data.sauces)) {
+        setSaucesList(data.sauces);
+      }
+      if (Array.isArray(data.extras)) {
+        setExtras((prev) => {
+          const prevCheckedMap = {};
+          (prev || []).forEach((p) => {
+            if (p.checked) prevCheckedMap[p.id || p.name] = true;
+          });
+          return data.extras.map((e) => ({
+            ...e,
+            checked: !!prevCheckedMap[e.id || e.name],
+          }));
+        });
+      }
+      if (Array.isArray(data.drinks)) {
+        setDrinkOptions(
+          data.drinks
+            .filter((d) => (typeof d === 'object' ? d.isAvailable !== false : true))
+            .map((d) => (typeof d === 'string' ? d : d.name))
+        );
+      }
+      if (data.menuDrinkGroups && typeof data.menuDrinkGroups === 'object') {
+        setMenuDrinkGroups(normalizeMenuDrinkGroups(data.menuDrinkGroups));
+      }
+      setOptionsLoaded(true);
+    };
+
+    async function fetchDynamicOptions(force = false) {
+      const cached = getBrowserCache('options_all');
+      if (!force && cached?.data) {
+        applyOptionsData(cached.data);
+        if (!isBrowserCacheStale('options_all', CACHE_TTL_LONG)) return;
+      }
+
       try {
-        const res = await fetch('/api/options', { cache: 'no-store' });
-        const json = await res.json();
-        if (isMounted && json && json.success && json.data) {
-          if (typeof json.data.freeSauceLimit === 'number') {
-            setFreeSauceLimit(json.data.freeSauceLimit);
-          }
-          if (typeof json.data.extraSaucePrice === 'number') {
-            setExtraSaucePrice(json.data.extraSaucePrice);
-          }
-          if (Array.isArray(json.data.sauces)) {
-            setSaucesList(json.data.sauces);
-          }
-          if (Array.isArray(json.data.extras)) {
-            setExtras((prev) => {
-              const prevCheckedMap = {};
-              (prev || []).forEach((p) => {
-                if (p.checked) prevCheckedMap[p.id || p.name] = true;
-              });
-              return json.data.extras.map((e) => ({
-                ...e,
-                checked: !!prevCheckedMap[e.id || e.name],
-              }));
-            });
-          }
-          if (Array.isArray(json.data.drinks)) {
-            setDrinkOptions(
-              json.data.drinks
-                .filter((d) => (typeof d === 'object' ? d.isAvailable !== false : true))
-                .map((d) => (typeof d === 'string' ? d : d.name))
-            );
-          }
-          if (json.data.menuDrinkGroups && typeof json.data.menuDrinkGroups === 'object') {
-            setMenuDrinkGroups(normalizeMenuDrinkGroups(json.data.menuDrinkGroups));
-          }
+        const res = await fetchWithBrowserCache('options_all', '/api/options', {
+          force: force === true,
+          maxAgeMs: CACHE_TTL_LONG,
+          persist: true,
+          extract: (json) => json.data
+        });
+        if (isMounted && res.ok && res.data) {
+          applyOptionsData(res.data);
+        } else if (isMounted && !optionsLoaded && !cached?.data) {
+          setSaucesList(DEFAULT_PRODUCT_OPTIONS.sauces);
+          setExtras(DEFAULT_PRODUCT_OPTIONS.extras.map((e) => ({ ...e, checked: false })));
           setOptionsLoaded(true);
         }
       } catch (err) {
         console.warn('Options API fetch fallback:', err);
-        if (isMounted && !optionsLoaded) {
+        if (isMounted && !optionsLoaded && !cached?.data) {
           setSaucesList(DEFAULT_PRODUCT_OPTIONS.sauces);
           setExtras(DEFAULT_PRODUCT_OPTIONS.extras.map((e) => ({ ...e, checked: false })));
           setOptionsLoaded(true);
@@ -145,10 +172,30 @@ export default function OptionsModal() {
       }
     }
 
-    fetchDynamicOptions();
+    fetchDynamicOptions(false);
+
+    const handleOptionsUpdated = (e) => {
+      if (e?.detail) {
+        applyOptionsData(e.detail);
+      } else {
+        invalidateBrowserCache('options_all');
+        fetchDynamicOptions(true);
+      }
+    };
+    const handleStorage = (e) => {
+      if (e.key === 'sandwich_options_updated') {
+        invalidateBrowserCache('options_all');
+        fetchDynamicOptions(true);
+      }
+    };
+
+    window.addEventListener('sandwich_options_updated', handleOptionsUpdated);
+    window.addEventListener('storage', handleStorage);
 
     return () => {
       isMounted = false;
+      window.removeEventListener('sandwich_options_updated', handleOptionsUpdated);
+      window.removeEventListener('storage', handleStorage);
     };
   }, [isOptionsModalOpen]);
 

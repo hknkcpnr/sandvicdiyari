@@ -4,6 +4,14 @@ import { useState, useEffect, useRef } from 'react';
 import { useDispatch } from 'react-redux';
 import { showMessageModal } from '@/store/slices/uiSlice';
 import { DEFAULT_SITE_CONTENT } from '@/lib/siteContentDefaults';
+import {
+  getBrowserCache,
+  setBrowserCache,
+  invalidateBrowserCache,
+  isBrowserCacheStale,
+  fetchWithBrowserCache,
+  CACHE_TTL_LONG
+} from '@/lib/browserDataCache';
 
 // Hazır Önerilen Gurme Manşet Görselleri
 const HERO_IMAGE_PRESETS = [
@@ -96,8 +104,9 @@ const SECTIONS = [
 
 export default function SiteContentEditorTab({ initialSubTab = 'hero', onSubTabChange }) {
   const dispatch = useDispatch();
-  const [content, setContent] = useState(DEFAULT_SITE_CONTENT);
-  const [loading, setLoading] = useState(true);
+  const initialCached = getBrowserCache('site_content_full');
+  const [content, setContent] = useState(initialCached?.data || DEFAULT_SITE_CONTENT);
+  const [loading, setLoading] = useState(!initialCached);
   const [saving, setSaving] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [activeSubTab, setActiveSubTab] = useState(initialSubTab);
@@ -120,25 +129,50 @@ export default function SiteContentEditorTab({ initialSubTab = 'hero', onSubTabC
   const featuresFileInputRef = useRef(null);
   const storyFileInputRef = useRef(null);
 
-  // Veriyi API'den çek
-  const fetchContent = async () => {
-    setLoading(true);
+  // Veriyi API'den çek (önbellek tazeyse anında RAM'den sunar)
+  const fetchContent = async (force = false, { silent = false } = {}) => {
+    const cached = getBrowserCache('site_content_full');
+    if (!force && cached?.data && !isBrowserCacheStale('site_content_full', CACHE_TTL_LONG)) {
+      setContent(cached.data);
+      setHasUnsavedChanges(false);
+      setLoading(false);
+      return;
+    }
+
+    if (!silent) {
+      setLoading(true);
+    }
     try {
-      const res = await fetch('/api/site-content');
-      const json = await res.json();
-      if (json.success && json.data) {
-        setContent(json.data);
+      const res = await fetchWithBrowserCache('site_content_full', '/api/site-content', {
+        force: force === true,
+        maxAgeMs: CACHE_TTL_LONG,
+        persist: false,
+        extract: (json) => json.data
+      });
+      if (res.ok && res.data) {
+        setContent(res.data);
         setHasUnsavedChanges(false);
       }
     } catch (err) {
       console.error('Site içeriği yüklenemedi:', err);
     } finally {
-      setLoading(false);
+      if (!silent) {
+        setLoading(false);
+      }
     }
   };
 
   useEffect(() => {
-    fetchContent();
+    const cached = getBrowserCache('site_content_full');
+    if (cached?.data) {
+      setContent(cached.data);
+      setLoading(false);
+      if (isBrowserCacheStale('site_content_full', CACHE_TTL_LONG)) {
+        fetchContent(true, { silent: true });
+      }
+    } else {
+      fetchContent(false);
+    }
   }, []);
 
   const updateField = (updater) => {
@@ -159,6 +193,8 @@ export default function SiteContentEditorTab({ initialSubTab = 'hero', onSubTabC
       if (json.success) {
         setContent(json.data);
         setHasUnsavedChanges(false);
+        invalidateBrowserCache('site_content_');
+        setBrowserCache('site_content_full', json.data, { persist: false });
         if (typeof window !== 'undefined') {
           localStorage.setItem('sandwich_site_content_updated', String(Date.now()));
         }
