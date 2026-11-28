@@ -80,7 +80,8 @@ export default function OptionsModal() {
   const allProducts = useSelector((state) => state.product.items);
 
   const [selectedDrink, setSelectedDrink] = useState('Ayran');
-  const [selectedSuggestedDrinkIds, setSelectedSuggestedDrinkIds] = useState([]);
+  const [suggestedDrinkCounts, setSuggestedDrinkCounts] = useState({});
+  const [showMenuExtraDrinks, setShowMenuExtraDrinks] = useState(false);
   const [saucesList, setSaucesList] = useState([]);
   const [freeSauceLimit, setFreeSauceLimit] = useState(DEFAULT_PRODUCT_OPTIONS.freeSauceLimit ?? 2);
   const [extraSaucePrice, setExtraSaucePrice] = useState(DEFAULT_PRODUCT_OPTIONS.extraSaucePrice ?? 5);
@@ -97,7 +98,8 @@ export default function OptionsModal() {
   useEffect(() => {
     if (isOptionsModalOpen) {
       setRemovedIngredients([]);
-      setSelectedSuggestedDrinkIds([]);
+      setSuggestedDrinkCounts({});
+      setShowMenuExtraDrinks(false);
       if (selectedProductForOptions?.category === 'menu') {
         const tierDrinks = getEffectiveMenuDrinks(
           selectedProductForOptions,
@@ -245,23 +247,35 @@ export default function OptionsModal() {
     : null;
   const drinkExtraCost = isMenu ? Math.max(0, Number(selectedMenuDrinkObj?.price) || 0) : 0;
 
-  // Tekli ürünler için altta önerilecek soğuk içecekler
-  const suggestedDrinks = (!isMenu && !isDrink)
+  // İçecek harici tüm ürünlerde (tekli veya menü) yanına birden fazla soğuk içecek eklenebilir
+  const suggestedDrinks = !isDrink
     ? (allProducts || []).filter((p) => p.category === 'drink' && p.isAvailable !== false)
     : [];
 
-  const selectedSuggestedDrinks = suggestedDrinks.filter((d) =>
-    selectedSuggestedDrinkIds.includes(d.id)
-  );
+  const selectedSuggestedDrinks = suggestedDrinks
+    .map((d) => ({
+      product: d,
+      quantity: Math.max(0, Number(suggestedDrinkCounts[d.id]) || 0),
+    }))
+    .filter((entry) => entry.quantity > 0);
+  const totalSuggestedDrinkCount = selectedSuggestedDrinks.reduce((sum, e) => sum + e.quantity, 0);
   const suggestedDrinksCost = selectedSuggestedDrinks.reduce(
-    (sum, d) => sum + (Number(d.price) || 0),
+    (sum, e) => sum + (Number(e.product.price) || 0) * e.quantity,
     0
   );
 
-  const handleToggleSuggestedDrink = (drinkId) => {
-    setSelectedSuggestedDrinkIds((prev) =>
-      prev.includes(drinkId) ? prev.filter((id) => id !== drinkId) : [...prev, drinkId]
-    );
+  const handleAdjustSuggestedDrink = (drinkId, delta) => {
+    setSuggestedDrinkCounts((prev) => {
+      const current = Number(prev[drinkId]) || 0;
+      const next = Math.max(0, Math.min(20, current + delta));
+      const copy = { ...prev };
+      if (next <= 0) {
+        delete copy[drinkId];
+      } else {
+        copy[drinkId] = next;
+      }
+      return copy;
+    });
   };
 
   // Only show available sauces and extras to the customer
@@ -340,11 +354,12 @@ export default function OptionsModal() {
       })
     );
 
-    // Tekli üründe seçilen öneri içecekleri de sepete ekle
-    selectedSuggestedDrinks.forEach((drinkProd) => {
+    // Seçilen tüm ek içecekleri adetleriyle birlikte sepete ekle
+    selectedSuggestedDrinks.forEach(({ product: drinkProd, quantity }) => {
       dispatch(
         addToCart({
           product: drinkProd,
+          quantity,
           sauces: {},
           extras: [],
           note: '',
@@ -359,8 +374,8 @@ export default function OptionsModal() {
       showMessageModal({
         title: 'Sepete Eklendi! 🥪',
         text:
-          selectedSuggestedDrinks.length > 0
-            ? `${selectedProductForOptions.name} ve ${selectedSuggestedDrinks.length} adet içecek sepetinize eklendi!`
+          totalSuggestedDrinkCount > 0
+            ? `${selectedProductForOptions.name} ve ${totalSuggestedDrinkCount} adet içecek sepetinize eklendi!`
             : `${selectedProductForOptions.name} sepetinize eklendi!`,
         type: 'success',
       })
@@ -368,7 +383,8 @@ export default function OptionsModal() {
     // Reset form state
     setNote('');
     setRemovedIngredients([]);
-    setSelectedSuggestedDrinkIds([]);
+    setSuggestedDrinkCounts({});
+    setShowMenuExtraDrinks(false);
     if (drinkOptions.length > 0) {
       setSelectedDrink(drinkOptions[0]);
     }
@@ -381,11 +397,11 @@ export default function OptionsModal() {
       onClick={(e) => {
         if (e.target === e.currentTarget) dispatch(closeOptionsModal());
       }}
-      className="fixed inset-0 z-50 flex items-start sm:items-center justify-center p-2 sm:p-4 bg-stone-900/65 backdrop-blur-xs overflow-y-auto animate-in fade-in duration-200"
+      className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-3 lg:p-4 bg-stone-900/65 backdrop-blur-xs overflow-hidden animate-in fade-in duration-200"
     >
-      <div className="bg-stone-50 rounded-2xl sm:rounded-3xl max-w-[680px] lg:max-w-5xl xl:max-w-6xl w-full shadow-2xl my-auto sm:my-4 flex flex-col lg:flex-row max-h-[94vh] lg:max-h-none overflow-hidden border border-stone-200/90 relative">
+      <div className="bg-stone-50 rounded-2xl sm:rounded-3xl max-w-[700px] lg:max-w-5xl xl:max-w-6xl w-full shadow-2xl flex flex-col lg:flex-row max-h-[94dvh] lg:max-h-[90dvh] overflow-hidden border border-stone-200/90 relative">
         {/* SOL VİTRİN PANELİ: TAM BOY BÜYÜK GÖRSEL & EDITORIAL KART */}
-        <div className="shrink-0 lg:w-[360px] xl:w-[400px] bg-stone-950 relative overflow-hidden flex flex-col justify-between text-left min-h-[210px] sm:min-h-[235px] lg:min-h-[500px]">
+        <div className="shrink-0 lg:w-[300px] xl:w-[330px] bg-stone-950 relative overflow-hidden flex flex-col justify-between text-left min-h-[148px] sm:min-h-[175px] lg:min-h-0">
           {/* Tam Arka Plan Ürün Fotoğrafı */}
           <img
             id="opt-modal-img"
@@ -402,7 +418,7 @@ export default function OptionsModal() {
           <div className="absolute inset-0 bg-gradient-to-t from-stone-950 via-stone-950/65 to-stone-950/15 pointer-events-none" />
 
           {/* Üst Satır: Rozet & Mobil Kapat Butonu */}
-          <div className="relative z-10 flex items-center justify-between gap-2 p-3.5 sm:p-4 lg:p-5">
+          <div className="relative z-10 flex items-center justify-between gap-2 p-3 sm:p-4 lg:p-5">
             <div className="flex flex-wrap items-center gap-1.5">
               {selectedProductForOptions.badge && (
                 <span className="inline-flex items-center gap-1 bg-brand-500 text-white text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full shadow-lg shadow-brand-500/30">
@@ -429,27 +445,27 @@ export default function OptionsModal() {
           </div>
 
           {/* Alt Satır: Başlık, Açıklama, Etiketler & Canlı Fiyat */}
-          <div className="relative z-10 p-4 sm:p-5 lg:p-6 pt-12 space-y-3 mt-auto">
-            <div className="space-y-1.5">
+          <div className="relative z-10 p-3 sm:p-4 lg:p-5 pt-8 space-y-2 mt-auto">
+            <div className="space-y-1">
               <h4
                 id="opt-modal-title"
-                className="font-black text-lg sm:text-xl lg:text-2xl text-white leading-tight drop-shadow-sm"
+                className="font-black text-base sm:text-xl lg:text-2xl text-white leading-tight drop-shadow-sm"
               >
                 {selectedProductForOptions.name}
               </h4>
 
               {(selectedProductForOptions.description || selectedProductForOptions.desc) && (
-                <p className="text-stone-200/90 text-xs lg:text-[13px] leading-relaxed line-clamp-3">
+                <p className="text-stone-200/90 text-[11px] sm:text-xs leading-relaxed line-clamp-2 lg:line-clamp-3">
                   {selectedProductForOptions.description || selectedProductForOptions.desc}
                 </p>
               )}
             </div>
 
-            <div className="flex flex-wrap items-center justify-between gap-2 pt-3 border-t border-white/15">
+            <div className="flex flex-wrap items-center justify-between gap-2 pt-2.5 border-t border-white/15">
               <div className="flex items-baseline gap-2">
                 <span
                   id="opt-modal-price"
-                  className="text-2xl sm:text-3xl font-black text-amber-400 leading-none tracking-tight drop-shadow"
+                  className="text-xl sm:text-2xl lg:text-3xl font-black text-amber-400 leading-none tracking-tight drop-shadow"
                 >
                   ₺{currentTotalPrice.toFixed(2)}
                 </span>
@@ -469,11 +485,11 @@ export default function OptionsModal() {
         </div>
 
         {/* SAĞ ÖZELLEŞTİRME PANELİ */}
-        <div className="flex-1 min-w-0 flex flex-col overflow-hidden bg-stone-50/80">
+        <div className="flex-1 min-w-0 min-h-0 flex flex-col overflow-hidden bg-stone-50/80">
           {/* Masaüstü Sağ Üst Başlık & Kapat */}
-          <div className="hidden lg:flex items-center justify-between px-5 py-3.5 border-b border-stone-200/80 bg-white shrink-0">
+          <div className="hidden lg:flex items-center justify-between px-4 py-2.5 border-b border-stone-200/80 bg-white shrink-0">
             <div className="flex items-center gap-2.5">
-              <span className="w-8 h-8 rounded-xl bg-gradient-to-br from-brand-500 to-amber-500 text-white flex items-center justify-center text-xs shadow-xs">
+              <span className="w-7 h-7 rounded-xl bg-gradient-to-br from-brand-500 to-amber-500 text-white flex items-center justify-center text-xs shadow-xs">
                 <i className="fa-solid fa-sliders"></i>
               </span>
               <div>
@@ -481,7 +497,7 @@ export default function OptionsModal() {
                   Siparişini Özelleştir
                 </h5>
                 <p className="text-[11px] text-stone-500 font-medium">
-                  İçerik, sos, ekstra ve içecek tercihlerini tek ekranda seç
+                  İçerik, sos, ekstra ve çoklu içecek tercihlerini seç
                 </p>
               </div>
             </div>
@@ -495,18 +511,18 @@ export default function OptionsModal() {
             </button>
           </div>
 
-          {/* Seçenekler Alanı (Masaüstünde Scroll Yok, Mobilde Akıcı) */}
-          <div className="flex-1 overflow-y-auto lg:overflow-visible overscroll-contain p-3 sm:p-4 lg:p-5 text-left touch-pan-y">
-            <div className="space-y-3">
+          {/* Seçenekler Alanı (İçten Kaydırmalı - Üst ve Alt Bar Sabit Kalır) */}
+          <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-2.5 sm:p-3.5 lg:p-4 text-left touch-pan-y scrollbar-thin">
+            <div className="space-y-2.5">
               {/* 1 & 2. Ürün İçeriği ve Sos Seçimleri Yan Yana */}
           <div
             className={`grid grid-cols-1 ${
               productIngredients.length > 0 ? 'sm:grid-cols-2' : ''
-            } gap-3 items-stretch`}
+            } gap-2.5 items-stretch`}
           >
             {/* 1. Ürün İçeriği (Çıkarılabilir Etiketler) */}
             {productIngredients.length > 0 && (
-              <div className="bg-white border border-stone-200/90 shadow-2xs rounded-2xl p-3 sm:px-4 flex flex-col justify-between gap-2">
+              <div className="bg-white border border-stone-200/90 shadow-2xs rounded-2xl p-2.5 sm:px-3.5 flex flex-col justify-between gap-2">
                 <div className="space-y-1.5">
                   <div className="flex items-center justify-between gap-1">
                     <span className="text-[11px] font-extrabold text-stone-800 uppercase flex items-center gap-1.5">
@@ -552,7 +568,7 @@ export default function OptionsModal() {
             )}
 
             {/* 2. Sos Seçimleri & Adetleri */}
-            <div className="bg-white border border-stone-200/90 shadow-2xs rounded-2xl p-3 sm:px-4 space-y-2">
+            <div className="bg-white border border-stone-200/90 shadow-2xs rounded-2xl p-2.5 sm:px-3.5 space-y-2">
               <div className="flex flex-wrap items-center justify-between gap-1">
                 <span className="text-[11px] font-extrabold text-stone-800 uppercase flex items-center gap-1.5">
                   <i className="fa-solid fa-bottle-droplet text-amber-500"></i>
@@ -645,7 +661,7 @@ export default function OptionsModal() {
           </div>
 
           {/* 3. Ekstra Malzemeler (Ücretli) */}
-          <div className="bg-white border border-stone-200/90 shadow-2xs rounded-2xl p-3 sm:px-4 space-y-2">
+          <div className="bg-white border border-stone-200/90 shadow-2xs rounded-2xl p-2.5 sm:px-3.5 space-y-2">
             <div className="flex items-center justify-between">
               <span className="text-[11px] font-extrabold text-stone-800 uppercase flex items-center gap-1.5">
                 <i className="fa-solid fa-cheese text-orange-500"></i>
@@ -717,9 +733,9 @@ export default function OptionsModal() {
           </div>
 
           {/* 4. Menü İçecek Seçimi & Sipariş Notu */}
-          <div className={`grid grid-cols-1 ${isMenu ? 'sm:grid-cols-2' : ''} gap-3`}>
+          <div className={`grid grid-cols-1 ${isMenu ? 'sm:grid-cols-2' : ''} gap-2.5`}>
             {isMenu && (
-              <div className="bg-white border border-stone-200/90 shadow-2xs rounded-2xl p-3 sm:px-4">
+              <div className="bg-white border border-stone-200/90 shadow-2xs rounded-2xl p-2.5 sm:px-3.5">
                 <label className="block text-[11px] font-extrabold text-stone-800 uppercase mb-1.5 flex items-center justify-between gap-1.5">
                   <span className="flex items-center gap-1.5">
                     <i className="fa-solid fa-cup-straw text-brand-500"></i>
@@ -785,8 +801,8 @@ export default function OptionsModal() {
               </div>
             )}
 
-            <div className="bg-white border border-stone-200/90 shadow-2xs rounded-2xl p-3 sm:px-4">
-              <label className="block text-[11px] font-extrabold text-stone-800 uppercase mb-1.5 flex items-center gap-1.5">
+            <div className="bg-white border border-stone-200/90 shadow-2xs rounded-2xl p-2.5 sm:px-3.5">
+              <label className="block text-[11px] font-extrabold text-stone-800 uppercase mb-1 flex items-center gap-1.5">
                 <i className="fa-solid fa-pen text-stone-400"></i>
                 Sipariş Notu / Özel İstek
               </label>
@@ -795,84 +811,141 @@ export default function OptionsModal() {
                 id="opt-note"
                 value={note}
                 onChange={(e) => setNote(e.target.value)}
-                className="w-full bg-stone-50 focus:bg-white border border-stone-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-brand-500 font-medium text-stone-800 transition-colors"
+                className="w-full bg-stone-50 focus:bg-white border border-stone-200 rounded-xl px-3 py-1.5 text-xs focus:outline-none focus:border-brand-500 font-medium text-stone-800 transition-colors"
                 placeholder="Örn: Ekmeği bol kızarmış olsun..."
               />
             </div>
           </div>
 
-          {/* 5. Tekli Ürünler İçin İçecek Önerileri (3 Sütunlu Kompakt Izgara - Scroll Yok) */}
-          {!isMenu && !isDrink && suggestedDrinks.length > 0 && (
+          {/* 5. Soğuk İçecek Seçimi (Çoklu Seçim & Adet Desteği) */}
+          {!isDrink && suggestedDrinks.length > 0 && (
             <div className="bg-sky-50/60 border border-sky-200/80 rounded-2xl p-2.5 sm:px-3.5 space-y-2">
-              <div className="flex items-center justify-between gap-2">
+              <div className="flex flex-wrap items-center justify-between gap-2">
                 <label className="text-[11px] font-extrabold text-stone-900 uppercase flex items-center gap-1.5">
                   <i className="fa-solid fa-bottle-water text-sky-600"></i>
-                  Yanına Soğuk İçecek İster misiniz?
+                  {isMenu ? 'Yanına Ekstra İçecek İster misiniz?' : 'Yanına Soğuk İçecek İster misiniz?'}
                 </label>
-                {selectedSuggestedDrinks.length > 0 ? (
-                  <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-sky-600 text-white shrink-0">
-                    {selectedSuggestedDrinks.length} Seçildi (+₺{suggestedDrinksCost.toFixed(0)})
-                  </span>
-                ) : (
-                  <span className="text-[10px] font-semibold text-sky-700 shrink-0">İsteğe Bağlı</span>
-                )}
-              </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-1.5">
-                {suggestedDrinks.map((drinkProd) => {
-                  const isSelected = selectedSuggestedDrinkIds.includes(drinkProd.id);
-                  return (
+                <div className="flex items-center gap-1.5 shrink-0">
+                  {totalSuggestedDrinkCount > 0 ? (
+                    <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-sky-600 text-white shrink-0">
+                      {totalSuggestedDrinkCount} Adet (+₺{suggestedDrinksCost.toFixed(0)})
+                    </span>
+                  ) : (
+                    <span className="text-[10px] font-semibold text-sky-700 shrink-0">
+                      Birden fazla seçebilirsiniz
+                    </span>
+                  )}
+
+                  {isMenu && (
                     <button
-                      key={drinkProd.id}
                       type="button"
-                      onClick={() => handleToggleSuggestedDrink(drinkProd.id)}
-                      className={`flex items-center justify-between gap-1.5 p-1.5 rounded-xl border text-left transition-all cursor-pointer active:scale-[0.98] ${
-                        isSelected
-                          ? 'bg-sky-100/90 border-sky-500 ring-1 ring-sky-400/40 shadow-2xs'
-                          : 'bg-white border-stone-200/90 hover:border-sky-300'
-                      }`}
+                      onClick={() => setShowMenuExtraDrinks((v) => !v)}
+                      className="text-[10px] font-extrabold px-2.5 py-1 rounded-lg bg-white hover:bg-sky-100 text-sky-800 border border-sky-300 cursor-pointer transition-colors"
                     >
-                      <div className="flex items-center gap-1.5 min-w-0">
-                        <div className="w-7 h-7 rounded-lg overflow-hidden bg-stone-100 border border-stone-200/70 shrink-0">
-                          <img
-                            src={drinkProd.image || '/images/hero_banner.jpg'}
-                            alt={drinkProd.name}
-                            className="w-full h-full object-cover"
-                            onError={(e) => {
-                              e.currentTarget.src = '/images/hero_banner.jpg';
-                            }}
-                          />
-                        </div>
-                        <span className="text-[11px] font-bold text-stone-800 truncate">
-                          {drinkProd.name}
-                        </span>
-                      </div>
-
-                      <div className="flex items-center gap-1 shrink-0">
-                        <span className="text-[11px] font-black text-sky-700">
-                          +₺{Number(drinkProd.price || 0).toFixed(0)}
-                        </span>
-                        <span
-                          className={`w-4.5 h-4.5 rounded-full flex items-center justify-center text-[9px] transition-colors ${
-                            isSelected
-                              ? 'bg-sky-600 text-white'
-                              : 'bg-stone-100 text-stone-400 border border-stone-200'
-                          }`}
-                        >
-                          <i className={`fa-solid ${isSelected ? 'fa-check' : 'fa-plus'}`}></i>
-                        </span>
-                      </div>
+                      {showMenuExtraDrinks ? 'Gizle' : 'Ekstra İçecek Ekle'}
                     </button>
-                  );
-                })}
+                  )}
+                </div>
               </div>
+
+              {(!isMenu || showMenuExtraDrinks || totalSuggestedDrinkCount > 0) && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-1.5">
+                  {suggestedDrinks.map((drinkProd) => {
+                    const count = Number(suggestedDrinkCounts[drinkProd.id]) || 0;
+                    const isSelected = count > 0;
+                    const unitPrice = Number(drinkProd.price || 0);
+
+                    return (
+                      <div
+                        key={drinkProd.id}
+                        role="button"
+                        tabIndex={0}
+                        onClick={() => {
+                          if (count === 0) handleAdjustSuggestedDrink(drinkProd.id, 1);
+                        }}
+                        onKeyDown={(e) => {
+                          if ((e.key === 'Enter' || e.key === ' ') && count === 0) {
+                            e.preventDefault();
+                            handleAdjustSuggestedDrink(drinkProd.id, 1);
+                          }
+                        }}
+                        className={`flex items-center justify-between gap-1.5 p-1.5 rounded-xl border text-left transition-all ${
+                          isSelected
+                            ? 'bg-sky-100/85 border-sky-500 ring-1 ring-sky-400/40 shadow-2xs'
+                            : 'bg-white border-stone-200/90 hover:border-sky-300 cursor-pointer active:scale-[0.98]'
+                        }`}
+                      >
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <div className="w-7 h-7 rounded-lg overflow-hidden bg-stone-100 border border-stone-200/70 shrink-0">
+                            <img
+                              src={drinkProd.image || '/images/hero_banner.jpg'}
+                              alt={drinkProd.name}
+                              className="w-full h-full object-cover"
+                              onError={(e) => {
+                                e.currentTarget.src = '/images/hero_banner.jpg';
+                              }}
+                            />
+                          </div>
+                          <div className="min-w-0">
+                            <span className="text-[11px] font-bold text-stone-800 truncate block">
+                              {drinkProd.name}
+                            </span>
+                            {isSelected && (
+                              <span className="text-[10px] font-bold text-sky-700 block leading-tight">
+                                ₺{unitPrice.toFixed(0)} / adet
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        {isSelected ? (
+                          <div
+                            className="flex items-center gap-1 shrink-0"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <button
+                              type="button"
+                              onClick={() => handleAdjustSuggestedDrink(drinkProd.id, -1)}
+                              aria-label={`${drinkProd.name} azalt`}
+                              className="w-6 h-6 rounded-lg bg-white hover:bg-rose-50 text-stone-800 hover:text-rose-600 border border-sky-300 flex items-center justify-center text-xs font-black cursor-pointer transition-colors"
+                            >
+                              -
+                            </button>
+                            <span className="text-xs font-black text-sky-950 w-5 text-center">
+                              {count}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => handleAdjustSuggestedDrink(drinkProd.id, 1)}
+                              aria-label={`${drinkProd.name} artır`}
+                              className="w-6 h-6 rounded-lg bg-sky-600 hover:bg-sky-700 text-white flex items-center justify-center text-xs font-black cursor-pointer transition-colors"
+                            >
+                              +
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-1 shrink-0">
+                            <span className="text-[11px] font-black text-sky-700">
+                              +₺{unitPrice.toFixed(0)}
+                            </span>
+                            <span className="w-5 h-5 rounded-full bg-stone-100 text-sky-600 border border-stone-200 flex items-center justify-center text-[9px]">
+                              <i className="fa-solid fa-plus"></i>
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
           )}
             </div>
           </div>
 
           {/* Sabit Alt Bar (Sepete Ekle Butonu) */}
-          <div className="shrink-0 p-3 sm:px-5 sm:py-3.5 bg-white border-t border-stone-200/80 shadow-[0_-4px_16px_rgba(0,0,0,0.04)] z-10 flex items-center justify-between gap-3">
+          <div className="shrink-0 px-3.5 py-2.5 sm:px-5 sm:py-3 bg-white border-t border-stone-200/80 shadow-[0_-4px_16px_rgba(0,0,0,0.04)] z-10 flex items-center justify-between gap-3">
             <div className="hidden sm:flex flex-col">
               <span className="text-[10px] font-bold uppercase tracking-wider text-stone-400">
                 Toplam Tutar
@@ -885,7 +958,7 @@ export default function OptionsModal() {
               <button
                 type="button"
                 onClick={handleConfirm}
-                className="flex-1 bg-gradient-to-r from-brand-500 to-amber-500 hover:from-brand-600 hover:to-amber-600 text-white font-black py-3 sm:py-3.5 px-5 rounded-2xl shadow-lg shadow-brand-500/25 text-sm sm:text-base transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-98"
+                className="flex-1 bg-gradient-to-r from-brand-500 to-amber-500 hover:from-brand-600 hover:to-amber-600 text-white font-black py-2.5 sm:py-3 px-5 rounded-2xl shadow-lg shadow-brand-500/25 text-sm sm:text-base transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-98"
               >
                 <i className="fa-solid fa-bag-shopping"></i>
                 <span>Sepete Ekle &bull; ₺{currentTotalPrice.toFixed(2)}</span>

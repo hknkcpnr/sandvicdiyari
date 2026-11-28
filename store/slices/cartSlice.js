@@ -122,9 +122,10 @@ export const cartSlice = createSlice({
       const finalPrice = product.price + extraPrice + extraSauceFee + drinkExtraPrice;
       const cartKey = `${product.id}-${drink || ''}-${drinkExtraPrice}-${JSON.stringify(sauces || {})}-${(extras || []).map(e => e.name).sort().join()}-${removedKey}-${note || ''}`;
 
+      const qtyToAdd = Math.max(1, Math.min(99, Number(action.payload.quantity) || 1));
       const existingIndex = state.items.findIndex(item => item.cartKey === cartKey);
       if (existingIndex >= 0) {
-        state.items[existingIndex].quantity += 1;
+        state.items[existingIndex].quantity += qtyToAdd;
         if (!Array.isArray(state.items[existingIndex].selectedSauces) && selectedSaucesList.length > 0) {
           state.items[existingIndex].selectedSauces = selectedSaucesList;
         }
@@ -142,7 +143,7 @@ export const cartSlice = createSlice({
           selectedSauces: selectedSaucesList,
           selectedExtras: selectedExtrasList,
           removedIngredients: Array.isArray(removedIngredients) ? removedIngredients : [],
-          quantity: 1,
+          quantity: qtyToAdd,
         });
       }
 
