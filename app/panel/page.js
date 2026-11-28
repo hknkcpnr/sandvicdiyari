@@ -258,6 +258,9 @@ export default function AdminDashboardPage() {
   // Navigation & Sidebar Layout
   const [currentTab, setCurrentTab] = useState('overview'); // 'overview' | 'orders' | 'products' | 'reviews' | 'api' | 'settings' | 'site_content'
   const [navHydrated, setNavHydrated] = useState(false);
+  // Kurye seçimi taslak durumu (seçim sonrası butonla onaylı atama için)
+  const [courierDrafts, setCourierDrafts] = useState({});
+  const [assigningCourierOrderId, setAssigningCourierOrderId] = useState(null);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [mobileActionsOpen, setMobileActionsOpen] = useState(false);
@@ -1658,6 +1661,8 @@ export default function AdminDashboardPage() {
 
   // Kurye Atama İşlemi
   const handleAssignCourier = async (orderId, courierName) => {
+    if (assigningCourierOrderId === orderId) return;
+    setAssigningCourierOrderId(orderId);
     try {
       const res = await fetch(`/api/orders/${orderId}`, {
         method: 'PATCH',
@@ -1673,6 +1678,11 @@ export default function AdminDashboardPage() {
         if (detailOrder && detailOrder.id === orderId) {
           setDetailOrder(prev => ({ ...prev, courierName }));
         }
+        setCourierDrafts(prev => {
+          const next = { ...prev };
+          delete next[orderId];
+          return next;
+        });
         showToast(
           courierName
             ? `Sipariş kuryeye (${courierName}) başarıyla atandı! 🛵`
@@ -1685,7 +1695,66 @@ export default function AdminDashboardPage() {
     } catch (e) {
       console.error('Kurye atama hatası:', e);
       showToast('Kurye atanırken bağlantı hatası oluştu.', 'error');
+    } finally {
+      setAssigningCourierOrderId(prev => (prev === orderId ? null : prev));
     }
+  };
+
+  const getCourierAssignButtonState = ({ orderId, savedCourier, modalMode = false }) => {
+    const draftCourier = Object.prototype.hasOwnProperty.call(courierDrafts, orderId)
+      ? courierDrafts[orderId]
+      : savedCourier;
+    const hasCourierChange = draftCourier !== savedCourier;
+    const isAssigning = assigningCourierOrderId === orderId;
+
+    if (isAssigning) {
+      return {
+        draftCourier,
+        hasCourierChange,
+        isAssigning,
+        icon: 'fa-solid fa-spinner fa-spin',
+        label: 'Atanıyor...',
+        className: 'bg-stone-700 text-white border border-stone-700 cursor-wait'
+      };
+    }
+    if (hasCourierChange && !draftCourier && savedCourier) {
+      return {
+        draftCourier,
+        hasCourierChange,
+        isAssigning,
+        icon: 'fa-solid fa-xmark',
+        label: 'Kaldır',
+        className: 'bg-rose-600 hover:bg-rose-700 text-white border border-rose-600 cursor-pointer shadow-2xs active:scale-95'
+      };
+    }
+    if (hasCourierChange && draftCourier) {
+      return {
+        draftCourier,
+        hasCourierChange,
+        isAssigning,
+        icon: 'fa-solid fa-check',
+        label: modalMode ? (savedCourier ? 'Güncelle' : 'Kurye Ata') : (savedCourier ? 'Değiştir' : 'Ata'),
+        className: 'bg-emerald-600 hover:bg-emerald-700 text-white border border-emerald-600 cursor-pointer shadow-2xs active:scale-95'
+      };
+    }
+    if (!hasCourierChange && savedCourier) {
+      return {
+        draftCourier,
+        hasCourierChange,
+        isAssigning,
+        icon: 'fa-solid fa-circle-check',
+        label: 'Atandı',
+        className: 'bg-emerald-50 text-emerald-700 border border-emerald-200 cursor-default'
+      };
+    }
+    return {
+      draftCourier,
+      hasCourierChange,
+      isAssigning,
+      icon: 'fa-solid fa-motorcycle',
+      label: modalMode ? 'Kurye Ata' : 'Ata',
+      className: 'bg-stone-100 text-stone-400 border border-stone-200 cursor-not-allowed'
+    };
   };
 
   // Yetki Kontrolleri: Süper Yönetici veya ilgili izne sahip personel
@@ -3264,27 +3333,69 @@ export default function AdminDashboardPage() {
                               )}
 
                               {isCourierEnabled && (
-                                ['Hazır', 'Kurye Teslim Aldı', 'Yolda', 'Teslim Edildi'].includes(order.status) ? (
-                                  <select
-                                    value={order.courierName || ''}
-                                    onChange={(e) => handleAssignCourier(order.id, e.target.value)}
-                                    className={`app-select border rounded-lg px-2 py-0.5 text-[11px] font-bold focus:outline-none cursor-pointer transition-all ${
-                                      order.courierName
-                                        ? 'bg-emerald-50 border-emerald-300 text-emerald-900'
-                                        : 'bg-stone-50 hover:bg-stone-100 border-stone-200 text-stone-700'
-                                    }`}
-                                  >
-                                    <option value="">Kurye Seç</option>
-                                    {courierOptions.map((cName) => (
-                                      <option key={cName} value={cName}>
-                                        🛵 {cName}
-                                      </option>
-                                    ))}
-                                    {order.courierName && !courierOptions.includes(order.courierName) && (
-                                      <option value={order.courierName}>🛵 {order.courierName}</option>
-                                    )}
-                                  </select>
-                                ) : (
+                                ['Hazır', 'Kurye Teslim Aldı', 'Yolda', 'Teslim Edildi'].includes(order.status) ? (() => {
+                                  const savedCourier = order.courierName || '';
+                                  const {
+                                    draftCourier,
+                                    hasCourierChange,
+                                    isAssigning,
+                                    icon,
+                                    label,
+                                    className: btnClassName
+                                  } = getCourierAssignButtonState({
+                                    orderId: order.id,
+                                    savedCourier,
+                                    modalMode: false
+                                  });
+
+                                  return (
+                                    <div className="inline-flex items-center gap-1.5">
+                                      <select
+                                        value={draftCourier}
+                                        disabled={isAssigning}
+                                        onChange={(e) => {
+                                          const val = e.target.value;
+                                          setCourierDrafts(prev => ({ ...prev, [order.id]: val }));
+                                        }}
+                                        className={`app-select border rounded-lg px-2 py-0.5 text-[11px] font-bold focus:outline-none cursor-pointer transition-all disabled:opacity-60 ${
+                                          hasCourierChange
+                                            ? 'bg-amber-50 border-amber-400 text-amber-950'
+                                            : savedCourier
+                                            ? 'bg-emerald-50 border-emerald-300 text-emerald-900'
+                                            : 'bg-stone-50 hover:bg-stone-100 border-stone-200 text-stone-700'
+                                        }`}
+                                      >
+                                        <option value="">Kurye Seç</option>
+                                        {courierOptions.map((cName) => (
+                                          <option key={cName} value={cName}>
+                                            🛵 {cName}
+                                          </option>
+                                        ))}
+                                        {savedCourier && !courierOptions.includes(savedCourier) && (
+                                          <option value={savedCourier}>🛵 {savedCourier}</option>
+                                        )}
+                                      </select>
+                                      <button
+                                        type="button"
+                                        disabled={isAssigning || !hasCourierChange}
+                                        onClick={() => handleAssignCourier(order.id, draftCourier)}
+                                        className={`inline-flex items-center gap-1 rounded-lg px-2.5 py-0.5 text-[11px] font-extrabold transition-all shrink-0 ${btnClassName}`}
+                                        title={
+                                          hasCourierChange
+                                            ? draftCourier
+                                              ? `${draftCourier} kuryesini siparişe ata`
+                                              : 'Mevcut kurye atamasını kaldır'
+                                            : savedCourier
+                                            ? `Atanan kurye: ${savedCourier}`
+                                            : 'Önce listeden kurye seçin'
+                                        }
+                                      >
+                                        <i className={`${icon} text-[10px]`}></i>
+                                        <span>{label}</span>
+                                      </button>
+                                    </div>
+                                  );
+                                })() : (
                                   <span className="text-[10px] font-medium text-stone-400 bg-stone-50 border border-stone-200/80 px-2 py-0.5 rounded-md">
                                     Kurye bekleniyor
                                   </span>
@@ -5276,28 +5387,61 @@ export default function AdminDashboardPage() {
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2 sm:w-72">
-                  {['Hazır', 'Kurye Teslim Aldı', 'Yolda', 'Teslim Edildi'].includes(detailOrder.status) ? (
-                    <select
-                      value={detailOrder.courierName || ''}
-                      onChange={(e) => handleAssignCourier(detailOrder.id, e.target.value)}
-                      className={`app-select border rounded-xl px-3.5 py-2.5 text-xs font-black focus:outline-none focus:ring-2 focus:ring-amber-500/25 cursor-pointer w-full transition-all shadow-xs ${
-                        detailOrder.courierName
-                          ? 'bg-emerald-600 text-white border-emerald-700'
-                          : 'bg-white border-amber-300 text-stone-800'
-                      }`}
-                    >
-                      <option value="">🛵 Kurye Seçiniz...</option>
-                      {courierOptions.map((cName) => (
-                        <option key={cName} value={cName}>
-                          🛵 {cName}
-                        </option>
-                      ))}
-                      {detailOrder.courierName && !courierOptions.includes(detailOrder.courierName) && (
-                        <option value={detailOrder.courierName}>🛵 {detailOrder.courierName}</option>
-                      )}
-                    </select>
-                  ) : (
+                <div className="flex items-center gap-2 sm:w-auto sm:min-w-[300px]">
+                  {['Hazır', 'Kurye Teslim Aldı', 'Yolda', 'Teslim Edildi'].includes(detailOrder.status) ? (() => {
+                    const savedCourier = detailOrder.courierName || '';
+                    const {
+                      draftCourier,
+                      hasCourierChange,
+                      isAssigning,
+                      icon,
+                      label,
+                      className: btnClassName
+                    } = getCourierAssignButtonState({
+                      orderId: detailOrder.id,
+                      savedCourier,
+                      modalMode: true
+                    });
+
+                    return (
+                      <div className="flex items-center gap-2 w-full">
+                        <select
+                          value={draftCourier}
+                          disabled={isAssigning}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setCourierDrafts(prev => ({ ...prev, [detailOrder.id]: val }));
+                          }}
+                          className={`app-select border rounded-xl px-3.5 py-2.5 text-xs font-black focus:outline-none focus:ring-2 focus:ring-amber-500/25 cursor-pointer flex-1 min-w-0 transition-all shadow-xs disabled:opacity-60 ${
+                            hasCourierChange
+                              ? 'bg-amber-50 border-amber-400 text-amber-950'
+                              : savedCourier
+                              ? 'bg-emerald-600 text-white border-emerald-700'
+                              : 'bg-white border-amber-300 text-stone-800'
+                          }`}
+                        >
+                          <option value="">🛵 Kurye Seçiniz...</option>
+                          {courierOptions.map((cName) => (
+                            <option key={cName} value={cName}>
+                              🛵 {cName}
+                            </option>
+                          ))}
+                          {savedCourier && !courierOptions.includes(savedCourier) && (
+                            <option value={savedCourier}>🛵 {savedCourier}</option>
+                          )}
+                        </select>
+                        <button
+                          type="button"
+                          disabled={isAssigning || !hasCourierChange}
+                          onClick={() => handleAssignCourier(detailOrder.id, draftCourier)}
+                          className={`inline-flex items-center justify-center gap-1.5 rounded-xl px-3.5 py-2.5 text-xs font-black transition-all shrink-0 shadow-xs ${btnClassName}`}
+                        >
+                          <i className={`${icon} text-[11px]`}></i>
+                          <span>{label}</span>
+                        </button>
+                      </div>
+                    );
+                  })() : (
                     <div className="w-full bg-white/80 border border-dashed border-amber-300 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-amber-800 text-center">
                       Kuryeye verildiğinde atama açılır
                     </div>
