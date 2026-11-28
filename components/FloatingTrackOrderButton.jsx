@@ -7,6 +7,7 @@ import { openTrackOrderModal } from '@/store/slices/uiSlice';
 export default function FloatingTrackOrderButton() {
   const dispatch = useDispatch();
   const { isCartOpen } = useSelector((state) => state.ui || {});
+  const { currentUser } = useSelector((state) => state.auth || {});
   const [hasActiveLiveOrder, setHasActiveLiveOrder] = useState(false);
 
   // Canlı sipariş takip çubuğunun açık olup olmadığını kontrol et
@@ -42,8 +43,8 @@ export default function FloatingTrackOrderButton() {
     };
   }, []);
 
-  // Sepet çekmecesi açıkken gizle
-  if (isCartOpen) return null;
+  // Sepet çekmecesi açıkken veya kullanıcı oturumu açıkken gizle
+  if (isCartOpen || currentUser) return null;
 
   return (
     <div

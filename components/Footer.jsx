@@ -8,6 +8,7 @@ import { getRestaurantStatus, CLOSED_MESSAGE } from '@/lib/openingHours';
 export default function Footer() {
   const dispatch = useDispatch();
   const { activePage } = useSelector((state) => state.ui);
+  const { currentUser } = useSelector((state) => state.auth || {});
   const [rating, setRating] = useState(5);
   const [reviewName, setReviewName] = useState('');
   const [reviewComment, setReviewComment] = useState('');
@@ -319,15 +320,19 @@ export default function Footer() {
             >
               Sipariş ve İptal Koşulları
             </button>
-            <span className="text-stone-700">&bull;</span>
-            <button
-              type="button"
-              onClick={() => dispatch(openTrackOrderModal())}
-              className="text-amber-400 hover:text-amber-300 font-bold transition-colors cursor-pointer inline-flex items-center gap-1"
-            >
-              <i className="fa-solid fa-location-crosshairs text-xs"></i>
-              <span>Sipariş Takibi &amp; Sorgula</span>
-            </button>
+            {!currentUser && (
+              <>
+                <span className="text-stone-700">&bull;</span>
+                <button
+                  type="button"
+                  onClick={() => dispatch(openTrackOrderModal())}
+                  className="text-amber-400 hover:text-amber-300 font-bold transition-colors cursor-pointer inline-flex items-center gap-1"
+                >
+                  <i className="fa-solid fa-location-crosshairs text-xs"></i>
+                  <span>Sipariş Takibi &amp; Sorgula</span>
+                </button>
+              </>
+            )}
           </div>
         </div>
       </div>

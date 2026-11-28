@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { openTrackOrderModal } from '@/store/slices/uiSlice';
 import { getRestaurantStatus } from '@/lib/openingHours';
 import {
@@ -13,6 +13,7 @@ import {
 
 export default function TopBar({ previewContact = null } = {}) {
   const dispatch = useDispatch();
+  const { currentUser } = useSelector((state) => state.auth || {});
   const isPreview = Boolean(previewContact);
   const [status, setStatus] = useState(getRestaurantStatus());
   const [contact, setContact] = useState({
@@ -160,17 +161,19 @@ export default function TopBar({ previewContact = null } = {}) {
           )}
         </div>
         <div className="flex items-center gap-3">
-          <button
-            type="button"
-            onClick={() => {
-              if (!isPreview) dispatch(openTrackOrderModal());
-            }}
-            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-500/15 hover:bg-amber-500/25 border border-amber-400/30 text-amber-300 hover:text-amber-200 text-[11px] font-bold transition-all cursor-pointer"
-            title="Sipariş No ve Telefonunuzla Siparişinizi Takip Edin"
-          >
-            <i className="fa-solid fa-location-crosshairs text-[10px]"></i>
-            <span>Sipariş Takibi</span>
-          </button>
+          {(isPreview || !currentUser) && (
+            <button
+              type="button"
+              onClick={() => {
+                if (!isPreview) dispatch(openTrackOrderModal());
+              }}
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-500/15 hover:bg-amber-500/25 border border-amber-400/30 text-amber-300 hover:text-amber-200 text-[11px] font-bold transition-all cursor-pointer"
+              title="Sipariş No ve Telefonunuzla Siparişinizi Takip Edin"
+            >
+              <i className="fa-solid fa-location-crosshairs text-[10px]"></i>
+              <span>Sipariş Takibi</span>
+            </button>
+          )}
           <span className="text-brand-400 font-semibold flex items-center gap-1.5">
             <i className="fa-solid fa-motorcycle text-brand-500"></i>
             <span>{effectiveContact.workingHours || "Torbalı / İzmir • Gece 03:00'e Kadar Paket Servis!"}</span>
