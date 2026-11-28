@@ -318,15 +318,15 @@ export default function HomePage() {
               )}
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-              {menuCategoryProducts.map((menu) => {
+            <div className="flex flex-nowrap overflow-x-auto snap-x snap-mandatory gap-4 pb-2 no-scrollbar lg:grid lg:grid-cols-4 lg:gap-6 lg:overflow-visible lg:pb-0">
+              {menuCategoryProducts.slice(0, 4).map((menu) => {
                 const isSoldOut = menu.isAvailable === false;
                 const priceVal = Number(menu.price || 0);
                 const savings = menu.oldPrice ? Math.round(Number(menu.oldPrice) - priceVal) : 0;
                 return (
                   <div
                     key={menu.id}
-                    className={`bg-white rounded-3xl p-4 border border-stone-200/80 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between group ${
+                    className={`min-w-[260px] w-[78vw] sm:w-[44vw] md:w-[31vw] lg:w-auto lg:min-w-0 shrink-0 snap-start bg-white rounded-3xl p-4 border border-stone-200/80 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between group ${
                       isSoldOut ? 'opacity-70' : ''
                     }`}
                   >
@@ -335,6 +335,8 @@ export default function HomePage() {
                         <img
                           src={menu.image || '/images/hero_banner.jpg'}
                           alt={menu.name}
+                          loading="lazy"
+                          decoding="async"
                           className={`w-full h-full object-cover transition-transform duration-500 group-hover:scale-105 ${
                             isSoldOut ? 'grayscale' : ''
                           }`}
