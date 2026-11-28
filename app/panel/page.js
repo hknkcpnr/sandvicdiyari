@@ -3410,25 +3410,37 @@ export default function AdminDashboardPage() {
             </div>
 
             {/* Products List */}
-            <div className="bg-white rounded-2xl border border-stone-200 divide-y divide-stone-100 overflow-hidden shadow-xs">
-              {paginatedProducts.map((p) => (
+            <div className="space-y-3">
+              {(() => {
+                const cardTints = [
+                  'bg-amber-50/55 border-amber-200/70 hover:bg-amber-50/85',
+                  'bg-emerald-50/55 border-emerald-200/70 hover:bg-emerald-50/85',
+                  'bg-sky-50/55 border-sky-200/70 hover:bg-sky-50/85',
+                  'bg-violet-50/55 border-violet-200/70 hover:bg-violet-50/85',
+                  'bg-rose-50/50 border-rose-200/70 hover:bg-rose-50/80',
+                  'bg-orange-50/55 border-orange-200/70 hover:bg-orange-50/85',
+                  'bg-teal-50/55 border-teal-200/70 hover:bg-teal-50/85',
+                ];
+                return paginatedProducts.map((p, idx) => (
                 <div
                   key={p.id}
-                  className="p-3.5 sm:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-stone-50/60 transition-colors"
+                  className={`px-4 py-4 sm:px-5 sm:py-5 rounded-2xl border shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-colors ${cardTints[idx % cardTints.length]}`}
                 >
-                  <div className="flex items-start sm:items-center gap-3 min-w-0">
+                  <div className="flex items-start sm:items-center gap-3.5 min-w-0">
                     <img
                       src={p.image}
                       alt={p.name}
-                      className="w-12 h-12 rounded-xl object-cover bg-stone-100 border border-stone-200 shrink-0"
+                      loading="lazy"
+                      decoding="async"
+                      className="w-16 h-16 sm:w-[72px] sm:h-[72px] rounded-xl object-cover bg-white border border-white/80 shadow-xs shrink-0"
                       onError={(e) => {
                         e.currentTarget.src =
                           'https://images.unsplash.com/photo-1550547660-d9450f859349?auto=format&fit=crop&q=80&w=200';
                       }}
                     />
-                    <div className="min-w-0 flex-1">
-                      <div className="flex flex-wrap items-center gap-1.5">
-                        <span className="font-bold text-stone-900 block truncate">{p.name}</span>
+                    <div className="min-w-0 flex-1 space-y-2">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="font-bold text-stone-900 text-sm leading-snug block truncate">{p.name}</span>
                         <button
                           type="button"
                           onClick={() => handleQuickToggleAvailability(p)}
@@ -3444,7 +3456,7 @@ export default function AdminDashboardPage() {
                           <i className={`fa-solid ${p.isAvailable === false ? 'fa-toggle-off text-rose-500' : 'fa-toggle-on text-emerald-600'} text-xs ml-0.5`}></i>
                         </button>
                         {p.badge && (
-                          <span className="text-[10px] bg-brand-50 text-brand-700 font-bold px-2 py-0.2 rounded-md">
+                          <span className="text-[10px] bg-white/85 text-brand-700 border border-brand-200/70 font-bold px-2 py-0.5 rounded-md">
                             {p.badge}
                           </span>
                         )}
@@ -3454,7 +3466,7 @@ export default function AdminDashboardPage() {
                           className={`text-[10px] font-bold px-2 py-0.5 rounded-md border flex items-center gap-1 cursor-pointer transition-colors ${
                             p.audioUrl
                               ? 'bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100'
-                              : 'bg-stone-100 text-stone-600 border-stone-200 hover:bg-stone-200'
+                              : 'bg-white/85 text-stone-600 border-stone-200 hover:bg-white'
                           }`}
                           title={p.audioUrl ? 'Özel ürün sesini dinle' : 'Otomatik Türkçe sesli anonsu dinle'}
                         >
@@ -3462,16 +3474,16 @@ export default function AdminDashboardPage() {
                           <span>{p.audioUrl ? 'Özel Ses' : 'Sesli Oku'}</span>
                         </button>
                       </div>
-                      <span className="text-[11px] text-stone-400 capitalize block truncate mt-0.5">
+                      <span className="text-xs text-stone-600 leading-relaxed line-clamp-2 block">
                         {p.category === 'menu' ? '🍱 Menülü Satış' : '🥪 Bireysel Satış'} &bull;{' '}
                         {p.description}
                       </span>
                       {extractInitialIngredients(p).length > 0 && (
-                        <div className="flex flex-wrap gap-1 mt-1.5">
+                        <div className="flex flex-wrap gap-1.5 pt-0.5">
                           {extractInitialIngredients(p).map((tag) => (
                             <span
                               key={tag}
-                              className="inline-flex items-center gap-1 bg-stone-100 text-stone-700 border border-stone-200/80 px-2 py-0.5 rounded-md text-[10px] font-semibold"
+                              className="inline-flex items-center gap-1 bg-white/85 text-stone-700 border border-stone-200/80 px-2.5 py-0.5 rounded-lg text-[11px] font-medium"
                             >
                               <i className="fa-solid fa-tag text-[8px] text-brand-500"></i>
                               <span>{tag}</span>
@@ -3482,15 +3494,15 @@ export default function AdminDashboardPage() {
                     </div>
                   </div>
 
-                  <div className="flex items-center justify-between sm:justify-end gap-2 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-stone-100">
+                  <div className="flex items-center justify-between sm:justify-end gap-3 shrink-0 pt-3 sm:pt-0 border-t sm:border-t-0 border-stone-200/60">
                     {p.category === 'menu' ? (() => {
                       const effectiveDrinks = getEffectiveMenuDrinks(p, menuDrinkGroups, productMenuDrinks);
                       const hasCustomDrinks = Boolean(productMenuDrinks?.[String(p.id)]?.length);
                       return (
-                        <div className="text-left sm:text-right mr-2 max-w-[320px]">
+                        <div className="text-left sm:text-right mr-2 max-w-[340px]">
                           <div className="flex items-center sm:justify-end gap-1.5">
-                            <span className="font-bold text-stone-900 text-sm">₺{p.price.toFixed(2)}</span>
-                            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-stone-100 text-stone-600 border border-stone-200">
+                            <span className="text-base font-extrabold text-stone-900">₺{p.price.toFixed(2)}</span>
+                            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-white/90 text-stone-600 border border-stone-200">
                               Baz Fiyat
                             </span>
                             {hasCustomDrinks && (
@@ -3499,17 +3511,17 @@ export default function AdminDashboardPage() {
                               </span>
                             )}
                           </div>
-                          <div className="flex flex-wrap sm:justify-end gap-1 mt-1">
+                          <div className="flex flex-wrap sm:justify-end gap-1.5 mt-1.5">
                             {effectiveDrinks.map((dr) => {
                               const dPrice = Math.max(0, Number(dr.price) || 0);
                               const extraLabel = Number.isInteger(dPrice) ? dPrice.toFixed(0) : dPrice.toFixed(2);
                               return (
                                 <span
                                   key={dr.id || dr.name}
-                                  className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-md border ${
+                                  className={`text-[10px] font-semibold px-2 py-0.5 rounded-md border ${
                                     dPrice > 0
-                                      ? 'bg-amber-50 text-amber-800 border-amber-200'
-                                      : 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                      ? 'bg-amber-50/90 text-amber-800 border-amber-200'
+                                      : 'bg-emerald-50/90 text-emerald-700 border-emerald-200'
                                   }`}
                                 >
                                   {dr.name}:{' '}
@@ -3523,14 +3535,14 @@ export default function AdminDashboardPage() {
                         </div>
                       );
                     })() : (
-                      <span className="font-bold text-stone-900 text-sm mr-2">₺{p.price.toFixed(2)}</span>
+                      <span className="text-base font-extrabold text-stone-900 mr-2">₺{p.price.toFixed(2)}</span>
                     )}
                     <div className="flex items-center gap-1.5">
                       <button
                         onClick={() => openEditProductModal(p)}
-                        className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 cursor-pointer transition-colors ${
+                        className={`px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 cursor-pointer transition-colors ${
                           canEditProduct
-                            ? 'text-stone-600 hover:text-stone-900 bg-stone-100 hover:bg-stone-200'
+                            ? 'bg-white/90 hover:bg-stone-900 hover:text-white text-stone-700 border border-stone-200/90 shadow-2xs'
                             : 'text-stone-400 bg-stone-100 opacity-70'
                         }`}
                         title={canEditProduct ? 'Ürünü ve Görselini Düzenle' : 'Menü & Ürün Düzenleme yetkisi gerekli'}
@@ -3540,9 +3552,9 @@ export default function AdminDashboardPage() {
                       </button>
                       <button
                         onClick={() => handleDeleteProduct(p.id)}
-                        className={`p-2 cursor-pointer transition-colors rounded-lg ${
+                        className={`p-2 cursor-pointer transition-colors rounded-xl ${
                           canDeleteProduct
-                            ? 'text-stone-400 hover:text-red-600 hover:bg-red-50'
+                            ? 'bg-white/80 hover:bg-rose-50 text-stone-400 hover:text-rose-600 border border-stone-200/80'
                             : 'text-stone-300 opacity-60'
                         }`}
                         title={canDeleteProduct ? 'Sil' : 'Menüden Ürün Silme yetkisi gerekli'}
@@ -3552,7 +3564,8 @@ export default function AdminDashboardPage() {
                     </div>
                   </div>
                 </div>
-              ))}
+                ));
+              })()}
             </div>
 
             {filteredProducts.length > 0 && (
