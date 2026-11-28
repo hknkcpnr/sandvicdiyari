@@ -102,7 +102,19 @@ export async function POST(request) {
     });
 
     if (!emailRes.success) {
-      throw new ValidationError('Doğrulama e-postası gönderilemedi. Lütfen biraz sonra tekrar deneyiniz.');
+      if (emailRes.reason === 'NO_ACTIVE_EMAIL_PROVIDER') {
+        throw new ValidationError(
+          'Sunucuda e-posta gönderim ayarları (SMTP) henüz aktif değil. Lütfen Vercel Environment Variables ekledikten sonra Redeploy yapınız veya WhatsApp Onayı kullanınız.'
+        );
+      }
+      if (emailRes.reason === 'SMTP_AUTH_FAILED') {
+        throw new ValidationError(
+          'E-posta sunucusu şifre doğrulaması başarısız (SMTP_USER / SMTP_PASS kontrol edilmeli). Şimdilik WhatsApp Onayı ile devam edebilirsiniz.'
+        );
+      }
+      throw new ValidationError(
+        'Doğrulama e-postası gönderilemedi. Lütfen biraz sonra tekrar deneyiniz veya WhatsApp Onayı kullanınız.'
+      );
     }
 
     return jsonSuccess({
