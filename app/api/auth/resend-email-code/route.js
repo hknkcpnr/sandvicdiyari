@@ -10,6 +10,11 @@ import {
 import { checkRateLimit } from '@/lib/security/auth';
 import { hashOtp } from '@/lib/security/whatsapp';
 import { sendEmailVerificationCode } from '@/lib/email';
+import {
+  getMailFailureMessage,
+  signPendingRegistration,
+  verifyPendingRegistration
+} from '@/lib/pendingRegistration';
 
 export async function POST(request) {
   try {
@@ -21,11 +26,53 @@ export async function POST(request) {
 
     const body = await parseJsonBody(request);
     const cleanEmail = String(body.email || '').trim().toLowerCase();
+    const pendingToken = typeof body.pendingToken === 'string' ? body.pendingToken.trim() : '';
 
     if (!cleanEmail || !cleanEmail.includes('@')) {
       throw new ValidationError('Lütfen geçerli bir e-posta adresi giriniz.');
     }
 
+    // YOL A: DB'ye henüz yazılmamış imzalı kayıt oturumu -> DB'ye hiç yazmadan yeni kod gönder
+    if (pendingToken) {
+      const pending = verifyPendingRegistration(pendingToken);
+      if (!pending || pending.email !== cleanEmail) {
+        throw new ValidationError('Kayıt oturumunuzun süresi dolmuş. Lütfen kayıt formunu tekrar doldurunuz.');
+      }
+
+      const otpKey = `verify:${pending.email}`;
+      const otpCode = String(crypto.randomInt(100000, 999999));
+      const otpHash = hashOtp(otpKey, otpCode);
+
+      const emailRes = await sendEmailVerificationCode({
+        toEmail: pending.email,
+        userName: pending.name,
+        verificationCode: otpCode
+      });
+
+      if (!emailRes.success) {
+        throw new ValidationError(getMailFailureMessage(emailRes.reason));
+      }
+
+      const newPendingToken = signPendingRegistration({
+        name: pending.name,
+        email: pending.email,
+        phone: pending.phone,
+        address: pending.address,
+        passHash: pending.passHash,
+        otpHash
+      });
+
+      return jsonSuccess({
+        message: 'Yeni 6 haneli doğrulama kodunuz e-posta adresinize gönderildi!',
+        pendingToken: newPendingToken,
+        data: {
+          email: pending.email,
+          emailSent: true
+        }
+      });
+    }
+
+    // YOL B: Önceden DB'de bekleyen kullanıcılar için
     let foundUser = null;
     try {
       if (rawPrisma && rawPrisma.user) {
@@ -102,19 +149,7 @@ export async function POST(request) {
     });
 
     if (!emailRes.success) {
-      if (emailRes.reason === 'NO_ACTIVE_EMAIL_PROVIDER') {
-        throw new ValidationError(
-          'Sunucuda e-posta gönderim ayarları (SMTP) henüz aktif değil. Lütfen Vercel Environment Variables ekledikten sonra Redeploy yapınız veya WhatsApp Onayı kullanınız.'
-        );
-      }
-      if (emailRes.reason === 'SMTP_AUTH_FAILED') {
-        throw new ValidationError(
-          'E-posta sunucusu şifre doğrulaması başarısız (SMTP_USER / SMTP_PASS kontrol edilmeli). Şimdilik WhatsApp Onayı ile devam edebilirsiniz.'
-        );
-      }
-      throw new ValidationError(
-        'Doğrulama e-postası gönderilemedi. Lütfen biraz sonra tekrar deneyiniz veya WhatsApp Onayı kullanınız.'
-      );
+      throw new ValidationError(getMailFailureMessage(emailRes.reason));
     }
 
     return jsonSuccess({

@@ -8,7 +8,7 @@ import {
   openCheckoutModal,
   showMessageModal
 } from '@/store/slices/uiSlice';
-import { login, register } from '@/store/slices/authSlice';
+import { login } from '@/store/slices/authSlice';
 import { formatTurkishPhoneInput, isValidTurkishPhone, toWhatsAppPhone } from '@/lib/phoneUtils';
 import { MIN_ORDER_AMOUNT } from '@/lib/openingHours';
 import { validateEmailClient } from '@/lib/emailValidation';
@@ -76,6 +76,9 @@ export default function AuthModal() {
   // E-Posta & WhatsApp Onay Akışı Durumları
   const [isWaitingApproval, setIsWaitingApproval] = useState(false);
   const [pendingUser, setPendingUser] = useState(null);
+  const [pendingToken, setPendingToken] = useState('');
+  const [whatsappRequestSent, setWhatsappRequestSent] = useState(false);
+  const [whatsappRequestLoading, setWhatsappRequestLoading] = useState(false);
   const [regVerifyMethod, setRegVerifyMethod] = useState('email'); // 'email' | 'whatsapp'
   const [activeVerifyTab, setActiveVerifyTab] = useState('email'); // 'email' | 'whatsapp'
   const [emailVerifyCode, setEmailVerifyCode] = useState('');
@@ -91,6 +94,8 @@ export default function AuthModal() {
   useEffect(() => {
     if (!isAuthModalOpen) {
       setFormError('');
+      setPendingToken('');
+      setWhatsappRequestSent(false);
       setEmailVerifyCode('');
       setEmailVerifyInfo('');
       setEmailResendCooldown(0);
@@ -257,14 +262,15 @@ export default function AuthModal() {
     }
   }, [pendingUser, dispatch, cartItems.length, grandTotal]);
 
-  // 3.5 saniyede bir otomatik sorgula
+  // 3.5 saniyede bir otomatik sorgula (yalnızca talep veritabanına düştükten sonra)
   useEffect(() => {
     if (!isWaitingApproval || !pendingUser) return;
+    if (pendingToken && !whatsappRequestSent) return;
     const interval = setInterval(() => {
       checkApprovalStatus(false);
     }, 3500);
     return () => clearInterval(interval);
-  }, [isWaitingApproval, pendingUser, checkApprovalStatus]);
+  }, [isWaitingApproval, pendingUser, pendingToken, whatsappRequestSent, checkApprovalStatus]);
 
   if (!isAuthModalOpen) return null;
 
@@ -289,6 +295,8 @@ export default function AuthModal() {
       // Doğrulama / Onay bekleyen kullanıcı kontrolü
       if (json.pendingApproval) {
         setPendingUser(json.data?.user || { name: 'Değerli Müşterimiz', email: loginEmail, phone: '' });
+        setPendingToken('');
+        setWhatsappRequestSent(true);
         setActiveVerifyTab('email');
         setEmailVerifyCode('');
         setEmailVerifyInfo(
@@ -578,13 +586,15 @@ export default function AuthModal() {
         return;
       }
 
-      // Redux store listesine ekle (currentUser yapma, henüz onaylanmadı)
-      dispatch(register({ ...newUserData, phoneVerified: false }));
-
+      // Doğrulama tamamlanmadan yerel listeye / DB'ye eklenmez; yalnızca imzalı token tutulur
       setPendingUser({
-        ...newUserData,
+        name: newUserData.name,
+        email: newUserData.email,
+        phone: newUserData.phone,
         ...(json.data?.user || {})
       });
+      setPendingToken(json.pendingToken || '');
+      setWhatsappRequestSent(false);
       const chosenMethod = json.verificationMethod || regVerifyMethod;
       setActiveVerifyTab(chosenMethod);
       setEmailVerifyCode('');
@@ -636,7 +646,8 @@ export default function AuthModal() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           email: pendingUser?.email || '',
-          code: cleanCode
+          code: cleanCode,
+          pendingToken
         })
       });
       const json = await res.json();
@@ -654,6 +665,8 @@ export default function AuthModal() {
       dispatch(login({ user: verifiedUser }));
       setIsWaitingApproval(false);
       setPendingUser(null);
+      setPendingToken('');
+      setWhatsappRequestSent(false);
       setEmailVerifyCode('');
       setEmailVerifyInfo('');
       dispatch(closeAuthModal());
@@ -664,7 +677,7 @@ export default function AuthModal() {
         dispatch(
           showMessageModal({
             title: 'E-Posta Doğrulandı! 🎉',
-            text: `Hoş geldiniz ${verifiedUser.name}! Hesabınız başarıyla aktif edildi, hemen sipariş verebilirsiniz.`,
+            text: `Hoş geldiniz ${verifiedUser.name}! Hesabınız başarıyla oluşturuldu, hemen sipariş verebilirsiniz.`,
             type: 'success'
           })
         );
@@ -684,7 +697,10 @@ export default function AuthModal() {
       const res = await fetch('/api/auth/resend-email-code', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: pendingUser.email })
+        body: JSON.stringify({
+          email: pendingUser.email,
+          pendingToken
+        })
       });
       const json = await res.json();
 
@@ -698,6 +714,9 @@ export default function AuthModal() {
         return;
       }
 
+      if (json.pendingToken) {
+        setPendingToken(json.pendingToken);
+      }
       setEmailResendCooldown(60);
       setEmailVerifyInfo('Yeni 6 haneli doğrulama kodunuz e-posta adresinize gönderildi!');
     } catch {
@@ -705,6 +724,37 @@ export default function AuthModal() {
     } finally {
       setEmailResendLoading(false);
     }
+  };
+
+  const handleSendWhatsappApproval = async () => {
+    setFormError('');
+    if (pendingToken && !whatsappRequestSent) {
+      setWhatsappRequestLoading(true);
+      try {
+        const res = await fetch('/api/auth/request-whatsapp-approval', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ pendingToken })
+        });
+        const json = await res.json();
+        if (json.alreadyVerified) {
+          setWhatsappRequestSent(true);
+          await checkApprovalStatus(true);
+          return;
+        }
+        if (!json.success) {
+          setFormError(json.error || 'WhatsApp onay talebi oluşturulamadı.');
+          return;
+        }
+        setWhatsappRequestSent(true);
+      } catch {
+        setFormError('Bağlantı hatası oluştu. Lütfen tekrar deneyiniz.');
+        return;
+      } finally {
+        setWhatsappRequestLoading(false);
+      }
+    }
+    window.open(waApprovalUrl, '_blank', 'noopener,noreferrer');
   };
 
   const isRegister = authModalTab === 'register';
@@ -988,6 +1038,8 @@ export default function AuthModal() {
                         type="button"
                         onClick={() => {
                           setIsWaitingApproval(false);
+                          setPendingToken('');
+                          setWhatsappRequestSent(false);
                           setFormError('');
                         }}
                         className="px-3 py-2 rounded-xl text-stone-500 hover:text-stone-800 text-xs font-semibold underline cursor-pointer"
@@ -1009,39 +1061,72 @@ export default function AuthModal() {
                     </div>
 
                     <div className="space-y-1.5">
-                      <a
-                        href={waApprovalUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="w-full bg-emerald-600 hover:bg-emerald-700 active:scale-98 text-white font-black py-3 px-4 rounded-xl text-sm transition-all shadow-md shadow-emerald-600/20 flex items-center justify-center gap-2.5 cursor-pointer text-center"
+                      <button
+                        type="button"
+                        disabled={whatsappRequestLoading}
+                        onClick={handleSendWhatsappApproval}
+                        className="w-full bg-emerald-600 hover:bg-emerald-700 disabled:bg-stone-300 active:scale-98 text-white font-black py-3 px-4 rounded-xl text-sm transition-all shadow-md shadow-emerald-600/20 flex items-center justify-center gap-2.5 cursor-pointer text-center"
                       >
-                        <i className="fa-brands fa-whatsapp text-xl"></i>
-                        <span>WhatsApp&apos;tan Onay Talebi Gönder</span>
-                      </a>
-                      <p className="text-[11px] text-stone-400 text-center">
-                        Butona tıkladığınızda <strong>0553 855 76 12</strong> restoran hattımıza hazır onay mesajınız açılır.
+                        <i
+                          className={`${
+                            whatsappRequestLoading ? 'fa-solid fa-spinner fa-spin' : 'fa-brands fa-whatsapp text-xl'
+                          }`}
+                        ></i>
+                        <span>
+                          {whatsappRequestLoading
+                            ? 'Talep İletiliyor...'
+                            : "WhatsApp'tan Onay Talebi Gönder"}
+                        </span>
+                      </button>
+                      <p className="text-[11px] text-stone-500 text-center leading-snug">
+                        {whatsappRequestSent || !pendingToken
+                          ? (
+                            <>
+                              Butona tıkladığınızda <strong>0553 855 76 12</strong> restoran hattımıza hazır onay mesajınız açılır.
+                            </>
+                          )
+                          : 'Butona tıkladığınızda onay talebiniz yöneticiye iletilir ve WhatsApp mesajı açılır. Onay tamamlanmadan hesabınız sisteme kaydedilmez.'}
                       </p>
                     </div>
 
-                    <div className="bg-stone-50 border border-stone-200 rounded-2xl p-3.5 space-y-2 text-center">
-                      <div className="flex items-center justify-center gap-2 text-xs font-bold text-amber-800">
-                        <i className="fa-solid fa-spinner animate-spin text-amber-600"></i>
-                        <span>Yönetici onayı bekleniyor... (Otomatik Algılanacak)</span>
+                    {(whatsappRequestSent || !pendingToken) ? (
+                      <div className="bg-stone-50 border border-stone-200 rounded-2xl p-3.5 space-y-2 text-center">
+                        <div className="flex items-center justify-center gap-2 text-xs font-bold text-amber-800">
+                          <i className="fa-solid fa-spinner animate-spin text-amber-600"></i>
+                          <span>Yönetici onayı bekleniyor... (Otomatik Algılanacak)</span>
+                        </div>
+                        <div className="flex items-center justify-center gap-2 pt-1">
+                          <button
+                            type="button"
+                            disabled={isCheckingStatus}
+                            onClick={() => checkApprovalStatus(true)}
+                            className="px-4 py-2 rounded-xl bg-white border border-stone-200 hover:bg-stone-100 text-stone-800 text-xs font-bold transition-colors cursor-pointer flex items-center gap-1.5 shadow-2xs"
+                          >
+                            <i className={`fa-solid fa-arrows-rotate text-xs ${isCheckingStatus ? 'animate-spin' : ''}`}></i>
+                            <span>{isCheckingStatus ? 'Kontrol Ediliyor...' : 'Onayı Kontrol Et'}</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setIsWaitingApproval(false);
+                              setPendingToken('');
+                              setWhatsappRequestSent(false);
+                              setFormError('');
+                            }}
+                            className="px-3 py-2 rounded-xl text-stone-500 hover:text-stone-800 text-xs font-semibold underline cursor-pointer"
+                          >
+                            Giriş Ekranına Dön
+                          </button>
+                        </div>
                       </div>
-                      <div className="flex items-center justify-center gap-2 pt-1">
-                        <button
-                          type="button"
-                          disabled={isCheckingStatus}
-                          onClick={() => checkApprovalStatus(true)}
-                          className="px-4 py-2 rounded-xl bg-white border border-stone-200 hover:bg-stone-100 text-stone-800 text-xs font-bold transition-colors cursor-pointer flex items-center gap-1.5 shadow-2xs"
-                        >
-                          <i className={`fa-solid fa-arrows-rotate text-xs ${isCheckingStatus ? 'animate-spin' : ''}`}></i>
-                          <span>{isCheckingStatus ? 'Kontrol Ediliyor...' : 'Onayı Kontrol Et'}</span>
-                        </button>
+                    ) : (
+                      <div className="text-center pt-1">
                         <button
                           type="button"
                           onClick={() => {
                             setIsWaitingApproval(false);
+                            setPendingToken('');
+                            setWhatsappRequestSent(false);
                             setFormError('');
                           }}
                           className="px-3 py-2 rounded-xl text-stone-500 hover:text-stone-800 text-xs font-semibold underline cursor-pointer"
@@ -1049,7 +1134,7 @@ export default function AuthModal() {
                           Giriş Ekranına Dön
                         </button>
                       </div>
-                    </div>
+                    )}
 
                     {formError && (
                       <div className="bg-rose-50 border border-rose-200 text-rose-700 text-xs px-3.5 py-2 rounded-xl flex items-center gap-2">
