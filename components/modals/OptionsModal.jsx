@@ -399,9 +399,9 @@ export default function OptionsModal() {
       }}
       className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-3 lg:p-4 bg-stone-900/65 backdrop-blur-xs overflow-hidden animate-in fade-in duration-200"
     >
-      <div className="bg-stone-50 rounded-2xl sm:rounded-3xl max-w-[700px] lg:max-w-5xl xl:max-w-6xl w-full shadow-2xl flex flex-col lg:flex-row max-h-[94dvh] lg:max-h-[90dvh] overflow-hidden border border-stone-200/90 relative">
+      <div className="bg-stone-50 rounded-2xl sm:rounded-3xl max-w-[720px] lg:max-w-6xl xl:max-w-[1220px] w-full shadow-2xl flex flex-col lg:flex-row max-h-[94dvh] lg:max-h-[92dvh] overflow-hidden border border-stone-200/90 relative">
         {/* SOL VİTRİN PANELİ: TAM BOY BÜYÜK GÖRSEL & EDITORIAL KART */}
-        <div className="shrink-0 lg:w-[300px] xl:w-[330px] bg-stone-950 relative overflow-hidden flex flex-col justify-between text-left min-h-[148px] sm:min-h-[175px] lg:min-h-0">
+        <div className="shrink-0 lg:w-[270px] xl:w-[295px] bg-stone-950 relative overflow-hidden flex flex-col justify-between text-left min-h-[140px] sm:min-h-[168px] lg:min-h-0">
           {/* Tam Arka Plan Ürün Fotoğrafı */}
           <img
             id="opt-modal-img"
@@ -418,7 +418,7 @@ export default function OptionsModal() {
           <div className="absolute inset-0 bg-gradient-to-t from-stone-950 via-stone-950/65 to-stone-950/15 pointer-events-none" />
 
           {/* Üst Satır: Rozet & Mobil Kapat Butonu */}
-          <div className="relative z-10 flex items-center justify-between gap-2 p-3 sm:p-4 lg:p-5">
+          <div className="relative z-10 flex items-center justify-between gap-2 p-3 sm:p-4">
             <div className="flex flex-wrap items-center gap-1.5">
               {selectedProductForOptions.badge && (
                 <span className="inline-flex items-center gap-1 bg-brand-500 text-white text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full shadow-lg shadow-brand-500/30">
@@ -445,7 +445,7 @@ export default function OptionsModal() {
           </div>
 
           {/* Alt Satır: Başlık, Açıklama, Etiketler & Canlı Fiyat */}
-          <div className="relative z-10 p-3 sm:p-4 lg:p-5 pt-8 space-y-2 mt-auto">
+          <div className="relative z-10 p-3 sm:p-4 lg:p-5 pt-6 space-y-2 mt-auto">
             <div className="space-y-1">
               <h4
                 id="opt-modal-title"
@@ -461,11 +461,11 @@ export default function OptionsModal() {
               )}
             </div>
 
-            <div className="flex flex-wrap items-center justify-between gap-2 pt-2.5 border-t border-white/15">
+            <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-white/15">
               <div className="flex items-baseline gap-2">
                 <span
                   id="opt-modal-price"
-                  className="text-xl sm:text-2xl lg:text-3xl font-black text-amber-400 leading-none tracking-tight drop-shadow"
+                  className="text-xl sm:text-2xl font-black text-amber-400 leading-none tracking-tight drop-shadow"
                 >
                   ₺{currentTotalPrice.toFixed(2)}
                 </span>
@@ -484,468 +484,554 @@ export default function OptionsModal() {
           </div>
         </div>
 
-        {/* SAĞ ÖZELLEŞTİRME PANELİ */}
+        {/* SAĞ ÖZELLEŞTİRME PANELİ (BENTO IZGARA - TEK EKRANDA SCROLLSUZ) */}
         <div className="flex-1 min-w-0 min-h-0 flex flex-col overflow-hidden bg-stone-50/80">
-          {/* Masaüstü Sağ Üst Başlık & Kapat */}
-          <div className="hidden lg:flex items-center justify-between px-4 py-2.5 border-b border-stone-200/80 bg-white shrink-0">
-            <div className="flex items-center gap-2.5">
-              <span className="w-7 h-7 rounded-xl bg-gradient-to-br from-brand-500 to-amber-500 text-white flex items-center justify-center text-xs shadow-xs">
+          {/* Masaüstü Tek Satır Kompakt Başlık & Kapat */}
+          <div className="hidden lg:flex items-center justify-between px-4 py-2 border-b border-stone-200/80 bg-white shrink-0">
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="w-6 h-6 rounded-lg bg-gradient-to-br from-brand-500 to-amber-500 text-white flex items-center justify-center text-[11px] shadow-xs shrink-0">
                 <i className="fa-solid fa-sliders"></i>
               </span>
-              <div>
-                <h5 className="text-xs font-black text-stone-900 uppercase tracking-wider">
-                  Siparişini Özelleştir
-                </h5>
-                <p className="text-[11px] text-stone-500 font-medium">
-                  İçerik, sos, ekstra ve çoklu içecek tercihlerini seç
-                </p>
-              </div>
+              <h5 className="text-xs font-black text-stone-900 uppercase tracking-wider shrink-0">
+                Siparişini Özelleştir
+              </h5>
+              <span className="text-stone-300 shrink-0">&bull;</span>
+              <p className="text-[11px] text-stone-500 font-medium truncate">
+                İçerik, sos, ekstra ve çoklu içecek tercihlerini tek ekranda seç
+              </p>
             </div>
             <button
               type="button"
               onClick={() => dispatch(closeOptionsModal())}
-              className="w-8 h-8 rounded-full bg-stone-100 hover:bg-stone-200 text-stone-500 hover:text-stone-900 flex items-center justify-center shrink-0 cursor-pointer transition-colors"
+              className="w-7 h-7 rounded-full bg-stone-100 hover:bg-stone-200 text-stone-500 hover:text-stone-900 flex items-center justify-center shrink-0 cursor-pointer transition-colors"
               title="Kapat"
             >
-              <i className="fa-solid fa-xmark text-sm"></i>
+              <i className="fa-solid fa-xmark text-xs"></i>
             </button>
           </div>
 
-          {/* Seçenekler Alanı (İçten Kaydırmalı - Üst ve Alt Bar Sabit Kalır) */}
-          <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-2.5 sm:p-3.5 lg:p-4 text-left touch-pan-y scrollbar-thin">
-            <div className="space-y-2.5">
-              {/* 1 & 2. Ürün İçeriği ve Sos Seçimleri Yan Yana */}
-          <div
-            className={`grid grid-cols-1 ${
-              productIngredients.length > 0 ? 'sm:grid-cols-2' : ''
-            } gap-2.5 items-stretch`}
-          >
-            {/* 1. Ürün İçeriği (Çıkarılabilir Etiketler) */}
-            {productIngredients.length > 0 && (
-              <div className="bg-white border border-stone-200/90 shadow-2xs rounded-2xl p-2.5 sm:px-3.5 flex flex-col justify-between gap-2">
-                <div className="space-y-1.5">
-                  <div className="flex items-center justify-between gap-1">
-                    <span className="text-[11px] font-extrabold text-stone-800 uppercase flex items-center gap-1.5">
-                      <i className="fa-solid fa-layer-group text-brand-500"></i>
-                      Ürün İçeriği
-                    </span>
-                    <span className="text-[10px] font-medium text-stone-400">
-                      Çıkarmak için dokunun
-                    </span>
-                  </div>
-                  <div className="flex flex-wrap gap-1.5">
-                    {productIngredients.map((ing) => {
-                      const isRemoved = removedIngredients.includes(ing);
-                      return (
-                        <button
-                          key={ing}
-                          type="button"
-                          onClick={() => handleToggleIngredient(ing)}
-                          className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-semibold border transition-all cursor-pointer ${
-                            isRemoved
-                              ? 'bg-rose-50 border-rose-200 text-rose-600 line-through opacity-80 hover:opacity-100'
-                              : 'bg-white border-stone-200 text-stone-800 hover:border-rose-300 hover:bg-rose-50/40'
-                          }`}
-                          title={isRemoved ? 'Tekrar eklemek için tıklayın' : 'Çıkarmak için tıklayın'}
-                        >
-                          <i
-                            className={`fa-solid ${
-                              isRemoved
-                                ? 'fa-rotate-left text-[9px] text-rose-500'
-                                : 'fa-check text-[9px] text-emerald-600'
-                            }`}
-                          ></i>
-                          <span>{ing}</span>
-                          {!isRemoved && (
-                            <i className="fa-solid fa-xmark text-[9px] text-stone-400 ml-0.5"></i>
-                          )}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* 2. Sos Seçimleri & Adetleri */}
-            <div className="bg-white border border-stone-200/90 shadow-2xs rounded-2xl p-2.5 sm:px-3.5 space-y-2">
-              <div className="flex flex-wrap items-center justify-between gap-1">
-                <span className="text-[11px] font-extrabold text-stone-800 uppercase flex items-center gap-1.5">
-                  <i className="fa-solid fa-bottle-droplet text-amber-500"></i>
-                  Sos Seçimleri
-                </span>
-                <div className="flex items-center gap-1">
-                  <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
-                    {freeSauceLimit > 0 ? `İlk ${freeSauceLimit} Adet Ücretsiz` : 'Tümü Ücretli'}
-                  </span>
-                  {extraSaucePrice > 0 && paidSauceCount > 0 && (
-                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-amber-100 text-amber-900 border border-amber-300">
-                      +{paidSauceCount} (+₺{extraSauceCost.toFixed(2)})
-                    </span>
-                  )}
-                </div>
-              </div>
-
-              <div
-                className={`grid grid-cols-1 ${
-                  productIngredients.length > 0 ? '' : 'sm:grid-cols-3'
-                } gap-1.5`}
-                id="sauces-container"
-              >
-                {!optionsLoaded ? (
-                  <div className="col-span-full text-center py-2 text-xs text-stone-400 bg-white rounded-xl border border-dashed border-stone-200">
-                    Soslar yükleniyor...
-                  </div>
-                ) : availableSauces.length === 0 ? (
-                  <div className="col-span-full text-center py-2 text-xs text-stone-400 bg-white rounded-xl border border-dashed border-stone-200">
-                    Şu an için seçilebilir sos bulunmuyor.
-                  </div>
-                ) : (
-                  availableSauces.map((s) => {
-                    const sKey = s.id || s.key || s.name;
-                    const label = s.name || s.label;
-                    const count = sauceCounts[sKey] || 0;
-                    const sauceImg = resolveSauceImage(s);
-                    return (
-                      <div
-                        key={sKey}
-                        className={`flex items-center justify-between gap-2 px-2 py-1.5 rounded-xl border transition-all ${
-                          count > 0
-                            ? 'bg-amber-50/60 border-amber-300'
-                            : 'bg-white border-stone-200'
-                        }`}
-                      >
-                        <div className="flex items-center gap-2 min-w-0">
-                          {sauceImg ? (
-                            <img
-                              src={sauceImg}
-                              alt={label}
-                              loading="lazy"
-                              decoding="async"
-                              className="w-8 h-8 rounded-lg object-cover border border-stone-200/80 bg-stone-50 shrink-0"
-                            />
-                          ) : (
-                            <span className="w-8 h-8 rounded-lg bg-amber-50 border border-amber-200/70 text-amber-600 flex items-center justify-center text-xs shrink-0">
-                              <i className="fa-solid fa-bottle-droplet"></i>
-                            </span>
-                          )}
-                          <span className="text-xs font-semibold text-stone-800 truncate" title={label}>
-                            {label}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-1 shrink-0">
-                          <button
-                            type="button"
-                            onClick={() => dispatch(adjustSauceCount({ sauceKey: sKey, delta: -1 }))}
-                            className="w-5 h-5 bg-stone-100 hover:bg-stone-200 rounded-md flex items-center justify-center text-xs font-bold text-stone-700 transition-colors cursor-pointer"
-                          >
-                            -
-                          </button>
-                          <span className="text-xs font-black text-stone-900 w-4 text-center">
-                            {count}
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() => dispatch(adjustSauceCount({ sauceKey: sKey, delta: 1 }))}
-                            className="w-5 h-5 bg-stone-100 hover:bg-stone-200 rounded-md flex items-center justify-center text-xs font-bold text-stone-700 transition-colors cursor-pointer"
-                          >
-                            +
-                          </button>
-                        </div>
+          {/* Seçenekler Alanı (Masaüstünde tek bakışta sığan Bento grid; mobilde gizli kaydırma çubuğu) */}
+          <div className="flex-1 min-h-0 overflow-y-auto no-scrollbar overscroll-contain p-2.5 sm:p-3 lg:p-3.5 text-left touch-pan-y">
+            <div className="space-y-2">
+              {/* 1. ÜST BENTO SATIRI: Sol (Ürün İçeriği + Sipariş Notu), Sağ (Sos Seçimleri) */}
+              {productIngredients.length > 0 ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 items-stretch">
+                  <div className="flex flex-col gap-2">
+                    {/* Ürün İçeriği */}
+                    <div className="bg-white border border-stone-200/90 shadow-2xs rounded-2xl p-2.5 sm:px-3 flex-1 flex flex-col justify-between gap-1.5">
+                      <div className="flex items-center justify-between gap-1">
+                        <span className="text-[11px] font-extrabold text-stone-800 uppercase flex items-center gap-1.5">
+                          <i className="fa-solid fa-layer-group text-brand-500"></i>
+                          Ürün İçeriği
+                        </span>
+                        <span className="text-[10px] font-medium text-stone-400">
+                          Çıkarmak için dokunun
+                        </span>
                       </div>
-                    );
-                  })
-                )}
-              </div>
-            </div>
-          </div>
+                      <div className="flex flex-wrap gap-1">
+                        {productIngredients.map((ing) => {
+                          const isRemoved = removedIngredients.includes(ing);
+                          return (
+                            <button
+                              key={ing}
+                              type="button"
+                              onClick={() => handleToggleIngredient(ing)}
+                              className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[11px] font-semibold border transition-all cursor-pointer ${
+                                isRemoved
+                                  ? 'bg-rose-50 border-rose-200 text-rose-600 line-through opacity-80 hover:opacity-100'
+                                  : 'bg-white border-stone-200 text-stone-800 hover:border-rose-300 hover:bg-rose-50/40'
+                              }`}
+                              title={isRemoved ? 'Tekrar eklemek için tıklayın' : 'Çıkarmak için tıklayın'}
+                            >
+                              <i
+                                className={`fa-solid ${
+                                  isRemoved
+                                    ? 'fa-rotate-left text-[9px] text-rose-500'
+                                    : 'fa-check text-[9px] text-emerald-600'
+                                }`}
+                              ></i>
+                              <span>{ing}</span>
+                              {!isRemoved && (
+                                <i className="fa-solid fa-xmark text-[9px] text-stone-400 ml-0.5"></i>
+                              )}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
 
-          {/* 3. Ekstra Malzemeler (Ücretli) */}
-          <div className="bg-white border border-stone-200/90 shadow-2xs rounded-2xl p-2.5 sm:px-3.5 space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="text-[11px] font-extrabold text-stone-800 uppercase flex items-center gap-1.5">
-                <i className="fa-solid fa-cheese text-orange-500"></i>
-                Ekstra Lezzetler
-              </span>
-              <span className="text-[10px] font-semibold text-rose-600 bg-rose-50 px-2 py-0.5 rounded-md border border-rose-200">
-                İsteğe Bağlı &bull; Ek Ücretli
-              </span>
-            </div>
+                    {/* Sipariş Notu (Ölü boşluğu doldurur) */}
+                    <div className="bg-white border border-stone-200/90 shadow-2xs rounded-2xl p-2.5 sm:px-3">
+                      <label
+                        htmlFor="opt-note"
+                        className="text-[11px] font-extrabold text-stone-800 uppercase mb-1 flex items-center gap-1.5"
+                      >
+                        <i className="fa-solid fa-pen text-stone-400"></i>
+                        Sipariş Notu / Özel İstek
+                      </label>
+                      <input
+                        type="text"
+                        id="opt-note"
+                        value={note}
+                        onChange={(e) => setNote(e.target.value)}
+                        className="w-full bg-stone-50 focus:bg-white border border-stone-200 rounded-xl px-2.5 py-1.5 text-xs focus:outline-none focus:border-brand-500 font-medium text-stone-800 transition-colors"
+                        placeholder="Örn: Ekmeği bol kızarmış olsun..."
+                      />
+                    </div>
+                  </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5" id="extras-container">
-              {!optionsLoaded ? (
-                <div className="col-span-full text-center py-2 text-xs text-stone-400 bg-white rounded-xl border border-dashed border-stone-200">
-                  Ekstralar yükleniyor...
-                </div>
-              ) : availableExtras.length === 0 ? (
-                <div className="col-span-full text-center py-2 text-xs text-stone-400 bg-white rounded-xl border border-dashed border-stone-200">
-                  Şu an için seçilebilir ekstra malzeme bulunmuyor.
-                </div>
-              ) : (
-                availableExtras.map((extra) => {
-                  const extraKey = extra.id || extra.name;
-                  const extraImg = resolveExtraImage(extra);
-                  return (
-                    <label
-                      key={extraKey}
-                      className={`flex items-center justify-between px-2 py-1.5 rounded-xl border transition-all text-xs font-medium cursor-pointer gap-1.5 ${
-                        extra.checked
-                          ? 'border-brand-500 bg-brand-50/60 text-brand-900 font-bold'
-                          : 'border-stone-200 bg-white text-stone-700 hover:border-stone-300'
-                      }`}
-                    >
-                      <div className="flex items-center gap-2 min-w-0">
-                        <input
-                          type="checkbox"
-                          checked={!!extra.checked}
-                          onChange={() => {
-                            setExtras((prev) =>
-                              prev.map((e) =>
-                                (e.id && e.id === extra.id) || e.name === extra.name
-                                  ? { ...e, checked: !e.checked }
-                                  : e
-                              )
-                            );
-                          }}
-                          className="text-brand-600 rounded focus:ring-brand-500 shrink-0"
-                        />
-                        {extraImg ? (
-                          <img
-                            src={extraImg}
-                            alt={extra.name}
-                            loading="lazy"
-                            decoding="async"
-                            className="w-8 h-8 rounded-lg object-cover border border-stone-200/80 bg-stone-50 shrink-0"
-                          />
-                        ) : (
-                          <span className="w-8 h-8 rounded-lg bg-orange-50 border border-orange-200/70 text-orange-600 flex items-center justify-center text-xs shrink-0">
-                            <i className="fa-solid fa-cheese"></i>
+                  {/* Sos Seçimleri */}
+                  <div className="bg-white border border-stone-200/90 shadow-2xs rounded-2xl p-2.5 sm:px-3 space-y-1.5 flex flex-col justify-between">
+                    <div className="flex flex-wrap items-center justify-between gap-1">
+                      <span className="text-[11px] font-extrabold text-stone-800 uppercase flex items-center gap-1.5">
+                        <i className="fa-solid fa-bottle-droplet text-amber-500"></i>
+                        Sos Seçimleri
+                      </span>
+                      <div className="flex items-center gap-1">
+                        <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
+                          {freeSauceLimit > 0 ? `İlk ${freeSauceLimit} Adet Ücretsiz` : 'Tümü Ücretli'}
+                        </span>
+                        {extraSaucePrice > 0 && paidSauceCount > 0 && (
+                          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-amber-100 text-amber-900 border border-amber-300">
+                            +{paidSauceCount} (+₺{extraSauceCost.toFixed(2)})
                           </span>
                         )}
-                        <span className="truncate">{extra.name}</span>
                       </div>
-                      <span className="text-brand-600 font-black shrink-0 ml-1">+₺{extra.price}</span>
-                    </label>
-                  );
-                })
-              )}
-            </div>
-          </div>
+                    </div>
 
-          {/* 4. Menü İçecek Seçimi & Sipariş Notu */}
-          <div className={`grid grid-cols-1 ${isMenu ? 'sm:grid-cols-2' : ''} gap-2.5`}>
-            {isMenu && (
-              <div className="bg-white border border-stone-200/90 shadow-2xs rounded-2xl p-2.5 sm:px-3.5">
-                <label className="block text-[11px] font-extrabold text-stone-800 uppercase mb-1.5 flex items-center justify-between gap-1.5">
-                  <span className="flex items-center gap-1.5">
-                    <i className="fa-solid fa-cup-straw text-brand-500"></i>
-                    Menü İçeceği ({menuTier} Kişilik)
-                  </span>
-                  <span className="text-[10px] font-semibold text-stone-400 normal-case">
-                    Fiyata dahil veya +₺ ek seçim
-                  </span>
-                </label>
-                {activeMenuDrinkItems.length <= 6 ? (
-                  <div className="grid grid-cols-2 gap-1.5">
-                    {activeMenuDrinkItems.map((dr) => {
-                      const isSelected = selectedDrink === dr.name;
-                      const drPrice = Math.max(0, Number(dr.price) || 0);
-                      return (
-                        <button
-                          key={dr.id || dr.name}
-                          type="button"
-                          onClick={() => setSelectedDrink(dr.name)}
-                          className={`px-2.5 py-2 rounded-xl border text-xs font-extrabold transition-all cursor-pointer flex items-center justify-between gap-1.5 ${
-                            isSelected
-                              ? 'bg-brand-500 border-brand-600 text-white shadow-xs'
-                              : 'bg-white border-stone-200 text-stone-800 hover:border-brand-400'
-                          }`}
-                        >
-                          <span className="flex items-center gap-1.5 min-w-0">
-                            <i className={`fa-solid ${isSelected ? 'fa-circle-check' : 'fa-circle text-stone-300'} text-[11px] shrink-0`}></i>
-                            <span className="truncate">{dr.name}</span>
-                          </span>
-                          <span
-                            className={`text-[10px] font-black px-1.5 py-0.5 rounded-md shrink-0 ${
-                              drPrice > 0
-                                ? isSelected
-                                  ? 'bg-white/25 text-white'
-                                  : 'bg-amber-100 text-amber-800'
-                                : isSelected
-                                ? 'bg-white/20 text-white'
-                                : 'bg-emerald-50 text-emerald-700'
+                    <div
+                      className={`grid grid-cols-1 ${
+                        availableSauces.length > 3 ? 'sm:grid-cols-2' : ''
+                      } gap-1.5`}
+                      id="sauces-container"
+                    >
+                      {!optionsLoaded ? (
+                        <div className="col-span-full text-center py-2 text-xs text-stone-400 bg-white rounded-xl border border-dashed border-stone-200">
+                          Soslar yükleniyor...
+                        </div>
+                      ) : availableSauces.length === 0 ? (
+                        <div className="col-span-full text-center py-2 text-xs text-stone-400 bg-white rounded-xl border border-dashed border-stone-200">
+                          Şu an için seçilebilir sos bulunmuyor.
+                        </div>
+                      ) : (
+                        availableSauces.map((s) => {
+                          const sKey = s.id || s.key || s.name;
+                          const label = s.name || s.label;
+                          const count = sauceCounts[sKey] || 0;
+                          const sauceImg = resolveSauceImage(s);
+                          return (
+                            <div
+                              key={sKey}
+                              className={`flex items-center justify-between gap-2 px-2 py-1 rounded-xl border transition-all ${
+                                count > 0
+                                  ? 'bg-amber-50/60 border-amber-300'
+                                  : 'bg-white border-stone-200'
+                              }`}
+                            >
+                              <div className="flex items-center gap-2 min-w-0">
+                                {sauceImg ? (
+                                  <img
+                                    src={sauceImg}
+                                    alt={label}
+                                    loading="lazy"
+                                    decoding="async"
+                                    className="w-6 h-6 rounded-lg object-cover border border-stone-200/80 bg-stone-50 shrink-0"
+                                  />
+                                ) : (
+                                  <span className="w-6 h-6 rounded-lg bg-amber-50 border border-amber-200/70 text-amber-600 flex items-center justify-center text-[11px] shrink-0">
+                                    <i className="fa-solid fa-bottle-droplet"></i>
+                                  </span>
+                                )}
+                                <span className="text-xs font-semibold text-stone-800 truncate" title={label}>
+                                  {label}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-1 shrink-0">
+                                <button
+                                  type="button"
+                                  onClick={() => dispatch(adjustSauceCount({ sauceKey: sKey, delta: -1 }))}
+                                  className="w-5 h-5 bg-stone-100 hover:bg-stone-200 rounded-md flex items-center justify-center text-xs font-bold text-stone-700 transition-colors cursor-pointer"
+                                >
+                                  -
+                                </button>
+                                <span className="text-xs font-black text-stone-900 w-4 text-center">
+                                  {count}
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() => dispatch(adjustSauceCount({ sauceKey: sKey, delta: 1 }))}
+                                  className="w-5 h-5 bg-stone-100 hover:bg-stone-200 rounded-md flex items-center justify-center text-xs font-bold text-stone-700 transition-colors cursor-pointer"
+                                >
+                                  +
+                                </button>
+                              </div>
+                            </div>
+                          );
+                        })
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 items-stretch">
+                  <div className="bg-white border border-stone-200/90 shadow-2xs rounded-2xl p-2.5 sm:px-3 space-y-1.5">
+                    <div className="flex flex-wrap items-center justify-between gap-1">
+                      <span className="text-[11px] font-extrabold text-stone-800 uppercase flex items-center gap-1.5">
+                        <i className="fa-solid fa-bottle-droplet text-amber-500"></i>
+                        Sos Seçimleri
+                      </span>
+                      <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
+                        {freeSauceLimit > 0 ? `İlk ${freeSauceLimit} Adet Ücretsiz` : 'Tümü Ücretli'}
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-1 gap-1.5" id="sauces-container">
+                      {!optionsLoaded ? (
+                        <div className="text-center py-2 text-xs text-stone-400">Soslar yükleniyor...</div>
+                      ) : availableSauces.length === 0 ? (
+                        <div className="text-center py-2 text-xs text-stone-400">Seçilebilir sos yok.</div>
+                      ) : (
+                        availableSauces.map((s) => {
+                          const sKey = s.id || s.key || s.name;
+                          const label = s.name || s.label;
+                          const count = sauceCounts[sKey] || 0;
+                          const sauceImg = resolveSauceImage(s);
+                          return (
+                            <div
+                              key={sKey}
+                              className={`flex items-center justify-between gap-2 px-2 py-1 rounded-xl border transition-all ${
+                                count > 0 ? 'bg-amber-50/60 border-amber-300' : 'bg-white border-stone-200'
+                              }`}
+                            >
+                              <div className="flex items-center gap-2 min-w-0">
+                                {sauceImg ? (
+                                  <img
+                                    src={sauceImg}
+                                    alt={label}
+                                    loading="lazy"
+                                    decoding="async"
+                                    className="w-6 h-6 rounded-lg object-cover border border-stone-200/80 bg-stone-50 shrink-0"
+                                  />
+                                ) : (
+                                  <span className="w-6 h-6 rounded-lg bg-amber-50 border border-amber-200/70 text-amber-600 flex items-center justify-center text-[11px] shrink-0">
+                                    <i className="fa-solid fa-bottle-droplet"></i>
+                                  </span>
+                                )}
+                                <span className="text-xs font-semibold text-stone-800 truncate">{label}</span>
+                              </div>
+                              <div className="flex items-center gap-1 shrink-0">
+                                <button
+                                  type="button"
+                                  onClick={() => dispatch(adjustSauceCount({ sauceKey: sKey, delta: -1 }))}
+                                  className="w-5 h-5 bg-stone-100 hover:bg-stone-200 rounded-md flex items-center justify-center text-xs font-bold text-stone-700 cursor-pointer"
+                                >
+                                  -
+                                </button>
+                                <span className="text-xs font-black text-stone-900 w-4 text-center">{count}</span>
+                                <button
+                                  type="button"
+                                  onClick={() => dispatch(adjustSauceCount({ sauceKey: sKey, delta: 1 }))}
+                                  className="w-5 h-5 bg-stone-100 hover:bg-stone-200 rounded-md flex items-center justify-center text-xs font-bold text-stone-700 cursor-pointer"
+                                >
+                                  +
+                                </button>
+                              </div>
+                            </div>
+                          );
+                        })
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="bg-white border border-stone-200/90 shadow-2xs rounded-2xl p-2.5 sm:px-3 flex flex-col justify-center">
+                    <label
+                      htmlFor="opt-note"
+                      className="text-[11px] font-extrabold text-stone-800 uppercase mb-1.5 flex items-center gap-1.5"
+                    >
+                      <i className="fa-solid fa-pen text-stone-400"></i>
+                      Sipariş Notu / Özel İstek
+                    </label>
+                    <input
+                      type="text"
+                      id="opt-note"
+                      value={note}
+                      onChange={(e) => setNote(e.target.value)}
+                      className="w-full bg-stone-50 focus:bg-white border border-stone-200 rounded-xl px-2.5 py-2 text-xs focus:outline-none focus:border-brand-500 font-medium text-stone-800 transition-colors"
+                      placeholder="Örn: Ekmeği bol kızarmış olsun..."
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* 2. ORTA SATIR: Menü İçeceği (varsa) + Ekstra Lezzetler */}
+              <div className={`grid grid-cols-1 ${isMenu ? 'sm:grid-cols-2' : ''} gap-2`}>
+                {isMenu && (
+                  <div className="bg-white border border-stone-200/90 shadow-2xs rounded-2xl p-2.5 sm:px-3">
+                    <label className="text-[11px] font-extrabold text-stone-800 uppercase mb-1.5 flex items-center justify-between gap-1.5">
+                      <span className="flex items-center gap-1.5">
+                        <i className="fa-solid fa-cup-straw text-brand-500"></i>
+                        Menü İçeceği ({menuTier} Kişilik)
+                      </span>
+                      <span className="text-[10px] font-semibold text-stone-400 normal-case">
+                        Fiyata dahil veya +₺ ek seçim
+                      </span>
+                    </label>
+                    {activeMenuDrinkItems.length <= 6 ? (
+                      <div className="grid grid-cols-2 gap-1.5">
+                        {activeMenuDrinkItems.map((dr) => {
+                          const isSelected = selectedDrink === dr.name;
+                          const drPrice = Math.max(0, Number(dr.price) || 0);
+                          return (
+                            <button
+                              key={dr.id || dr.name}
+                              type="button"
+                              onClick={() => setSelectedDrink(dr.name)}
+                              className={`px-2 py-1.5 rounded-xl border text-xs font-extrabold transition-all cursor-pointer flex items-center justify-between gap-1 ${
+                                isSelected
+                                  ? 'bg-brand-500 border-brand-600 text-white shadow-xs'
+                                  : 'bg-white border-stone-200 text-stone-800 hover:border-brand-400'
+                              }`}
+                            >
+                              <span className="flex items-center gap-1.5 min-w-0">
+                                <i className={`fa-solid ${isSelected ? 'fa-circle-check' : 'fa-circle text-stone-300'} text-[10px] shrink-0`}></i>
+                                <span className="truncate">{dr.name}</span>
+                              </span>
+                              <span
+                                className={`text-[10px] font-black px-1.5 py-0.5 rounded-md shrink-0 ${
+                                  drPrice > 0
+                                    ? isSelected
+                                      ? 'bg-white/25 text-white'
+                                      : 'bg-amber-100 text-amber-800'
+                                    : isSelected
+                                    ? 'bg-white/20 text-white'
+                                    : 'bg-emerald-50 text-emerald-700'
+                                }`}
+                              >
+                                {drPrice > 0 ? `+₺${drPrice}` : 'Dahil'}
+                              </span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <select
+                        value={selectedDrink}
+                        onChange={(e) => setSelectedDrink(e.target.value)}
+                        className="app-select w-full bg-white border border-stone-200 hover:border-brand-400 rounded-xl px-3 py-1.5 text-xs text-stone-900 focus:outline-none focus:border-brand-500 font-bold cursor-pointer transition-all"
+                      >
+                        {activeMenuDrinkItems.map((dr) => {
+                          const drPrice = Math.max(0, Number(dr.price) || 0);
+                          return (
+                            <option key={dr.id || dr.name} value={dr.name}>
+                              {drPrice > 0 ? `${dr.name} (+₺${drPrice})` : `${dr.name} (Dahil)`}
+                            </option>
+                          );
+                        })}
+                      </select>
+                    )}
+                  </div>
+                )}
+
+                {/* Ekstra Malzemeler (Ücretli) */}
+                <div className="bg-white border border-stone-200/90 shadow-2xs rounded-2xl p-2.5 sm:px-3 space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-extrabold text-stone-800 uppercase flex items-center gap-1.5">
+                      <i className="fa-solid fa-cheese text-orange-500"></i>
+                      Ekstra Lezzetler
+                    </span>
+                    <span className="text-[10px] font-semibold text-rose-600 bg-rose-50 px-2 py-0.5 rounded-md border border-rose-200">
+                      İsteğe Bağlı &bull; Ek Ücretli
+                    </span>
+                  </div>
+
+                  <div
+                    className={`grid grid-cols-1 ${isMenu ? 'sm:grid-cols-2' : 'sm:grid-cols-3'} gap-1.5`}
+                    id="extras-container"
+                  >
+                    {!optionsLoaded ? (
+                      <div className="col-span-full text-center py-2 text-xs text-stone-400 bg-white rounded-xl border border-dashed border-stone-200">
+                        Ekstralar yükleniyor...
+                      </div>
+                    ) : availableExtras.length === 0 ? (
+                      <div className="col-span-full text-center py-2 text-xs text-stone-400 bg-white rounded-xl border border-dashed border-stone-200">
+                        Şu an için seçilebilir ekstra malzeme bulunmuyor.
+                      </div>
+                    ) : (
+                      availableExtras.map((extra) => {
+                        const extraKey = extra.id || extra.name;
+                        const extraImg = resolveExtraImage(extra);
+                        return (
+                          <label
+                            key={extraKey}
+                            className={`flex items-center justify-between px-2 py-1 rounded-xl border transition-all text-xs font-medium cursor-pointer gap-1.5 ${
+                              extra.checked
+                                ? 'border-brand-500 bg-brand-50/60 text-brand-900 font-bold'
+                                : 'border-stone-200 bg-white text-stone-700 hover:border-stone-300'
                             }`}
                           >
-                            {drPrice > 0 ? `+₺${drPrice}` : 'Dahil'}
-                          </span>
-                        </button>
-                      );
-                    })}
+                            <div className="flex items-center gap-1.5 min-w-0">
+                              <input
+                                type="checkbox"
+                                checked={!!extra.checked}
+                                onChange={() => {
+                                  setExtras((prev) =>
+                                    prev.map((e) =>
+                                      (e.id && e.id === extra.id) || e.name === extra.name
+                                        ? { ...e, checked: !e.checked }
+                                        : e
+                                    )
+                                  );
+                                }}
+                                className="text-brand-600 rounded focus:ring-brand-500 shrink-0"
+                              />
+                              {extraImg ? (
+                                <img
+                                  src={extraImg}
+                                  alt={extra.name}
+                                  loading="lazy"
+                                  decoding="async"
+                                  className="w-7 h-7 rounded-lg object-cover border border-stone-200/80 bg-stone-50 shrink-0"
+                                />
+                              ) : (
+                                <span className="w-7 h-7 rounded-lg bg-orange-50 border border-orange-200/70 text-orange-600 flex items-center justify-center text-xs shrink-0">
+                                  <i className="fa-solid fa-cheese"></i>
+                                </span>
+                              )}
+                              <span className="truncate">{extra.name}</span>
+                            </div>
+                            <span className="text-brand-600 font-black shrink-0 ml-1">+₺{extra.price}</span>
+                          </label>
+                        );
+                      })
+                    )}
                   </div>
-                ) : (
-                  <select
-                    value={selectedDrink}
-                    onChange={(e) => setSelectedDrink(e.target.value)}
-                    className="app-select w-full bg-white border border-stone-200 hover:border-brand-400 rounded-xl px-3 py-1.5 text-xs text-stone-900 focus:outline-none focus:border-brand-500 font-bold cursor-pointer transition-all"
-                  >
-                    {activeMenuDrinkItems.map((dr) => {
-                      const drPrice = Math.max(0, Number(dr.price) || 0);
-                      return (
-                        <option key={dr.id || dr.name} value={dr.name}>
-                          {drPrice > 0 ? `${dr.name} (+₺${drPrice})` : `${dr.name} (Dahil)`}
-                        </option>
-                      );
-                    })}
-                  </select>
-                )}
-              </div>
-            )}
-
-            <div className="bg-white border border-stone-200/90 shadow-2xs rounded-2xl p-2.5 sm:px-3.5">
-              <label className="block text-[11px] font-extrabold text-stone-800 uppercase mb-1 flex items-center gap-1.5">
-                <i className="fa-solid fa-pen text-stone-400"></i>
-                Sipariş Notu / Özel İstek
-              </label>
-              <input
-                type="text"
-                id="opt-note"
-                value={note}
-                onChange={(e) => setNote(e.target.value)}
-                className="w-full bg-stone-50 focus:bg-white border border-stone-200 rounded-xl px-3 py-1.5 text-xs focus:outline-none focus:border-brand-500 font-medium text-stone-800 transition-colors"
-                placeholder="Örn: Ekmeği bol kızarmış olsun..."
-              />
-            </div>
-          </div>
-
-          {/* 5. Soğuk İçecek Seçimi (Çoklu Seçim & Adet Desteği) */}
-          {!isDrink && suggestedDrinks.length > 0 && (
-            <div className="bg-sky-50/60 border border-sky-200/80 rounded-2xl p-2.5 sm:px-3.5 space-y-2">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <label className="text-[11px] font-extrabold text-stone-900 uppercase flex items-center gap-1.5">
-                  <i className="fa-solid fa-bottle-water text-sky-600"></i>
-                  {isMenu ? 'Yanına Ekstra İçecek İster misiniz?' : 'Yanına Soğuk İçecek İster misiniz?'}
-                </label>
-
-                <div className="flex items-center gap-1.5 shrink-0">
-                  {totalSuggestedDrinkCount > 0 ? (
-                    <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-sky-600 text-white shrink-0">
-                      {totalSuggestedDrinkCount} Adet (+₺{suggestedDrinksCost.toFixed(0)})
-                    </span>
-                  ) : (
-                    <span className="text-[10px] font-semibold text-sky-700 shrink-0">
-                      Birden fazla seçebilirsiniz
-                    </span>
-                  )}
-
-                  {isMenu && (
-                    <button
-                      type="button"
-                      onClick={() => setShowMenuExtraDrinks((v) => !v)}
-                      className="text-[10px] font-extrabold px-2.5 py-1 rounded-lg bg-white hover:bg-sky-100 text-sky-800 border border-sky-300 cursor-pointer transition-colors"
-                    >
-                      {showMenuExtraDrinks ? 'Gizle' : 'Ekstra İçecek Ekle'}
-                    </button>
-                  )}
                 </div>
               </div>
 
-              {(!isMenu || showMenuExtraDrinks || totalSuggestedDrinkCount > 0) && (
-                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-1.5">
-                  {suggestedDrinks.map((drinkProd) => {
-                    const count = Number(suggestedDrinkCounts[drinkProd.id]) || 0;
-                    const isSelected = count > 0;
-                    const unitPrice = Number(drinkProd.price || 0);
+              {/* 3. ALT SATIR: Soğuk İçecek Seçimi (Masaüstünde 4 Sütun = 2 Satırda Sığar, Çoklu & Adetli) */}
+              {!isDrink && suggestedDrinks.length > 0 && (
+                <div className="bg-sky-50/60 border border-sky-200/80 rounded-2xl p-2.5 sm:px-3 space-y-1.5">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <label className="text-[11px] font-extrabold text-stone-900 uppercase flex items-center gap-1.5">
+                      <i className="fa-solid fa-bottle-water text-sky-600"></i>
+                      {isMenu ? 'Yanına Ekstra İçecek İster misiniz?' : 'Yanına Soğuk İçecek İster misiniz?'}
+                    </label>
 
-                    return (
-                      <div
-                        key={drinkProd.id}
-                        role="button"
-                        tabIndex={0}
-                        onClick={() => {
-                          if (count === 0) handleAdjustSuggestedDrink(drinkProd.id, 1);
-                        }}
-                        onKeyDown={(e) => {
-                          if ((e.key === 'Enter' || e.key === ' ') && count === 0) {
-                            e.preventDefault();
-                            handleAdjustSuggestedDrink(drinkProd.id, 1);
-                          }
-                        }}
-                        className={`flex items-center justify-between gap-1.5 p-1.5 rounded-xl border text-left transition-all ${
-                          isSelected
-                            ? 'bg-sky-100/85 border-sky-500 ring-1 ring-sky-400/40 shadow-2xs'
-                            : 'bg-white border-stone-200/90 hover:border-sky-300 cursor-pointer active:scale-[0.98]'
-                        }`}
-                      >
-                        <div className="flex items-center gap-1.5 min-w-0">
-                          <div className="w-7 h-7 rounded-lg overflow-hidden bg-stone-100 border border-stone-200/70 shrink-0">
-                            <img
-                              src={drinkProd.image || '/images/hero_banner.jpg'}
-                              alt={drinkProd.name}
-                              className="w-full h-full object-cover"
-                              onError={(e) => {
-                                e.currentTarget.src = '/images/hero_banner.jpg';
-                              }}
-                            />
-                          </div>
-                          <div className="min-w-0">
-                            <span className="text-[11px] font-bold text-stone-800 truncate block">
-                              {drinkProd.name}
-                            </span>
-                            {isSelected && (
-                              <span className="text-[10px] font-bold text-sky-700 block leading-tight">
-                                ₺{unitPrice.toFixed(0)} / adet
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      {totalSuggestedDrinkCount > 0 ? (
+                        <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-sky-600 text-white shrink-0">
+                          {totalSuggestedDrinkCount} Adet (+₺{suggestedDrinksCost.toFixed(0)})
+                        </span>
+                      ) : (
+                        <span className="text-[10px] font-semibold text-sky-700 shrink-0">
+                          Birden fazla seçebilirsiniz
+                        </span>
+                      )}
+
+                      {isMenu && (
+                        <button
+                          type="button"
+                          onClick={() => setShowMenuExtraDrinks((v) => !v)}
+                          className="text-[10px] font-extrabold px-2.5 py-0.5 rounded-lg bg-white hover:bg-sky-100 text-sky-800 border border-sky-300 cursor-pointer transition-colors"
+                        >
+                          {showMenuExtraDrinks ? 'Gizle' : 'Ekstra İçecek Ekle'}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {(!isMenu || showMenuExtraDrinks || totalSuggestedDrinkCount > 0) && (
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-1.5">
+                      {suggestedDrinks.map((drinkProd) => {
+                        const count = Number(suggestedDrinkCounts[drinkProd.id]) || 0;
+                        const isSelected = count > 0;
+                        const unitPrice = Number(drinkProd.price || 0);
+
+                        return (
+                          <div
+                            key={drinkProd.id}
+                            role="button"
+                            tabIndex={0}
+                            onClick={() => {
+                              if (count === 0) handleAdjustSuggestedDrink(drinkProd.id, 1);
+                            }}
+                            onKeyDown={(e) => {
+                              if ((e.key === 'Enter' || e.key === ' ') && count === 0) {
+                                e.preventDefault();
+                                handleAdjustSuggestedDrink(drinkProd.id, 1);
+                              }
+                            }}
+                            className={`flex items-center justify-between gap-1.5 p-1.5 rounded-xl border text-left transition-all ${
+                              isSelected
+                                ? 'bg-sky-100/85 border-sky-500 ring-1 ring-sky-400/40 shadow-2xs'
+                                : 'bg-white border-stone-200/90 hover:border-sky-300 cursor-pointer active:scale-[0.98]'
+                            }`}
+                          >
+                            <div className="flex items-center gap-1.5 min-w-0">
+                              <div className="w-7 h-7 rounded-lg overflow-hidden bg-stone-100 border border-stone-200/70 shrink-0">
+                                <img
+                                  src={drinkProd.image || '/images/hero_banner.jpg'}
+                                  alt={drinkProd.name}
+                                  className="w-full h-full object-cover"
+                                  onError={(e) => {
+                                    e.currentTarget.src = '/images/hero_banner.jpg';
+                                  }}
+                                />
+                              </div>
+                              <div className="min-w-0">
+                                <span
+                                  className="text-[11px] font-bold text-stone-800 truncate block leading-tight"
+                                  title={drinkProd.name}
+                                >
+                                  {drinkProd.name}
+                                </span>
+                                <span className="text-[10px] font-black text-sky-700 block leading-tight">
+                                  +₺{unitPrice.toFixed(0)}
+                                </span>
+                              </div>
+                            </div>
+
+                            {isSelected ? (
+                              <div
+                                className="flex items-center gap-0.5 shrink-0"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <button
+                                  type="button"
+                                  onClick={() => handleAdjustSuggestedDrink(drinkProd.id, -1)}
+                                  aria-label={`${drinkProd.name} azalt`}
+                                  className="w-5 h-5 rounded-md bg-white hover:bg-rose-50 text-stone-800 hover:text-rose-600 border border-sky-300 flex items-center justify-center text-[11px] font-black cursor-pointer transition-colors"
+                                >
+                                  -
+                                </button>
+                                <span className="text-[11px] font-black text-sky-950 w-4 text-center">
+                                  {count}
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() => handleAdjustSuggestedDrink(drinkProd.id, 1)}
+                                  aria-label={`${drinkProd.name} artır`}
+                                  className="w-5 h-5 rounded-md bg-sky-600 hover:bg-sky-700 text-white flex items-center justify-center text-[11px] font-black cursor-pointer transition-colors"
+                                >
+                                  +
+                                </button>
+                              </div>
+                            ) : (
+                              <span className="w-5 h-5 rounded-full bg-stone-100 text-sky-600 border border-stone-200 flex items-center justify-center text-[9px] shrink-0">
+                                <i className="fa-solid fa-plus"></i>
                               </span>
                             )}
                           </div>
-                        </div>
-
-                        {isSelected ? (
-                          <div
-                            className="flex items-center gap-1 shrink-0"
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            <button
-                              type="button"
-                              onClick={() => handleAdjustSuggestedDrink(drinkProd.id, -1)}
-                              aria-label={`${drinkProd.name} azalt`}
-                              className="w-6 h-6 rounded-lg bg-white hover:bg-rose-50 text-stone-800 hover:text-rose-600 border border-sky-300 flex items-center justify-center text-xs font-black cursor-pointer transition-colors"
-                            >
-                              -
-                            </button>
-                            <span className="text-xs font-black text-sky-950 w-5 text-center">
-                              {count}
-                            </span>
-                            <button
-                              type="button"
-                              onClick={() => handleAdjustSuggestedDrink(drinkProd.id, 1)}
-                              aria-label={`${drinkProd.name} artır`}
-                              className="w-6 h-6 rounded-lg bg-sky-600 hover:bg-sky-700 text-white flex items-center justify-center text-xs font-black cursor-pointer transition-colors"
-                            >
-                              +
-                            </button>
-                          </div>
-                        ) : (
-                          <div className="flex items-center gap-1 shrink-0">
-                            <span className="text-[11px] font-black text-sky-700">
-                              +₺{unitPrice.toFixed(0)}
-                            </span>
-                            <span className="w-5 h-5 rounded-full bg-stone-100 text-sky-600 border border-stone-200 flex items-center justify-center text-[9px]">
-                              <i className="fa-solid fa-plus"></i>
-                            </span>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
               )}
-            </div>
-          )}
             </div>
           </div>
 
           {/* Sabit Alt Bar (Sepete Ekle Butonu) */}
-          <div className="shrink-0 px-3.5 py-2.5 sm:px-5 sm:py-3 bg-white border-t border-stone-200/80 shadow-[0_-4px_16px_rgba(0,0,0,0.04)] z-10 flex items-center justify-between gap-3">
+          <div className="shrink-0 px-3.5 py-2 sm:px-4 sm:py-2.5 bg-white border-t border-stone-200/80 shadow-[0_-4px_16px_rgba(0,0,0,0.04)] z-10 flex items-center justify-between gap-3">
             <div className="hidden sm:flex flex-col">
               <span className="text-[10px] font-bold uppercase tracking-wider text-stone-400">
                 Toplam Tutar
@@ -958,7 +1044,7 @@ export default function OptionsModal() {
               <button
                 type="button"
                 onClick={handleConfirm}
-                className="flex-1 bg-gradient-to-r from-brand-500 to-amber-500 hover:from-brand-600 hover:to-amber-600 text-white font-black py-2.5 sm:py-3 px-5 rounded-2xl shadow-lg shadow-brand-500/25 text-sm sm:text-base transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-98"
+                className="flex-1 bg-gradient-to-r from-brand-500 to-amber-500 hover:from-brand-600 hover:to-amber-600 text-white font-black py-2.5 px-5 rounded-2xl shadow-lg shadow-brand-500/25 text-sm sm:text-base transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-98"
               >
                 <i className="fa-solid fa-bag-shopping"></i>
                 <span>Sepete Ekle &bull; ₺{currentTotalPrice.toFixed(2)}</span>
@@ -968,7 +1054,7 @@ export default function OptionsModal() {
               <button
                 type="button"
                 disabled
-                className="flex-1 bg-stone-300 text-stone-600 font-bold py-3 sm:py-3.5 rounded-2xl text-sm flex items-center justify-center gap-2 cursor-not-allowed opacity-80"
+                className="flex-1 bg-stone-300 text-stone-600 font-bold py-2.5 rounded-2xl text-sm flex items-center justify-center gap-2 cursor-not-allowed opacity-80"
               >
                 <i className="fa-solid fa-ban text-rose-500"></i> Bu Ürün Tükendi
               </button>
