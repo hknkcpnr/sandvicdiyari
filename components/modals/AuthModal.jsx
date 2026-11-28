@@ -11,6 +11,7 @@ import {
 import { login, register } from '@/store/slices/authSlice';
 import { formatTurkishPhoneInput, isValidTurkishPhone, toWhatsAppPhone } from '@/lib/phoneUtils';
 import { MIN_ORDER_AMOUNT } from '@/lib/openingHours';
+import { validateEmailClient } from '@/lib/emailValidation';
 
 /**
  * ============================================================================
@@ -59,6 +60,11 @@ export default function AuthModal() {
   // Kayıt Ol Formu
   const [regName, setRegName] = useState('');
   const [regEmail, setRegEmail] = useState('');
+  const [regEmailStatus, setRegEmailStatus] = useState({
+    state: 'idle', // 'idle' | 'checking' | 'valid' | 'invalid' | 'typo'
+    message: '',
+    suggestion: ''
+  });
   const [regPhone, setRegPhone] = useState('');
   const [regAddress, setRegAddress] = useState('');
   const [regPass, setRegPass] = useState('');
@@ -86,6 +92,7 @@ export default function AuthModal() {
       setEmailVerifyCode('');
       setEmailVerifyInfo('');
       setEmailResendCooldown(0);
+      setRegEmailStatus({ state: 'idle', message: '', suggestion: '' });
       setIsForgotPassword(false);
       setForgotStep(1);
       setForgotError('');
@@ -97,6 +104,88 @@ export default function AuthModal() {
       setGuestAddress('');
     }
   }, [isAuthModalOpen]);
+
+  // Kayıt Ol sekmesinde canlı e-posta kontrolü (yazım hatası + geçici mail + DNS MX)
+  useEffect(() => {
+    if (!isAuthModalOpen || authModalTab !== 'register' || isWaitingApproval) return;
+
+    const trimmed = regEmail.trim();
+    if (!trimmed || !trimmed.includes('@')) {
+      setRegEmailStatus({ state: 'idle', message: '', suggestion: '' });
+      return;
+    }
+
+    const clientCheck = validateEmailClient(trimmed);
+    if (!clientCheck.valid) {
+      if (clientCheck.code === 'TYPO') {
+        setRegEmailStatus({
+          state: 'typo',
+          message: clientCheck.error,
+          suggestion: clientCheck.suggestion || ''
+        });
+        return;
+      }
+      if (clientCheck.code === 'DISPOSABLE') {
+        setRegEmailStatus({
+          state: 'invalid',
+          message: clientCheck.error,
+          suggestion: ''
+        });
+        return;
+      }
+      const afterAt = trimmed.split('@')[1] || '';
+      if (!afterAt.includes('.') && trimmed.length <= 12) {
+        setRegEmailStatus({ state: 'idle', message: '', suggestion: '' });
+        return;
+      }
+      const timer = setTimeout(() => {
+        setRegEmailStatus({
+          state: 'invalid',
+          message: clientCheck.error,
+          suggestion: ''
+        });
+      }, 600);
+      return () => clearTimeout(timer);
+    }
+
+    let cancelled = false;
+    const controller = new AbortController();
+    const timer = setTimeout(async () => {
+      setRegEmailStatus({ state: 'checking', message: 'E-posta kontrol ediliyor...', suggestion: '' });
+      try {
+        const res = await fetch('/api/auth/check-email', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: trimmed }),
+          signal: controller.signal
+        });
+        const json = await res.json();
+        if (cancelled) return;
+        const data = json?.data;
+        if (data?.valid) {
+          setRegEmailStatus({ state: 'valid', message: 'Geçerli e-posta sunucusu', suggestion: '' });
+        } else if (data) {
+          setRegEmailStatus({
+            state: data.code === 'TYPO' ? 'typo' : 'invalid',
+            message: data.error || 'Geçersiz e-posta adresi.',
+            suggestion: data.suggestion || ''
+          });
+        } else {
+          setRegEmailStatus({ state: 'idle', message: '', suggestion: '' });
+        }
+      } catch {
+        if (!cancelled) {
+          setRegEmailStatus({ state: 'idle', message: '', suggestion: '' });
+        }
+      }
+    }, 500);
+
+    return () => {
+      cancelled = true;
+      controller.abort();
+      clearTimeout(timer);
+    };
+  }, [regEmail, authModalTab, isAuthModalOpen, isWaitingApproval]);
 
   // Tekrar kod gönderme bekleme sayacı
   useEffect(() => {
@@ -423,6 +512,24 @@ export default function AuthModal() {
     e.preventDefault();
     setFormError('');
 
+    const clientEmailCheck = validateEmailClient(regEmail);
+    if (!clientEmailCheck.valid) {
+      if (clientEmailCheck.code === 'TYPO' && clientEmailCheck.suggestion) {
+        setRegEmailStatus({
+          state: 'typo',
+          message: clientEmailCheck.error,
+          suggestion: clientEmailCheck.suggestion
+        });
+      }
+      setFormError(clientEmailCheck.error);
+      return;
+    }
+
+    if (regEmailStatus.state === 'invalid' && regEmailStatus.message) {
+      setFormError(regEmailStatus.message);
+      return;
+    }
+
     if (usersList.some((u) => u.email.toLowerCase() === regEmail.toLowerCase())) {
       setFormError('Bu e-posta adresi ile zaten bir hesap mevcut.');
       return;
@@ -482,6 +589,7 @@ export default function AuthModal() {
       // Başarılı kayıt sonrası formdaki bilgileri temizle
       setRegName('');
       setRegEmail('');
+      setRegEmailStatus({ state: 'idle', message: '', suggestion: '' });
       setRegPhone('');
       setRegAddress('');
       setRegPass('');
@@ -1199,10 +1307,56 @@ export default function AuthModal() {
                           type="email"
                           required
                           value={regEmail}
-                          onChange={(e) => setRegEmail(e.target.value)}
-                          className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:border-brand-500 text-stone-800 focus:bg-white"
-                          placeholder="ornek@mail.com"
+                          onChange={(e) => {
+                            setRegEmail(e.target.value);
+                            setFormError('');
+                          }}
+                          className={`w-full bg-stone-50 border rounded-xl px-3.5 py-2.5 text-sm focus:outline-none text-stone-800 focus:bg-white transition-colors ${
+                            regEmailStatus.state === 'valid'
+                              ? 'border-emerald-400 focus:border-emerald-500'
+                              : regEmailStatus.state === 'invalid'
+                              ? 'border-rose-400 focus:border-rose-500'
+                              : regEmailStatus.state === 'typo'
+                              ? 'border-amber-400 focus:border-amber-500'
+                              : 'border-stone-200 focus:border-brand-500'
+                          }`}
+                          placeholder="ornek@gmail.com"
                         />
+                        {regEmailStatus.state === 'checking' && (
+                          <p className="mt-1 text-[11px] text-stone-500 flex items-center gap-1.5">
+                            <i className="fa-solid fa-spinner fa-spin text-[10px]"></i>
+                            <span>{regEmailStatus.message}</span>
+                          </p>
+                        )}
+                        {regEmailStatus.state === 'valid' && (
+                          <p className="mt-1 text-[11px] text-emerald-700 font-semibold flex items-center gap-1">
+                            <i className="fa-solid fa-circle-check text-[10px]"></i>
+                            <span>{regEmailStatus.message}</span>
+                          </p>
+                        )}
+                        {regEmailStatus.state === 'typo' && regEmailStatus.suggestion && (
+                          <div className="mt-1.5 bg-amber-50 border border-amber-200 rounded-xl px-2.5 py-1.5 flex items-center justify-between gap-2 text-[11px] text-amber-900">
+                            <span className="truncate">
+                              Bunu mu demek istediniz? <strong>{regEmailStatus.suggestion}</strong>
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setRegEmail(regEmailStatus.suggestion);
+                                setFormError('');
+                              }}
+                              className="shrink-0 bg-amber-500 hover:bg-amber-600 text-stone-950 font-extrabold px-2 py-0.5 rounded-lg text-[10px] cursor-pointer transition-colors"
+                            >
+                              Düzelt
+                            </button>
+                          </div>
+                        )}
+                        {regEmailStatus.state === 'invalid' && regEmailStatus.message && (
+                          <p className="mt-1 text-[11px] text-rose-600 font-semibold flex items-start gap-1 leading-snug">
+                            <i className="fa-solid fa-triangle-exclamation text-[10px] mt-0.5 shrink-0"></i>
+                            <span>{regEmailStatus.message}</span>
+                          </p>
+                        )}
                       </div>
                     </div>
 
@@ -1214,7 +1368,7 @@ export default function AuthModal() {
                           <span>WhatsApp Cep Telefonu</span>
                         </span>
                         <span className="text-[10px] text-stone-400 font-normal">
-                          Onay talebi bu numaradan iletilir
+                          Sipariş teyidi ve teslimat için
                         </span>
                       </label>
                       <input
@@ -1279,7 +1433,7 @@ export default function AuthModal() {
                           >
                             6698 Sayılı KVKK Kapsamında Aydınlatma Metni
                           </button>
-                          &apos;ni okudum. Güvenlik ve sipariş amacıyla verilerimin işlenmesini ve WhatsApp onay sürecini kabul ediyorum.
+                          &apos;ni okudum. Güvenlik ve sipariş amacıyla verilerimin işlenmesini, e-posta doğrulama ve sipariş onay sürecini kabul ediyorum.
                         </span>
                       </label>
                     </div>
@@ -1291,14 +1445,14 @@ export default function AuthModal() {
                       </div>
                     )}
 
-                    {/* Kayıt ve WhatsApp Onay İste Butonu */}
+                    {/* Kayıt ve E-Posta Doğrulama Kodu Gönder Butonu */}
                     <button
                       type="submit"
                       disabled={isSubmitting}
-                      className="w-full bg-emerald-600 hover:bg-emerald-700 disabled:bg-stone-300 text-white font-black py-3 rounded-xl text-sm transition-all cursor-pointer flex items-center justify-center gap-2 shadow-sm active:scale-98"
+                      className="w-full bg-brand-600 hover:bg-brand-700 disabled:bg-stone-300 text-white font-black py-3 rounded-xl text-sm transition-all cursor-pointer flex items-center justify-center gap-2 shadow-sm active:scale-98"
                     >
-                      <i className="fa-brands fa-whatsapp text-lg"></i>
-                      <span>{isSubmitting ? 'Kaydediliyor...' : 'Kayıt Ol ve WhatsApp ile Onay İste'}</span>
+                      <i className={`fa-solid ${isSubmitting ? 'fa-spinner fa-spin' : 'fa-envelope-circle-check'} text-base`}></i>
+                      <span>{isSubmitting ? 'Kaydediliyor...' : 'Kayıt Ol ve Doğrulama Kodu Gönder'}</span>
                     </button>
                   </form>
                 )}

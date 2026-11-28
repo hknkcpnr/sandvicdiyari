@@ -12,6 +12,7 @@ import {
 import { checkRateLimit, hashPassword } from '@/lib/security/auth';
 import { hashOtp } from '@/lib/security/whatsapp';
 import { sendEmailVerificationCode } from '@/lib/email';
+import { validateEmailAddressServer } from '@/lib/serverEmailVerify';
 import {
   sanitizeEmailOrUsername,
   sanitizePhone,
@@ -38,6 +39,11 @@ export async function POST(request) {
     }
     if (!pass || pass.length < 4) {
       throw new ValidationError('Şifre en az 4 karakter olmalıdır.');
+    }
+
+    const emailValidation = await validateEmailAddressServer(email);
+    if (!emailValidation.valid) {
+      throw new ValidationError(emailValidation.error);
     }
 
     let pgConnected = false;
