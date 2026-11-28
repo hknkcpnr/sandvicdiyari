@@ -5756,24 +5756,30 @@ export default function AdminDashboardPage() {
         </div>
       )}
 
-      {/* SAĞ KENAR HIZLI ERİŞİM KULAKÇIĞI (SAYFA DÜZENLERİ) */}
+      {/* SAĞ KENAR HIZLI ERİŞİM KULAKÇIĞI (MOUSE EN SAĞA GELİNCE ÇIKAR) */}
       {canEditSiteContent && !siteEditorDrawerOpen && (
-        <button
-          type="button"
-          onClick={() => setSiteEditorDrawerOpen(true)}
-          title="Sayfa Düzenleri & Vitrin Stüdyosunu Sağda Aç"
-          className="hidden lg:flex fixed right-0 top-1/2 -translate-y-1/2 z-30 flex-col items-center gap-2 py-3.5 px-2.5 rounded-l-2xl bg-gradient-to-b from-stone-900 to-stone-800 hover:from-brand-600 hover:to-amber-600 text-white shadow-xl border border-r-0 border-white/15 transition-all duration-200 cursor-pointer group"
-        >
-          <span className="w-7 h-7 rounded-xl bg-amber-500/20 group-hover:bg-white/20 text-amber-400 group-hover:text-white flex items-center justify-center transition-colors">
-            <i className="fa-solid fa-paintbrush text-xs"></i>
-          </span>
+        <div className="hidden lg:flex fixed right-0 top-1/2 -translate-y-1/2 z-30 h-56 w-3.5 hover:w-14 focus-within:w-14 items-center justify-end group">
           <span
-            className="text-[10px] font-extrabold uppercase tracking-widest text-stone-200 group-hover:text-white"
-            style={{ writingMode: 'vertical-rl' }}
+            className="pointer-events-none absolute right-0 top-1/2 -translate-y-1/2 w-1.5 h-12 rounded-l-full bg-stone-400/55 group-hover:opacity-0 group-focus-within:opacity-0 transition-opacity duration-150"
+            aria-hidden="true"
+          />
+          <button
+            type="button"
+            onClick={() => setSiteEditorDrawerOpen(true)}
+            title="Sayfa Düzenleri & Vitrin Stüdyosunu Sağda Aç"
+            className="flex flex-col items-center gap-2 py-3.5 px-2.5 rounded-l-2xl bg-gradient-to-b from-stone-900 to-stone-800 hover:from-brand-600 hover:to-amber-600 text-white shadow-xl border border-r-0 border-white/15 cursor-pointer transition-all duration-200 ease-out translate-x-full opacity-0 pointer-events-none group-hover:translate-x-0 group-hover:opacity-100 group-hover:pointer-events-auto group-focus-within:translate-x-0 group-focus-within:opacity-100 group-focus-within:pointer-events-auto"
           >
-            Sayfa Düzenle
-          </span>
-        </button>
+            <span className="w-7 h-7 rounded-xl bg-amber-500/20 group-hover:bg-white/20 text-amber-400 group-hover:text-white flex items-center justify-center transition-colors">
+              <i className="fa-solid fa-paintbrush text-xs"></i>
+            </span>
+            <span
+              className="text-[10px] font-extrabold uppercase tracking-widest text-stone-200 group-hover:text-white"
+              style={{ writingMode: 'vertical-rl' }}
+            >
+              Sayfa Düzenle
+            </span>
+          </button>
+        </div>
       )}
 
       {/* SAĞDAN AÇILIR SAYFA DÜZENLERİ & VİTRİN STÜDYOSU ÇEKMECESİ (DRAWER) */}
