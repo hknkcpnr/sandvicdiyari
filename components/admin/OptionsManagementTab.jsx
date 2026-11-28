@@ -32,8 +32,26 @@ export default function OptionsManagementTab() {
   const [loading, setLoading] = useState(!initialCached);
   const [saving, setSaving] = useState(false);
   const [activeSubTab, setActiveSubTab] = useState('sauces'); // 'sauces' | 'extras' | 'drinks'
+  const [subTabHydrated, setSubTabHydrated] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all'); // 'all' | 'active' | 'inactive'
+
+  useEffect(() => {
+    try {
+      const saved = sessionStorage.getItem('sd_panel_options_subtab');
+      if (saved === 'sauces' || saved === 'extras' || saved === 'drinks') {
+        setActiveSubTab(saved);
+      }
+    } catch {}
+    setSubTabHydrated(true);
+  }, []);
+
+  useEffect(() => {
+    if (!subTabHydrated) return;
+    try {
+      sessionStorage.setItem('sd_panel_options_subtab', activeSubTab);
+    } catch {}
+  }, [subTabHydrated, activeSubTab]);
 
   // Data state
   const [sauces, setSauces] = useState(

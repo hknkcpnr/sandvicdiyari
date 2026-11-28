@@ -5,6 +5,86 @@ import { useSelector, useDispatch } from 'react-redux';
 import { toggleCart, openCheckoutModal, openAuthModal, showMessageModal } from '@/store/slices/uiSlice';
 import { changeQuantity, removeItem, applyCoupon, removeCoupon, addToCart, VALID_COUPONS } from '@/store/slices/cartSlice';
 import { getRestaurantStatus, MIN_ORDER_AMOUNT } from '@/lib/openingHours';
+import { resolveSauceImage, resolveExtraImage } from '@/lib/productOptionsDefaults';
+
+function extractCartItemSelections(item) {
+  const rawDetails = typeof item?.details === 'string' ? item.details : '';
+  const segments = rawDetails
+    .split(' | ')
+    .map((s) => s.trim())
+    .filter(Boolean);
+
+  const hasStructuredSauces = Array.isArray(item?.selectedSauces) && item.selectedSauces.length > 0;
+  const hasStructuredExtras = Array.isArray(item?.selectedExtras) && item.selectedExtras.length > 0;
+
+  let sauces = hasStructuredSauces
+    ? item.selectedSauces.map((s) => ({
+        id: s.id || s.name,
+        name: s.name,
+        count: Number(s.count) || 1,
+        image: resolveSauceImage(s) || '',
+      }))
+    : [];
+
+  let extras = hasStructuredExtras
+    ? item.selectedExtras.map((e) => ({
+        id: e.id || e.name,
+        name: e.name,
+        price: Number(e.price) || 0,
+        image: resolveExtraImage(e) || '',
+      }))
+    : [];
+
+  const otherDetails = [];
+
+  segments.forEach((seg) => {
+    if (seg.startsWith('Soslar:')) {
+      let body = seg.slice('Soslar:'.length).trim();
+      const feeMatch = body.match(/\s*\((\+\d+x\s+Ekstra Sos:[^)]*)\)$/i);
+      if (feeMatch) {
+        otherDetails.push(feeMatch[1].trim());
+        body = body.slice(0, feeMatch.index).trim();
+      }
+      if (!hasStructuredSauces && body) {
+        body
+          .split(',')
+          .map((part) => part.trim())
+          .filter(Boolean)
+          .forEach((part) => {
+            const countMatch = part.match(/^(.+?)\s*\((\d+)x\)$/i);
+            const name = countMatch ? countMatch[1].trim() : part;
+            const count = countMatch ? Math.max(1, parseInt(countMatch[2], 10) || 1) : 1;
+            sauces.push({
+              id: name,
+              name,
+              count,
+              image: resolveSauceImage({ name }) || '',
+            });
+          });
+      }
+    } else if (seg.startsWith('Ekstralar:')) {
+      const body = seg.slice('Ekstralar:'.length).trim();
+      if (!hasStructuredExtras && body) {
+        body
+          .split(',')
+          .map((name) => name.trim())
+          .filter(Boolean)
+          .forEach((name) => {
+            extras.push({
+              id: name,
+              name,
+              price: 0,
+              image: resolveExtraImage({ name }) || '',
+            });
+          });
+      }
+    } else {
+      otherDetails.push(seg);
+    }
+  });
+
+  return { sauces, extras, otherDetails };
+}
 
 const QUICK_CROSS_SELLS = [
   {
@@ -137,62 +217,129 @@ export default function CartDrawer() {
               </div>
             ) : (
               <>
-                {items.map((item) => (
-                  <div key={item.cartKey} className="flex items-start gap-4 py-4 first:pt-0 last:pb-0">
-                    <img
-                      src={item.image}
-                      alt={item.name}
-                      className="w-16 h-16 rounded-2xl object-cover bg-stone-100 border border-stone-200 shrink-0"
-                      onError={(e) => {
-                        e.currentTarget.src =
-                          'https://images.unsplash.com/photo-1550547660-d9450f859349?auto=format&fit=crop&q=80&w=200';
-                      }}
-                    />
-                    <div className="flex-1 min-w-0">
-                      <h5 className="font-bold text-sm text-stone-900 truncate">{item.name}</h5>
-                      <span className="text-xs font-semibold text-brand-600 block mt-0.5">
-                        ₺{item.price.toFixed(2)}
-                      </span>
-                      {item.details && (
-                        <p className="text-[10px] text-stone-500 mt-1 leading-relaxed bg-stone-50 p-1.5 rounded-lg border border-stone-100">
-                          {item.details}
-                        </p>
-                      )}
-                      <div className="flex items-center gap-2 mt-2">
-                        <button
-                          onClick={() =>
-                            dispatch(changeQuantity({ cartKey: item.cartKey, delta: -1 }))
-                          }
-                          className="w-7 h-7 bg-stone-100 hover:bg-stone-200 text-stone-700 rounded-lg flex items-center justify-center text-xs font-bold transition-colors cursor-pointer"
-                        >
-                          <i className="fa-solid fa-minus"></i>
-                        </button>
-                        <span className="text-xs font-bold text-stone-800 w-5 text-center">
-                          {item.quantity}
+                {items.map((item) => {
+                  const { sauces, extras, otherDetails } = extractCartItemSelections(item);
+                  return (
+                    <div key={item.cartKey} className="flex items-start gap-4 py-4 first:pt-0 last:pb-0">
+                      <img
+                        src={item.image}
+                        alt={item.name}
+                        className="w-16 h-16 rounded-2xl object-cover bg-stone-100 border border-stone-200 shrink-0"
+                        onError={(e) => {
+                          e.currentTarget.src =
+                            'https://images.unsplash.com/photo-1550547660-d9450f859349?auto=format&fit=crop&q=80&w=200';
+                        }}
+                      />
+                      <div className="flex-1 min-w-0">
+                        <h5 className="font-bold text-sm text-stone-900 truncate">{item.name}</h5>
+                        <span className="text-xs font-semibold text-brand-600 block mt-0.5">
+                          ₺{item.price.toFixed(2)}
+                        </span>
+                        {otherDetails.length > 0 && (
+                          <p className="text-[10px] text-stone-500 mt-1 leading-relaxed bg-stone-50 p-1.5 rounded-lg border border-stone-100">
+                            {otherDetails.join(' | ')}
+                          </p>
+                        )}
+                        {sauces.length > 0 && (
+                          <div className="flex flex-wrap gap-1 mt-1.5">
+                            {sauces.map((s, sIdx) => (
+                              <span
+                                key={`${s.id || s.name}-${sIdx}`}
+                                className="inline-flex items-center gap-1 bg-amber-50/80 border border-amber-200/80 rounded-lg pl-0.5 pr-1.5 py-0.5"
+                              >
+                                {s.image ? (
+                                  <img
+                                    src={s.image}
+                                    alt={s.name}
+                                    className="w-5 h-5 rounded-md object-cover border border-amber-200/60 bg-white shrink-0"
+                                    onError={(e) => {
+                                      e.currentTarget.style.display = 'none';
+                                    }}
+                                  />
+                                ) : (
+                                  <span className="w-4 h-4 rounded bg-amber-100 text-amber-700 flex items-center justify-center shrink-0">
+                                    <i className="fa-solid fa-droplet text-[8px]"></i>
+                                  </span>
+                                )}
+                                <span className="text-[10px] font-semibold text-stone-700 leading-none">
+                                  {s.name}
+                                </span>
+                                <span className="text-[9px] font-extrabold text-amber-700 bg-amber-100/90 px-1 py-0.5 rounded">
+                                  {s.count}x
+                                </span>
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                        {extras.length > 0 && (
+                          <div className="flex flex-wrap gap-1 mt-1">
+                            {extras.map((ex, exIdx) => (
+                              <span
+                                key={`${ex.id || ex.name}-${exIdx}`}
+                                className="inline-flex items-center gap-1 bg-emerald-50/80 border border-emerald-200/80 rounded-lg pl-0.5 pr-1.5 py-0.5"
+                              >
+                                {ex.image ? (
+                                  <img
+                                    src={ex.image}
+                                    alt={ex.name}
+                                    className="w-5 h-5 rounded-md object-cover border border-emerald-200/60 bg-white shrink-0"
+                                    onError={(e) => {
+                                      e.currentTarget.style.display = 'none';
+                                    }}
+                                  />
+                                ) : (
+                                  <span className="w-4 h-4 rounded bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
+                                    <i className="fa-solid fa-plus text-[8px]"></i>
+                                  </span>
+                                )}
+                                <span className="text-[10px] font-semibold text-stone-700 leading-none">
+                                  {ex.name}
+                                </span>
+                                {ex.price > 0 && (
+                                  <span className="text-[9px] font-extrabold text-emerald-700">
+                                    +₺{ex.price}
+                                  </span>
+                                )}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                        <div className="flex items-center gap-2 mt-2">
+                          <button
+                            onClick={() =>
+                              dispatch(changeQuantity({ cartKey: item.cartKey, delta: -1 }))
+                            }
+                            className="w-7 h-7 bg-stone-100 hover:bg-stone-200 text-stone-700 rounded-lg flex items-center justify-center text-xs font-bold transition-colors cursor-pointer"
+                          >
+                            <i className="fa-solid fa-minus"></i>
+                          </button>
+                          <span className="text-xs font-bold text-stone-800 w-5 text-center">
+                            {item.quantity}
+                          </span>
+                          <button
+                            onClick={() =>
+                              dispatch(changeQuantity({ cartKey: item.cartKey, delta: 1 }))
+                            }
+                            className="w-7 h-7 bg-stone-100 hover:bg-stone-200 text-stone-700 rounded-lg flex items-center justify-center text-xs font-bold transition-colors cursor-pointer"
+                          >
+                            <i className="fa-solid fa-plus"></i>
+                          </button>
+                        </div>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <span className="font-extrabold text-sm text-stone-900 block">
+                          ₺{(item.price * item.quantity).toFixed(2)}
                         </span>
                         <button
-                          onClick={() =>
-                            dispatch(changeQuantity({ cartKey: item.cartKey, delta: 1 }))
-                          }
-                          className="w-7 h-7 bg-stone-100 hover:bg-stone-200 text-stone-700 rounded-lg flex items-center justify-center text-xs font-bold transition-colors cursor-pointer"
+                          onClick={() => dispatch(removeItem({ cartKey: item.cartKey }))}
+                          className="text-stone-400 hover:text-red-500 text-xs mt-2 transition-colors cursor-pointer"
                         >
-                          <i className="fa-solid fa-plus"></i>
+                          <i className="fa-solid fa-trash-can"></i> Kaldır
                         </button>
                       </div>
                     </div>
-                    <div className="text-right shrink-0">
-                      <span className="font-extrabold text-sm text-stone-900 block">
-                        ₺{(item.price * item.quantity).toFixed(2)}
-                      </span>
-                      <button
-                        onClick={() => dispatch(removeItem({ cartKey: item.cartKey }))}
-                        className="text-stone-400 hover:text-red-500 text-xs mt-2 transition-colors cursor-pointer"
-                      >
-                        <i className="fa-solid fa-trash-can"></i> Kaldır
-                      </button>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
 
                 {/* Akıllı Çapraz Satış (Cross-Sell Önerileri) */}
                 <div className="pt-4 border-t border-stone-100 space-y-2.5">

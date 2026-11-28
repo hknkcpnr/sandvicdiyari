@@ -1,4 +1,5 @@
 import { createSlice } from '@reduxjs/toolkit';
+import { resolveSauceImage, resolveExtraImage } from '@/lib/productOptionsDefaults';
 
 export const CART_STORAGE_KEY = 'sandwich_diyari_cart_v1';
 
@@ -67,6 +68,7 @@ export const cartSlice = createSlice({
       const chargeableSauceCount = Math.max(0, totalSauceCount - freeLimit);
       const extraSauceFee = chargeableSauceCount * extraPricePerSauce;
 
+      let selectedSaucesList = [];
       if (sauceEntries.length > 0) {
         const sauceNames = {
           sarimsakli: 'Sarımsaklı Mayonez',
@@ -77,6 +79,20 @@ export const cartSlice = createSlice({
           mayonez: 'Mayonez',
           ...(action.payload.sauceLabels || {})
         };
+        const sauceImages = action.payload.sauceImages || {};
+        selectedSaucesList = sauceEntries.map(([k, count]) => {
+          const sauceName = sauceNames[k] || k;
+          return {
+            id: k,
+            name: sauceName,
+            count: Number(count) || 1,
+            image: resolveSauceImage({
+              id: k,
+              name: sauceName,
+              image: sauceImages[k] || '',
+            }),
+          };
+        });
         const formatted = sauceEntries.map(([k, count]) => `${sauceNames[k] || k} (${count}x)`);
         let sauceText = `Soslar: ${formatted.join(', ')}`;
         if (chargeableSauceCount > 0) {
@@ -86,9 +102,16 @@ export const cartSlice = createSlice({
       }
 
       let extraPrice = 0;
+      let selectedExtrasList = [];
       if (extras && extras.length > 0) {
         descriptionDetails.push(`Ekstralar: ${extras.map(e => e.name).join(', ')}`);
         extraPrice = extras.reduce((sum, e) => sum + e.price, 0);
+        selectedExtrasList = extras.map((e) => ({
+          id: e.id || e.name,
+          name: e.name,
+          price: Number(e.price) || 0,
+          image: resolveExtraImage(e) || '',
+        }));
       }
 
       if (note && note.trim()) {
@@ -102,6 +125,12 @@ export const cartSlice = createSlice({
       const existingIndex = state.items.findIndex(item => item.cartKey === cartKey);
       if (existingIndex >= 0) {
         state.items[existingIndex].quantity += 1;
+        if (!Array.isArray(state.items[existingIndex].selectedSauces) && selectedSaucesList.length > 0) {
+          state.items[existingIndex].selectedSauces = selectedSaucesList;
+        }
+        if (!Array.isArray(state.items[existingIndex].selectedExtras) && selectedExtrasList.length > 0) {
+          state.items[existingIndex].selectedExtras = selectedExtrasList;
+        }
       } else {
         state.items.push({
           cartKey,
@@ -110,6 +139,8 @@ export const cartSlice = createSlice({
           price: finalPrice,
           image: product.image,
           details: descriptionDetails.join(' | '),
+          selectedSauces: selectedSaucesList,
+          selectedExtras: selectedExtrasList,
           removedIngredients: Array.isArray(removedIngredients) ? removedIngredients : [],
           quantity: 1,
         });

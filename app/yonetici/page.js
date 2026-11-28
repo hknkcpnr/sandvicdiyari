@@ -11,6 +11,10 @@ import { fetchAdminUsersCached, invalidateAdminUsersCache } from '@/lib/adminUse
 
 const ADMIN_SESSION_KEY = 'sandwich_admin_session';
 const ADMIN_SETTINGS_KEY = 'sandwich_admin_settings';
+const YONETICI_NAV_STORAGE_KEY = 'sd_yonetici_nav_state';
+const VALID_YONETICI_TABS = ['overview', 'finance', 'users', 'logs', 'site_content', 'settings'];
+const VALID_SETTINGS_SUBTABS = ['appearance', 'site_content', 'sound', 'receipt', 'system'];
+const VALID_SITE_CONTENT_SUBTABS = ['hero', 'campaigns', 'newMenus', 'features', 'reviews', 'story', 'contact'];
 
 const EXPENSE_CATEGORIES = [
   'Malzeme & Tedarik',
@@ -36,7 +40,9 @@ export default function YoneticiPage() {
   const [loginLoading, setLoginLoading] = useState(false);
 
   const [activeTab, setActiveTab] = useState('overview'); // 'overview' | 'finance' | 'users' | 'site_content' | 'settings'
+  const [navHydrated, setNavHydrated] = useState(false);
   const [selectedSettingsSubTab, setSelectedSettingsSubTab] = useState('appearance');
+  const [selectedSiteContentSubTab, setSelectedSiteContentSubTab] = useState('hero');
   const [settingsExpanded, setSettingsExpanded] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
@@ -141,6 +147,75 @@ export default function YoneticiPage() {
     };
   }, []);
 
+  // Sayfa yenilendiğinde /yonetici aktif sekme & alt sekmeyi URL + sessionStorage ile koru
+  useEffect(() => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const urlTab = params.get('tab');
+      const urlSub = params.get('sub');
+      const rawSaved = sessionStorage.getItem(YONETICI_NAV_STORAGE_KEY);
+      const saved = rawSaved ? JSON.parse(rawSaved) : {};
+
+      const resolvedTab = VALID_YONETICI_TABS.includes(urlTab)
+        ? urlTab
+        : VALID_YONETICI_TABS.includes(saved?.tab)
+        ? saved.tab
+        : null;
+
+      if (resolvedTab) {
+        setActiveTab(resolvedTab);
+        if (resolvedTab === 'settings') {
+          setSettingsExpanded(true);
+        }
+      }
+
+      const resolvedSettingsSub =
+        resolvedTab === 'settings' && VALID_SETTINGS_SUBTABS.includes(urlSub)
+          ? urlSub
+          : VALID_SETTINGS_SUBTABS.includes(saved?.settingsSub)
+          ? saved.settingsSub
+          : null;
+      if (resolvedSettingsSub) {
+        setSelectedSettingsSubTab(resolvedSettingsSub);
+      }
+
+      const resolvedSiteContentSub =
+        resolvedTab === 'site_content' && VALID_SITE_CONTENT_SUBTABS.includes(urlSub)
+          ? urlSub
+          : VALID_SITE_CONTENT_SUBTABS.includes(saved?.siteContentSub)
+          ? saved.siteContentSub
+          : null;
+      if (resolvedSiteContentSub) {
+        setSelectedSiteContentSubTab(resolvedSiteContentSub);
+      }
+    } catch {}
+    setNavHydrated(true);
+  }, []);
+
+  useEffect(() => {
+    if (!navHydrated) return;
+    try {
+      sessionStorage.setItem(
+        YONETICI_NAV_STORAGE_KEY,
+        JSON.stringify({
+          tab: activeTab,
+          settingsSub: selectedSettingsSubTab,
+          siteContentSub: selectedSiteContentSubTab,
+        })
+      );
+      const url = new URL(window.location.href);
+      url.searchParams.set('tab', activeTab);
+      if (activeTab === 'settings' && selectedSettingsSubTab) {
+        url.searchParams.set('sub', selectedSettingsSubTab);
+      } else if (activeTab === 'site_content' && selectedSiteContentSubTab) {
+        url.searchParams.set('sub', selectedSiteContentSubTab);
+      } else {
+        url.searchParams.delete('sub');
+      }
+      window.history.replaceState(null, '', url.pathname + url.search + url.hash);
+    } catch {}
+  }, [navHydrated, activeTab, selectedSettingsSubTab, selectedSiteContentSubTab]);
+
   const fetchFinanceData = async (forceUsers = false) => {
     setLoadingFinance(true);
     try {
@@ -232,6 +307,13 @@ export default function YoneticiPage() {
   const handleLogout = () => {
     sessionStorage.removeItem(ADMIN_SESSION_KEY);
     localStorage.removeItem(ADMIN_SESSION_KEY);
+    try {
+      sessionStorage.removeItem(YONETICI_NAV_STORAGE_KEY);
+      const url = new URL(window.location.href);
+      url.searchParams.delete('tab');
+      url.searchParams.delete('sub');
+      window.history.replaceState(null, '', url.pathname + url.search + url.hash);
+    } catch {}
     invalidateAdminUsersCache();
     setAdminUser(null);
   };
@@ -2139,7 +2221,10 @@ export default function YoneticiPage() {
         {/* TAB 3: SAYFA DÜZENLERİ & VİTRİN */}
         {activeTab === 'site_content' && (
           <div className="p-3 sm:p-6 lg:p-8 w-full min-w-0">
-            <SiteContentEditorTab />
+            <SiteContentEditorTab
+              initialSubTab={selectedSiteContentSubTab}
+              onSubTabChange={setSelectedSiteContentSubTab}
+            />
           </div>
         )}
 

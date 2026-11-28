@@ -305,13 +305,23 @@ export default function OptionsModal() {
   };
 
   const handleConfirm = () => {
-    const selectedExtras = extras.filter((e) => e.checked && e.isAvailable !== false);
+    const selectedExtras = extras
+      .filter((e) => e.checked && e.isAvailable !== false)
+      .map((e) => ({
+        id: e.id || e.name,
+        name: e.name,
+        price: Number(e.price) || 0,
+        image: resolveExtraImage(e) || '',
+      }));
 
-    // Build sauceLabels map for dynamic cart and adisyon display
+    // Build sauceLabels and sauceImages maps for dynamic cart, thumbnail, and adisyon display
     const sauceLabels = {};
+    const sauceImages = {};
     (saucesList || []).forEach((s) => {
       const key = s.id || s.key || s.name;
       sauceLabels[key] = s.name || s.label;
+      const img = resolveSauceImage(s);
+      if (img) sauceImages[key] = img;
     });
 
     dispatch(
@@ -319,6 +329,7 @@ export default function OptionsModal() {
         product: selectedProductForOptions,
         sauces: sauceCounts,
         sauceLabels,
+        sauceImages,
         freeSauceLimit,
         extraSaucePrice,
         extras: selectedExtras,

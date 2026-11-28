@@ -217,6 +217,23 @@ function getVerticalNameWords(name = '') {
   return [first.slice(0, 9), lastInitial];
 }
 
+const PANEL_NAV_STORAGE_KEY = 'sd_panel_nav_state';
+const VALID_PANEL_TABS = [
+  'overview',
+  'orders',
+  'products',
+  'options',
+  'inventory',
+  'members',
+  'reviews',
+  'users',
+  'logs',
+  'site_content',
+  'settings',
+];
+const VALID_SETTINGS_SUBTABS = ['appearance', 'site_content', 'sound', 'receipt', 'system'];
+const VALID_SITE_CONTENT_SUBTABS = ['hero', 'campaigns', 'newMenus', 'features', 'reviews', 'story', 'contact'];
+
 export default function AdminDashboardPage() {
   const dispatch = useDispatch();
   const { items: products } = useSelector((state) => state.product);
@@ -240,6 +257,7 @@ export default function AdminDashboardPage() {
 
   // Navigation & Sidebar Layout
   const [currentTab, setCurrentTab] = useState('overview'); // 'overview' | 'orders' | 'products' | 'reviews' | 'api' | 'settings' | 'site_content'
+  const [navHydrated, setNavHydrated] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [mobileActionsOpen, setMobileActionsOpen] = useState(false);
@@ -249,6 +267,75 @@ export default function AdminDashboardPage() {
   const [selectedSiteContentSubTab, setSelectedSiteContentSubTab] = useState('hero');
   const [settingsExpanded, setSettingsExpanded] = useState(false);
   const [selectedSettingsSubTab, setSelectedSettingsSubTab] = useState('appearance');
+
+  // Sayfa yenilendiğinde aktif sekme & alt sekmeyi URL + sessionStorage üzerinden koru
+  useEffect(() => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const urlTab = params.get('tab');
+      const urlSub = params.get('sub');
+      const rawSaved = sessionStorage.getItem(PANEL_NAV_STORAGE_KEY);
+      const saved = rawSaved ? JSON.parse(rawSaved) : {};
+
+      const resolvedTab = VALID_PANEL_TABS.includes(urlTab)
+        ? urlTab
+        : VALID_PANEL_TABS.includes(saved?.tab)
+        ? saved.tab
+        : null;
+
+      if (resolvedTab) {
+        setCurrentTab(resolvedTab);
+        if (resolvedTab === 'settings') {
+          setSettingsExpanded(true);
+        }
+      }
+
+      const resolvedSettingsSub =
+        resolvedTab === 'settings' && VALID_SETTINGS_SUBTABS.includes(urlSub)
+          ? urlSub
+          : VALID_SETTINGS_SUBTABS.includes(saved?.settingsSub)
+          ? saved.settingsSub
+          : null;
+      if (resolvedSettingsSub) {
+        setSelectedSettingsSubTab(resolvedSettingsSub);
+      }
+
+      const resolvedSiteContentSub =
+        resolvedTab === 'site_content' && VALID_SITE_CONTENT_SUBTABS.includes(urlSub)
+          ? urlSub
+          : VALID_SITE_CONTENT_SUBTABS.includes(saved?.siteContentSub)
+          ? saved.siteContentSub
+          : null;
+      if (resolvedSiteContentSub) {
+        setSelectedSiteContentSubTab(resolvedSiteContentSub);
+      }
+    } catch {}
+    setNavHydrated(true);
+  }, []);
+
+  useEffect(() => {
+    if (!navHydrated) return;
+    try {
+      sessionStorage.setItem(
+        PANEL_NAV_STORAGE_KEY,
+        JSON.stringify({
+          tab: currentTab,
+          settingsSub: selectedSettingsSubTab,
+          siteContentSub: selectedSiteContentSubTab,
+        })
+      );
+      const url = new URL(window.location.href);
+      url.searchParams.set('tab', currentTab);
+      if (currentTab === 'settings' && selectedSettingsSubTab) {
+        url.searchParams.set('sub', selectedSettingsSubTab);
+      } else if (currentTab === 'site_content' && selectedSiteContentSubTab) {
+        url.searchParams.set('sub', selectedSiteContentSubTab);
+      } else {
+        url.searchParams.delete('sub');
+      }
+      window.history.replaceState(null, '', url.pathname + url.search + url.hash);
+    } catch {}
+  }, [navHydrated, currentTab, selectedSettingsSubTab, selectedSiteContentSubTab]);
 
   // Sistem & Panel Ayarları (Yazı Boyutu, Ses, Fiş, Otomatik Yenileme)
   const [adminSettings, setAdminSettings] = useState({ ...DEFAULT_ADMIN_SETTINGS, courierModuleEnabled: false });
@@ -1038,10 +1125,18 @@ export default function AdminDashboardPage() {
         setAdminUser(loggedAdmin);
         sessionStorage.setItem('sd_admin_session', JSON.stringify(loggedAdmin));
         localStorage.removeItem('sd_admin_session');
+        const isLoggedSuper =
+          loggedAdmin?.roleId === 'role_super_admin' ||
+          loggedAdmin?.role === 'Süper Yönetici' ||
+          String(loggedAdmin?.email || '').toLowerCase() === 'admin' ||
+          String(loggedAdmin?.email || '').toLowerCase() === 'admin@sandwichdiyari.com';
         if (
+          !isLoggedSuper &&
           Array.isArray(loggedAdmin?.permissions) &&
           loggedAdmin.permissions.length > 0 &&
-          !loggedAdmin.permissions.includes(currentTab)
+          !loggedAdmin.permissions.includes(currentTab) &&
+          !(currentTab === 'options' && loggedAdmin.permissions.includes('options_manage')) &&
+          !(currentTab === 'logs' && (loggedAdmin.permissions.includes('settings') || loggedAdmin.permissions.includes('users')))
         ) {
           setCurrentTab(loggedAdmin.permissions[0]);
         }
@@ -1059,6 +1154,13 @@ export default function AdminDashboardPage() {
     setAdminUser(null);
     sessionStorage.removeItem('sd_admin_session');
     localStorage.removeItem('sd_admin_session');
+    try {
+      sessionStorage.removeItem(PANEL_NAV_STORAGE_KEY);
+      const url = new URL(window.location.href);
+      url.searchParams.delete('tab');
+      url.searchParams.delete('sub');
+      window.history.replaceState(null, '', url.pathname + url.search + url.hash);
+    } catch {}
     invalidateAdminUsersCache();
   };
 
