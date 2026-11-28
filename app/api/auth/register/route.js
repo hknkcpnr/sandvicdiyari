@@ -125,7 +125,7 @@ export async function POST(request) {
           pass
         });
       }
-    } catch (e) {}
+    } catch (e) { }
 
     const finalRecord = newUser || localCreated || {
       id: newId,
@@ -138,54 +138,62 @@ export async function POST(request) {
     const { pass: _, passHash: __, ...userSafe } = finalRecord;
     invalidateAdminUsersServerCache();
 
-    // 6 Haneli E-Posta Doğrulama Kodu Üret & Gönder
-    const targetEmail = String(userSafe.email || email).trim().toLowerCase();
-    const otpKey = `verify:${targetEmail}`;
-    const otpCode = String(crypto.randomInt(100000, 999999));
-    const expiresAt = Date.now() + 30 * 60 * 1000;
-    const otpHash = hashOtp(otpKey, otpCode);
-
-    try {
-      db.savePhoneOtp({
-        phone: otpKey,
-        otpHash,
-        expiresAt
-      });
-    } catch {}
-
-    try {
-      if (rawPrisma && rawPrisma.phoneOtp) {
-        await rawPrisma.phoneOtp.create({
-          data: {
-            phone: otpKey,
-            otpHash,
-            expiresAt: new Date(expiresAt)
-          }
-        });
-      }
-    } catch (pgOtpErr) {
-      console.warn('[PostgreSQL Register Verify OTP Save Warning]', pgOtpErr.message);
-    }
-
+    const verificationMethod = body.verificationMethod === 'whatsapp' ? 'whatsapp' : 'email';
     let emailSent = false;
-    try {
-      const emailRes = await sendEmailVerificationCode({
-        toEmail: targetEmail,
-        userName: name,
-        verificationCode: otpCode
-      });
-      emailSent = Boolean(emailRes?.success);
-    } catch (mailErr) {
-      console.warn('[Register Verification Email Warning]', mailErr.message);
+
+    // Kullanıcı e-posta doğrulamasını seçtiyse 6 haneli kod üret ve gönder
+    if (verificationMethod === 'email') {
+      const targetEmail = String(userSafe.email || email).trim().toLowerCase();
+      const otpKey = `verify:${targetEmail}`;
+      const otpCode = String(crypto.randomInt(100000, 999999));
+      const expiresAt = Date.now() + 30 * 60 * 1000;
+      const otpHash = hashOtp(otpKey, otpCode);
+
+      try {
+        db.savePhoneOtp({
+          phone: otpKey,
+          otpHash,
+          expiresAt
+        });
+      } catch {}
+
+      try {
+        if (rawPrisma && rawPrisma.phoneOtp) {
+          await rawPrisma.phoneOtp.create({
+            data: {
+              phone: otpKey,
+              otpHash,
+              expiresAt: new Date(expiresAt)
+            }
+          });
+        }
+      } catch (pgOtpErr) {
+        console.warn('[PostgreSQL Register Verify OTP Save Warning]', pgOtpErr.message);
+      }
+
+      try {
+        const emailRes = await sendEmailVerificationCode({
+          toEmail: targetEmail,
+          userName: name,
+          verificationCode: otpCode
+        });
+        emailSent = Boolean(emailRes?.success);
+      } catch (mailErr) {
+        console.warn('[Register Verification Email Warning]', mailErr.message);
+      }
     }
 
     return jsonSuccess(
       {
-        message: emailSent
-          ? 'Kaydınız alındı! E-posta adresinize gönderilen 6 haneli doğrulama kodunu giriniz.'
-          : 'Kayıt talebiniz alındı! E-posta doğrulaması veya WhatsApp onayı ile hesabınızı aktifleştirebilirsiniz.',
+        message:
+          verificationMethod === 'whatsapp'
+            ? 'Kayıt talebiniz alındı! WhatsApp üzerinden onay isteyebilir veya dilediğiniz zaman e-posta koduyla hesabınızı hemen doğrulayabilirsiniz.'
+            : emailSent
+            ? 'Kaydınız alındı! E-posta adresinize gönderilen 6 haneli doğrulama kodunu giriniz.'
+            : 'Kayıt talebiniz alındı! E-posta doğrulaması veya WhatsApp onayı ile hesabınızı aktifleştirebilirsiniz.',
         pendingApproval: true,
-        requiresEmailVerification: true,
+        verificationMethod,
+        requiresEmailVerification: verificationMethod === 'email',
         emailSent,
         data: {
           user: userSafe

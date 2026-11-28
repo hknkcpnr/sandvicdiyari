@@ -76,6 +76,8 @@ export default function AuthModal() {
   // E-Posta & WhatsApp Onay Akışı Durumları
   const [isWaitingApproval, setIsWaitingApproval] = useState(false);
   const [pendingUser, setPendingUser] = useState(null);
+  const [regVerifyMethod, setRegVerifyMethod] = useState('email'); // 'email' | 'whatsapp'
+  const [activeVerifyTab, setActiveVerifyTab] = useState('email'); // 'email' | 'whatsapp'
   const [emailVerifyCode, setEmailVerifyCode] = useState('');
   const [emailVerifyLoading, setEmailVerifyLoading] = useState(false);
   const [emailResendLoading, setEmailResendLoading] = useState(false);
@@ -92,6 +94,8 @@ export default function AuthModal() {
       setEmailVerifyCode('');
       setEmailVerifyInfo('');
       setEmailResendCooldown(0);
+      setRegVerifyMethod('email');
+      setActiveVerifyTab('email');
       setRegEmailStatus({ state: 'idle', message: '', suggestion: '' });
       setIsForgotPassword(false);
       setForgotStep(1);
@@ -285,9 +289,10 @@ export default function AuthModal() {
       // Doğrulama / Onay bekleyen kullanıcı kontrolü
       if (json.pendingApproval) {
         setPendingUser(json.data?.user || { name: 'Değerli Müşterimiz', email: loginEmail, phone: '' });
+        setActiveVerifyTab('email');
         setEmailVerifyCode('');
         setEmailVerifyInfo(
-          'Hesabınızı aktifleştirmek için e-postanıza gelen 6 haneli doğrulama kodunu girin veya yeni kod isteyin.'
+          'Hesabınızı aktifleştirmek için e-postanıza gelen 6 haneli doğrulama kodunu girin veya WhatsApp onayı isteyin.'
         );
         setIsWaitingApproval(true);
         return;
@@ -560,7 +565,10 @@ export default function AuthModal() {
       const res = await fetch('/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newUserData)
+        body: JSON.stringify({
+          ...newUserData,
+          verificationMethod: regVerifyMethod
+        })
       });
       const json = await res.json();
 
@@ -577,13 +585,20 @@ export default function AuthModal() {
         ...newUserData,
         ...(json.data?.user || {})
       });
+      const chosenMethod = json.verificationMethod || regVerifyMethod;
+      setActiveVerifyTab(chosenMethod);
       setEmailVerifyCode('');
-      setEmailVerifyInfo(
-        json.emailSent
-          ? '6 haneli doğrulama kodunuz e-posta adresinize gönderildi. Lütfen gelen kutunuzu (ve spam klasörünü) kontrol ediniz.'
-          : 'E-posta kodunu almak için aşağıdaki "Kodu Tekrar Gönder" butonunu kullanabilirsiniz.'
-      );
-      setEmailResendCooldown(json.emailSent ? 60 : 0);
+      if (chosenMethod === 'email') {
+        setEmailVerifyInfo(
+          json.emailSent
+            ? '6 haneli doğrulama kodunuz e-posta adresinize gönderildi. Lütfen gelen kutunuzu (ve spam klasörünü) kontrol ediniz.'
+            : 'E-posta kodunu almak için aşağıdaki "Kodu Tekrar Gönder" butonunu kullanabilirsiniz.'
+        );
+        setEmailResendCooldown(json.emailSent ? 60 : 0);
+      } else {
+        setEmailVerifyInfo('');
+        setEmailResendCooldown(0);
+      }
       setIsWaitingApproval(true);
 
       // Başarılı kayıt sonrası formdaki bilgileri temizle
@@ -727,7 +742,9 @@ export default function AuthModal() {
           <div className="relative z-10 flex items-center justify-between">
             <span className="text-[11px] font-extrabold uppercase px-3.5 py-1.5 rounded-full bg-black/40 backdrop-blur-md text-amber-300 border border-white/20 tracking-wider shadow-sm">
               {isWaitingApproval
-                ? 'E-Posta Güvenlik Doğrulaması'
+                ? activeVerifyTab === 'whatsapp'
+                  ? 'WhatsApp Güvenlik Onayı'
+                  : 'E-Posta Güvenlik Doğrulaması'
                 : authModalTab === 'guest'
                 ? 'Hızlı Misafir Siparişi'
                 : isRegister
@@ -743,7 +760,9 @@ export default function AuthModal() {
             </span>
             <h4 className="text-2xl font-black text-white leading-tight drop-shadow-md">
               {isWaitingApproval
-                ? 'E-Posta Kodunuzla Hemen Aktifleştirin'
+                ? activeVerifyTab === 'whatsapp'
+                  ? 'Onayınız WhatsApp ile Tamamlansın'
+                  : 'E-Posta Kodunuzla Hemen Aktifleştirin'
                 : authModalTab === 'guest'
                 ? 'Üye Olmadan Hızlı Sipariş Ver'
                 : isRegister
@@ -752,11 +771,13 @@ export default function AuthModal() {
             </h4>
             <p className="text-xs text-stone-200/90 leading-relaxed drop-shadow-xs">
               {isWaitingApproval
-                ? 'E-posta adresinize gönderilen 6 haneli doğrulama kodunu girerek hesabınızı anında aktifleştirin.'
+                ? activeVerifyTab === 'whatsapp'
+                  ? 'WhatsApp onay talebinizin ardından hesabınız yöneticimiz tarafından aktif edildiğinde oturumunuz açılır.'
+                  : 'E-posta adresinize gönderilen 6 haneli doğrulama kodunu girerek hesabınızı anında aktifleştirin.'
                 : authModalTab === 'guest'
                 ? 'Şifre belirlemeden sadece iletişim ve teslimat bilgilerinizi girerek siparişinizi oluşturun. Siparişleriniz WhatsApp üzerinden onaylanacaktır.'
                 : isRegister
-                ? "Saniyeler içinde formunuzu doldurun, e-posta doğrulamanızın ardından kesintisiz lezzetin tadını çıkarın."
+                ? 'Kayıt sırasında ister E-Posta Doğrulama Kodu, ister WhatsApp Yönetici Onayı seçerek hemen üye olabilirsiniz.'
                 : 'Özel fırınlanmış sıcacık ekmekler, bol taze malzeme ve gece 03:00\'e kadar kesintisiz gurme keyfi.'}
             </p>
           </div>
@@ -817,8 +838,12 @@ export default function AuthModal() {
                 </div>
               ) : (
                 <div className="flex items-center gap-2 pb-3">
-                  <span className="w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse"></span>
-                  <span className="text-base font-black text-stone-900">E-Posta Doğrulaması</span>
+                  <span
+                    className={`w-2.5 h-2.5 rounded-full animate-pulse ${
+                      activeVerifyTab === 'whatsapp' ? 'bg-emerald-500' : 'bg-amber-500'
+                    }`}
+                  ></span>
+                  <span className="text-base font-black text-stone-900">Hesap Doğrulaması</span>
                 </div>
               )}
 
@@ -844,121 +869,196 @@ export default function AuthModal() {
             )}
 
             {/* =============================================================== */}
-            {/* 1. E-POSTA 6 HANELİ KOD DOĞRULAMA EKRANI                        */}
+            {/* 1. E-POSTA KODU VEYA WHATSAPP ONAY EKRANI                       */}
             {/* =============================================================== */}
             {isWaitingApproval ? (
               <div className="py-1 space-y-4 animate-in fade-in duration-200">
-                <div className="text-center space-y-1.5">
-                  <div className="w-13 h-13 rounded-2xl bg-amber-500 text-stone-950 flex items-center justify-center text-2xl mx-auto shadow-lg shadow-amber-500/25">
-                    <i className="fa-solid fa-envelope-circle-check"></i>
-                  </div>
-                  <span className="inline-block bg-amber-100 text-amber-900 border border-amber-300 text-[11px] font-extrabold px-3 py-0.5 rounded-full">
-                    6 Haneli E-Posta Doğrulaması
-                  </span>
-                  <h3 className="text-lg sm:text-xl font-black text-stone-900">
-                    E-Posta Adresinizi Doğrulayın
-                  </h3>
-                  <p className="text-xs text-stone-600 max-w-md mx-auto leading-relaxed">
-                    Sayın <strong>{pendingUser?.name || 'Müşterimiz'}</strong>,{' '}
-                    <strong className="text-stone-900">{pendingUser?.email}</strong> adresine gönderdiğimiz 6 haneli kodu giriniz:
-                  </p>
-                </div>
-
-                {emailVerifyInfo && (
-                  <div className="bg-emerald-50 border border-emerald-200 text-emerald-900 text-xs px-3.5 py-2.5 rounded-xl flex items-start gap-2">
-                    <i className="fa-solid fa-circle-info text-emerald-600 mt-0.5 shrink-0"></i>
-                    <span>{emailVerifyInfo}</span>
-                  </div>
-                )}
-
-                <form onSubmit={handleVerifyEmailCode} className="space-y-3">
-                  <div>
-                    <label className="block text-[11px] font-bold text-stone-700 uppercase tracking-wide mb-1.5 text-center">
-                      Doğrulama Kodu (6 Hane)
-                    </label>
-                    <input
-                      type="text"
-                      inputMode="numeric"
-                      autoComplete="one-time-code"
-                      maxLength={6}
-                      required
-                      value={emailVerifyCode}
-                      onChange={(e) => {
-                        setEmailVerifyCode(e.target.value.replace(/\D/g, '').slice(0, 6));
-                        setFormError('');
-                      }}
-                      className="w-full bg-stone-50 border-2 border-stone-200 focus:border-brand-500 focus:bg-white rounded-2xl px-4 py-3 text-center text-2xl font-black tracking-[0.45em] text-stone-900 font-mono focus:outline-none transition-colors"
-                      placeholder="••••••"
-                    />
-                  </div>
-
-                  {formError && (
-                    <div className="bg-rose-50 border border-rose-200 text-rose-700 text-xs px-3.5 py-2 rounded-xl flex items-center gap-2">
-                      <i className="fa-solid fa-circle-exclamation text-rose-500 shrink-0"></i>
-                      <span>{formError}</span>
-                    </div>
-                  )}
-
-                  <button
-                    type="submit"
-                    disabled={emailVerifyLoading || emailVerifyCode.replace(/\D/g, '').length !== 6}
-                    className="w-full bg-brand-600 hover:bg-brand-700 disabled:bg-stone-300 disabled:text-stone-500 text-white font-black py-3 px-4 rounded-xl text-sm transition-all shadow-md shadow-brand-600/20 flex items-center justify-center gap-2 cursor-pointer"
-                  >
-                    <i className={`fa-solid ${emailVerifyLoading ? 'fa-spinner fa-spin' : 'fa-check-double'}`}></i>
-                    <span>{emailVerifyLoading ? 'Doğrulanıyor...' : 'E-Postamı Doğrula & Giriş Yap'}</span>
-                  </button>
-                </form>
-
-                <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
-                  <button
-                    type="button"
-                    disabled={emailResendCooldown > 0 || emailResendLoading}
-                    onClick={handleResendEmailCode}
-                    className="px-3.5 py-2 rounded-xl bg-stone-100 hover:bg-stone-200 disabled:opacity-60 text-stone-800 text-xs font-bold transition-colors cursor-pointer flex items-center gap-1.5"
-                  >
-                    <i className={`fa-solid ${emailResendLoading ? 'fa-spinner fa-spin' : 'fa-paper-plane'} text-[11px]`}></i>
-                    <span>
-                      {emailResendLoading
-                        ? 'Gönderiliyor...'
-                        : emailResendCooldown > 0
-                        ? `Kodu Tekrar Gönder (${emailResendCooldown} sn)`
-                        : 'Kodu Tekrar Gönder'}
-                    </span>
-                  </button>
-
+                {/* İki Yöntem Arası Sekme Değiştirici */}
+                <div className="grid grid-cols-2 gap-1.5 bg-stone-100 p-1 rounded-2xl">
                   <button
                     type="button"
                     onClick={() => {
-                      setIsWaitingApproval(false);
+                      setActiveVerifyTab('email');
                       setFormError('');
                     }}
-                    className="px-3 py-2 rounded-xl text-stone-500 hover:text-stone-800 text-xs font-semibold underline cursor-pointer"
+                    className={`py-2 px-3 rounded-xl text-xs font-extrabold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                      activeVerifyTab === 'email'
+                        ? 'bg-white text-brand-700 shadow-xs'
+                        : 'text-stone-500 hover:text-stone-800'
+                    }`}
                   >
-                    Giriş Ekranına Dön
+                    <i className="fa-solid fa-envelope-circle-check"></i>
+                    <span>E-Posta Kodu</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActiveVerifyTab('whatsapp');
+                      setFormError('');
+                    }}
+                    className={`py-2 px-3 rounded-xl text-xs font-extrabold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                      activeVerifyTab === 'whatsapp'
+                        ? 'bg-white text-emerald-700 shadow-xs'
+                        : 'text-stone-500 hover:text-stone-800'
+                    }`}
+                  >
+                    <i className="fa-brands fa-whatsapp text-sm"></i>
+                    <span>WhatsApp Onayı</span>
                   </button>
                 </div>
 
-                {/* İkincil Alternatif: WhatsApp / Yönetici Onayı */}
-                <div className="border-t border-stone-200/80 pt-3 flex flex-wrap items-center justify-between gap-2 text-[11px] text-stone-500">
-                  <a
-                    href={waApprovalUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1.5 text-emerald-700 hover:text-emerald-800 font-bold hover:underline"
-                  >
-                    <i className="fa-brands fa-whatsapp text-sm"></i>
-                    <span>Koda erişemiyorsanız WhatsApp ile onay isteyin</span>
-                  </a>
-                  <button
-                    type="button"
-                    disabled={isCheckingStatus}
-                    onClick={() => checkApprovalStatus(true)}
-                    className="inline-flex items-center gap-1 text-stone-600 hover:text-stone-900 font-semibold cursor-pointer"
-                  >
-                    <i className={`fa-solid fa-arrows-rotate text-[10px] ${isCheckingStatus ? 'animate-spin' : ''}`}></i>
-                    <span>{isCheckingStatus ? 'Kontrol ediliyor...' : 'Yönetici Onayını Kontrol Et'}</span>
-                  </button>
-                </div>
+                {activeVerifyTab === 'email' ? (
+                  <div className="space-y-3.5 animate-in fade-in duration-150">
+                    <div className="text-center space-y-1">
+                      <div className="w-12 h-12 rounded-2xl bg-amber-500 text-stone-950 flex items-center justify-center text-xl mx-auto shadow-md shadow-amber-500/20">
+                        <i className="fa-solid fa-envelope-circle-check"></i>
+                      </div>
+                      <h3 className="text-lg font-black text-stone-900">E-Posta Adresinizi Doğrulayın</h3>
+                      <p className="text-xs text-stone-600 max-w-md mx-auto leading-relaxed">
+                        Sayın <strong>{pendingUser?.name || 'Müşterimiz'}</strong>,{' '}
+                        <strong className="text-stone-900">{pendingUser?.email}</strong> adresine gönderilen 6 haneli kodu giriniz:
+                      </p>
+                    </div>
+
+                    {emailVerifyInfo && (
+                      <div className="bg-emerald-50 border border-emerald-200 text-emerald-900 text-xs px-3.5 py-2.5 rounded-xl flex items-start gap-2">
+                        <i className="fa-solid fa-circle-info text-emerald-600 mt-0.5 shrink-0"></i>
+                        <span>{emailVerifyInfo}</span>
+                      </div>
+                    )}
+
+                    <form onSubmit={handleVerifyEmailCode} className="space-y-3">
+                      <div>
+                        <label className="block text-[11px] font-bold text-stone-700 uppercase tracking-wide mb-1.5 text-center">
+                          Doğrulama Kodu (6 Hane)
+                        </label>
+                        <input
+                          type="text"
+                          inputMode="numeric"
+                          autoComplete="one-time-code"
+                          maxLength={6}
+                          required
+                          value={emailVerifyCode}
+                          onChange={(e) => {
+                            setEmailVerifyCode(e.target.value.replace(/\D/g, '').slice(0, 6));
+                            setFormError('');
+                          }}
+                          className="w-full bg-stone-50 border-2 border-stone-200 focus:border-brand-500 focus:bg-white rounded-2xl px-4 py-3 text-center text-2xl font-black tracking-[0.45em] text-stone-900 font-mono focus:outline-none transition-colors"
+                          placeholder="••••••"
+                        />
+                      </div>
+
+                      {formError && (
+                        <div className="bg-rose-50 border border-rose-200 text-rose-700 text-xs px-3.5 py-2 rounded-xl flex items-center gap-2">
+                          <i className="fa-solid fa-circle-exclamation text-rose-500 shrink-0"></i>
+                          <span>{formError}</span>
+                        </div>
+                      )}
+
+                      <button
+                        type="submit"
+                        disabled={emailVerifyLoading || emailVerifyCode.replace(/\D/g, '').length !== 6}
+                        className="w-full bg-brand-600 hover:bg-brand-700 disabled:bg-stone-300 disabled:text-stone-500 text-white font-black py-3 px-4 rounded-xl text-sm transition-all shadow-md shadow-brand-600/20 flex items-center justify-center gap-2 cursor-pointer"
+                      >
+                        <i className={`fa-solid ${emailVerifyLoading ? 'fa-spinner fa-spin' : 'fa-check-double'}`}></i>
+                        <span>{emailVerifyLoading ? 'Doğrulanıyor...' : 'E-Postamı Doğrula & Giriş Yap'}</span>
+                      </button>
+                    </form>
+
+                    <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
+                      <button
+                        type="button"
+                        disabled={emailResendCooldown > 0 || emailResendLoading}
+                        onClick={handleResendEmailCode}
+                        className="px-3.5 py-2 rounded-xl bg-stone-100 hover:bg-stone-200 disabled:opacity-60 text-stone-800 text-xs font-bold transition-colors cursor-pointer flex items-center gap-1.5"
+                      >
+                        <i className={`fa-solid ${emailResendLoading ? 'fa-spinner fa-spin' : 'fa-paper-plane'} text-[11px]`}></i>
+                        <span>
+                          {emailResendLoading
+                            ? 'Gönderiliyor...'
+                            : emailResendCooldown > 0
+                            ? `Kodu Tekrar Gönder (${emailResendCooldown} sn)`
+                            : emailVerifyInfo
+                            ? 'Kodu Tekrar Gönder'
+                            : 'E-Posta Kodu Gönder'}
+                        </span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsWaitingApproval(false);
+                          setFormError('');
+                        }}
+                        className="px-3 py-2 rounded-xl text-stone-500 hover:text-stone-800 text-xs font-semibold underline cursor-pointer"
+                      >
+                        Giriş Ekranına Dön
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-4 animate-in fade-in duration-150">
+                    <div className="text-center space-y-1.5">
+                      <div className="w-12 h-12 rounded-2xl bg-emerald-500 text-white flex items-center justify-center text-2xl mx-auto shadow-md shadow-emerald-500/25">
+                        <i className="fa-brands fa-whatsapp"></i>
+                      </div>
+                      <h3 className="text-lg font-black text-stone-900">WhatsApp ile Yönetici Onayı</h3>
+                      <p className="text-xs text-stone-600 max-w-md mx-auto leading-relaxed">
+                        Sayın <strong>{pendingUser?.name || 'Müşterimiz'}</strong>, e-posta kodu yerine WhatsApp hattımızdan hızlı yönetici onayı talep edebilirsiniz.
+                      </p>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <a
+                        href={waApprovalUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="w-full bg-emerald-600 hover:bg-emerald-700 active:scale-98 text-white font-black py-3 px-4 rounded-xl text-sm transition-all shadow-md shadow-emerald-600/20 flex items-center justify-center gap-2.5 cursor-pointer text-center"
+                      >
+                        <i className="fa-brands fa-whatsapp text-xl"></i>
+                        <span>WhatsApp&apos;tan Onay Talebi Gönder</span>
+                      </a>
+                      <p className="text-[11px] text-stone-400 text-center">
+                        Butona tıkladığınızda <strong>0553 855 76 12</strong> restoran hattımıza hazır onay mesajınız açılır.
+                      </p>
+                    </div>
+
+                    <div className="bg-stone-50 border border-stone-200 rounded-2xl p-3.5 space-y-2 text-center">
+                      <div className="flex items-center justify-center gap-2 text-xs font-bold text-amber-800">
+                        <i className="fa-solid fa-spinner animate-spin text-amber-600"></i>
+                        <span>Yönetici onayı bekleniyor... (Otomatik Algılanacak)</span>
+                      </div>
+                      <div className="flex items-center justify-center gap-2 pt-1">
+                        <button
+                          type="button"
+                          disabled={isCheckingStatus}
+                          onClick={() => checkApprovalStatus(true)}
+                          className="px-4 py-2 rounded-xl bg-white border border-stone-200 hover:bg-stone-100 text-stone-800 text-xs font-bold transition-colors cursor-pointer flex items-center gap-1.5 shadow-2xs"
+                        >
+                          <i className={`fa-solid fa-arrows-rotate text-xs ${isCheckingStatus ? 'animate-spin' : ''}`}></i>
+                          <span>{isCheckingStatus ? 'Kontrol Ediliyor...' : 'Onayı Kontrol Et'}</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsWaitingApproval(false);
+                            setFormError('');
+                          }}
+                          className="px-3 py-2 rounded-xl text-stone-500 hover:text-stone-800 text-xs font-semibold underline cursor-pointer"
+                        >
+                          Giriş Ekranına Dön
+                        </button>
+                      </div>
+                    </div>
+
+                    {formError && (
+                      <div className="bg-rose-50 border border-rose-200 text-rose-700 text-xs px-3.5 py-2 rounded-xl flex items-center gap-2">
+                        <i className="fa-solid fa-circle-exclamation text-rose-500 shrink-0"></i>
+                        <span>{formError}</span>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             ) : (
               <>
@@ -969,7 +1069,7 @@ export default function AuthModal() {
                     {authModalTab === 'guest'
                       ? 'Üye olmadan hızlıca sipariş verebilirsiniz. Siparişiniz WhatsApp üzerinden teyit edilecektir.'
                       : isRegister
-                      ? 'Kayıt sonrası e-posta adresinize gönderilen 6 haneli doğrulama koduyla hesabınız anında aktif edilir.'
+                      ? 'Kayıt olurken E-Posta Doğrulama Kodu (anında aktif) veya WhatsApp Onayı yöntemlerinden dilediğinizi seçebilirsiniz.'
                       : 'Kayıtlı hesabınızla giriş yapabilir veya Misafir Girişi ile anında sipariş oluşturabilirsiniz.'}
                   </span>
                 </div>
@@ -1364,8 +1464,8 @@ export default function AuthModal() {
                     <div>
                       <label className="block text-xs font-semibold text-stone-700 mb-1.5 flex items-center justify-between">
                         <span className="flex items-center gap-1.5">
-                          <i className="fa-brands fa-whatsapp text-emerald-600 text-sm"></i>
-                          <span>WhatsApp Cep Telefonu</span>
+                          <i className="fa-solid fa-mobile-screen-button text-brand-600 text-sm"></i>
+                          <span>Cep Telefonu</span>
                         </span>
                         <span className="text-[10px] text-stone-400 font-normal">
                           Sipariş teyidi ve teslimat için
@@ -1413,6 +1513,70 @@ export default function AuthModal() {
                       </div>
                     </div>
 
+                    {/* Doğrulama Yöntemi Seçimi */}
+                    <div>
+                      <span className="block text-xs font-semibold text-stone-700 mb-1.5">
+                        Hesap Doğrulama Yöntemi
+                      </span>
+                      <div className="grid grid-cols-2 gap-2.5">
+                        <button
+                          type="button"
+                          onClick={() => setRegVerifyMethod('email')}
+                          className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer flex items-start gap-2 ${
+                            regVerifyMethod === 'email'
+                              ? 'border-brand-500 bg-brand-50/80 ring-1 ring-brand-500/30'
+                              : 'border-stone-200 bg-stone-50 hover:bg-white'
+                          }`}
+                        >
+                          <span
+                            className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 text-xs ${
+                              regVerifyMethod === 'email'
+                                ? 'bg-brand-600 text-white'
+                                : 'bg-stone-200/80 text-stone-600'
+                            }`}
+                          >
+                            <i className="fa-solid fa-envelope-circle-check"></i>
+                          </span>
+                          <span className="min-w-0">
+                            <span className="block text-xs font-extrabold text-stone-900 leading-tight">
+                              E-Posta Kodu
+                            </span>
+                            <span className="block text-[10px] text-stone-500 leading-tight mt-0.5">
+                              Mailine 6 haneli kod gelir (Anında)
+                            </span>
+                          </span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => setRegVerifyMethod('whatsapp')}
+                          className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer flex items-start gap-2 ${
+                            regVerifyMethod === 'whatsapp'
+                              ? 'border-emerald-500 bg-emerald-50/80 ring-1 ring-emerald-500/30'
+                              : 'border-stone-200 bg-stone-50 hover:bg-white'
+                          }`}
+                        >
+                          <span
+                            className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 text-sm ${
+                              regVerifyMethod === 'whatsapp'
+                                ? 'bg-emerald-600 text-white'
+                                : 'bg-stone-200/80 text-stone-600'
+                            }`}
+                          >
+                            <i className="fa-brands fa-whatsapp"></i>
+                          </span>
+                          <span className="min-w-0">
+                            <span className="block text-xs font-extrabold text-stone-900 leading-tight">
+                              WhatsApp Onayı
+                            </span>
+                            <span className="block text-[10px] text-stone-500 leading-tight mt-0.5">
+                              Yönetici WhatsApp ile onaylar
+                            </span>
+                          </span>
+                        </button>
+                      </div>
+                    </div>
+
                     {/* KVKK Onayı */}
                     <div className="bg-stone-50 border border-stone-200/80 rounded-xl p-3">
                       <label className="flex items-start gap-2.5 cursor-pointer select-none">
@@ -1445,14 +1609,32 @@ export default function AuthModal() {
                       </div>
                     )}
 
-                    {/* Kayıt ve E-Posta Doğrulama Kodu Gönder Butonu */}
+                    {/* Kayıt ve Seçilen Doğrulama Yöntemi Butonu */}
                     <button
                       type="submit"
                       disabled={isSubmitting}
-                      className="w-full bg-brand-600 hover:bg-brand-700 disabled:bg-stone-300 text-white font-black py-3 rounded-xl text-sm transition-all cursor-pointer flex items-center justify-center gap-2 shadow-sm active:scale-98"
+                      className={`w-full disabled:bg-stone-300 text-white font-black py-3 rounded-xl text-sm transition-all cursor-pointer flex items-center justify-center gap-2 shadow-sm active:scale-98 ${
+                        regVerifyMethod === 'whatsapp'
+                          ? 'bg-emerald-600 hover:bg-emerald-700'
+                          : 'bg-brand-600 hover:bg-brand-700'
+                      }`}
                     >
-                      <i className={`fa-solid ${isSubmitting ? 'fa-spinner fa-spin' : 'fa-envelope-circle-check'} text-base`}></i>
-                      <span>{isSubmitting ? 'Kaydediliyor...' : 'Kayıt Ol ve Doğrulama Kodu Gönder'}</span>
+                      <i
+                        className={`${
+                          isSubmitting
+                            ? 'fa-solid fa-spinner fa-spin'
+                            : regVerifyMethod === 'whatsapp'
+                            ? 'fa-brands fa-whatsapp text-lg'
+                            : 'fa-solid fa-envelope-circle-check text-base'
+                        }`}
+                      ></i>
+                      <span>
+                        {isSubmitting
+                          ? 'Kaydediliyor...'
+                          : regVerifyMethod === 'whatsapp'
+                          ? 'Kayıt Ol ve WhatsApp ile Onay İste'
+                          : 'Kayıt Ol ve E-Posta Kodu Gönder'}
+                      </span>
                     </button>
                   </form>
                 )}
