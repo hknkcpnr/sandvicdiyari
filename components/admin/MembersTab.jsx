@@ -615,84 +615,84 @@ export default function MembersTab({ onCustomerUpdated }) {
 
       {/* ONAY BEKLEYENLER DİKKAT BANNERI */}
       {stats.pending > 0 && (
-        <div className="bg-gradient-to-r from-amber-50 via-amber-100/70 to-emerald-50 border-2 border-amber-300 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-xs animate-in fade-in duration-200">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-amber-500 text-white flex items-center justify-center text-lg shrink-0 shadow-xs">
+        <div className="bg-gradient-to-r from-amber-50 via-amber-100/60 to-emerald-50 border border-amber-300 rounded-xl px-3 py-2.5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5 shadow-2xs animate-in fade-in duration-200">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-amber-500 text-white flex items-center justify-center text-sm shrink-0">
               <i className="fa-brands fa-whatsapp"></i>
             </div>
             <div>
-              <h3 className="font-extrabold text-stone-900 text-sm sm:text-base flex items-center gap-2">
-                <span>WhatsApp Onayı Bekleyen {stats.pending} Müşteri Var!</span>
-                <span className="bg-amber-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full animate-pulse">Yeni Talep</span>
+              <h3 className="font-bold text-stone-900 text-xs flex items-center gap-2">
+                <span>WhatsApp Onayı Bekleyen {stats.pending} Müşteri</span>
+                <span className="bg-amber-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full animate-pulse">Yeni</span>
               </h3>
-              <p className="text-xs text-stone-600 mt-0.5">
-                Müşteriler WhatsApp üzerinden kayıt onayı istedi. Aşağıdaki listeden tek tıkla onaylayıp sisteme girmelerine izin verebilirsiniz.
+              <p className="text-[11px] text-stone-600">
+                Listeden tek tıkla onaylayıp sisteme giriş izni verebilirsiniz.
               </p>
             </div>
           </div>
           <button
             type="button"
             onClick={() => setStatusFilter('pending')}
-            className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-xl transition-all shadow-xs cursor-pointer shrink-0 flex items-center gap-1.5"
+            className="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white text-[11px] font-semibold rounded-lg transition-all cursor-pointer shrink-0 flex items-center gap-1.5"
           >
-            <i className="fa-solid fa-user-clock text-xs"></i>
+            <i className="fa-solid fa-user-clock text-[11px]"></i>
             <span>Onay Bekleyenleri Göster ({stats.pending})</span>
           </button>
         </div>
       )}
 
       {/* 2. DÖRT İSTATİSTİK KARTI */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-        <div className="bg-white p-4 rounded-2xl border border-stone-200/90 shadow-2xs flex items-center justify-between">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5">
+        <div className="bg-white px-3 py-2 rounded-xl border border-stone-200/90 shadow-2xs flex items-center justify-between gap-2">
           <div>
-            <span className="text-[11px] font-bold uppercase tracking-wider text-stone-400 block">Toplam Üye</span>
-            <span className="text-xl sm:text-2xl font-black text-stone-900 mt-0.5 block">{stats.total}</span>
+            <span className="text-[10px] font-semibold uppercase tracking-wide text-stone-400 block">Toplam Üye</span>
+            <span className="text-base sm:text-lg font-bold text-stone-900 block">{stats.total}</span>
           </div>
-          <span className="w-10 h-10 rounded-xl bg-stone-100 text-stone-600 flex items-center justify-center text-base shrink-0">
+          <span className="w-7 h-7 rounded-lg bg-stone-100 text-stone-600 flex items-center justify-center text-xs shrink-0">
             <i className="fa-solid fa-users"></i>
           </span>
         </div>
 
-        <div className="bg-white p-4 rounded-2xl border border-stone-200/90 shadow-2xs flex items-center justify-between">
+        <div className="bg-white px-3 py-2 rounded-xl border border-stone-200/90 shadow-2xs flex items-center justify-between gap-2">
           <div>
-            <span className="text-[11px] font-bold uppercase tracking-wider text-amber-600 block">Onay Bekleyen</span>
-            <span className="text-xl sm:text-2xl font-black text-amber-700 mt-0.5 block">{stats.pending}</span>
+            <span className="text-[10px] font-semibold uppercase tracking-wide text-amber-600 block">Onay Bekleyen</span>
+            <span className="text-base sm:text-lg font-bold text-amber-700 block">{stats.pending}</span>
           </div>
-          <span className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center text-base shrink-0">
+          <span className="w-7 h-7 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center text-xs shrink-0">
             <i className="fa-solid fa-user-clock"></i>
           </span>
         </div>
 
-        <div className="bg-white p-4 rounded-2xl border border-stone-200/90 shadow-2xs flex items-center justify-between">
+        <div className="bg-white px-3 py-2 rounded-xl border border-stone-200/90 shadow-2xs flex items-center justify-between gap-2">
           <div>
-            <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-600 block">Aktif Üyeler</span>
-            <span className="text-xl sm:text-2xl font-black text-emerald-700 mt-0.5 block">{stats.active}</span>
+            <span className="text-[10px] font-semibold uppercase tracking-wide text-emerald-600 block">Aktif Üyeler</span>
+            <span className="text-base sm:text-lg font-bold text-emerald-700 block">{stats.active}</span>
           </div>
-          <span className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-base shrink-0">
+          <span className="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center text-xs shrink-0">
             <i className="fa-solid fa-user-check"></i>
           </span>
         </div>
 
-        <div className="bg-white p-4 rounded-2xl border border-stone-200/90 shadow-2xs flex items-center justify-between">
+        <div className="bg-white px-3 py-2 rounded-xl border border-stone-200/90 shadow-2xs flex items-center justify-between gap-2">
           <div>
-            <span className="text-[11px] font-bold uppercase tracking-wider text-rose-600 block">Engellenenler</span>
-            <span className="text-xl sm:text-2xl font-black text-rose-700 mt-0.5 block">{stats.blocked}</span>
+            <span className="text-[10px] font-semibold uppercase tracking-wide text-rose-600 block">Engellenenler</span>
+            <span className="text-base sm:text-lg font-bold text-rose-700 block">{stats.blocked}</span>
           </div>
-          <span className="w-10 h-10 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center text-base shrink-0">
+          <span className="w-7 h-7 rounded-lg bg-rose-50 text-rose-600 flex items-center justify-center text-xs shrink-0">
             <i className="fa-solid fa-user-slash"></i>
           </span>
         </div>
       </div>
 
       {/* 3. ARAMA VE FİLTRELEME ÇUBUĞU */}
-      <div className="bg-white p-3 sm:p-4 rounded-2xl border border-stone-200/90 shadow-2xs flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+      <div className="bg-white p-2 rounded-xl border border-stone-200/90 shadow-2xs flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2">
         {/* Durum Filtreleme Sekmeleri */}
-        <div className="flex items-center gap-1 bg-stone-100/80 p-1 rounded-xl">
+        <div className="flex items-center gap-0.5 bg-stone-100/80 p-0.5 rounded-lg overflow-x-auto scrollbar-none">
           <button
             type="button"
             onClick={() => setStatusFilter('all')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-              statusFilter === 'all' ? 'bg-white text-stone-900 shadow-xs' : 'text-stone-600 hover:text-stone-900'
+            className={`px-2.5 py-1 rounded-md text-[11px] font-semibold transition-all cursor-pointer whitespace-nowrap ${
+              statusFilter === 'all' ? 'bg-white text-stone-900 shadow-2xs' : 'text-stone-600 hover:text-stone-900'
             }`}
           >
             Tümü ({stats.total})
@@ -700,15 +700,15 @@ export default function MembersTab({ onCustomerUpdated }) {
           <button
             type="button"
             onClick={() => setStatusFilter('pending')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+            className={`px-2.5 py-1 rounded-md text-[11px] font-semibold transition-all cursor-pointer flex items-center gap-1 whitespace-nowrap ${
               statusFilter === 'pending'
-                ? 'bg-amber-500 text-white shadow-xs'
-                : 'text-amber-800 hover:text-amber-950 font-extrabold'
+                ? 'bg-amber-500 text-white shadow-2xs'
+                : 'text-amber-800 hover:text-amber-950'
             }`}
           >
             <span>Onay Bekleyenler</span>
             {stats.pending > 0 && (
-              <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-black ${
+              <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${
                 statusFilter === 'pending' ? 'bg-white text-amber-800' : 'bg-amber-200 text-amber-900'
               }`}>
                 {stats.pending}
@@ -718,8 +718,8 @@ export default function MembersTab({ onCustomerUpdated }) {
           <button
             type="button"
             onClick={() => setStatusFilter('active')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-              statusFilter === 'active' ? 'bg-white text-emerald-800 shadow-xs' : 'text-stone-600 hover:text-stone-900'
+            className={`px-2.5 py-1 rounded-md text-[11px] font-semibold transition-all cursor-pointer whitespace-nowrap ${
+              statusFilter === 'active' ? 'bg-white text-emerald-800 shadow-2xs' : 'text-stone-600 hover:text-stone-900'
             }`}
           >
             Aktifler ({stats.active})
@@ -727,8 +727,8 @@ export default function MembersTab({ onCustomerUpdated }) {
           <button
             type="button"
             onClick={() => setStatusFilter('blocked')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-              statusFilter === 'blocked' ? 'bg-white text-rose-800 shadow-xs' : 'text-stone-600 hover:text-stone-900'
+            className={`px-2.5 py-1 rounded-md text-[11px] font-semibold transition-all cursor-pointer whitespace-nowrap ${
+              statusFilter === 'blocked' ? 'bg-white text-rose-800 shadow-2xs' : 'text-stone-600 hover:text-stone-900'
             }`}
           >
             Engellenenler ({stats.blocked})
@@ -736,15 +736,15 @@ export default function MembersTab({ onCustomerUpdated }) {
         </div>
 
         {/* Arama Kutusu ve Yenile */}
-        <div className="flex items-center gap-2">
-          <div className="relative flex-1 sm:w-64">
-            <i className="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-stone-400 text-xs"></i>
+        <div className="flex items-center gap-1.5">
+          <div className="relative flex-1 sm:w-56">
+            <i className="fa-solid fa-magnifying-glass absolute left-2.5 top-1/2 -translate-y-1/2 text-stone-400 text-[11px]"></i>
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="İsim, e-posta veya telefon ara..."
-              className="w-full bg-stone-50 border border-stone-200 rounded-xl pl-8 pr-3 py-2 text-xs focus:outline-none focus:border-stone-400 font-medium"
+              className="w-full bg-stone-50 border border-stone-200 rounded-lg pl-7 pr-3 py-1.5 text-[11px] focus:outline-none focus:border-stone-400 font-medium"
             />
           </div>
 
@@ -752,23 +752,23 @@ export default function MembersTab({ onCustomerUpdated }) {
             type="button"
             onClick={() => fetchMembers(true)}
             title="Listeyi Yenile"
-            className="p-2.5 rounded-xl text-stone-600 hover:text-stone-900 bg-stone-50 hover:bg-stone-100 border border-stone-200 transition-colors cursor-pointer shrink-0"
+            className="w-7 h-7 rounded-lg text-stone-600 hover:text-stone-900 bg-stone-50 hover:bg-stone-100 border border-stone-200 flex items-center justify-center transition-colors cursor-pointer shrink-0"
           >
-            <i className={`fa-solid fa-arrows-rotate text-xs ${loading ? 'animate-spin' : ''}`}></i>
+            <i className={`fa-solid fa-arrows-rotate text-[11px] ${loading ? 'animate-spin' : ''}`}></i>
           </button>
         </div>
       </div>
 
       {/* 4. ÜYE LİSTESİ */}
-      <div className="bg-white rounded-2xl border border-stone-200/90 shadow-2xs overflow-hidden">
+      <div className="bg-white rounded-xl border border-stone-200/90 shadow-2xs overflow-hidden">
         {loading && members.length === 0 ? (
-          <div className="p-12 text-center text-stone-400 space-y-2">
-            <i className="fa-solid fa-users text-3xl animate-pulse text-indigo-400"></i>
+          <div className="p-10 text-center text-stone-400 space-y-2">
+            <i className="fa-solid fa-users text-2xl animate-pulse text-indigo-400"></i>
             <p className="text-xs font-semibold text-stone-600">Üye listesi yükleniyor...</p>
           </div>
         ) : filteredMembers.length === 0 ? (
-          <div className="p-12 text-center text-stone-400 space-y-3">
-            <i className="fa-solid fa-user-xmark text-3xl text-stone-300"></i>
+          <div className="p-10 text-center text-stone-400 space-y-2.5">
+            <i className="fa-solid fa-user-xmark text-2xl text-stone-300"></i>
             <p className="text-xs font-semibold text-stone-600">
               {searchQuery || statusFilter !== 'all' ? 'Arama kriterlerine uygun üye bulunamadı.' : 'Henüz sisteme kayıtlı üye bulunmuyor.'}
             </p>
@@ -776,7 +776,7 @@ export default function MembersTab({ onCustomerUpdated }) {
               <button
                 type="button"
                 onClick={handleOpenAddCustomer}
-                className="inline-flex items-center gap-2 bg-stone-900 hover:bg-black text-white font-bold text-xs px-4 py-2 rounded-xl transition-all cursor-pointer shadow-xs"
+                className="inline-flex items-center gap-1.5 bg-stone-900 hover:bg-black text-white font-semibold text-xs px-3 py-1.5 rounded-lg transition-all cursor-pointer"
               >
                 <i className="fa-solid fa-user-plus text-emerald-400"></i>
                 <span>+ İlk Müşteriyi Ekle</span>
@@ -799,14 +799,14 @@ export default function MembersTab({ onCustomerUpdated }) {
               return (
                 <div
                   key={member.id || member.email}
-                  className={`p-4 sm:p-5 flex flex-col md:flex-row md:items-center justify-between gap-4 transition-colors ${
+                  className={`px-3.5 py-2.5 flex flex-col md:flex-row md:items-center justify-between gap-2.5 transition-colors ${
                     isBlocked ? 'bg-rose-50/40 hover:bg-rose-50/60' : 'hover:bg-stone-50/70'
                   }`}
                 >
                   {/* Sol: Avatar + İsim + İletişim Bilgileri */}
-                  <div className="flex items-start sm:items-center gap-3.5 min-w-0">
+                  <div className="flex items-start sm:items-center gap-2.5 min-w-0">
                     <div
-                      className={`w-11 h-11 rounded-2xl flex items-center justify-center font-black text-sm shrink-0 border ${
+                      className={`w-8 h-8 rounded-lg flex items-center justify-center font-bold text-[11px] shrink-0 border ${
                         isBlocked
                           ? 'bg-rose-100 text-rose-700 border-rose-300'
                           : 'bg-indigo-100 text-indigo-700 border-indigo-200'
@@ -815,48 +815,48 @@ export default function MembersTab({ onCustomerUpdated }) {
                       {initials}
                     </div>
 
-                    <div className="space-y-1 min-w-0">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <h4 className="font-extrabold text-stone-900 text-sm sm:text-base leading-tight truncate">
+                    <div className="space-y-0.5 min-w-0">
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <h4 className="font-semibold text-stone-900 text-[13px] leading-snug truncate">
                           {member.name || 'İsimsiz Üye'}
                         </h4>
 
                         {/* Durum Rozeti */}
                         {isBlocked ? (
                           <span
-                            className="bg-rose-600 text-white text-[10px] font-black px-2 py-0.5 rounded-md inline-flex items-center gap-1 shadow-2xs"
+                            className="bg-rose-600 text-white text-[10px] font-semibold px-1.5 py-0.5 rounded inline-flex items-center gap-1"
                             title={member.blockReason ? `Sebep: ${member.blockReason}` : 'Yönetici tarafından engellendi'}
                           >
                             <i className="fa-solid fa-ban text-[9px]"></i>
                             <span>Engellendi</span>
                           </span>
                         ) : member.phoneVerified !== true ? (
-                          <span className="bg-amber-100 text-amber-900 border border-amber-300 text-[10px] font-extrabold px-2 py-0.5 rounded-md inline-flex items-center gap-1 animate-pulse">
+                          <span className="bg-amber-100 text-amber-900 border border-amber-300 text-[10px] font-semibold px-1.5 py-0.5 rounded inline-flex items-center gap-1 animate-pulse">
                             <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
                             <span>⏳ Onay Bekliyor</span>
                           </span>
                         ) : (
-                          <span className="bg-emerald-50 text-emerald-800 border border-emerald-200 text-[10px] font-bold px-2 py-0.5 rounded-md inline-flex items-center gap-1">
+                          <span className="bg-emerald-50 text-emerald-800 border border-emerald-200 text-[10px] font-semibold px-1.5 py-0.5 rounded inline-flex items-center gap-1">
                             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
                             <span>Aktif Üye</span>
                           </span>
                         )}
 
                         {/* Sipariş Sayısı Rozeti */}
-                        <span className="bg-stone-100 text-stone-600 font-bold text-[10px] px-2 py-0.5 rounded-md">
+                        <span className="bg-stone-100 text-stone-600 font-semibold text-[10px] px-1.5 py-0.5 rounded">
                           {Array.isArray(member.orders) ? member.orders.length : 0} Sipariş
                         </span>
                       </div>
 
                       {/* İletişim & Adres Satırı */}
-                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-stone-500 font-medium">
-                        <span className="inline-flex items-center gap-1 text-stone-700">
-                          <i className="fa-regular fa-envelope text-[11px] text-stone-400"></i>
+                      <div className="flex flex-wrap items-center gap-x-2.5 gap-y-0.5 text-[11px] text-stone-500 font-normal">
+                        <span className="inline-flex items-center gap-1 text-stone-600">
+                          <i className="fa-regular fa-envelope text-[10px] text-stone-400"></i>
                           <span>{member.email}</span>
                         </span>
 
                         {member.phone && (
-                          <span className="inline-flex items-center gap-1 font-mono text-stone-700">
+                          <span className="inline-flex items-center gap-1 font-mono text-stone-600">
                             <i className="fa-solid fa-phone text-[10px] text-stone-400"></i>
                             <span>{member.phone}</span>
                           </span>
@@ -872,8 +872,8 @@ export default function MembersTab({ onCustomerUpdated }) {
 
                       {/* Engelleme Sebebi Varsa Göster */}
                       {isBlocked && member.blockReason && (
-                        <p className="text-[11px] font-semibold text-rose-700 pt-0.5">
-                          <i className="fa-solid fa-circle-exclamation mr-1 text-[10px]"></i>
+                        <p className="text-[10px] font-medium text-rose-700 pt-0.5">
+                          <i className="fa-solid fa-circle-exclamation mr-1 text-[9px]"></i>
                           <strong>Engel Sebebi:</strong> {member.blockReason}
                         </p>
                       )}
@@ -881,18 +881,18 @@ export default function MembersTab({ onCustomerUpdated }) {
                   </div>
 
                   {/* Sağ: Aksiyon Butonları (Onayla, Bildirim, Engelle/Kaldır, WhatsApp, Sil) */}
-                  <div className="flex flex-wrap items-center gap-2 self-end sm:self-center shrink-0">
+                  <div className="flex flex-wrap items-center gap-1.5 self-end sm:self-center shrink-0">
                     {/* ONAY BEKLEYEN ÜYE: ONAYLA VE GİRİŞ İZNİ VER */}
                     {!isBlocked && member.phoneVerified !== true && (
                       <button
                         type="button"
                         disabled={approvingId === (member.id || member.email)}
                         onClick={() => handleApproveMember(member)}
-                        className="bg-emerald-600 hover:bg-emerald-700 disabled:bg-stone-300 text-white font-black text-xs px-3.5 py-2 rounded-xl transition-all cursor-pointer flex items-center gap-1.5 shadow-xs active:scale-95"
+                        className="bg-emerald-600 hover:bg-emerald-700 disabled:bg-stone-300 text-white font-semibold text-[11px] px-2.5 py-1 rounded-lg transition-all cursor-pointer flex items-center gap-1 active:scale-95"
                         title="Üyeliği Onayla ve Giriş İzni Ver"
                       >
-                        <i className={`fa-solid ${approvingId === (member.id || member.email) ? 'fa-spinner animate-spin' : 'fa-check'} text-xs`}></i>
-                        <span>{approvingId === (member.id || member.email) ? 'Onaylanıyor...' : 'Onayla & İzin Ver'}</span>
+                        <i className={`fa-solid ${approvingId === (member.id || member.email) ? 'fa-spinner animate-spin' : 'fa-check'} text-[10px]`}></i>
+                        <span>{approvingId === (member.id || member.email) ? 'Onaylanıyor...' : 'Onayla'}</span>
                       </button>
                     )}
 
@@ -900,10 +900,10 @@ export default function MembersTab({ onCustomerUpdated }) {
                     <button
                       type="button"
                       onClick={() => handleOpenNotifyModal(member)}
-                      className="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold text-xs px-3 py-2 rounded-xl transition-colors cursor-pointer flex items-center gap-1.5 border border-indigo-200/80 shadow-2xs"
+                      className="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-semibold text-[11px] px-2.5 py-1 rounded-lg transition-colors cursor-pointer flex items-center gap-1 border border-indigo-200/80"
                       title="Bu üyeye SMS, WhatsApp veya sistem bildirimi ilet"
                     >
-                      <i className="fa-solid fa-bell text-xs"></i>
+                      <i className="fa-solid fa-bell text-[10px]"></i>
                       <span>Bildirim</span>
                     </button>
 
@@ -916,10 +916,10 @@ export default function MembersTab({ onCustomerUpdated }) {
                         }
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-bold text-xs px-3 py-2 rounded-xl transition-colors cursor-pointer flex items-center gap-1.5 border border-emerald-200/80 shadow-2xs"
+                        className="bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-semibold text-[11px] px-2.5 py-1 rounded-lg transition-colors cursor-pointer flex items-center gap-1 border border-emerald-200/80"
                         title="WhatsApp üzerinden mesaj gönder"
                       >
-                        <i className="fa-brands fa-whatsapp text-emerald-600 text-sm"></i>
+                        <i className="fa-brands fa-whatsapp text-emerald-600 text-xs"></i>
                         <span className="hidden lg:inline">{member.phoneVerified !== true ? "WhatsApp Yaz" : "WhatsApp"}</span>
                       </a>
                     )}
@@ -929,20 +929,20 @@ export default function MembersTab({ onCustomerUpdated }) {
                       <button
                         type="button"
                         onClick={() => handleUnblock(member)}
-                        className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-3 py-2 rounded-xl transition-colors cursor-pointer flex items-center gap-1.5 shadow-2xs"
+                        className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-[11px] px-2.5 py-1 rounded-lg transition-colors cursor-pointer flex items-center gap-1"
                         title="Üyenin engelini kaldır ve hesabı aktif et"
                       >
-                        <i className="fa-solid fa-lock-open text-xs"></i>
+                        <i className="fa-solid fa-lock-open text-[10px]"></i>
                         <span>Engeli Kaldır</span>
                       </button>
                     ) : (
                       <button
                         type="button"
                         onClick={() => handleOpenBlockModal(member)}
-                        className="bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-xs px-3 py-2 rounded-xl transition-colors cursor-pointer flex items-center gap-1.5 border border-rose-200 shadow-2xs"
+                        className="bg-rose-50 hover:bg-rose-100 text-rose-700 font-semibold text-[11px] px-2.5 py-1 rounded-lg transition-colors cursor-pointer flex items-center gap-1 border border-rose-200"
                         title="Bu üyenin sipariş vermesini ve girişini engelle"
                       >
-                        <i className="fa-solid fa-user-slash text-xs"></i>
+                        <i className="fa-solid fa-user-slash text-[10px]"></i>
                         <span>Engelle</span>
                       </button>
                     )}
@@ -951,10 +951,10 @@ export default function MembersTab({ onCustomerUpdated }) {
                     <button
                       type="button"
                       onClick={() => handleOpenEditCustomer(member)}
-                      className="bg-stone-50 hover:bg-stone-100 text-stone-700 font-bold text-xs px-3 py-2 rounded-xl transition-colors cursor-pointer flex items-center gap-1.5 border border-stone-200 shadow-2xs"
+                      className="bg-stone-50 hover:bg-stone-100 text-stone-700 font-semibold text-[11px] px-2.5 py-1 rounded-lg transition-colors cursor-pointer flex items-center gap-1 border border-stone-200"
                       title="Müşteri bilgilerini düzenle"
                     >
-                      <i className="fa-solid fa-pen-to-square text-xs"></i>
+                      <i className="fa-solid fa-pen-to-square text-[10px]"></i>
                       <span className="hidden xl:inline">Düzenle</span>
                     </button>
 
@@ -962,7 +962,7 @@ export default function MembersTab({ onCustomerUpdated }) {
                     <button
                       type="button"
                       onClick={() => handleDeleteMember(member)}
-                      className="text-stone-400 hover:text-rose-600 hover:bg-rose-50 border border-stone-200 p-2 rounded-xl text-xs cursor-pointer transition-colors"
+                      className="w-7 h-7 flex items-center justify-center text-stone-400 hover:text-rose-600 hover:bg-rose-50 border border-stone-200 rounded-lg text-[11px] cursor-pointer transition-colors"
                       title="Üyeyi Sistemden Kalıcı Olarak Sil"
                     >
                       <i className="fa-solid fa-trash-can"></i>
