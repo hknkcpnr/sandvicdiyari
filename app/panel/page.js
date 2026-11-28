@@ -2839,18 +2839,15 @@ export default function AdminDashboardPage() {
 
         {/* TAB 1: SİPARİŞ YÖNETİMİ & OPERASYON */}
         {currentTab === 'orders' && (
-          <div className="p-3 sm:p-6 lg:p-8 space-y-3.5 sm:space-y-5 w-full min-w-0">
+          <div className="p-2.5 sm:p-4 lg:p-5 space-y-2.5 w-full min-w-0">
             {/* Operational Stage Tabs (Mobile Dropdown / Desktop Pills) */}
-            <div className="bg-white p-2.5 sm:p-2.5 rounded-2xl border border-stone-200 shadow-xs w-full">
+            <div className="bg-white p-1.5 rounded-xl border border-stone-200/90 shadow-2xs w-full">
               {/* MOBİL: Ekrana tam oturan Açılır Menü */}
               <div className="sm:hidden">
-                <label className="text-[10px] font-extrabold text-stone-500 uppercase tracking-wider block mb-1">
-                  Sipariş Durum Filtresi
-                </label>
                 <select
                   value={orderStageFilter}
                   onChange={(e) => setOrderStageFilter(e.target.value)}
-                  className="app-select w-full bg-stone-50 hover:bg-white border border-stone-300 hover:border-brand-500 text-stone-900 text-xs font-bold rounded-2xl px-4 py-3 cursor-pointer shadow-xs focus:ring-3 focus:ring-brand-500/15"
+                  className="app-select w-full bg-stone-50 hover:bg-white border border-stone-300 hover:border-brand-500 text-stone-900 text-xs font-bold rounded-xl px-3 py-2 cursor-pointer shadow-2xs"
                 >
                   <option value="all">📦 Tüm Siparişler ({orders.length})</option>
                   <option value="new">🔔 Yeni ({newOrdersCount})</option>
@@ -2862,7 +2859,7 @@ export default function AdminDashboardPage() {
               </div>
 
               {/* MASAÜSTÜ: Yatay Buton Sekmeleri */}
-              <div className="hidden sm:flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-0.5 sm:pb-0">
+              <div className="hidden sm:flex items-center gap-1 overflow-x-auto no-scrollbar">
                 {[
                   { id: 'all', label: 'Tüm Siparişler', count: orders.length },
                   { id: 'new', label: '🔔 Yeni', count: newOrdersCount, alert: newOrdersCount > 0 },
@@ -2874,9 +2871,9 @@ export default function AdminDashboardPage() {
                   <button
                     key={st.id}
                     onClick={() => setOrderStageFilter(st.id)}
-                    className={`px-3 py-2 rounded-xl font-medium text-xs transition-colors cursor-pointer whitespace-nowrap flex items-center gap-1.5 shrink-0 ${
+                    className={`px-2.5 py-1.5 rounded-lg font-medium text-xs transition-colors cursor-pointer whitespace-nowrap flex items-center gap-1.5 shrink-0 ${
                       orderStageFilter === st.id
-                        ? 'bg-stone-900 text-white font-semibold shadow-xs'
+                        ? 'bg-stone-900 text-white font-semibold shadow-2xs'
                         : 'text-stone-600 hover:bg-stone-100'
                     }`}
                   >
@@ -2898,7 +2895,7 @@ export default function AdminDashboardPage() {
             </div>
 
             {/* Secondary Multi-Criteria Filter Bar */}
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 bg-white p-3 sm:p-3.5 rounded-2xl border border-stone-200 shadow-xs">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 bg-white p-2.5 rounded-xl border border-stone-200/90 shadow-2xs">
               <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 w-full sm:w-auto">
                 {/* Search */}
                 <div className="relative w-full sm:w-64">
@@ -3331,21 +3328,21 @@ export default function AdminDashboardPage() {
 
         {/* TAB USERS & ROLES: MÜSTAKİL KULLANICI & ROL YÖNETİMİ */}
         {currentTab === 'users' && (
-          <div className="p-3 sm:p-6 lg:p-8 w-full min-w-0">
+          <div className="p-2.5 sm:p-4 lg:p-5 w-full min-w-0">
             <UsersRolesTab adminUser={adminUser} onNotify={showToast} />
           </div>
         )}
 
         {/* TAB 2: MENÜ & ÜRÜNLER (WITH IMAGE UPLOAD!) */}
         {currentTab === 'products' && (
-          <div className="p-3 sm:p-6 lg:p-8 space-y-4 w-full min-w-0">
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-white p-3 sm:p-3.5 rounded-2xl border border-stone-200 shadow-xs w-full">
+          <div className="p-2.5 sm:p-4 lg:p-5 space-y-3 w-full min-w-0">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 bg-white p-2 rounded-xl border border-stone-200/90 shadow-2xs w-full">
               {/* MOBİL: Kategori Seçici Açılır Menü */}
               <div className="sm:hidden w-full">
                 <select
                   value={productFilter}
                   onChange={(e) => setProductFilter(e.target.value)}
-                  className="app-select w-full bg-stone-50 hover:bg-white border border-stone-300 hover:border-brand-500 text-stone-900 text-xs font-bold rounded-2xl px-4 py-3 cursor-pointer shadow-xs focus:ring-3 focus:ring-brand-500/15"
+                  className="app-select w-full bg-stone-50 hover:bg-white border border-stone-300 hover:border-brand-500 text-stone-900 text-xs font-bold rounded-xl px-3 py-2 cursor-pointer shadow-2xs"
                 >
                   <option value="all">Tüm Ürünler ({products.length})</option>
                   <option value="menu">🍱 Menüler (Avantajlı)</option>
@@ -3356,20 +3353,20 @@ export default function AdminDashboardPage() {
               </div>
 
               {/* MASAÜSTÜ: Yatay Buton Sekmeleri */}
-              <div className="hidden sm:flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-0.5 sm:pb-0">
+              <div className="hidden sm:flex items-center gap-1 overflow-x-auto no-scrollbar">
                 {[
                   { id: 'all', label: 'Tüm Ürünler' },
-                  { id: 'menu', label: '🍱 Menüler (Avantajlı)' },
-                  { id: 'sandwich', label: '🥪 Sandviçler (Bireysel)' },
+                  { id: 'menu', label: '🍱 Menüler' },
+                  { id: 'sandwich', label: '🥪 Sandviçler' },
                   { id: 'snack', label: '🍟 Atıştırmalıklar' },
                   { id: 'drink', label: '🥤 İçecekler' },
                 ].map((c) => (
                   <button
                     key={c.id}
                     onClick={() => setProductFilter(c.id)}
-                    className={`px-3 py-1.5 rounded-xl text-xs transition-colors cursor-pointer whitespace-nowrap shrink-0 ${
+                    className={`px-2.5 py-1.5 rounded-lg text-xs transition-colors cursor-pointer whitespace-nowrap shrink-0 ${
                       productFilter === c.id
-                        ? 'bg-stone-900 text-white font-semibold shadow-xs'
+                        ? 'bg-stone-900 text-white font-semibold shadow-2xs'
                         : 'bg-stone-50 text-stone-600 hover:bg-stone-100'
                     }`}
                   >
@@ -3378,7 +3375,7 @@ export default function AdminDashboardPage() {
                 ))}
               </div>
 
-              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-1.5 w-full sm:w-auto">
                 <button
                   type="button"
                   onClick={() => {
@@ -3388,7 +3385,7 @@ export default function AdminDashboardPage() {
                     }
                     setCurrentTab('options');
                   }}
-                  className={`w-full sm:w-auto justify-center border text-xs font-bold px-3.5 py-2.5 rounded-xl flex items-center gap-2 cursor-pointer shadow-2xs shrink-0 active:scale-95 transition-all ${
+                  className={`w-full sm:w-auto justify-center border text-xs font-bold px-3 py-1.5 rounded-lg flex items-center gap-1.5 cursor-pointer shrink-0 active:scale-95 transition-all ${
                     canManageOptions
                       ? 'bg-amber-50 hover:bg-amber-100 text-amber-900 border-amber-300'
                       : 'bg-stone-100 text-stone-400 border-stone-200 opacity-75'
@@ -3400,7 +3397,7 @@ export default function AdminDashboardPage() {
                 </button>
                 <button
                   onClick={openAddProductModal}
-                  className={`w-full sm:w-auto justify-center text-xs font-semibold px-4 py-2.5 rounded-xl flex items-center gap-2 cursor-pointer shadow-xs shrink-0 active:scale-95 transition-all ${
+                  className={`w-full sm:w-auto justify-center text-xs font-semibold px-3 py-1.5 rounded-lg flex items-center gap-1.5 cursor-pointer shrink-0 active:scale-95 transition-all ${
                     canAddProduct
                       ? 'bg-brand-600 hover:bg-brand-700 text-white'
                       : 'bg-stone-200 text-stone-500 opacity-80'
@@ -3578,158 +3575,141 @@ export default function AdminDashboardPage() {
 
         {/* TAB 3: GERİ BİLDİRİMLER & MÜŞTERİ DEĞERLENDİRMELERİ ONAY MERKEZİ */}
         {currentTab === 'reviews' && (
-          <div className="p-3 sm:p-6 lg:p-8 space-y-4 sm:space-y-6 w-full min-w-0 font-poppins animate-in fade-in duration-150">
-            {/* 1. BAŞLIK VE ÖZET METRİKLER */}
-            <div className="bg-white p-4 sm:p-5 rounded-2xl border border-stone-200 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <div>
-                <h2 className="text-base sm:text-lg font-bold text-stone-900 flex items-center gap-2">
-                  <i className="fa-regular fa-star text-amber-500"></i>
-                  <span>Müşteri Geri Bildirimleri &amp; Onay Yönetimi</span>
-                </h2>
-                <p className="text-xs text-stone-500 mt-0.5">
-                  Müşterilerin web sitesinden gönderdiği değerlendirmeleri onaylayın, yayından kaldırın veya silin.
-                </p>
-              </div>
-
-              <div className="flex items-center gap-2 shrink-0">
+          <div className="p-2.5 sm:p-4 lg:p-5 space-y-3 w-full min-w-0 font-poppins animate-in fade-in duration-150">
+            {/* 1. TEK SATIR KOMPAKT BAŞLIK + ALT SEKMELER */}
+            <div className="bg-white px-2.5 py-2 rounded-xl border border-stone-200/90 shadow-2xs flex flex-wrap items-center justify-between gap-2">
+              <div className="flex items-center gap-1 overflow-x-auto scrollbar-none">
                 <button
                   type="button"
-                  onClick={() => {
-                    fetchReviews();
-                    fetchFeedbacks();
-                  }}
-                  disabled={loadingReviews || loadingFeedbacks}
-                  className="bg-stone-100 hover:bg-stone-200 text-stone-700 font-semibold px-3 py-2 rounded-xl text-xs flex items-center gap-1.5 transition-colors cursor-pointer"
-                  title="Yenile"
+                  onClick={() => setReviewsSubTab('reviews')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer whitespace-nowrap ${
+                    reviewsSubTab === 'reviews'
+                      ? 'bg-brand-600 text-white shadow-2xs'
+                      : 'text-stone-600 hover:bg-stone-100 hover:text-stone-900'
+                  }`}
                 >
-                  <i className={`fa-solid fa-arrows-rotate text-xs ${loadingReviews || loadingFeedbacks ? 'fa-spin text-brand-600' : ''}`}></i>
-                  <span>Yenile</span>
+                  <i className="fa-regular fa-star"></i>
+                  <span>Restoran Yorumları ({adminReviews.length})</span>
+                  {adminReviews.filter((r) => r.isApproved !== true).length > 0 && (
+                    <span className="px-1.5 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-500 text-white animate-pulse">
+                      {adminReviews.filter((r) => r.isApproved !== true).length} Yeni
+                    </span>
+                  )}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setReviewsSubTab('feedbacks')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer whitespace-nowrap ${
+                    reviewsSubTab === 'feedbacks'
+                      ? 'bg-brand-600 text-white shadow-2xs'
+                      : 'text-stone-600 hover:bg-stone-100 hover:text-stone-900'
+                  }`}
+                >
+                  <i className="fa-regular fa-envelope"></i>
+                  <span>İletişim Mesajları ({adminFeedbacks.length})</span>
+                  {adminFeedbacks.length > 0 && (
+                    <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-extrabold ${
+                      reviewsSubTab === 'feedbacks' ? 'bg-white/20 text-white' : 'bg-blue-100 text-blue-800'
+                    }`}>
+                      {adminFeedbacks.length}
+                    </span>
+                  )}
                 </button>
               </div>
-            </div>
-
-            {/* ALT SEKMELER: Müşteri Değerlendirmeleri & İletişim / Şikayet / Öneri Mesajları */}
-            <div className="flex border-b border-stone-200 gap-2 overflow-x-auto">
-              <button
-                type="button"
-                onClick={() => setReviewsSubTab('reviews')}
-                className={`pb-3 px-4 text-xs font-bold transition-all border-b-2 flex items-center gap-2 cursor-pointer whitespace-nowrap ${
-                  reviewsSubTab === 'reviews'
-                    ? 'border-brand-500 text-brand-600'
-                    : 'border-transparent text-stone-500 hover:text-stone-800'
-                }`}
-              >
-                <i className="fa-regular fa-star"></i>
-                <span>Restoran Yorumları &amp; Puanlar ({adminReviews.length})</span>
-                {adminReviews.filter((r) => r.isApproved !== true).length > 0 && (
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-500 text-white animate-pulse">
-                    {adminReviews.filter((r) => r.isApproved !== true).length} Yeni Onay
-                  </span>
-                )}
-              </button>
 
               <button
                 type="button"
-                onClick={() => setReviewsSubTab('feedbacks')}
-                className={`pb-3 px-4 text-xs font-bold transition-all border-b-2 flex items-center gap-2 cursor-pointer whitespace-nowrap ${
-                  reviewsSubTab === 'feedbacks'
-                    ? 'border-brand-500 text-brand-600'
-                    : 'border-transparent text-stone-500 hover:text-stone-800'
-                }`}
+                onClick={() => {
+                  fetchReviews();
+                  fetchFeedbacks();
+                }}
+                disabled={loadingReviews || loadingFeedbacks}
+                className="bg-stone-100 hover:bg-stone-200 text-stone-700 font-semibold px-2.5 py-1.5 rounded-lg text-xs flex items-center gap-1.5 transition-colors cursor-pointer shrink-0 ml-auto"
+                title="Yenile"
               >
-                <i className="fa-regular fa-envelope"></i>
-                <span>İletişim &amp; Öneri Mesajları ({adminFeedbacks.length})</span>
-                {adminFeedbacks.length > 0 && (
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-blue-100 text-blue-800">
-                    {adminFeedbacks.length}
-                  </span>
-                )}
+                <i className={`fa-solid fa-arrows-rotate text-[11px] ${loadingReviews || loadingFeedbacks ? 'fa-spin text-brand-600' : ''}`}></i>
+                <span>Yenile</span>
               </button>
             </div>
 
             {reviewsSubTab === 'reviews' && (
-              <div className="space-y-4 sm:space-y-6">
+              <div className="space-y-2.5">
 
-            {/* 2. DURUM KARTLARI */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-              {/* Toplam Yorum */}
-              <div className="bg-white p-3.5 sm:p-4 rounded-2xl border border-stone-200 shadow-xs">
-                <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-bold text-stone-500 uppercase tracking-wider">Toplam Yorum</span>
-                  <span className="w-7 h-7 rounded-lg bg-stone-100 text-stone-600 flex items-center justify-center text-xs">
-                    <i className="fa-regular fa-comments"></i>
-                  </span>
+            {/* 2. DURUM KARTLARI (KOMPAKT) */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5">
+              <div className="bg-white px-3 py-2 rounded-xl border border-stone-200/90 shadow-2xs flex items-center justify-between gap-2">
+                <div>
+                  <span className="text-[10px] font-bold text-stone-500 uppercase tracking-wider block">Toplam Yorum</span>
+                  <span className="text-lg font-black text-stone-900">{adminReviews.length}</span>
                 </div>
-                <div className="text-xl sm:text-2xl font-black text-stone-900 mt-1">
-                  {adminReviews.length}
-                </div>
+                <span className="w-7 h-7 rounded-lg bg-stone-100 text-stone-600 flex items-center justify-center text-xs shrink-0">
+                  <i className="fa-regular fa-comments"></i>
+                </span>
               </div>
 
-              {/* Onay Bekleyen */}
-              <div className={`p-3.5 sm:p-4 rounded-2xl border shadow-xs ${
+              <div className={`px-3 py-2 rounded-xl border shadow-2xs flex items-center justify-between gap-2 ${
                 adminReviews.filter((r) => r.isApproved !== true).length > 0
                   ? 'bg-amber-50/60 border-amber-300'
-                  : 'bg-white border-stone-200'
+                  : 'bg-white border-stone-200/90'
               }`}>
-                <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-bold text-amber-800 uppercase tracking-wider flex items-center gap-1">
+                <div>
+                  <span className="text-[10px] font-bold text-amber-800 uppercase tracking-wider flex items-center gap-1">
                     <span>Onay Bekleyen</span>
                     {adminReviews.filter((r) => r.isApproved !== true).length > 0 && (
-                      <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
+                      <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
                     )}
                   </span>
-                  <span className="w-7 h-7 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center text-xs font-bold">
-                    <i className="fa-solid fa-clock"></i>
+                  <span className="text-lg font-black text-amber-900">
+                    {adminReviews.filter((r) => r.isApproved !== true).length}
                   </span>
                 </div>
-                <div className="text-xl sm:text-2xl font-black text-amber-900 mt-1">
-                  {adminReviews.filter((r) => r.isApproved !== true).length}
-                </div>
+                <span className="w-7 h-7 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center text-xs shrink-0">
+                  <i className="fa-solid fa-clock"></i>
+                </span>
               </div>
 
-              {/* Sitede Yayında */}
-              <div className="bg-white p-3.5 sm:p-4 rounded-2xl border border-stone-200 shadow-xs">
-                <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-bold text-emerald-700 uppercase tracking-wider">Sitede Yayında</span>
-                  <span className="w-7 h-7 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center text-xs">
-                    <i className="fa-solid fa-circle-check"></i>
+              <div className="bg-white px-3 py-2 rounded-xl border border-stone-200/90 shadow-2xs flex items-center justify-between gap-2">
+                <div>
+                  <span className="text-[10px] font-bold text-emerald-700 uppercase tracking-wider block">Sitede Yayında</span>
+                  <span className="text-lg font-black text-emerald-900">
+                    {adminReviews.filter((r) => r.isApproved === true).length}
                   </span>
                 </div>
-                <div className="text-xl sm:text-2xl font-black text-emerald-900 mt-1">
-                  {adminReviews.filter((r) => r.isApproved === true).length}
-                </div>
+                <span className="w-7 h-7 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center text-xs shrink-0">
+                  <i className="fa-solid fa-circle-check"></i>
+                </span>
               </div>
 
-              {/* Ortalama Puan */}
-              <div className="bg-white p-3.5 sm:p-4 rounded-2xl border border-stone-200 shadow-xs">
-                <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-bold text-stone-500 uppercase tracking-wider">Ortalama Puan</span>
-                  <span className="w-7 h-7 rounded-lg bg-amber-100 text-amber-600 flex items-center justify-center text-xs">
-                    <i className="fa-solid fa-star"></i>
-                  </span>
+              <div className="bg-white px-3 py-2 rounded-xl border border-stone-200/90 shadow-2xs flex items-center justify-between gap-2">
+                <div>
+                  <span className="text-[10px] font-bold text-stone-500 uppercase tracking-wider block">Ortalama Puan</span>
+                  <div className="text-lg font-black text-stone-900 flex items-baseline gap-1">
+                    <span>
+                      {adminReviews.length > 0
+                        ? (
+                            adminReviews.reduce((sum, r) => sum + (Number(r.rating) || 5), 0) /
+                            adminReviews.length
+                          ).toFixed(1)
+                        : '5.0'}
+                    </span>
+                    <span className="text-[11px] text-stone-400 font-semibold">/ 5.0</span>
+                  </div>
                 </div>
-                <div className="text-xl sm:text-2xl font-black text-stone-900 mt-1 flex items-baseline gap-1">
-                  <span>
-                    {adminReviews.length > 0
-                      ? (
-                          adminReviews.reduce((sum, r) => sum + (Number(r.rating) || 5), 0) /
-                          adminReviews.length
-                        ).toFixed(1)
-                      : '5.0'}
-                  </span>
-                  <span className="text-xs text-stone-400 font-semibold">/ 5.0</span>
-                </div>
+                <span className="w-7 h-7 rounded-lg bg-amber-100 text-amber-600 flex items-center justify-center text-xs shrink-0">
+                  <i className="fa-solid fa-star"></i>
+                </span>
               </div>
             </div>
 
             {/* 3. FİLTRE VE ARAMA ÇUBUĞU */}
-            <div className="bg-white p-3 sm:p-4 rounded-2xl border border-stone-200 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="bg-white p-2.5 rounded-xl border border-stone-200/90 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
               {/* Filtre Butonları */}
               <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
                 <button
                   type="button"
                   onClick={() => setReviewFilter('all')}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
+                  className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
                     reviewFilter === 'all'
                       ? 'bg-stone-900 text-white shadow-2xs'
                       : 'bg-stone-100 text-stone-600 hover:bg-stone-200'
@@ -3740,7 +3720,7 @@ export default function AdminDashboardPage() {
                 <button
                   type="button"
                   onClick={() => setReviewFilter('pending')}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
+                  className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
                     reviewFilter === 'pending'
                       ? 'bg-amber-600 text-white shadow-2xs'
                       : 'bg-amber-50 text-amber-800 hover:bg-amber-100'
@@ -3754,7 +3734,7 @@ export default function AdminDashboardPage() {
                 <button
                   type="button"
                   onClick={() => setReviewFilter('approved')}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
+                  className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
                     reviewFilter === 'approved'
                       ? 'bg-emerald-700 text-white shadow-2xs'
                       : 'bg-emerald-50 text-emerald-800 hover:bg-emerald-100'
@@ -4227,14 +4207,14 @@ export default function AdminDashboardPage() {
 
         {/* TAB 4: KULLANICI İŞLEM & GÜVENLİK LOGLARI */}
         {currentTab === 'logs' && (
-          <div className="p-3 sm:p-6 lg:p-8 w-full min-w-0">
+          <div className="p-2.5 sm:p-4 lg:p-5 w-full min-w-0">
             <ActivityLogsTab showToast={showToast} currentAdmin={adminUser} />
           </div>
         )}
 
         {/* TAB 5: MÜŞTERİ SAYFASI TASARIM & İÇERİK YÖNETİMİ */}
         {currentTab === 'site_content' && (
-          <div className="p-3 sm:p-6 lg:p-8 w-full min-w-0">
+          <div className="p-2.5 sm:p-4 lg:p-5 w-full min-w-0">
             <SiteContentEditorTab
               initialSubTab={selectedSiteContentSubTab}
               onSubTabChange={setSelectedSiteContentSubTab}

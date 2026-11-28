@@ -365,7 +365,7 @@ export default function OverviewDashboard({
   const latestNewOrder = newOrders[0] || null;
 
   return (
-    <div className="p-3 sm:p-6 lg:p-8 space-y-4 sm:space-y-6 w-full min-w-0 animate-in fade-in duration-200">
+    <div className="p-2.5 sm:p-4 lg:p-5 space-y-3 w-full min-w-0 animate-in fade-in duration-200">
       {/* KEYFRAME ANIMASYONLARI: SİPARİŞ GELDİĞİNDE ŞİŞİP KÜÇÜLEN CANLI NABIZ UYARISI */}
       <style jsx>{`
         @keyframes orderInflate {
@@ -394,45 +394,21 @@ export default function OverviewDashboard({
         }
       `}</style>
 
-      {/* TOP BAR: DATE FILTERS & QUICK ACTIONS */}
-      <div className="flex flex-col gap-3 bg-white p-3.5 sm:p-4 rounded-2xl border border-stone-200 shadow-xs">
-        <div className="flex flex-wrap items-center justify-between gap-2.5">
-          <div className="min-w-0">
-            <h2 className="text-sm sm:text-lg font-bold text-stone-900 flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-brand-500 animate-pulse shrink-0"></span>
-              <span className="truncate">Operasyonel Genel Bakış & Sipariş Akışı</span>
-            </h2>
-            <p className="text-[11px] sm:text-xs text-stone-500 mt-0.5 line-clamp-1">
-              Gerçek zamanlı sipariş akışı, teslimat durumu ve ürün hareketleri.
-            </p>
-          </div>
-
-          {/* Quick Report Actions */}
-          <div className="flex items-center gap-1.5 shrink-0">
-            {onExportCsv && (
-              <button
-                type="button"
-                onClick={onExportCsv}
-                className="bg-stone-50 hover:bg-stone-100 text-stone-700 border border-stone-200 px-2.5 sm:px-3 py-1.5 rounded-xl text-[11px] sm:text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer shadow-2xs"
-                title="Siparişleri Excel / CSV Olarak İndir"
-              >
-                <i className="fa-solid fa-file-excel text-emerald-600"></i>
-                <span>Excel İndir</span>
-              </button>
-            )}
-          </div>
+      {/* TOP BAR: KOMPAKT BAŞLIK + TARİH SEKMELERİ + EXCEL */}
+      <div className="bg-white px-3 py-2 rounded-xl border border-stone-200/90 shadow-2xs flex flex-wrap items-center justify-between gap-2">
+        <div className="flex items-center gap-2 min-w-0">
+          <span className="w-2 h-2 rounded-full bg-brand-500 animate-pulse shrink-0"></span>
+          <h2 className="text-xs sm:text-sm font-extrabold text-stone-900 truncate">
+            Operasyon Özeti
+          </h2>
         </div>
 
-        {/* Date Filter Tabs (Mobile Dropdown / Desktop Pills) */}
         {/* MOBİL: Tarih Aralığı Açılır Menü */}
         <div className="sm:hidden w-full">
-          <label className="text-[10px] font-extrabold text-stone-500 uppercase tracking-wider block mb-1">
-            Zaman Aralığı Filtresi
-          </label>
           <select
             value={dateFilter}
             onChange={(e) => setDateFilter(e.target.value)}
-            className="app-select w-full bg-stone-50 hover:bg-white border border-stone-300 hover:border-brand-500 text-stone-900 text-xs font-bold rounded-2xl px-4 py-3 cursor-pointer shadow-xs focus:ring-3 focus:ring-brand-500/15"
+            className="app-select w-full bg-stone-50 hover:bg-white border border-stone-300 hover:border-brand-500 text-stone-900 text-xs font-bold rounded-xl px-3 py-2 cursor-pointer shadow-2xs"
           >
             <option value="today">📅 Bugün</option>
             <option value="yesterday">📅 Dün</option>
@@ -443,28 +419,42 @@ export default function OverviewDashboard({
           </select>
         </div>
 
-        {/* MASAÜSTÜ: Yatay Buton Sekmeleri */}
-        <div className="hidden sm:flex items-center gap-1.5 bg-stone-100 p-1 rounded-xl w-full flex-wrap">
-          {[
-            { id: 'today', label: 'Bugün' },
-            { id: 'yesterday', label: 'Dün' },
-            { id: 'last7', label: 'Son 7 Gün' },
-            { id: 'last30', label: 'Son 30 Gün' },
-            { id: 'all', label: 'Tüm Zamanlar' },
-            { id: 'custom', label: 'Özel Aralık' },
-          ].map((tab) => (
+        {/* MASAÜSTÜ: Yatay Sekmeler + Excel */}
+        <div className="flex items-center gap-2 ml-auto">
+          <div className="hidden sm:flex items-center gap-0.5 bg-stone-100 p-0.5 rounded-lg">
+            {[
+              { id: 'today', label: 'Bugün' },
+              { id: 'yesterday', label: 'Dün' },
+              { id: 'last7', label: 'Son 7 Gün' },
+              { id: 'last30', label: 'Son 30 Gün' },
+              { id: 'all', label: 'Tüm Zamanlar' },
+              { id: 'custom', label: 'Özel' },
+            ].map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setDateFilter(tab.id)}
+                className={`px-2.5 py-1 rounded-md text-xs font-semibold transition-all cursor-pointer whitespace-nowrap shrink-0 ${
+                  dateFilter === tab.id
+                    ? 'bg-brand-600 text-white shadow-2xs'
+                    : 'text-stone-600 hover:text-stone-900 hover:bg-stone-200/60'
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+
+          {onExportCsv && (
             <button
-              key={tab.id}
-              onClick={() => setDateFilter(tab.id)}
-              className={`flex-1 sm:flex-none px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer whitespace-nowrap shrink-0 text-center ${
-                dateFilter === tab.id
-                  ? 'bg-stone-900 text-white shadow-xs'
-                  : 'text-stone-600 hover:text-stone-900 hover:bg-stone-200/60'
-              }`}
+              type="button"
+              onClick={onExportCsv}
+              className="bg-stone-50 hover:bg-stone-100 text-stone-700 border border-stone-200 px-2.5 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer shrink-0"
+              title="Siparişleri Excel / CSV Olarak İndir"
             >
-              {tab.label}
+              <i className="fa-solid fa-file-excel text-emerald-600"></i>
+              <span>Excel</span>
             </button>
-          ))}
+          )}
         </div>
       </div>
 

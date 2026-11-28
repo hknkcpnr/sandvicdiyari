@@ -537,57 +537,52 @@ export default function OptionsManagementTab() {
   const activeExtrasCount = extras.filter((e) => e.isAvailable !== false).length;
 
   return (
-    <div className="p-3 sm:p-6 space-y-4 w-full min-w-0 font-poppins animate-in fade-in duration-200">
+    <div className="p-2.5 sm:p-4 lg:p-5 space-y-3 w-full min-w-0 font-poppins animate-in fade-in duration-200">
       {/* 1. MİNİMAL ÜST BAŞLIK & ÖZET */}
-      <div className="bg-white p-4 rounded-2xl border border-stone-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div className="space-y-1">
-          <h2 className="text-base sm:text-lg font-extrabold text-stone-900">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <h2 className="text-sm font-extrabold text-stone-900">
             Soslar &amp; Ekstralar
           </h2>
-          <div className="flex flex-wrap items-center gap-2 text-[11px] font-semibold text-stone-500">
-            <span className="inline-flex items-center gap-1.5 bg-stone-100 text-stone-700 px-2.5 py-0.5 rounded-full">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-              Soslar: {activeSaucesCount}/{sauces.length} açık
-            </span>
-            <span className="inline-flex items-center gap-1.5 bg-stone-100 text-stone-700 px-2.5 py-0.5 rounded-full">
-              <span className="w-1.5 h-1.5 rounded-full bg-orange-500"></span>
-              Ekstralar: {activeExtrasCount}/{extras.length} açık
-            </span>
-            <span className="inline-flex items-center gap-1.5 bg-amber-50 text-amber-800 border border-amber-200/70 px-2.5 py-0.5 rounded-full">
-              Kota:{' '}
-              {freeSauceLimit > 0
-                ? `${freeSauceLimit} bedava${extraSaucePrice > 0 ? ` (+₺${extraSaucePrice})` : ''}`
-                : `Tümü +₺${extraSaucePrice}`}
-            </span>
-          </div>
+          <span className="inline-flex items-center gap-1 bg-white border border-stone-200/80 text-stone-700 px-2 py-0.5 rounded-full text-[11px] font-semibold">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+            Sos: {activeSaucesCount}/{sauces.length}
+          </span>
+          <span className="inline-flex items-center gap-1 bg-white border border-stone-200/80 text-stone-700 px-2 py-0.5 rounded-full text-[11px] font-semibold">
+            <span className="w-1.5 h-1.5 rounded-full bg-orange-500"></span>
+            Ekstra: {activeExtrasCount}/{extras.length}
+          </span>
+          <span className="inline-flex items-center bg-amber-50 text-amber-800 border border-amber-200/70 px-2 py-0.5 rounded-full text-[11px] font-semibold">
+            Kota: {freeSauceLimit > 0 ? `${freeSauceLimit} bedava${extraSaucePrice > 0 ? ` (+₺${extraSaucePrice})` : ''}` : `Tümü +₺${extraSaucePrice}`}
+          </span>
         </div>
 
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex items-center gap-1.5 shrink-0">
           <button
             type="button"
             onClick={() => fetchOptions(true)}
             disabled={loading}
-            className="bg-stone-50 hover:bg-stone-100 text-stone-700 text-xs font-semibold px-3 py-2 rounded-xl flex items-center gap-1.5 transition-colors cursor-pointer border border-stone-200"
+            className="bg-white hover:bg-stone-100 text-stone-700 text-xs font-semibold px-2.5 py-1.5 rounded-lg flex items-center gap-1.5 transition-colors cursor-pointer border border-stone-200"
             title="Yenile"
           >
-            <i className={`fa-solid fa-arrows-rotate text-xs ${loading ? 'animate-spin' : ''}`}></i>
+            <i className={`fa-solid fa-arrows-rotate text-[11px] ${loading ? 'animate-spin' : ''}`}></i>
             <span>Yenile</span>
           </button>
           <button
             type="button"
             onClick={handleResetDefaults}
             disabled={saving}
-            className="bg-stone-50 hover:bg-stone-100 text-stone-600 hover:text-stone-900 text-xs font-semibold px-3 py-2 rounded-xl flex items-center gap-1.5 transition-colors cursor-pointer border border-stone-200"
+            className="bg-white hover:bg-stone-100 text-stone-600 hover:text-stone-900 text-xs font-semibold px-2.5 py-1.5 rounded-lg flex items-center gap-1.5 transition-colors cursor-pointer border border-stone-200"
             title="Varsayılanlara Sıfırla"
           >
-            <i className="fa-solid fa-clock-rotate-left text-xs"></i>
+            <i className="fa-solid fa-clock-rotate-left text-[11px]"></i>
             <span className="hidden sm:inline">Varsayılanlar</span>
           </button>
         </div>
       </div>
 
       {/* 2. KONTROL BARI & SEKMELER */}
-      <div className="bg-white p-3 rounded-2xl border border-stone-200 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-2.5">
+      <div className="bg-white p-2 rounded-xl border border-stone-200/90 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-2">
         <div className="flex items-center gap-1 bg-stone-100 p-1 rounded-xl">
           <button
             type="button"

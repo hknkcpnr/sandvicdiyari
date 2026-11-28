@@ -374,35 +374,30 @@ export default function InventoryTab({ products = [], onRefreshProducts, canUpda
   ];
 
   return (
-    <div className="p-3 sm:p-6 lg:p-8 space-y-4 sm:space-y-6 w-full min-w-0 font-poppins">
-      {/* 1. BAŞLIK VE HIZLI EYLEMLER (Sade & Doğal) */}
-      <div className="bg-white p-4 sm:p-5 rounded-2xl border border-stone-200 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div className="min-w-0">
-          <div className="flex items-center gap-2">
-            <h2 className="text-base sm:text-lg font-bold text-stone-900 truncate">
-              Stok &amp; Satış Yönetimi
-            </h2>
-            {summary.closedCount > 0 ? (
-              <span className="text-[11px] font-bold text-rose-700 bg-rose-50 border border-rose-200 px-2.5 py-0.5 rounded-full shrink-0">
-                {summary.closedCount} Ürün Tükendi
-              </span>
-            ) : (
-              <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-full shrink-0">
-                Tüm Ürünler Satışta
-              </span>
-            )}
-          </div>
-          <p className="text-xs text-stone-500 mt-0.5">
-            Ürün stok durumlarını inceleyebilir, satışa açma/kapatma işlemlerini yönetebilirsiniz.
-          </p>
+    <div className="p-2.5 sm:p-4 lg:p-5 space-y-3 w-full min-w-0 font-poppins">
+      {/* 1. MİNİMAL BAŞLIK & HIZLI EYLEMLER */}
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex items-center gap-2 min-w-0">
+          <h2 className="text-sm font-extrabold text-stone-900 truncate">
+            Stok &amp; Satış
+          </h2>
+          {summary.closedCount > 0 ? (
+            <span className="text-[10px] font-bold text-rose-700 bg-rose-50 border border-rose-200 px-2 py-0.5 rounded-full shrink-0">
+              {summary.closedCount} Tükendi
+            </span>
+          ) : (
+            <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full shrink-0">
+              Tümü Satışta
+            </span>
+          )}
         </div>
 
         {/* Quick Bulk Actions */}
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex items-center gap-1.5 shrink-0">
           <button
             type="button"
             onClick={() => handleBulkAction('set_all_available')}
-            className="bg-stone-900 hover:bg-stone-800 text-white font-medium px-3.5 py-2 rounded-xl text-xs transition-colors cursor-pointer flex items-center gap-1.5 active:scale-95 shadow-2xs"
+            className="bg-stone-900 hover:bg-stone-800 text-white font-semibold px-2.5 py-1.5 rounded-lg text-xs transition-colors cursor-pointer flex items-center gap-1.5 active:scale-95"
             title="Tüm ürünleri satışa açar"
           >
             <i className="fa-solid fa-circle-check text-emerald-400"></i>
@@ -411,7 +406,7 @@ export default function InventoryTab({ products = [], onRefreshProducts, canUpda
           <button
             type="button"
             onClick={() => handleBulkAction('refill_all', 20)}
-            className="bg-stone-100 hover:bg-stone-200 text-stone-700 font-medium px-3.5 py-2 rounded-xl text-xs transition-colors cursor-pointer flex items-center gap-1.5 border border-stone-200 active:scale-95"
+            className="bg-white hover:bg-stone-100 text-stone-700 font-semibold px-2.5 py-1.5 rounded-lg text-xs transition-colors cursor-pointer flex items-center gap-1 border border-stone-200 active:scale-95"
             title="Tüm ürünlerin stoğuna +20 adet ekler"
           >
             <i className="fa-solid fa-plus text-stone-500"></i>
@@ -420,7 +415,7 @@ export default function InventoryTab({ products = [], onRefreshProducts, canUpda
           <button
             type="button"
             onClick={() => fetchInventory(true)}
-            className="w-8 h-8 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-600 border border-stone-200 flex items-center justify-center text-xs transition-colors cursor-pointer"
+            className="w-7 h-7 rounded-lg bg-white hover:bg-stone-100 text-stone-600 border border-stone-200 flex items-center justify-center text-xs transition-colors cursor-pointer"
             title="Listeyi Yenile"
           >
             <i className={`fa-solid fa-rotate-right ${loading ? 'fa-spin text-stone-900' : ''}`}></i>
@@ -428,85 +423,55 @@ export default function InventoryTab({ products = [], onRefreshProducts, canUpda
         </div>
       </div>
 
-      {/* 2. KPI METRICS (4 SADE KART) */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-4">
-        {/* Toplam Ürün */}
-        <div className="bg-white p-3.5 sm:p-5 rounded-2xl border border-stone-200 shadow-xs flex flex-col justify-between">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold text-stone-500 uppercase tracking-wider">Toplam Menü / Ürün</span>
-            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-stone-100 flex items-center justify-center text-stone-700 text-xs font-bold">
-              <i className="fa-solid fa-burger"></i>
-            </div>
+      {/* 2. KPI METRICS (KOMPAKT TEK SATIR KARTLAR) */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+        <div className="bg-white px-3 py-2 rounded-xl border border-stone-200/90 shadow-2xs flex items-center justify-between gap-2">
+          <div>
+            <span className="text-[10px] font-bold text-stone-500 uppercase tracking-wider block">Toplam Ürün</span>
+            <span className="text-lg sm:text-xl font-black text-stone-900">{summary.total}</span>
           </div>
-          <div className="mt-2.5">
-            <div className="flex items-baseline gap-1.5">
-              <span className="text-xl sm:text-3xl font-black text-stone-900">{summary.total}</span>
-              <span className="text-xs text-stone-500 font-medium">Çeşit</span>
-            </div>
-            <span className="text-[10px] sm:text-[11px] text-stone-400 block mt-0.5">Kayıtlı ürün sayısı</span>
+          <div className="w-7 h-7 rounded-lg bg-stone-100 flex items-center justify-center text-stone-700 text-xs shrink-0">
+            <i className="fa-solid fa-burger"></i>
           </div>
         </div>
 
-        {/* Satışta Olanlar */}
-        <div className="bg-white p-3.5 sm:p-5 rounded-2xl border border-stone-200 shadow-xs flex flex-col justify-between">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold text-emerald-700 uppercase tracking-wider">Satışta Açık</span>
-            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-xs font-bold">
-              <i className="fa-solid fa-circle-check"></i>
-            </div>
+        <div className="bg-white px-3 py-2 rounded-xl border border-stone-200/90 shadow-2xs flex items-center justify-between gap-2">
+          <div>
+            <span className="text-[10px] font-bold text-emerald-700 uppercase tracking-wider block">Satışta Açık</span>
+            <span className="text-lg sm:text-xl font-black text-emerald-600">{summary.inStock}</span>
           </div>
-          <div className="mt-2.5">
-            <div className="flex items-baseline gap-1.5">
-              <span className="text-xl sm:text-3xl font-black text-emerald-600">{summary.inStock}</span>
-              <span className="text-xs text-emerald-600 font-medium">Ürün</span>
-            </div>
-            <span className="text-[10px] sm:text-[11px] text-stone-400 block mt-0.5">Sipariş verilebilir</span>
+          <div className="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center text-xs shrink-0">
+            <i className="fa-solid fa-circle-check"></i>
           </div>
         </div>
 
-        {/* Kritik Seviye */}
-        <div className="bg-white p-3.5 sm:p-5 rounded-2xl border border-stone-200 shadow-xs flex flex-col justify-between">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold text-amber-700 uppercase tracking-wider">Kritik Seviye</span>
-            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center text-xs font-bold">
-              <i className="fa-solid fa-triangle-exclamation"></i>
-            </div>
+        <div className="bg-white px-3 py-2 rounded-xl border border-stone-200/90 shadow-2xs flex items-center justify-between gap-2">
+          <div>
+            <span className="text-[10px] font-bold text-amber-700 uppercase tracking-wider block">Kritik (&le;5)</span>
+            <span className="text-lg sm:text-xl font-black text-amber-600">{summary.lowStock}</span>
           </div>
-          <div className="mt-2.5">
-            <div className="flex items-baseline gap-1.5">
-              <span className="text-xl sm:text-3xl font-black text-amber-600">{summary.lowStock}</span>
-              <span className="text-xs text-amber-600 font-medium">Ürün</span>
-            </div>
-            <span className="text-[10px] sm:text-[11px] text-stone-400 block mt-0.5">&le; 5 adet kalanlar</span>
+          <div className="w-7 h-7 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center text-xs shrink-0">
+            <i className="fa-solid fa-triangle-exclamation"></i>
           </div>
         </div>
 
-        {/* Tükendi / Kapalı */}
-        <div className="bg-white p-3.5 sm:p-5 rounded-2xl border border-stone-200 shadow-xs flex flex-col justify-between">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold text-rose-700 uppercase tracking-wider">Tükendi / Kapalı</span>
-            <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-xl flex items-center justify-center text-xs font-bold ${
-              summary.outOfStock > 0 ? 'bg-rose-100 text-rose-600 animate-pulse' : 'bg-stone-100 text-stone-500'
-            }`}>
-              <i className="fa-solid fa-ban"></i>
-            </div>
+        <div className="bg-white px-3 py-2 rounded-xl border border-stone-200/90 shadow-2xs flex items-center justify-between gap-2">
+          <div>
+            <span className="text-[10px] font-bold text-rose-700 uppercase tracking-wider block">Tükendi / Kapalı</span>
+            <span className={`text-lg sm:text-xl font-black ${summary.outOfStock > 0 ? 'text-rose-600' : 'text-stone-900'}`}>
+              {summary.outOfStock}
+            </span>
           </div>
-          <div className="mt-2.5">
-            <div className="flex items-baseline gap-1.5">
-              <span className={`text-xl sm:text-3xl font-black ${
-                summary.outOfStock > 0 ? 'text-rose-600' : 'text-stone-900'
-              }`}>
-                {summary.outOfStock}
-              </span>
-              <span className="text-xs text-rose-600 font-medium">Ürün</span>
-            </div>
-            <span className="text-[10px] sm:text-[11px] text-stone-400 block mt-0.5">Siparişe kapalı olanlar</span>
+          <div className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs shrink-0 ${
+            summary.outOfStock > 0 ? 'bg-rose-100 text-rose-600 animate-pulse' : 'bg-stone-100 text-stone-500'
+          }`}>
+            <i className="fa-solid fa-ban"></i>
           </div>
         </div>
       </div>
 
       {/* 3. FILTERS & SEARCH */}
-      <div className="bg-white p-3 sm:p-4 rounded-2xl border border-stone-200 shadow-xs space-y-3">
+      <div className="bg-white p-2.5 rounded-xl border border-stone-200/90 shadow-2xs space-y-2">
         <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-2.5">
           {/* Search Box */}
           <div className="relative w-full md:w-80">

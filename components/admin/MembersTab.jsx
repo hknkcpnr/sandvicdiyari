@@ -579,39 +579,36 @@ export default function MembersTab({ onCustomerUpdated }) {
   };
 
   return (
-    <div className="p-3 sm:p-6 lg:p-8 space-y-5 sm:space-y-6 w-full min-w-0 font-poppins animate-in fade-in duration-200">
-      {/* 1. ÜST BAŞLIK VE ÖZET METRİKLER */}
-      <div className="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-4 bg-white p-4 sm:p-5 rounded-2xl border border-stone-200 shadow-2xs">
-        <div>
-          <h2 className="text-lg sm:text-xl font-extrabold text-stone-900 flex items-center gap-2">
-            <span className="w-8 h-8 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center text-sm">
-              <i className="fa-solid fa-users"></i>
-            </span>
-            <span>Kayıtlı Üye & Müşteri Yönetimi</span>
+    <div className="p-2.5 sm:p-4 lg:p-5 space-y-3 w-full min-w-0 font-poppins animate-in fade-in duration-200">
+      {/* 1. MİNİMAL ÜST BAŞLIK & AKSİYONLAR */}
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex items-center gap-2 min-w-0">
+          <span className="w-7 h-7 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center text-xs shrink-0">
+            <i className="fa-solid fa-users"></i>
+          </span>
+          <h2 className="text-sm font-extrabold text-stone-900 truncate">
+            Üyeler &amp; Müşteriler
           </h2>
-          <p className="text-xs text-stone-500 mt-1">
-            Yeni müşteri ekleyin, WhatsApp onay taleplerini tek tıkla onaylayın, düzenleyin veya oturumlarını yönetin.
-          </p>
         </div>
 
         {/* Üst Aksiyon Butonları */}
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 shrink-0">
+        <div className="flex items-center gap-1.5 shrink-0">
           <button
             type="button"
             onClick={handleOpenAddCustomer}
-            className="bg-stone-900 hover:bg-black active:scale-98 text-white font-bold text-xs sm:text-sm px-4 py-2.5 rounded-xl transition-all shadow-sm flex items-center justify-center gap-2 cursor-pointer"
+            className="bg-stone-900 hover:bg-black active:scale-98 text-white font-bold text-xs px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 cursor-pointer"
           >
             <i className="fa-solid fa-user-plus text-emerald-400"></i>
-            <span>+ Yeni Müşteri Ekle</span>
+            <span>+ Yeni Müşteri</span>
           </button>
 
           <button
             type="button"
             onClick={() => handleOpenNotifyModal(null)}
-            className="bg-indigo-600 hover:bg-indigo-700 active:scale-98 text-white font-bold text-xs sm:text-sm px-4 py-2.5 rounded-xl transition-all shadow-sm flex items-center justify-center gap-2 cursor-pointer"
+            className="bg-indigo-600 hover:bg-indigo-700 active:scale-98 text-white font-bold text-xs px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 cursor-pointer"
           >
             <i className="fa-solid fa-bullhorn text-amber-300"></i>
-            <span>Tüm Üyelere Bildirim Gönder</span>
+            <span>Toplu Bildirim</span>
           </button>
         </div>
       </div>

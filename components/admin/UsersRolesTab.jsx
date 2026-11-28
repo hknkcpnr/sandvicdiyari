@@ -900,241 +900,107 @@ export default function UsersRolesTab({ currentAdmin, onRolesOrUsersUpdated }) {
   };
 
   return (
-    <div className="space-y-4 w-full min-w-0 font-poppins">
-      {/* 1. ÜST GEÇİŞ SEKMELERİ (MODERN SEGMENTED CONTROL / PILL MENÜ) */}
-      <div className="bg-stone-100/90 p-1.5 rounded-2xl border border-stone-200/90 shadow-2xs overflow-x-auto scrollbar-none">
-        <div className="flex items-center gap-1.5 min-w-max">
-          {/* Restoran Personeli */}
-          <button
-            type="button"
-            onClick={() => setSubTab('panel')}
-            className={`flex items-center gap-2.5 px-4 py-2.5 rounded-xl text-xs font-bold transition-all duration-200 cursor-pointer ${
-              subTab === 'panel'
-                ? 'bg-white text-stone-900 shadow-sm border border-stone-200/90 ring-1 ring-black/5'
-                : 'text-stone-600 hover:text-stone-900 hover:bg-white/60'
-            }`}
-          >
-            <div className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs shadow-2xs transition-colors shrink-0 ${
-              subTab === 'panel' ? 'bg-amber-500 text-white' : 'bg-stone-200/80 text-stone-600'
-            }`}>
-              <i className="fa-solid fa-kitchen-set"></i>
-            </div>
-            <div className="text-left">
-              <span className="block leading-tight font-bold">Restoran Personeli</span>
-              <span className="text-[10px] font-medium text-stone-400 block leading-tight">Mutfak & Kasa</span>
-            </div>
-            <span
-              className={`ml-1 px-2 py-0.5 rounded-full text-[10px] font-extrabold ${
-                subTab === 'panel' ? 'bg-stone-900 text-white' : 'bg-stone-200/90 text-stone-600'
-              }`}
-            >
-              {panelUsers.length}
-            </span>
-          </button>
-
-          {/* Kurye Paneli */}
-          {courierModuleEnabled === true && (
-            <button
-              type="button"
-              onClick={() => setSubTab('kurye')}
-              className={`flex items-center gap-2.5 px-4 py-2.5 rounded-xl text-xs font-bold transition-all duration-200 cursor-pointer ${
-                subTab === 'kurye'
-                  ? 'bg-white text-stone-900 shadow-sm border border-stone-200/90 ring-1 ring-black/5'
-                  : 'text-stone-600 hover:text-stone-900 hover:bg-white/60'
-              }`}
-            >
-              <div className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs shadow-2xs transition-colors shrink-0 ${
-                subTab === 'kurye' ? 'bg-sky-500 text-white' : 'bg-stone-200/80 text-stone-600'
-              }`}>
-                <i className="fa-solid fa-motorcycle"></i>
-              </div>
-              <div className="text-left">
-                <span className="block leading-tight font-bold">Kurye Ekibi</span>
-                <span className="text-[10px] font-medium text-stone-400 block leading-tight">Paket Servis</span>
-              </div>
-              <span
-                className={`ml-1 px-2 py-0.5 rounded-full text-[10px] font-extrabold ${
-                  subTab === 'kurye' ? 'bg-stone-900 text-white' : 'bg-stone-200/90 text-stone-600'
+    <div className="space-y-3 w-full min-w-0 font-poppins">
+      {/* 1. KOMPAKT GEÇİŞ SEKMELERİ (TEK SATIR PILL MENÜ) */}
+      <div className="bg-white p-1.5 rounded-xl border border-stone-200/90 shadow-2xs overflow-x-auto scrollbar-none">
+        <div className="flex items-center gap-1 min-w-max">
+          {[
+            { id: 'panel', label: 'Restoran Personeli', icon: 'fa-solid fa-kitchen-set', count: panelUsers.length },
+            ...(courierModuleEnabled === true
+              ? [{ id: 'kurye', label: 'Kurye Ekibi', icon: 'fa-solid fa-motorcycle', count: courierUsers.length }]
+              : []),
+            { id: 'yonetici', label: 'Süper Yöneticiler', icon: 'fa-solid fa-crown', count: superAdminUsers.length },
+            { id: 'customers', label: 'Müşteri Hesapları', icon: 'fa-solid fa-users', count: customers.length },
+            { id: 'roles', label: 'Yetki & Roller', icon: 'fa-solid fa-shield-halved', count: roles.length },
+          ].map((t) => {
+            const active = subTab === t.id;
+            return (
+              <button
+                key={t.id}
+                type="button"
+                onClick={() => setSubTab(t.id)}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                  active
+                    ? 'bg-brand-600 text-white shadow-2xs'
+                    : 'text-stone-600 hover:text-stone-900 hover:bg-stone-100'
                 }`}
               >
-                {courierUsers.length}
-              </span>
-            </button>
-          )}
-
-          {/* Süper Yönetici */}
-          <button
-            type="button"
-            onClick={() => setSubTab('yonetici')}
-            className={`flex items-center gap-2.5 px-4 py-2.5 rounded-xl text-xs font-bold transition-all duration-200 cursor-pointer ${
-              subTab === 'yonetici'
-                ? 'bg-white text-stone-900 shadow-sm border border-stone-200/90 ring-1 ring-black/5'
-                : 'text-stone-600 hover:text-stone-900 hover:bg-white/60'
-            }`}
-          >
-            <div className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs shadow-2xs transition-colors shrink-0 ${
-              subTab === 'yonetici' ? 'bg-rose-500 text-white' : 'bg-stone-200/80 text-stone-600'
-            }`}>
-              <i className="fa-solid fa-crown"></i>
-            </div>
-            <div className="text-left">
-              <span className="block leading-tight font-bold">Süper Yöneticiler</span>
-              <span className="text-[10px] font-medium text-stone-400 block leading-tight">Tam Yetki</span>
-            </div>
-            <span
-              className={`ml-1 px-2 py-0.5 rounded-full text-[10px] font-extrabold ${
-                subTab === 'yonetici' ? 'bg-stone-900 text-white' : 'bg-stone-200/90 text-stone-600'
-              }`}
-            >
-              {superAdminUsers.length}
-            </span>
-          </button>
-
-          {/* Müşteri Hesapları */}
-          <button
-            type="button"
-            onClick={() => setSubTab('customers')}
-            className={`flex items-center gap-2.5 px-4 py-2.5 rounded-xl text-xs font-bold transition-all duration-200 cursor-pointer ${
-              subTab === 'customers'
-                ? 'bg-white text-stone-900 shadow-sm border border-stone-200/90 ring-1 ring-black/5'
-                : 'text-stone-600 hover:text-stone-900 hover:bg-white/60'
-            }`}
-          >
-            <div className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs shadow-2xs transition-colors shrink-0 ${
-              subTab === 'customers' ? 'bg-emerald-500 text-white' : 'bg-stone-200/80 text-stone-600'
-            }`}>
-              <i className="fa-solid fa-users"></i>
-            </div>
-            <div className="text-left">
-              <span className="block leading-tight font-bold">Müşteri Hesapları</span>
-              <span className="text-[10px] font-medium text-stone-400 block leading-tight">Kayıtlı Üyeler</span>
-            </div>
-            <span
-              className={`ml-1 px-2 py-0.5 rounded-full text-[10px] font-extrabold ${
-                subTab === 'customers' ? 'bg-stone-900 text-white' : 'bg-stone-200/90 text-stone-600'
-              }`}
-            >
-              {customers.length}
-            </span>
-          </button>
-
-          {/* Rol Modelleri */}
-          <button
-            type="button"
-            onClick={() => setSubTab('roles')}
-            className={`flex items-center gap-2.5 px-4 py-2.5 rounded-xl text-xs font-bold transition-all duration-200 cursor-pointer ${
-              subTab === 'roles'
-                ? 'bg-white text-stone-900 shadow-sm border border-stone-200/90 ring-1 ring-black/5'
-                : 'text-stone-600 hover:text-stone-900 hover:bg-white/60'
-            }`}
-          >
-            <div className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs shadow-2xs transition-colors shrink-0 ${
-              subTab === 'roles' ? 'bg-indigo-600 text-white' : 'bg-stone-200/80 text-stone-600'
-            }`}>
-              <i className="fa-solid fa-shield-halved"></i>
-            </div>
-            <div className="text-left">
-              <span className="block leading-tight font-bold">Yetki & Roller</span>
-              <span className="text-[10px] font-medium text-stone-400 block leading-tight">İzin Şablonları</span>
-            </div>
-            <span
-              className={`ml-1 px-2 py-0.5 rounded-full text-[10px] font-extrabold ${
-                subTab === 'roles' ? 'bg-stone-900 text-white' : 'bg-stone-200/90 text-stone-600'
-              }`}
-            >
-              {roles.length}
-            </span>
-          </button>
+                <i className={`${t.icon} text-[11px] ${active ? 'text-white' : 'text-stone-400'}`}></i>
+                <span>{t.label}</span>
+                <span
+                  className={`px-1.5 py-0.5 rounded-full text-[10px] font-extrabold ${
+                    active ? 'bg-white/20 text-white' : 'bg-stone-100 text-stone-600'
+                  }`}
+                >
+                  {t.count}
+                </span>
+              </button>
+            );
+          })}
         </div>
       </div>
 
       {/* 2. EYLEM & ARAMA ŞERİDİ */}
-      <div className="bg-white p-3.5 sm:p-4 rounded-2xl border border-stone-200/90 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-3">
-        {/* Sol: Başlık ve Açıklama Rozeti */}
-        <div className="flex items-center gap-3 min-w-0">
-          <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-700 border border-amber-200/60 flex items-center justify-center text-base shrink-0 shadow-2xs">
-            <i
-              className={
-                subTab === 'roles'
-                  ? 'fa-solid fa-shield-halved text-indigo-600'
-                  : subTab === 'customers'
-                  ? 'fa-solid fa-users text-emerald-600'
-                  : subTab === 'kurye'
-                  ? 'fa-solid fa-motorcycle text-sky-600'
-                  : subTab === 'yonetici'
-                  ? 'fa-solid fa-crown text-rose-600'
-                  : 'fa-solid fa-kitchen-set text-amber-600'
-              }
-            ></i>
-          </div>
-          <div className="min-w-0">
-            <div className="flex items-center gap-2">
-              <h3 className="text-sm font-extrabold text-stone-900 truncate">
-                {subTab === 'roles'
-                  ? 'Yetki & Rol Modelleri'
-                  : subTab === 'customers'
-                  ? 'Kayıtlı Müşteri & Üye Listesi'
-                  : PORTAL_META[subTab]?.title}
-              </h3>
-              <span
-                className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full border ${
-                  subTab === 'roles'
-                    ? 'bg-indigo-50 text-indigo-700 border-indigo-200'
-                    : subTab === 'customers'
-                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                    : PORTAL_META[subTab]?.badgeClass
-                }`}
-              >
-                {subTab === 'roles'
-                  ? '🛡️ Yetki Modelleri'
-                  : subTab === 'customers'
-                  ? '🛍️ Müşteri Hesapları'
-                  : PORTAL_META[subTab]?.badge}
-              </span>
-            </div>
-            <p className="text-xs text-stone-500 truncate mt-0.5">
-              {subTab === 'roles'
-                ? 'Personele atanacak modül ve işlem izinlerini belirleyin, düzenleyin veya yeni roller ekleyin.'
+      <div className="bg-white px-3 py-2 rounded-xl border border-stone-200/90 shadow-2xs flex flex-col md:flex-row md:items-center justify-between gap-2">
+        {/* Sol: Kısa Başlık & Rozet */}
+        <div className="flex items-center gap-2 min-w-0">
+          <h3 className="text-xs sm:text-sm font-extrabold text-stone-900 truncate">
+            {subTab === 'roles'
+              ? 'Yetki & Rol Modelleri'
+              : subTab === 'customers'
+              ? 'Kayıtlı Müşteri & Üye Listesi'
+              : PORTAL_META[subTab]?.title}
+          </h3>
+          <span
+            className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full border shrink-0 ${
+              subTab === 'roles'
+                ? 'bg-indigo-50 text-indigo-700 border-indigo-200'
                 : subTab === 'customers'
-                ? 'Siteden sipariş veren üyeleri onaylayın, engelleyin veya bildirim gönderin.'
-                : PORTAL_META[subTab]?.desc}
-            </p>
-          </div>
+                ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                : PORTAL_META[subTab]?.badgeClass
+            }`}
+          >
+            {subTab === 'roles'
+              ? '🛡️ Yetki Modelleri'
+              : subTab === 'customers'
+              ? '🛍️ Müşteri Hesapları'
+              : PORTAL_META[subTab]?.badge}
+          </span>
         </div>
 
-        {/* Sağ: Arama, Yenile ve Ekle Butonları */}
-        <div className="flex flex-wrap items-center gap-2 shrink-0 pt-2 md:pt-0 border-t md:border-t-0 border-stone-100">
+        {/* Sağ: Yenile, Arama ve Ekle Butonları */}
+        <div className="flex flex-wrap items-center gap-1.5 shrink-0">
           {/* Yenile */}
           <button
             type="button"
             onClick={() => fetchData(true)}
             title="Listeyi Yenile"
-            className="p-2 rounded-xl text-stone-600 hover:text-stone-900 bg-stone-50 hover:bg-stone-100 border border-stone-200 transition-colors cursor-pointer shrink-0"
+            className="p-1.5 px-2 rounded-lg text-stone-600 hover:text-stone-900 bg-stone-50 hover:bg-stone-100 border border-stone-200 transition-colors cursor-pointer shrink-0"
           >
             <i className={`fa-solid fa-arrows-rotate text-xs ${loading ? 'fa-spin' : ''}`}></i>
           </button>
 
           {/* Arama Inputu */}
-          <div className="relative w-full sm:w-56">
+          <div className="relative w-full sm:w-52">
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder={
                 subTab === 'roles'
-                  ? 'Rol modellerinde ara...'
+                  ? 'Rol ara...'
                   : subTab === 'customers'
                   ? 'Müşteri ara...'
                   : 'Kullanıcı ara...'
               }
-              className="w-full bg-stone-50 border border-stone-200 rounded-xl pl-8 pr-7 py-2 text-xs focus:outline-none focus:border-stone-900 focus:bg-white font-medium transition-all"
+              className="w-full bg-stone-50 border border-stone-200 rounded-lg pl-7 pr-7 py-1.5 text-xs focus:outline-none focus:border-stone-900 focus:bg-white font-medium transition-all"
             />
-            <i className="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-stone-400 text-xs"></i>
+            <i className="fa-solid fa-magnifying-glass absolute left-2.5 top-1/2 -translate-y-1/2 text-stone-400 text-[11px]"></i>
             {searchQuery && (
               <button
                 type="button"
                 onClick={() => setSearchQuery('')}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600 text-xs"
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600 text-xs"
               >
                 <i className="fa-solid fa-xmark"></i>
               </button>
@@ -1146,16 +1012,16 @@ export default function UsersRolesTab({ currentAdmin, onRolesOrUsersUpdated }) {
             <button
               type="button"
               onClick={handleOpenAddRole}
-              className="bg-stone-900 hover:bg-black text-white font-bold px-3.5 py-2 rounded-xl text-xs flex items-center gap-1.5 transition-all cursor-pointer shrink-0 shadow-xs active:scale-95"
+              className="bg-stone-900 hover:bg-black text-white font-bold px-3 py-1.5 rounded-lg text-xs flex items-center gap-1.5 transition-all cursor-pointer shrink-0 active:scale-95"
             >
               <i className="fa-solid fa-shield-halved text-amber-400"></i>
-              <span>+ Yeni Rol Ekle</span>
+              <span>+ Yeni Rol</span>
             </button>
           ) : subTab === 'customers' ? (
             <button
               type="button"
               onClick={handleOpenAddCustomer}
-              className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-3.5 py-2 rounded-xl text-xs flex items-center gap-1.5 transition-all cursor-pointer shrink-0 shadow-xs active:scale-95"
+              className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-3 py-1.5 rounded-lg text-xs flex items-center gap-1.5 transition-all cursor-pointer shrink-0 active:scale-95"
             >
               <i className="fa-solid fa-user-plus text-white"></i>
               <span>+ Müşteri Ekle</span>
@@ -1164,7 +1030,7 @@ export default function UsersRolesTab({ currentAdmin, onRolesOrUsersUpdated }) {
             <button
               type="button"
               onClick={() => handleOpenAddUser(subTab)}
-              className="bg-stone-900 hover:bg-black text-white font-bold px-3.5 py-2 rounded-xl text-xs flex items-center gap-1.5 transition-all cursor-pointer shrink-0 shadow-xs active:scale-95"
+              className="bg-stone-900 hover:bg-black text-white font-bold px-3 py-1.5 rounded-lg text-xs flex items-center gap-1.5 transition-all cursor-pointer shrink-0 active:scale-95"
             >
               <i className="fa-solid fa-user-plus text-amber-400"></i>
               <span>{PORTAL_META[subTab]?.addBtnLabel || '+ Kullanıcı Ekle'}</span>

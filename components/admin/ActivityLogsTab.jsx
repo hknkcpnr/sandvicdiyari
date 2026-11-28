@@ -182,60 +182,52 @@ export default function ActivityLogsTab({ showToast, currentAdmin }) {
   };
 
   return (
-    <div className="space-y-4 w-full min-w-0 font-poppins">
-      {/* 1. ÜST İSTATİSTİK KARTLARI */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        {/* Toplam İşlem */}
-        <div className="bg-white p-4 rounded-2xl border border-stone-200/90 shadow-2xs space-y-1">
-          <div className="flex items-center justify-between text-stone-400">
-            <span className="text-xs font-semibold">Toplam İşlem</span>
-            <span className="w-7 h-7 rounded-lg bg-stone-100 flex items-center justify-center text-xs text-stone-700">
-              <i className="fa-solid fa-clock-rotate-left"></i>
-            </span>
+    <div className="space-y-3 w-full min-w-0 font-poppins">
+      {/* 1. KOMPAKT ÜST İSTATİSTİK KARTLARI */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+        <div className="bg-white px-3 py-2 rounded-xl border border-stone-200/90 shadow-2xs flex items-center justify-between gap-2">
+          <div>
+            <span className="text-[10px] font-bold text-stone-500 uppercase tracking-wider block">Toplam İşlem</span>
+            <p className="text-lg sm:text-xl font-black text-stone-900">{stats.total || logs.length}</p>
           </div>
-          <p className="text-xl sm:text-2xl font-black text-stone-900">{stats.total || logs.length}</p>
-          <span className="text-[10px] text-stone-500 font-medium block">Sistem genelindeki kayıtlar</span>
+          <span className="w-7 h-7 rounded-lg bg-stone-100 flex items-center justify-center text-xs text-stone-700 shrink-0">
+            <i className="fa-solid fa-clock-rotate-left"></i>
+          </span>
         </div>
 
-        {/* Sipariş & İptal */}
-        <div className="bg-white p-4 rounded-2xl border border-stone-200/90 shadow-2xs space-y-1">
-          <div className="flex items-center justify-between text-amber-500">
-            <span className="text-xs font-semibold text-stone-600">Sipariş & Operasyon</span>
-            <span className="w-7 h-7 rounded-lg bg-amber-50 border border-amber-200/60 flex items-center justify-center text-xs text-amber-700">
-              <i className="fa-solid fa-bell-concierge"></i>
-            </span>
+        <div className="bg-white px-3 py-2 rounded-xl border border-stone-200/90 shadow-2xs flex items-center justify-between gap-2">
+          <div>
+            <span className="text-[10px] font-bold text-amber-700 uppercase tracking-wider block">Sipariş</span>
+            <p className="text-lg sm:text-xl font-black text-stone-900">{stats.orders || 0}</p>
           </div>
-          <p className="text-xl sm:text-2xl font-black text-stone-900">{stats.orders || 0}</p>
-          <span className="text-[10px] text-amber-700/80 font-medium block">Onay, durum ve silmeler</span>
+          <span className="w-7 h-7 rounded-lg bg-amber-50 border border-amber-200/60 flex items-center justify-center text-xs text-amber-700 shrink-0">
+            <i className="fa-solid fa-bell-concierge"></i>
+          </span>
         </div>
 
-        {/* Menü & Fiyat */}
-        <div className="bg-white p-4 rounded-2xl border border-stone-200/90 shadow-2xs space-y-1">
-          <div className="flex items-center justify-between text-rose-500">
-            <span className="text-xs font-semibold text-stone-600">Menü & Fiyatlar</span>
-            <span className="w-7 h-7 rounded-lg bg-rose-50 border border-rose-200/60 flex items-center justify-center text-xs text-rose-700">
-              <i className="fa-solid fa-burger"></i>
-            </span>
+        <div className="bg-white px-3 py-2 rounded-xl border border-stone-200/90 shadow-2xs flex items-center justify-between gap-2">
+          <div>
+            <span className="text-[10px] font-bold text-rose-700 uppercase tracking-wider block">Menü &amp; Fiyat</span>
+            <p className="text-lg sm:text-xl font-black text-stone-900">{stats.menu || 0}</p>
           </div>
-          <p className="text-xl sm:text-2xl font-black text-stone-900">{stats.menu || 0}</p>
-          <span className="text-[10px] text-rose-700/80 font-medium block">Ürün & fiyat güncellemeleri</span>
+          <span className="w-7 h-7 rounded-lg bg-rose-50 border border-rose-200/60 flex items-center justify-center text-xs text-rose-700 shrink-0">
+            <i className="fa-solid fa-burger"></i>
+          </span>
         </div>
 
-        {/* Kullanıcı & Yetki */}
-        <div className="bg-white p-4 rounded-2xl border border-stone-200/90 shadow-2xs space-y-1">
-          <div className="flex items-center justify-between text-indigo-500">
-            <span className="text-xs font-semibold text-stone-600">Kullanıcı & Güvenlik</span>
-            <span className="w-7 h-7 rounded-lg bg-indigo-50 border border-indigo-200/60 flex items-center justify-center text-xs text-indigo-700">
-              <i className="fa-solid fa-user-shield"></i>
-            </span>
+        <div className="bg-white px-3 py-2 rounded-xl border border-stone-200/90 shadow-2xs flex items-center justify-between gap-2">
+          <div>
+            <span className="text-[10px] font-bold text-indigo-700 uppercase tracking-wider block">Güvenlik</span>
+            <p className="text-lg sm:text-xl font-black text-stone-900">{(stats.users || 0) + (stats.system || 0)}</p>
           </div>
-          <p className="text-xl sm:text-2xl font-black text-stone-900">{(stats.users || 0) + (stats.system || 0)}</p>
-          <span className="text-[10px] text-indigo-700/80 font-medium block">Girişler ve yetki atamaları</span>
+          <span className="w-7 h-7 rounded-lg bg-indigo-50 border border-indigo-200/60 flex items-center justify-center text-xs text-indigo-700 shrink-0">
+            <i className="fa-solid fa-user-shield"></i>
+          </span>
         </div>
       </div>
 
       {/* 2. EYLEM & FİLTRELEME ÇUBUĞU */}
-      <div className="bg-white p-3.5 sm:p-4 rounded-2xl border border-stone-200/90 shadow-xs space-y-3">
+      <div className="bg-white p-2.5 rounded-xl border border-stone-200/90 shadow-2xs space-y-2.5">
         {/* Üst Satır: Arama Kutusu ve Aksiyon Butonları */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           {/* Arama Inputu */}
