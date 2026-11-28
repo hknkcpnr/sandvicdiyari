@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
+import dynamic from 'next/dynamic';
 import { useSelector, useDispatch } from 'react-redux';
 import { setProducts } from '@/store/slices/productSlice';
 import { login, logout } from '@/store/slices/authSlice';
@@ -22,25 +23,29 @@ import {
 import CustomerAnnouncementBanner from '@/components/CustomerAnnouncementBanner';
 import Footer from '@/components/Footer';
 
-// Customer Pages
+// Primary Customer Pages (Instant)
 import HomePage from '@/components/pages/HomePage';
 import MenuPage from '@/components/pages/MenuPage';
-import KampanyalarPage from '@/components/pages/KampanyalarPage';
-import HikayePage from '@/components/pages/HikayePage';
-import IletisimPage from '@/components/pages/IletisimPage';
 
-// Modals
-import OptionsModal from '@/components/modals/OptionsModal';
+// Secondary Customer Pages (Code-split / Lazy-loaded)
+const KampanyalarPage = dynamic(() => import('@/components/pages/KampanyalarPage'), { ssr: false });
+const HikayePage = dynamic(() => import('@/components/pages/HikayePage'), { ssr: false });
+const IletisimPage = dynamic(() => import('@/components/pages/IletisimPage'), { ssr: false });
+
+// Immediate Core Modals / Floating Bars
 import CartDrawer from '@/components/modals/CartDrawer';
-import AuthModal from '@/components/modals/AuthModal';
-import ProfileModal from '@/components/modals/ProfileModal';
-import CheckoutModal from '@/components/modals/CheckoutModal';
 import MessageModal from '@/components/modals/MessageModal';
-import TrackOrderModal from '@/components/modals/TrackOrderModal';
-import LiveOrderTracker from '@/components/LiveOrderTracker';
 import FloatingCartBar from '@/components/FloatingCartBar';
-import DraggableContactButton from '@/components/DraggableContactButton';
 import FloatingTrackOrderButton from '@/components/FloatingTrackOrderButton';
+
+// Heavy / On-demand Customer Modals (Lazy-loaded)
+const OptionsModal = dynamic(() => import('@/components/modals/OptionsModal'), { ssr: false });
+const AuthModal = dynamic(() => import('@/components/modals/AuthModal'), { ssr: false });
+const ProfileModal = dynamic(() => import('@/components/modals/ProfileModal'), { ssr: false });
+const CheckoutModal = dynamic(() => import('@/components/modals/CheckoutModal'), { ssr: false });
+const TrackOrderModal = dynamic(() => import('@/components/modals/TrackOrderModal'), { ssr: false });
+const LiveOrderTracker = dynamic(() => import('@/components/LiveOrderTracker'), { ssr: false });
+const DraggableContactButton = dynamic(() => import('@/components/DraggableContactButton'), { ssr: false });
 
 export default function Home() {
   const dispatch = useDispatch();

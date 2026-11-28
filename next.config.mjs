@@ -59,7 +59,7 @@ const nextConfig = {
       },
       // Statik resimler, ikonlar ve fontlar için agresif önbellekleme (anında yükleme)
       {
-        source: '/(images|audio|icons)/(.*)',
+        source: '/(images|audio|icons|uploads)/(.*)',
         headers: [
           {
             key: 'Cache-Control',

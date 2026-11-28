@@ -1,7 +1,15 @@
 import { db } from '@/lib/db';
 import { prisma, rawPrisma } from '@/lib/prisma';
 import { getOrderPauseState, formatOrderPauseMessage } from '@/lib/orderPause';
-import { getCachedProducts, setCachedProducts } from '@/lib/productCache';
+import {
+  getCachedProducts,
+  setCachedProducts,
+  getCachedOrders,
+  setCachedOrders,
+  invalidateOrdersCache,
+  getCachedAdminSettings,
+  setCachedAdminSettings
+} from '@/lib/productCache';
 import { logUserActivity } from '@/lib/activityLogger';
 import {
   AuthenticationError,
@@ -26,6 +34,7 @@ export async function GET(request) {
     const phone = searchParams.get('phone');
     const orderNo = searchParams.get('orderNo');
     const userEmail = searchParams.get('userEmail');
+    const limitParam = searchParams.get('limit');
 
     if (status) assertNoSqlInjection(status, 'status', '/api/orders');
     if (phone) assertNoSqlInjection(phone, 'phone', '/api/orders');
@@ -37,6 +46,23 @@ export async function GET(request) {
       allowCustomerScoped: isCustomerFilteredQuery,
       endpoint: '/api/orders'
     });
+
+    const parsedLimit = limitParam ? parseInt(limitParam, 10) : NaN;
+    const takeLimit = Number.isFinite(parsedLimit)
+      ? Math.max(1, Math.min(300, parsedLimit))
+      : isCustomerFilteredQuery
+      ? 50
+      : 120;
+
+    const cacheKey = `${status || ''}|${phone || ''}|${orderNo || ''}|${(userEmail || '').trim().toLowerCase()}|${takeLimit}`;
+    const cachedOrders = getCachedOrders(cacheKey);
+    if (cachedOrders) {
+      return jsonSuccess({
+        count: cachedOrders.length,
+        data: cachedOrders,
+        cached: true
+      });
+    }
 
     const whereClause = {};
     if (userEmail) {
@@ -55,7 +81,7 @@ export async function GET(request) {
 
     let orders = await prisma.order.findMany({
       where: Object.keys(whereClause).length > 0 ? whereClause : undefined,
-      take: isCustomerFilteredQuery ? 50 : 300
+      take: takeLimit
     });
 
     if (userEmail) {
@@ -79,6 +105,8 @@ export async function GET(request) {
       );
     }
 
+    setCachedOrders(cacheKey, orders);
+
     return jsonSuccess({
       count: orders.length,
       data: orders
@@ -98,9 +126,16 @@ export async function POST(request) {
 
     // Yönetici "Sipariş Alımını Durdur" dediyse yeni sipariş kabul edilmez (sunucu tarafı zorunlu kontrol)
     try {
-      if (rawPrisma && rawPrisma.systemSetting) {
+      let cachedSettings = getCachedAdminSettings();
+      if (!cachedSettings && rawPrisma && rawPrisma.systemSetting) {
         const rec = await rawPrisma.systemSetting.findUnique({ where: { key: 'admin_system_settings' } });
-        const pauseState = getOrderPauseState(rec?.value);
+        if (rec?.value && typeof rec.value === 'object') {
+          cachedSettings = rec.value;
+          setCachedAdminSettings(cachedSettings);
+        }
+      }
+      if (cachedSettings) {
+        const pauseState = getOrderPauseState(cachedSettings);
         if (pauseState.paused) {
           throw new ValidationError(formatOrderPauseMessage(pauseState));
         }
@@ -161,7 +196,9 @@ export async function POST(request) {
       data: validatedOrder
     });
 
-    await logUserActivity({
+    invalidateOrdersCache();
+
+    void logUserActivity({
       user: { name: newOrder.userName || 'Müşteri', email: newOrder.userEmail || '' },
       action: 'ORDER_CREATE',
       category: 'ORDER',
@@ -169,7 +206,7 @@ export async function POST(request) {
       message: `Yeni sipariş oluşturuldu: #${newOrder.orderNumber || newOrder.id} (${newOrder.userName || 'Müşteri'} - ${newOrder.total} ₺)`,
       details: { orderId: newOrder.id, orderNumber: newOrder.orderNumber, total: newOrder.total },
       req: request
-    });
+    }).catch(() => {});
 
     return jsonSuccess(
       {

@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { fetchWithBrowserCache, CACHE_TTL_LONG } from '@/lib/browserDataCache';
 
 let activeCustomAudio = null;
 let activeAudioCtx = null;
@@ -459,17 +460,27 @@ export default function KitchenPosBell({
     return fallbackCatalogProducts;
   }, [products, fallbackCatalogProducts]);
 
-  // Ensure menu products (with their audioUrl) are always loaded in KitchenPosBell
+  // Ensure menu products (with their audioUrl) are always loaded in KitchenPosBell without duplicating parent fetch
   useEffect(() => {
     if (Array.isArray(products) && products.length > 0) return;
-    fetch('/api/products?includeAudio=1', { cache: 'no-store' })
-      .then((r) => r.json())
-      .then((j) => {
-        if (j?.success && Array.isArray(j.data)) {
-          setFallbackCatalogProducts(j.data);
-        }
+    let cancelled = false;
+    const timer = setTimeout(() => {
+      fetchWithBrowserCache('panel_products_audio', '/api/products?includeAudio=1', {
+        maxAgeMs: CACHE_TTL_LONG,
+        persist: false,
+        extract: (j) => j.data
       })
-      .catch(() => { });
+        .then((res) => {
+          if (!cancelled && res?.ok && Array.isArray(res.data)) {
+            setFallbackCatalogProducts(res.data);
+          }
+        })
+        .catch(() => { });
+    }, 1500);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
   }, [products]);
 
   // Load and sync preferences from localStorage & Supabase on mount and storage events
@@ -538,11 +549,15 @@ export default function KitchenPosBell({
       } catch (e) { }
     };
 
-    const syncSoundFromApi = () => {
-      fetch('/api/notifications?includePosSounds=1', { cache: 'no-store' })
-        .then((r) => r.json())
-        .then((j) => {
-          const s = j?.data?.settings;
+    const syncSoundFromApi = (force = false) => {
+      fetchWithBrowserCache('pos_sounds_settings', '/api/notifications?includePosSounds=1', {
+        force: force === true,
+        maxAgeMs: 5 * 60 * 1000,
+        persist: false,
+        extract: (j) => j.data
+      })
+        .then((res) => {
+          const s = res?.ok ? res.data?.settings : null;
           if (!s) return;
           if (Array.isArray(s.customSounds)) {
             setCustomSounds(s.customSounds);
@@ -578,7 +593,7 @@ export default function KitchenPosBell({
     };
 
     syncSoundFromLocal();
-    syncSoundFromApi();
+    syncSoundFromApi(false);
 
     const handleStorage = (e) => {
       if (
@@ -592,7 +607,7 @@ export default function KitchenPosBell({
       ) {
         syncSoundFromLocal();
         if (e.key === 'sd_pos_bell_updated') {
-          syncSoundFromApi();
+          syncSoundFromApi(true);
         }
       }
     };
@@ -612,17 +627,15 @@ export default function KitchenPosBell({
     window.addEventListener('sd_sound_settings_changed', handleCustomSoundSettingsChanged);
 
     // Başka cihazdan (ör. yöneticinin telefonu) yapılan ses değişikliklerini mutfak ekranına yansıt:
-    // sekme öne geldiğinde ve 2 dakikada bir sunucudaki güncel ayarı çek.
+    // sekme öne geldiğinde önbellekten ve 5 dakikada bir sunucudaki güncel ayarı kontrol et.
     const handleVisibleSync = () => {
-      if (document.visibilityState === 'visible') syncSoundFromApi();
+      if (document.visibilityState === 'visible') syncSoundFromApi(false);
     };
     document.addEventListener('visibilitychange', handleVisibleSync);
-    window.addEventListener('focus', syncSoundFromApi);
-    const remoteSyncTimer = setInterval(syncSoundFromApi, 120000);
+    const remoteSyncTimer = setInterval(() => syncSoundFromApi(true), 300000);
 
     return () => {
       document.removeEventListener('visibilitychange', handleVisibleSync);
-      window.removeEventListener('focus', syncSoundFromApi);
       clearInterval(remoteSyncTimer);
       window.removeEventListener('storage', handleStorage);
       window.removeEventListener('sd_sound_settings_changed', handleCustomSoundSettingsChanged);

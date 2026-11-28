@@ -1,23 +1,31 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
+import dynamic from 'next/dynamic';
 import { useSelector, useDispatch } from 'react-redux';
 import { setProducts, addProduct, updateProduct, deleteProduct } from '@/store/slices/productSlice';
 import { showMessageModal, setReviews, updateReviewStatus, removeReview } from '@/store/slices/uiSlice';
 import MessageModal from '@/components/modals/MessageModal';
-import OverviewDashboard from '@/components/admin/OverviewDashboard';
-import InventoryTab from '@/components/admin/InventoryTab';
 import KitchenPosBell, { playKitchenBellSound, speakProductPreview } from '@/components/admin/KitchenPosBell';
-import UsersRolesTab from '@/components/admin/UsersRolesTab';
-import ActivityLogsTab from '@/components/admin/ActivityLogsTab';
 import ThemeColorPicker from '@/components/admin/ThemeColorPicker';
 import { applyPanelTheme, getSavedTheme } from '@/lib/themeColors';
 import BlurredAmount from '@/components/admin/BlurredAmount';
 import SettingsTab, { DEFAULT_ADMIN_SETTINGS } from '@/components/admin/SettingsTab';
-import SiteContentEditorTab from '@/components/admin/SiteContentEditorTab';
-import MembersTab from '@/components/admin/MembersTab';
-import OptionsManagementTab from '@/components/admin/OptionsManagementTab';
 import AdminPagination from '@/components/admin/AdminPagination';
+
+const TabLoadingFallback = () => (
+  <div className="p-8 text-center text-xs font-semibold text-stone-400">
+    <i className="fa-solid fa-spinner fa-spin mr-2"></i>Modül yükleniyor...
+  </div>
+);
+
+const OverviewDashboard = dynamic(() => import('@/components/admin/OverviewDashboard'), { ssr: false, loading: TabLoadingFallback });
+const InventoryTab = dynamic(() => import('@/components/admin/InventoryTab'), { ssr: false, loading: TabLoadingFallback });
+const UsersRolesTab = dynamic(() => import('@/components/admin/UsersRolesTab'), { ssr: false, loading: TabLoadingFallback });
+const ActivityLogsTab = dynamic(() => import('@/components/admin/ActivityLogsTab'), { ssr: false, loading: TabLoadingFallback });
+const SiteContentEditorTab = dynamic(() => import('@/components/admin/SiteContentEditorTab'), { ssr: false, loading: TabLoadingFallback });
+const MembersTab = dynamic(() => import('@/components/admin/MembersTab'), { ssr: false, loading: TabLoadingFallback });
+const OptionsManagementTab = dynamic(() => import('@/components/admin/OptionsManagementTab'), { ssr: false, loading: TabLoadingFallback });
 import { buildWhatsAppOrderConfirmUrl } from '@/lib/phoneUtils';
 import { getOrderPauseState } from '@/lib/orderPause';
 import { printThermalReceipt, generateReceiptHtml } from '@/lib/thermalReceipt';
@@ -251,23 +259,32 @@ export default function AdminDashboardPage() {
   const [pauseMenuOpen, setPauseMenuOpen] = useState(false);
   const [pauseSaving, setPauseSaving] = useState(false);
 
-  const refreshOrderPause = () => {
-    fetch('/api/admin/settings', { cache: 'no-store' })
-      .then((r) => r.json())
-      .then((j) => {
-        if (j?.data) setOrderPause(getOrderPauseState(j.data));
-      })
-      .catch(() => {});
-  };
+  const refreshAdminSettings = useCallback(async (force = false) => {
+    try {
+      const res = await fetchWithBrowserCache('admin_settings', '/api/admin/settings', {
+        force: force === true,
+        maxAgeMs: 60000,
+        persist: true,
+        extract: (j) => j.data
+      });
+      if (res?.ok && res.data) {
+        setOrderPause(getOrderPauseState(res.data));
+        setAdminSettings((prev) => ({
+          ...prev,
+          courierModuleEnabled: res.data.courierModuleEnabled === true
+        }));
+      }
+    } catch {}
+  }, []);
 
   useEffect(() => {
-    refreshOrderPause();
+    refreshAdminSettings(false);
     const timer = setInterval(() => {
       if (typeof document !== 'undefined' && document.hidden) return;
-      refreshOrderPause();
+      refreshAdminSettings(true);
     }, 90000);
     return () => clearInterval(timer);
-  }, []);
+  }, [refreshAdminSettings]);
 
   const handleSetOrderPause = async (minutes) => {
     // minutes: null => devam ettir, 0 => süresiz durdur, >0 => belirli süre
@@ -290,6 +307,7 @@ export default function AdminDashboardPage() {
       const j = await res.json();
       if (!res.ok || !j?.success) throw new Error(j?.error || 'Kaydedilemedi');
       setOrderPause(getOrderPauseState(j.data));
+      setBrowserCache('admin_settings', j.data, { persist: true });
       showToast(
         minutes === null
           ? 'Sipariş alımı tekrar açıldı.'
@@ -336,15 +354,6 @@ export default function AdminDashboardPage() {
     };
     window.addEventListener('storage', handleStorageChange);
     window.addEventListener('sd_courier_module_updated', handleStorageChange);
-
-    fetch('/api/admin/settings', { cache: 'no-store' })
-      .then((r) => r.json())
-      .then((j) => {
-        if (j?.success && j?.data) {
-          setAdminSettings((prev) => ({ ...prev, courierModuleEnabled: j.data.courierModuleEnabled === true }));
-        }
-      })
-      .catch(() => {});
 
     return () => {
       window.removeEventListener('storage', handleStorageChange);
@@ -736,11 +745,17 @@ export default function AdminDashboardPage() {
     } catch (e) {}
   };
 
-  // Fetch orders from API
-  const fetchOrders = async () => {
-    setLoadingOrders(true);
+  const ordersFetchingRef = useRef(false);
+  const lastFocusFetchRef = useRef(0);
+
+  // Fetch orders from API (limit=120, çakışan istekleri önler, tarayıcı önbelleğini günceller)
+  const fetchOrders = async (opts = {}) => {
+    if (ordersFetchingRef.current) return;
+    ordersFetchingRef.current = true;
+    const silent = opts?.silent === true;
+    if (!silent) setLoadingOrders(true);
     try {
-      const res = await fetch('/api/orders', { cache: 'no-store' });
+      const res = await fetch('/api/orders?limit=120', { cache: 'no-store' });
       const json = await res.json();
       if (json.success && Array.isArray(json.data)) {
         const nextIds = new Set(json.data.map((o) => o.id));
@@ -749,6 +764,7 @@ export default function AdminDashboardPage() {
         }
         knownOrderIdsRef.current = nextIds;
         setOrders(json.data);
+        setBrowserCache('panel_orders', json.data, { persist: true });
 
         // Keep modal updated if open
         if (detailOrder) {
@@ -760,17 +776,26 @@ export default function AdminDashboardPage() {
     } catch (err) {
       console.error(err);
     } finally {
-      setLoadingOrders(false);
+      ordersFetchingRef.current = false;
+      if (!silent) setLoadingOrders(false);
     }
   };
 
-  // Fetch products from API
-  const fetchProducts = async () => {
+  // Fetch products from API (tarayıcı önbelleği ile gereksiz ağır ses indirmelerini önler)
+  const fetchProducts = async (force = false) => {
     try {
-      const res = await fetch('/api/products?includeAudio=1');
-      const json = await res.json();
-      if (json.success && Array.isArray(json.data)) {
-        dispatch(setProducts(json.data));
+      const res = await fetchWithBrowserCache(
+        'panel_products_audio',
+        '/api/products?includeAudio=1',
+        {
+          force: force === true,
+          maxAgeMs: CACHE_TTL_LONG,
+          persist: false,
+          extract: (json) => json.data
+        }
+      );
+      if (res?.ok && Array.isArray(res.data)) {
+        dispatch(setProducts(res.data));
       }
     } catch (err) {
       console.error('Ürünler yüklenirken hata:', err);
@@ -787,14 +812,22 @@ export default function AdminDashboardPage() {
     setReviewsPage(1);
   }, [reviewFilter, reviewSearch]);
 
-  const fetchReviews = async () => {
-    setLoadingReviews(true);
+  const fetchReviews = async (force = false) => {
+    const cached = getBrowserCache('admin_reviews');
+    if (!force && Array.isArray(cached?.data)) {
+      setAdminReviews(cached.data);
+    }
+    setLoadingReviews(!cached?.data);
     try {
-      const res = await fetch('/api/reviews?all=true');
-      const json = await res.json();
-      if (json.success && Array.isArray(json.data)) {
-        setAdminReviews(json.data);
-        const approvedOnly = json.data.filter((r) => r.isApproved === true);
+      const res = await fetchWithBrowserCache('admin_reviews', '/api/reviews?all=true', {
+        force: force === true,
+        maxAgeMs: CACHE_TTL_LONG,
+        persist: true,
+        extract: (json) => json.data
+      });
+      if (res?.ok && Array.isArray(res.data)) {
+        setAdminReviews(res.data);
+        const approvedOnly = res.data.filter((r) => r.isApproved === true);
         dispatch(setReviews(approvedOnly));
       }
     } catch (err) {
@@ -818,6 +851,7 @@ export default function AdminDashboardPage() {
           prev.map((r) => (String(r.id) === String(reviewId) ? { ...r, isApproved: newStatus } : r))
         );
         dispatch(updateReviewStatus({ id: reviewId, isApproved: newStatus }));
+        invalidateBrowserCache('admin_reviews');
         if (typeof window !== 'undefined') {
           localStorage.setItem('sandwich_reviews_updated', String(Date.now()));
         }
@@ -845,6 +879,7 @@ export default function AdminDashboardPage() {
       if (json.success) {
         setAdminReviews((prev) => prev.filter((r) => String(r.id) !== String(reviewId)));
         dispatch(removeReview(reviewId));
+        invalidateBrowserCache('admin_reviews');
         if (typeof window !== 'undefined') {
           localStorage.setItem('sandwich_reviews_updated', String(Date.now()));
         }
@@ -869,13 +904,21 @@ export default function AdminDashboardPage() {
     setFeedbacksPage(1);
   }, [feedbackSearch, feedbackTypeFilter]);
 
-  const fetchFeedbacks = async () => {
-    setLoadingFeedbacks(true);
+  const fetchFeedbacks = async (force = false) => {
+    const cached = getBrowserCache('admin_feedbacks');
+    if (!force && Array.isArray(cached?.data)) {
+      setAdminFeedbacks(cached.data);
+    }
+    setLoadingFeedbacks(!cached?.data);
     try {
-      const res = await fetch('/api/feedback');
-      const json = await res.json();
-      if (json.success && Array.isArray(json.data)) {
-        setAdminFeedbacks(json.data);
+      const res = await fetchWithBrowserCache('admin_feedbacks', '/api/feedback', {
+        force: force === true,
+        maxAgeMs: CACHE_TTL_LONG,
+        persist: true,
+        extract: (json) => json.data
+      });
+      if (res?.ok && Array.isArray(res.data)) {
+        setAdminFeedbacks(res.data);
       }
     } catch (err) {
       console.error('Geri bildirimler yüklenirken hata:', err);
@@ -893,6 +936,7 @@ export default function AdminDashboardPage() {
       const json = await res.json();
       if (json.success) {
         setAdminFeedbacks((prev) => prev.filter((f) => String(f.id) !== String(feedbackId)));
+        invalidateBrowserCache('admin_feedbacks');
         showToast('Geri bildirim mesajı sistemden silindi.', 'success');
       } else {
         showToast(json.error || 'Silinemedi.', 'error');
@@ -904,10 +948,14 @@ export default function AdminDashboardPage() {
 
   useEffect(() => {
     if (adminUser) {
-      fetchOrders();
-      fetchProducts();
-      fetchReviews();
-      fetchFeedbacks();
+      const cachedOrders = getBrowserCache('panel_orders')?.data;
+      if (Array.isArray(cachedOrders) && cachedOrders.length > 0) {
+        setOrders(cachedOrders);
+        fetchOrders({ silent: true });
+      } else {
+        fetchOrders();
+      }
+      fetchProducts(false);
 
       // Canlı sipariş dinleyici: Müşteri sipariş verdiğinde anında algıla
       const handleStorageChange = (e) => {
@@ -916,45 +964,46 @@ export default function AdminDashboardPage() {
           e.key === 'sd_last_order' ||
           e.key === 'sandwich_orders_updated'
         ) {
-          fetchOrders();
+          fetchOrders({ silent: true });
         }
       };
 
       const handleFocus = () => {
         if (typeof document !== 'undefined' && document.hidden) return;
-        fetchOrders();
+        const now = Date.now();
+        if (now - lastFocusFetchRef.current < 5000) return;
+        lastFocusFetchRef.current = now;
+        fetchOrders({ silent: true });
       };
       window.addEventListener('storage', handleStorageChange);
       window.addEventListener('focus', handleFocus);
       window.addEventListener('visibilitychange', handleFocus);
 
-      // Restoran hızında sipariş kontrolü: Sekme açıkken 6 saniye, arka plandayken 15 saniyede bir
+      // Dengeli ve hızlı sipariş kontrolü: Sekme açıkken 8 saniye, arka plandayken 24 saniyede bir
       let pollCounter = 0;
       const ordersPollTimer = setInterval(() => {
         pollCounter++;
         const isHidden = typeof document !== 'undefined' && document.hidden;
         if (!isHidden || pollCounter % 3 === 0) {
-          fetchOrders();
+          fetchOrders({ silent: true });
         }
-      }, 5000);
-
-      // İnceleme ve geri bildirimleri kontrol et (arka planda değilken)
-      const otherPollTimer = setInterval(() => {
-        if (typeof document === 'undefined' || !document.hidden) {
-          fetchReviews();
-          fetchFeedbacks();
-        }
-      }, 30000);
+      }, 8000);
 
       return () => {
         window.removeEventListener('storage', handleStorageChange);
         window.removeEventListener('focus', handleFocus);
         window.removeEventListener('visibilitychange', handleFocus);
         clearInterval(ordersPollTimer);
-        clearInterval(otherPollTimer);
       };
     }
   }, [adminUser]);
+
+  // Değerlendirmeler & Geri Bildirimler yalnızca ilgili sekme açıldığında yüklenir
+  useEffect(() => {
+    if (!adminUser || currentTab !== 'reviews') return;
+    fetchReviews(false);
+    fetchFeedbacks(false);
+  }, [adminUser, currentTab]);
 
   // Login handler
   const handleLogin = async (e) => {
@@ -1432,7 +1481,7 @@ export default function AdminDashboardPage() {
         if (json.success && json.data) {
           dispatch(updateProduct(json.data));
           await syncCustomMenuDrinks(json.data);
-          fetchProducts();
+          fetchProducts(true);
           invalidateBrowserCache('products_');
           invalidateBrowserCache('inventory_');
           if (typeof window !== 'undefined') {
@@ -1459,7 +1508,7 @@ export default function AdminDashboardPage() {
         if (json.success && json.data) {
           dispatch(addProduct(json.data));
           await syncCustomMenuDrinks(json.data);
-          fetchProducts();
+          fetchProducts(true);
           invalidateBrowserCache('products_');
           invalidateBrowserCache('inventory_');
           if (typeof window !== 'undefined') {

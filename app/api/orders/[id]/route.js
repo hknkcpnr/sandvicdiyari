@@ -12,6 +12,7 @@ import {
 } from '@/lib/security/errors';
 import { assertProtectedApiAccess, getOptionalAuthFromRequest, verifyPassword } from '@/lib/security/auth';
 import { sanitizeText } from '@/lib/security/validation';
+import { invalidateOrdersCache } from '@/lib/productCache';
 
 const VALID_ORDER_STATUSES = [
   'Yeni',
@@ -49,7 +50,7 @@ async function findOrderInPg(idOrNumber) {
         items: {
           include: {
             product: {
-              select: { id: true, name: true, recipe: true }
+              select: { id: true, name: true }
             }
           }
         },
@@ -98,8 +99,10 @@ export async function GET(request, { params }) {
 }
 
 export async function PATCH(request, { params }) {
+  let authPassed = false;
   try {
     assertProtectedApiAccess(request, { allowCustomerScoped: true, endpoint: '/api/orders/[id]' });
+    authPassed = true;
     const resolvedParams = await params;
     const id = sanitizeText(resolvedParams.id, 64, 'id', '/api/orders/[id]');
     const body = await parseJsonBody(request);
@@ -595,6 +598,10 @@ export async function PATCH(request, { params }) {
     });
   } catch (error) {
     return handleApiError(error, '/api/orders/[id]', request);
+  } finally {
+    if (authPassed) {
+      invalidateOrdersCache();
+    }
   }
 }
 
@@ -838,6 +845,8 @@ export async function DELETE(request, { params }) {
     if (!deletedOrder) {
       throw new NotFoundError('Silinecek sipariş bulunamadı.');
     }
+
+    invalidateOrdersCache();
 
     await notifyUserOrderDeleted(deletedOrder);
 
