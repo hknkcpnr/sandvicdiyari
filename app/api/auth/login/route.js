@@ -104,8 +104,9 @@ export async function POST(request) {
 
     if (!isAdmin && !isApproved) {
       return jsonSuccess({
-        message: 'Hesabınız henüz restoran yöneticisi tarafından onaylanmamıştır. Lütfen WhatsApp üzerinden onay talebinizi iletiniz.',
+        message: 'Hesabınız henüz doğrulanmamış. E-posta adresinize gelen 6 haneli doğrulama kodunu girerek hesabınızı hemen aktif edebilirsiniz.',
         pendingApproval: true,
+        requiresEmailVerification: true,
         data: {
           user: {
             name: user.name,
