@@ -349,6 +349,7 @@ export default function AdminDashboardPage() {
     return () => {
       window.removeEventListener('storage', handleStorageChange);
       window.removeEventListener('sd_courier_module_updated', handleStorageChange);
+      document.documentElement.removeAttribute('data-panel-theme');
     };
   }, []);
 
@@ -2400,13 +2401,13 @@ export default function AdminDashboardPage() {
                               : 'justify-between px-3 py-2.5'
                           } rounded-xl font-medium transition-all duration-150 cursor-pointer relative group ${
                             active
-                              ? 'bg-stone-900 text-white font-semibold shadow-xs'
+                              ? 'bg-brand-600 text-white font-semibold shadow-xs'
                               : 'text-stone-600 hover:text-stone-900 hover:bg-stone-100'
                           }`}
                         >
                           <div className={`flex items-center ${sidebarCollapsed ? 'md:justify-center gap-2.5' : 'gap-2.5 min-w-0'}`}>
                             <i className={`${item.icon} ${sidebarCollapsed ? 'md:text-base text-sm w-4 text-center' : 'text-sm w-4 text-center'} ${
-                              active ? 'text-amber-400' : 'text-stone-500 group-hover:text-stone-800'
+                              active ? 'text-white/95' : 'text-stone-500 group-hover:text-stone-800'
                             }`}></i>
                             <span className={`truncate text-xs ${sidebarCollapsed ? 'md:hidden inline' : ''}`}>{item.label}</span>
                           </div>
@@ -2524,11 +2525,11 @@ export default function AdminDashboardPage() {
             <button
               type="button"
               onClick={() => setMobileSidebarOpen(true)}
-              className="md:hidden inline-flex items-center justify-center w-9 h-9 rounded-xl bg-amber-50 hover:bg-amber-100 border border-amber-300/80 text-amber-950 font-bold transition-all shadow-2xs cursor-pointer active:scale-95 shrink-0"
+              className="md:hidden inline-flex items-center justify-center w-9 h-9 rounded-xl bg-brand-50 hover:bg-brand-100 border border-brand-200 text-brand-900 font-bold transition-all shadow-2xs cursor-pointer active:scale-95 shrink-0"
               aria-label="Menüyü Aç"
               title="Yönetim Menüsünü Aç"
             >
-              <i className="fa-solid fa-bars text-sm text-amber-800"></i>
+              <i className="fa-solid fa-bars text-sm text-brand-600"></i>
             </button>
 
             <img
@@ -2541,12 +2542,12 @@ export default function AdminDashboardPage() {
             <button
               type="button"
               onClick={toggleSidebar}
-              className="hidden md:inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-amber-50 hover:bg-amber-100 border border-amber-300/80 text-amber-950 font-bold transition-all shadow-2xs cursor-pointer active:scale-95 group shrink-0"
+              className="hidden md:inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-brand-50 hover:bg-brand-100 border border-brand-200 text-brand-900 font-bold transition-all shadow-2xs cursor-pointer active:scale-95 group shrink-0"
               title={sidebarCollapsed ? 'Menüyü Genişlet' : 'Menüyü Daralt'}
               aria-label="Menü Aç / Kapat"
             >
-              <i className={`fa-solid ${sidebarCollapsed ? 'fa-bars-staggered' : 'fa-bars'} text-sm text-amber-700 group-hover:text-amber-900`}></i>
-              <span className="text-xs font-bold text-amber-950">
+              <i className={`fa-solid ${sidebarCollapsed ? 'fa-bars-staggered' : 'fa-bars'} text-sm text-brand-600`}></i>
+              <span className="text-xs font-bold text-brand-900">
                 {sidebarCollapsed ? 'Menüyü Aç' : 'Menü'}
               </span>
             </button>
@@ -2571,7 +2572,7 @@ export default function AdminDashboardPage() {
             </h2>
           </div>
 
-          {/* SAĞ TARAF: OPERASYON ÖZETİ & AÇILIR AYARLAR MENÜSÜ */}
+          {/* SAĞ TARAF: OPERASYON ÖZETİ & SADE AYARLAR MENÜSÜ */}
           <div className="flex items-center gap-2 lg:gap-3 shrink-0">
             {/* Operasyon Ticker (Desktop) */}
             <div className="hidden lg:flex items-center gap-6 text-stone-600 text-xs pr-4 border-r border-stone-200">
@@ -2589,7 +2590,7 @@ export default function AdminDashboardPage() {
               </div>
             </div>
 
-            {/* Birleşik Ayarlar & Hızlı Araçlar İkonu (Masaüstü & Mobil) */}
+            {/* Sade Ayarlar Açılır Menüsü */}
             <div className="relative">
               <button
                 type="button"
@@ -2598,10 +2599,10 @@ export default function AdminDashboardPage() {
                   orderPause.paused
                     ? 'px-3 bg-rose-600 hover:bg-rose-700 border-rose-700 text-white animate-pulse'
                     : mobileActionsOpen
-                    ? 'w-9 bg-stone-900 border-stone-900 text-white'
+                    ? 'w-9 bg-brand-600 border-brand-600 text-white'
                     : 'w-9 bg-stone-50 hover:bg-stone-100 border-stone-200 text-stone-700'
                 }`}
-                aria-label="Hızlı Ayarlar ve Araçlar"
+                aria-label="Hızlı Ayarlar"
                 title="Hızlı Ayarlar (Canlı, Sipariş, Ses, Tema, Vitrin)"
               >
                 <i
@@ -2618,38 +2619,53 @@ export default function AdminDashboardPage() {
 
               {mobileActionsOpen && (
                 <>
-                  <div className="fixed inset-0 z-40 bg-black/10" onClick={() => setMobileActionsOpen(false)} />
-                  <div className="absolute right-0 top-full mt-2 z-50 w-72 sm:w-80 max-w-[calc(100vw-1.5rem)] bg-white border border-stone-200 rounded-2xl shadow-2xl p-3 space-y-2.5">
-                    {/* 1. Canlı Durum & Yenile */}
-                    <div className="flex items-center justify-between pb-2.5 border-b border-stone-100">
-                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 text-[11px] font-bold border border-emerald-200/80">
+                  <div className="fixed inset-0 z-40" onClick={() => setMobileActionsOpen(false)} />
+                  <div className="absolute right-0 top-full mt-2 z-50 w-64 max-w-[calc(100vw-1.5rem)] bg-white border border-stone-200 rounded-2xl shadow-xl p-2.5 divide-y divide-stone-100">
+                    {/* 1. Durum + Ses & Yenile Hızlı İkonları */}
+                    <div className="pb-2 flex items-center justify-between gap-2">
+                      <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-[10px] font-bold">
                         <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                        <span>Canlı Bağlantı</span>
+                        <span>Canlı</span>
                       </span>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          fetchOrders();
-                          setMobileActionsOpen(false);
-                        }}
-                        className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-700 text-xs font-bold cursor-pointer transition-colors"
-                      >
-                        <i className={`fa-solid fa-rotate-right text-[11px] ${loadingOrders ? 'fa-spin text-amber-500' : ''}`}></i>
-                        <span>Yenile</span>
-                      </button>
+                      <div className="flex items-center gap-1">
+                        <button
+                          type="button"
+                          onClick={() => setSoundEnabled(!soundEnabled)}
+                          title={soundEnabled ? 'Sesli Uyarılar Açık (Kapat)' : 'Sesli Uyarılar Kapalı (Aç)'}
+                          className={`w-7 h-7 rounded-lg border text-xs flex items-center justify-center transition-colors cursor-pointer ${
+                            soundEnabled
+                              ? 'bg-brand-50 border-brand-200 text-brand-700'
+                              : 'bg-stone-50 border-stone-200 text-stone-400'
+                          }`}
+                        >
+                          <i className={soundEnabled ? 'fa-solid fa-volume-high text-[11px]' : 'fa-solid fa-volume-xmark text-[11px]'}></i>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            fetchOrders();
+                            setMobileActionsOpen(false);
+                          }}
+                          title="Siparişleri Yenile"
+                          className="w-7 h-7 rounded-lg border border-stone-200 bg-stone-50 hover:bg-stone-100 text-stone-600 text-xs flex items-center justify-center transition-colors cursor-pointer"
+                        >
+                          <i className={`fa-solid fa-rotate-right text-[11px] ${loadingOrders ? 'fa-spin text-brand-600' : ''}`}></i>
+                        </button>
+                      </div>
                     </div>
 
-                    {/* 2. Sipariş Alımı Kontrolü */}
-                    <div className="space-y-2 pb-2.5 border-b border-stone-100">
+                    {/* 2. Sipariş Alımı */}
+                    <div className="py-2 space-y-1.5">
                       <div className="flex items-center justify-between">
-                        <span className="text-[11px] font-extrabold text-stone-700 flex items-center gap-1.5">
-                          <i className={`fa-solid ${orderPause.paused ? 'fa-circle-pause text-rose-500' : 'fa-circle-play text-emerald-600'}`}></i>
-                          Sipariş Alımı
-                        </span>
-                        <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full ${orderPause.paused ? 'bg-rose-100 text-rose-700' : 'bg-emerald-100 text-emerald-700'}`}>
+                        <span className="text-[11px] font-bold text-stone-700">Sipariş Alımı</span>
+                        <span
+                          className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md ${
+                            orderPause.paused ? 'bg-rose-50 text-rose-700' : 'bg-emerald-50 text-emerald-700'
+                          }`}
+                        >
                           {orderPause.paused
                             ? orderPause.remainingMinutes > 0
-                              ? `Durduruldu (${orderPause.remainingMinutes} dk)`
+                              ? `Durdu (${orderPause.remainingMinutes} dk)`
                               : 'Durduruldu'
                             : 'Açık'}
                         </span>
@@ -2663,13 +2679,13 @@ export default function AdminDashboardPage() {
                             handleSetOrderPause(null);
                             setMobileActionsOpen(false);
                           }}
-                          className="w-full py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 text-white text-xs font-extrabold cursor-pointer flex items-center justify-center gap-1.5 transition-colors"
+                          className="w-full py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 text-white text-[11px] font-bold cursor-pointer flex items-center justify-center gap-1.5 transition-colors"
                         >
-                          <i className="fa-solid fa-play text-[10px]"></i>
-                          <span>Sipariş Alımını Tekrar Aç</span>
+                          <i className="fa-solid fa-play text-[9px]"></i>
+                          <span>Tekrar Aç</span>
                         </button>
                       ) : (
-                        <div className="grid grid-cols-4 gap-1.5">
+                        <div className="grid grid-cols-4 gap-1">
                           {[
                             { m: 15, label: '15 dk' },
                             { m: 30, label: '30 dk' },
@@ -2684,7 +2700,7 @@ export default function AdminDashboardPage() {
                                 handleSetOrderPause(opt.m);
                                 setMobileActionsOpen(false);
                               }}
-                              className="py-1.5 px-1 rounded-xl bg-rose-50 hover:bg-rose-100 border border-rose-200/80 text-rose-700 text-[11px] font-bold cursor-pointer text-center transition-colors disabled:opacity-60"
+                              className="py-1 rounded-lg bg-stone-50 hover:bg-rose-50 border border-stone-200 hover:border-rose-200 text-stone-600 hover:text-rose-700 text-[10px] font-bold cursor-pointer text-center transition-colors disabled:opacity-60"
                             >
                               {opt.label}
                             </button>
@@ -2693,23 +2709,8 @@ export default function AdminDashboardPage() {
                       )}
                     </div>
 
-                    {/* 3. Sesli Uyarılar */}
-                    <button
-                      type="button"
-                      onClick={() => setSoundEnabled(!soundEnabled)}
-                      className="w-full flex items-center justify-between px-3 py-2 rounded-xl bg-stone-50 hover:bg-stone-100 border border-stone-200/70 transition-colors cursor-pointer"
-                    >
-                      <span className="text-xs font-bold text-stone-700 flex items-center gap-2">
-                        <i className={`${soundEnabled ? 'fa-solid fa-volume-high text-amber-600' : 'fa-solid fa-volume-xmark text-stone-400'}`}></i>
-                        <span>Sesli Uyarılar</span>
-                      </span>
-                      <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full ${soundEnabled ? 'bg-amber-100 text-amber-800' : 'bg-stone-200 text-stone-500'}`}>
-                        {soundEnabled ? 'Açık' : 'Kapalı'}
-                      </span>
-                    </button>
-
-                    {/* 4. Arayüz Renk Teması */}
-                    <div className="pt-0.5 pb-0.5">
+                    {/* 3. Tema Rengi */}
+                    <div className="py-2">
                       <ThemeColorPicker
                         variant="inline"
                         onThemeChanged={() => {
@@ -2718,19 +2719,24 @@ export default function AdminDashboardPage() {
                       />
                     </div>
 
-                    {/* 5. Vitrin & Sayfa Düzeni */}
+                    {/* 4. Sayfa Düzenleri & Vitrin */}
                     {canEditSiteContent && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setMobileActionsOpen(false);
-                          setSiteEditorDrawerOpen(true);
-                        }}
-                        className="w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-brand-600 to-amber-500 hover:from-brand-700 hover:to-amber-600 text-white font-extrabold text-xs shadow-sm flex items-center justify-center gap-2 cursor-pointer transition-all"
-                      >
-                        <i className="fa-solid fa-paintbrush text-xs"></i>
-                        <span>Sayfa Düzenleri &amp; Vitrin</span>
-                      </button>
+                      <div className="pt-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setMobileActionsOpen(false);
+                            setSiteEditorDrawerOpen(true);
+                          }}
+                          className="w-full flex items-center justify-between px-2.5 py-2 rounded-xl bg-brand-50 hover:bg-brand-100 text-brand-700 text-xs font-bold cursor-pointer transition-colors"
+                        >
+                          <span className="flex items-center gap-2">
+                            <i className="fa-solid fa-paintbrush text-[11px]"></i>
+                            <span>Sayfa Düzenleri &amp; Vitrin</span>
+                          </span>
+                          <i className="fa-solid fa-chevron-right text-[10px] opacity-70"></i>
+                        </button>
+                      </div>
                     )}
                   </div>
                 </>

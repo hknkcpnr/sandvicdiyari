@@ -48,18 +48,18 @@ export default function ThemeColorPicker({ variant = 'grid', onThemeChanged }) {
 
   const activeThemeObj = PANEL_THEMES.find((t) => t.id === currentThemeId) || PANEL_THEMES[0];
 
-  // MOBİL AÇILIR MENÜ İÇİ KOMPAKT RENK SEÇİCİ (INLINE)
+  // KOMPAKT RENK SEÇİCİ (INLINE POPOVER İÇİ)
   if (variant === 'inline') {
     return (
-      <div className="space-y-2 font-poppins">
+      <div className="space-y-1.5 font-poppins">
         <div className="flex items-center justify-between">
-          <span className="text-[11px] font-extrabold text-stone-700 flex items-center gap-1.5">
-            <i className="fa-solid fa-palette text-amber-500 text-xs"></i>
-            Arayüz Rengi
+          <span className="text-[11px] font-bold text-stone-700 flex items-center gap-1.5">
+            <i className="fa-solid fa-palette text-brand-600 text-xs"></i>
+            <span>Tema Rengi</span>
           </span>
-          <span className="text-[10px] font-bold text-stone-500">{activeThemeObj.name}</span>
+          <span className="text-[10px] font-medium text-stone-400">{activeThemeObj.name}</span>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex items-center justify-between gap-1.5">
           {PANEL_THEMES.map((theme) => {
             const isSelected = theme.id === currentThemeId;
             return (
@@ -68,14 +68,14 @@ export default function ThemeColorPicker({ variant = 'grid', onThemeChanged }) {
                 type="button"
                 onClick={() => handleSelectTheme(theme.id)}
                 title={theme.name}
-                className={`w-7 h-7 rounded-full flex items-center justify-center transition-all cursor-pointer border-2 ${
+                className={`w-6 h-6 rounded-full flex items-center justify-center transition-all cursor-pointer shrink-0 ${
                   isSelected
-                    ? 'border-stone-900 scale-110 shadow-sm'
-                    : 'border-white shadow-xs hover:scale-105'
+                    ? 'ring-2 ring-offset-2 ring-stone-900 scale-105'
+                    : 'opacity-85 hover:opacity-100 hover:scale-110'
                 }`}
                 style={{ backgroundColor: theme.colorHex }}
               >
-                {isSelected && <i className="fa-solid fa-check text-[10px] text-white drop-shadow"></i>}
+                {isSelected && <i className="fa-solid fa-check text-[9px] text-white drop-shadow"></i>}
               </button>
             );
           })}
