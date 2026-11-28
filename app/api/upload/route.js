@@ -58,6 +58,26 @@ export async function POST(request) {
       );
     }
 
+    let outputBuffer = buffer;
+    let outputExt = ext;
+    if (ext !== '.gif' && buffer.length > 150 * 1024) {
+      try {
+        const sharpMod = await import('sharp');
+        const sharp = sharpMod.default || sharpMod;
+        const optimized = await sharp(buffer)
+          .rotate()
+          .resize({ width: 1600, height: 1600, fit: 'inside', withoutEnlargement: true })
+          .webp({ quality: 82 })
+          .toBuffer();
+        if (optimized && optimized.length > 0 && optimized.length < buffer.length) {
+          outputBuffer = optimized;
+          outputExt = '.webp';
+        }
+      } catch {
+        // sharp optional fallback: keep original verified buffer
+      }
+    }
+
     let publicUrl = '';
     try {
       const uploadDir = path.join(process.cwd(), 'public', 'uploads');
@@ -70,37 +90,37 @@ export async function POST(request) {
         .replace(/[^a-zA-Z0-9_-]/g, '_')
         .slice(0, 40);
       const randomToken = crypto.randomBytes(4).toString('hex');
-      const fileName = `product_${Date.now()}_${randomToken}_${safeBaseName}${ext}`;
+      const fileName = `product_${Date.now()}_${randomToken}_${safeBaseName}${outputExt}`;
       const filePath = path.join(uploadDir, fileName);
 
       // Ensure resolved path stays strictly inside uploadDir (Path Traversal protection)
       if (path.resolve(filePath).startsWith(path.resolve(uploadDir))) {
-        fs.writeFileSync(filePath, buffer);
+        fs.writeFileSync(filePath, outputBuffer);
         publicUrl = `/uploads/${fileName}`;
       }
     } catch (fsErr) {
       // Vercel serverless / read-only filesystem fallback: data URI
       const mime =
-        ext === '.png'
+        outputExt === '.png'
           ? 'image/png'
-          : ext === '.webp'
+          : outputExt === '.webp'
           ? 'image/webp'
-          : ext === '.gif'
+          : outputExt === '.gif'
           ? 'image/gif'
           : 'image/jpeg';
-      publicUrl = `data:${mime};base64,${buffer.toString('base64')}`;
+      publicUrl = `data:${mime};base64,${outputBuffer.toString('base64')}`;
     }
 
     if (!publicUrl) {
       const mime =
-        ext === '.png'
+        outputExt === '.png'
           ? 'image/png'
-          : ext === '.webp'
+          : outputExt === '.webp'
           ? 'image/webp'
-          : ext === '.gif'
+          : outputExt === '.gif'
           ? 'image/gif'
           : 'image/jpeg';
-      publicUrl = `data:${mime};base64,${buffer.toString('base64')}`;
+      publicUrl = `data:${mime};base64,${outputBuffer.toString('base64')}`;
     }
 
     return jsonSuccess(

@@ -12,6 +12,7 @@ import {
   fetchWithBrowserCache,
   CACHE_TTL_LONG
 } from '@/lib/browserDataCache';
+import { compressImageFile } from '@/lib/clientImageCompress';
 
 // Hazır Önerilen Gurme Manşet Görselleri
 const HERO_IMAGE_PRESETS = [
@@ -104,9 +105,13 @@ const SECTIONS = [
 
 export default function SiteContentEditorTab({ initialSubTab = 'hero', onSubTabChange }) {
   const dispatch = useDispatch();
-  const initialCached = getBrowserCache('site_content_full');
+  const initialCached = getBrowserCache('site_content_light') || getBrowserCache('site_content_full');
   const [content, setContent] = useState(initialCached?.data || DEFAULT_SITE_CONTENT);
-  const [loading, setLoading] = useState(!initialCached);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [storyImagesLoaded, setStoryImagesLoaded] = useState(
+    Boolean(initialCached?.data && initialCached.data?.storySection?._imagesDeferred !== true)
+  );
+  const [loadingStoryImages, setLoadingStoryImages] = useState(false);
   const [saving, setSaving] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [activeSubTab, setActiveSubTab] = useState(initialSubTab);
@@ -129,51 +134,96 @@ export default function SiteContentEditorTab({ initialSubTab = 'hero', onSubTabC
   const featuresFileInputRef = useRef(null);
   const storyFileInputRef = useRef(null);
 
-  // Veriyi API'den çek (önbellek tazeyse anında RAM'den sunar)
+  // Veriyi API'den hafif modda çek (galeri görselleri sadece Hikayemiz sekmesinde yüklenir)
   const fetchContent = async (force = false, { silent = false } = {}) => {
-    const cached = getBrowserCache('site_content_full');
-    if (!force && cached?.data && !isBrowserCacheStale('site_content_full', CACHE_TTL_LONG)) {
-      setContent(cached.data);
+    const cached = getBrowserCache('site_content_light');
+    if (!force && cached?.data && !isBrowserCacheStale('site_content_light', CACHE_TTL_LONG)) {
+      setContent((prev) => ({
+        ...cached.data,
+        storySection:
+          prev?.storySection?._imagesDeferred === false && cached.data?.storySection?._imagesDeferred === true
+            ? prev.storySection
+            : cached.data.storySection
+      }));
       setHasUnsavedChanges(false);
-      setLoading(false);
+      setIsRefreshing(false);
       return;
     }
 
     if (!silent) {
-      setLoading(true);
+      setIsRefreshing(true);
     }
     try {
-      const res = await fetchWithBrowserCache('site_content_full', '/api/site-content', {
+      const res = await fetchWithBrowserCache('site_content_light', '/api/site-content?scope=editorLight', {
         force: force === true,
         maxAgeMs: CACHE_TTL_LONG,
-        persist: false,
+        persist: true,
         extract: (json) => json.data
       });
       if (res.ok && res.data) {
-        setContent(res.data);
+        setContent((prev) => ({
+          ...res.data,
+          storySection:
+            prev?.storySection?._imagesDeferred === false && res.data?.storySection?._imagesDeferred === true
+              ? prev.storySection
+              : res.data.storySection
+        }));
         setHasUnsavedChanges(false);
       }
     } catch (err) {
       console.error('Site içeriği yüklenemedi:', err);
     } finally {
       if (!silent) {
-        setLoading(false);
+        setIsRefreshing(false);
       }
     }
   };
 
+  const fetchStoryImages = async (force = false) => {
+    setLoadingStoryImages(true);
+    try {
+      const res = await fetchWithBrowserCache('site_content_story_images', '/api/site-content?section=storyImages', {
+        force: force === true,
+        maxAgeMs: CACHE_TTL_LONG,
+        persist: false,
+        extract: (json) => json.data?.images || []
+      });
+      if (res.ok && Array.isArray(res.data)) {
+        setContent((prev) => ({
+          ...prev,
+          storySection: {
+            ...(prev.storySection || DEFAULT_SITE_CONTENT.storySection),
+            images: res.data,
+            _imagesDeferred: false,
+            _imageCount: res.data.length
+          }
+        }));
+        setStoryImagesLoaded(true);
+      }
+    } catch (err) {
+      console.error('Galeri fotoğrafları yüklenemedi:', err);
+    } finally {
+      setLoadingStoryImages(false);
+    }
+  };
+
   useEffect(() => {
-    const cached = getBrowserCache('site_content_full');
+    const cached = getBrowserCache('site_content_light');
     if (cached?.data) {
       setContent(cached.data);
-      setLoading(false);
-      if (isBrowserCacheStale('site_content_full', CACHE_TTL_LONG)) {
+      if (isBrowserCacheStale('site_content_light', CACHE_TTL_LONG)) {
         fetchContent(true, { silent: true });
       }
     } else {
       fetchContent(false);
     }
   }, []);
+
+  useEffect(() => {
+    if (activeSubTab === 'story' && !storyImagesLoaded) {
+      fetchStoryImages(false);
+    }
+  }, [activeSubTab, storyImagesLoaded]);
 
   const updateField = (updater) => {
     setContent(updater);
@@ -191,10 +241,25 @@ export default function SiteContentEditorTab({ initialSubTab = 'hero', onSubTabC
       });
       const json = await res.json();
       if (json.success) {
-        setContent(json.data);
+        const savedImages = Array.isArray(json.data?.storySection?.images)
+          ? json.data.storySection.images
+          : [];
+        const lightData = {
+          ...json.data,
+          storySection: {
+            ...(json.data?.storySection || DEFAULT_SITE_CONTENT.storySection),
+            images: [],
+            _imagesDeferred: true,
+            _imageCount: savedImages.length
+          }
+        };
+        setContent(storyImagesLoaded ? json.data : lightData);
         setHasUnsavedChanges(false);
         invalidateBrowserCache('site_content_');
-        setBrowserCache('site_content_full', json.data, { persist: false });
+        setBrowserCache('site_content_light', lightData, { persist: true });
+        if (storyImagesLoaded) {
+          setBrowserCache('site_content_story_images', savedImages, { persist: false });
+        }
         if (typeof window !== 'undefined') {
           localStorage.setItem('sandwich_site_content_updated', String(Date.now()));
         }
@@ -219,20 +284,22 @@ export default function SiteContentEditorTab({ initialSubTab = 'hero', onSubTabC
   const handleResetToDefaults = () => {
     if (confirm('Tüm müşteri sayfası metinleri ve görselleri varsayılan fabrika tasarımına döndürülsün mü?')) {
       setContent(DEFAULT_SITE_CONTENT);
+      setStoryImagesLoaded(true);
       setHasUnsavedChanges(true);
     }
   };
 
-  // Bilgisayardan Görsel Yükle (API /api/upload)
+  // Bilgisayardan Görsel Yükle (Yükleme öncesi otomatik sıkıştırma + /api/upload)
   const handleFileUpload = async (e, targetField) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    const formData = new FormData();
-    formData.append('file', file);
-
     setUploadingTarget(targetField);
     try {
+      const compressedFile = await compressImageFile(file);
+      const formData = new FormData();
+      formData.append('file', compressedFile);
+
       const res = await fetch('/api/upload', {
         method: 'POST',
         body: formData,
@@ -251,6 +318,7 @@ export default function SiteContentEditorTab({ initialSubTab = 'hero', onSubTabC
             featuresSection: { ...prev.featuresSection, bgImage: uploadedUrl },
           }));
         } else if (targetField === 'storySlideNew') {
+          setStoryImagesLoaded(true);
           updateField((prev) => {
             const currentImages = Array.isArray(prev.storySection?.images)
               ? prev.storySection.images
@@ -259,6 +327,7 @@ export default function SiteContentEditorTab({ initialSubTab = 'hero', onSubTabC
               ...prev,
               storySection: {
                 ...(prev.storySection || DEFAULT_SITE_CONTENT.storySection),
+                _imagesDeferred: false,
                 images: [
                   ...currentImages,
                   {
@@ -274,7 +343,7 @@ export default function SiteContentEditorTab({ initialSubTab = 'hero', onSubTabC
         dispatch(
           showMessageModal({
             title: 'Görsel Yüklendi! 📸',
-            text: 'Yeni fotoğraf başarıyla sisteme aktarıldı. Kaydet butonuna basarak yayına alabilirsiniz.',
+            text: 'Yeni fotoğraf optimize edilerek sisteme aktarıldı. Kaydet butonuna basarak yayına alabilirsiniz.',
             type: 'success',
           })
         );
@@ -300,15 +369,6 @@ export default function SiteContentEditorTab({ initialSubTab = 'hero', onSubTabC
       };
     });
   };
-
-  if (loading) {
-    return (
-      <div className="p-16 text-center text-stone-500 font-medium bg-white rounded-3xl border border-stone-200/80 shadow-xs">
-        <i className="fa-solid fa-arrows-rotate fa-spin text-3xl text-brand-600 mb-3 block"></i>
-        <span>Müşteri sayfası tasarım ve vitrin verileri yükleniyor...</span>
-      </div>
-    );
-  }
 
   const currentMeta = SECTIONS.find((s) => s.id === activeSubTab) || SECTIONS[0];
   const isCurrentVisible = currentMeta.getVisibility(content);
@@ -370,6 +430,12 @@ export default function SiteContentEditorTab({ initialSubTab = 'hero', onSubTabC
               <h3 className="text-xs sm:text-sm font-extrabold text-stone-900 truncate">
                 {currentMeta.title}
               </h3>
+              {isRefreshing && (
+                <span className="text-[10px] font-bold bg-stone-100 text-stone-600 border border-stone-200 px-2 py-0.5 rounded-full shrink-0 flex items-center gap-1">
+                  <i className="fa-solid fa-arrows-rotate fa-spin text-[9px] text-brand-600"></i>
+                  <span>Senkronize ediliyor</span>
+                </span>
+              )}
               {hasUnsavedChanges && (
                 <span className="text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-300 px-2 py-0.5 rounded-full shrink-0 animate-pulse">
                   Değişiklik Var
@@ -494,6 +560,7 @@ export default function SiteContentEditorTab({ initialSubTab = 'hero', onSubTabC
                     <img
                       src={hero.image || '/images/hero_sandwich_banner.jpg'}
                       alt="Aktif Görsel"
+                      decoding="async"
                       className="w-full h-full object-cover"
                     />
                     <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
@@ -578,7 +645,7 @@ export default function SiteContentEditorTab({ initialSubTab = 'hero', onSubTabC
                           }`}
                         >
                           <div className="h-14 w-full bg-stone-100 overflow-hidden relative">
-                            <img src={p.url} alt={p.label} className="w-full h-full object-cover" />
+                            <img src={p.url} alt={p.label} loading="lazy" decoding="async" className="w-full h-full object-cover" />
                             {isCur && (
                               <span className="absolute top-1 right-1 bg-brand-600 text-white rounded-full w-4 h-4 flex items-center justify-center text-[9px]">
                                 <i className="fa-solid fa-check"></i>
@@ -1363,6 +1430,8 @@ export default function SiteContentEditorTab({ initialSubTab = 'hero', onSubTabC
                       <img
                         src={preset.url}
                         alt={preset.label}
+                        loading="lazy"
+                        decoding="async"
                         className="w-6 h-6 rounded-md object-cover border border-stone-200"
                       />
                       <span>+ {preset.label}</span>
@@ -1375,13 +1444,23 @@ export default function SiteContentEditorTab({ initialSubTab = 'hero', onSubTabC
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-extrabold text-stone-800 uppercase">
-                    Aktif Slider Fotoğrafları ({(story.images || DEFAULT_SITE_CONTENT.storySection.images).length} Adet)
+                    Aktif Slider Fotoğrafları (
+                    {loadingStoryImages
+                      ? story._imageCount ?? '...'
+                      : (story.images || DEFAULT_SITE_CONTENT.storySection.images).length}{' '}
+                    Adet)
                   </span>
                   <span className="text-[11px] text-stone-400">
                     Sitede sırayla otomatik kayarak gösterilir
                   </span>
                 </div>
 
+                {loadingStoryImages ? (
+                  <div className="p-6 text-center bg-stone-50/80 border border-stone-200 rounded-2xl text-xs font-semibold text-stone-500 flex items-center justify-center gap-2">
+                    <i className="fa-solid fa-arrows-rotate fa-spin text-brand-600"></i>
+                    <span>Galeri fotoğrafları yükleniyor...</span>
+                  </div>
+                ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   {(story.images || DEFAULT_SITE_CONTENT.storySection.images).map((slide, idx, arr) => (
                     <div
@@ -1392,6 +1471,8 @@ export default function SiteContentEditorTab({ initialSubTab = 'hero', onSubTabC
                         <img
                           src={slide.url}
                           alt={slide.caption || `Slayt ${idx + 1}`}
+                          loading="lazy"
+                          decoding="async"
                           className="w-full h-full object-cover"
                           onError={(e) => {
                             e.currentTarget.src = '/images/kasap_sucuk_ekmek.jpg';
@@ -1451,6 +1532,7 @@ export default function SiteContentEditorTab({ initialSubTab = 'hero', onSubTabC
                     </div>
                   ))}
                 </div>
+                )}
               </div>
             </div>
           )}
@@ -1563,6 +1645,8 @@ export default function SiteContentEditorTab({ initialSubTab = 'hero', onSubTabC
                   <img
                     src={hero.image || '/images/hero_sandwich_banner.jpg'}
                     alt="Manşet Önizleme"
+                    loading="lazy"
+                    decoding="async"
                     className="absolute inset-0 w-full h-full object-cover opacity-60"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-stone-950 via-stone-950/60 to-transparent"></div>
@@ -1658,7 +1742,7 @@ export default function SiteContentEditorTab({ initialSubTab = 'hero', onSubTabC
                   <div className="grid grid-cols-2 gap-2.5 pt-1">
                     <div className="bg-stone-900 border border-stone-800 rounded-xl p-2.5 space-y-2">
                       <div className="h-16 rounded-lg overflow-hidden relative">
-                        <img src="/images/ayvalik_tostu.jpg" alt="Kampanya 1" className="w-full h-full object-cover" />
+                        <img src="/images/ayvalik_tostu.jpg" alt="Kampanya 1" loading="lazy" decoding="async" className="w-full h-full object-cover" />
                         <span className="absolute top-1 left-1 bg-rose-600 text-white text-[9px] font-black px-1.5 py-0.5 rounded">
                           %20 İndirim
                         </span>
@@ -1674,7 +1758,7 @@ export default function SiteContentEditorTab({ initialSubTab = 'hero', onSubTabC
 
                     <div className="bg-stone-900 border border-stone-800 rounded-xl p-2.5 space-y-2">
                       <div className="h-16 rounded-lg overflow-hidden relative">
-                        <img src="/images/cheeseburger.jpg" alt="Kampanya 2" className="w-full h-full object-cover" />
+                        <img src="/images/cheeseburger.jpg" alt="Kampanya 2" loading="lazy" decoding="async" className="w-full h-full object-cover" />
                         <span className="absolute top-1 left-1 bg-rose-600 text-white text-[9px] font-black px-1.5 py-0.5 rounded">
                           Süper Fırsat
                         </span>
@@ -1719,6 +1803,8 @@ export default function SiteContentEditorTab({ initialSubTab = 'hero', onSubTabC
                           <img
                             src={item === 1 ? '/images/hero_banner.jpg' : item === 2 ? '/images/kasap_kofte_ekmek.jpg' : '/images/sandwich_model.jpg'}
                             alt={`Menü ${item}`}
+                            loading="lazy"
+                            decoding="async"
                             className="w-full h-full object-cover"
                           />
                         </div>
@@ -1741,6 +1827,8 @@ export default function SiteContentEditorTab({ initialSubTab = 'hero', onSubTabC
                   <img
                     src={features.bgImage || 'https://images.unsplash.com/photo-1555939594-58d7cb561ad1'}
                     alt="Arka Plan"
+                    loading="lazy"
+                    decoding="async"
                     className="absolute inset-0 w-full h-full object-cover opacity-20"
                   />
                   <div className="relative z-10 space-y-3">
@@ -1826,6 +1914,8 @@ export default function SiteContentEditorTab({ initialSubTab = 'hero', onSubTabC
                         <img
                           src={(story.images || DEFAULT_SITE_CONTENT.storySection.images)[0].url}
                           alt="Slider İlk Kare"
+                          loading="lazy"
+                          decoding="async"
                           className="w-full h-full object-cover"
                         />
                         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent flex items-end p-2.5">

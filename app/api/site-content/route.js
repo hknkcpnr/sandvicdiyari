@@ -71,6 +71,37 @@ export async function GET(request) {
       });
     }
 
+    if (section === 'storyImages') {
+      return NextResponse.json({
+        success: true,
+        cached,
+        data: {
+          images: Array.isArray(fullContent?.storySection?.images)
+            ? fullContent.storySection.images
+            : []
+        }
+      });
+    }
+
+    if (scope === 'editorLight') {
+      const storyImages = Array.isArray(fullContent?.storySection?.images)
+        ? fullContent.storySection.images
+        : [];
+      return NextResponse.json({
+        success: true,
+        cached,
+        data: {
+          ...fullContent,
+          storySection: {
+            ...(fullContent?.storySection || DEFAULT_SITE_CONTENT.storySection),
+            images: [],
+            _imagesDeferred: true,
+            _imageCount: storyImages.length
+          }
+        }
+      });
+    }
+
     if (scope === 'home') {
       return NextResponse.json({
         success: true,
@@ -117,6 +148,16 @@ export async function POST(request) {
     }
 
     const sanitizedBody = sanitizeSiteContent(body);
+    if (sanitizedBody?.storySection && typeof sanitizedBody.storySection === 'object') {
+      if (sanitizedBody.storySection._imagesDeferred === true) {
+        const { data: existingContent } = await loadFullSanitizedSiteContent();
+        sanitizedBody.storySection.images = Array.isArray(existingContent?.storySection?.images)
+          ? existingContent.storySection.images
+          : [];
+      }
+      delete sanitizedBody.storySection._imagesDeferred;
+      delete sanitizedBody.storySection._imageCount;
+    }
     const updated = db.saveSiteContent(sanitizedBody);
 
     try {
