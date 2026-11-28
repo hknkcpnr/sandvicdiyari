@@ -131,12 +131,38 @@ async function getSyncedRolesAndAdmins() {
             ? { ...r, permissions: allSuperPerms }
             : r
         );
-        // Süper Yönetici rolünün eksik olmadığından emin ol
+        // Süper Yönetici ve Paket Kuryesi rollerinin eksik olmadığından emin ol
         const mergedRoles = [...normalizedPgRoles];
         const superExists = mergedRoles.some((r) => r.id === 'role_super_admin' || r.code === 'super_admin');
         if (!superExists) {
           const defaultSuper = defaultSystemRoles.find((r) => r.id === 'role_super_admin');
           if (defaultSuper) mergedRoles.unshift(defaultSuper);
+        }
+        const courierExists = mergedRoles.some((r) => r.id === 'role_courier' || r.code === 'courier');
+        if (!courierExists) {
+          const defaultCourier = defaultSystemRoles.find(
+            (r) => r.id === 'role_courier' || r.code === 'courier'
+          );
+          if (defaultCourier) {
+            mergedRoles.push(defaultCourier);
+            try {
+              await rawPrisma.role.upsert({
+                where: { id: defaultCourier.id },
+                update: {},
+                create: {
+                  id: defaultCourier.id,
+                  name: defaultCourier.name,
+                  code: defaultCourier.code || 'courier',
+                  color: defaultCourier.color || 'sky',
+                  description: defaultCourier.description || '',
+                  isSystem: true,
+                  permissions: defaultCourier.permissions || ['courier_delivery']
+                }
+              });
+            } catch (seedErr) {
+              console.warn('Prisma courier role auto-seed notice:', seedErr.message);
+            }
+          }
         }
         roles = mergedRoles;
       }
@@ -761,7 +787,60 @@ export async function POST(request) {
       throw new ValidationError('Ad Soyad ve E-Posta / Kullanıcı Adı zorunludur.');
     }
 
-    const roleId = sanitizeText(body.roleId || 'role_super_admin', 64, 'roleId', '/api/admin/users');
+    const portalTarget = sanitizeText(body.portalTarget || '', 32, 'portalTarget', '/api/admin/users');
+    const rawRoleId = sanitizeText(body.roleId || '', 64, 'roleId', '/api/admin/users');
+
+    let requestedRoleId = rawRoleId;
+    if (!requestedRoleId) {
+      if (portalTarget === 'kurye') {
+        requestedRoleId = 'role_courier';
+      } else if (portalTarget === 'yonetici') {
+        requestedRoleId = 'role_super_admin';
+      } else if (portalTarget === 'panel') {
+        requestedRoleId = 'role_cashier';
+      } else {
+        throw new ValidationError('Lütfen kullanıcı için geçerli bir yetki rolü seçiniz.');
+      }
+    }
+
+    const [{ roles: allRoles }, defaultSystemRoles] = await Promise.all([
+      getSyncedRolesAndAdmins(),
+      Promise.resolve(db.getRoles())
+    ]);
+
+    const isSuperRole = (r) => Boolean(r && (r.id === 'role_super_admin' || r.code === 'super_admin'));
+    const isCourierRole = (r) =>
+      Boolean(
+        r &&
+          (r.id === 'role_courier' ||
+            r.code === 'courier' ||
+            String(r.name || '').toLowerCase().includes('kurye'))
+      );
+
+    let matchedRole =
+      allRoles.find(
+        (r) => String(r.id) === String(requestedRoleId) || String(r.code || '') === String(requestedRoleId)
+      ) ||
+      defaultSystemRoles.find(
+        (r) => String(r.id) === String(requestedRoleId) || String(r.code || '') === String(requestedRoleId)
+      );
+
+    if (portalTarget === 'kurye' && (!matchedRole || !isCourierRole(matchedRole))) {
+      matchedRole =
+        allRoles.find(isCourierRole) ||
+        defaultSystemRoles.find((r) => r.id === 'role_courier' || r.code === 'courier');
+    }
+
+    if (portalTarget === 'panel' && isSuperRole(matchedRole)) {
+      throw new ValidationError('Restoran Paneli kullanıcısına Süper Yönetici rolü atanamaz.');
+    }
+
+    if (!matchedRole) {
+      throw new ValidationError('Seçilen yetki rolü bulunamadı. Lütfen geçerli bir rol seçiniz.');
+    }
+
+    const resolvedRoleId = matchedRole.id;
+    const resolvedRoleName = matchedRole.name;
     const isActive = typeof body.isActive === 'boolean' ? body.isActive : true;
     const rawPass = body.pass ? String(body.pass).trim() : '';
 
@@ -770,7 +849,8 @@ export async function POST(request) {
       name,
       email,
       phone,
-      roleId,
+      roleId: resolvedRoleId,
+      roleName: resolvedRoleName,
       isActive,
       ...(rawPass ? { pass: rawPass } : {})
     };
@@ -779,29 +859,45 @@ export async function POST(request) {
 
     try {
       if (rawPrisma && rawPrisma.adminUser) {
-        const { roles: allRoles } = await getSyncedRolesAndAdmins();
-        const matchedRole = allRoles.find((r) => String(r.id) === String(roleId)) || allRoles[0];
         const passHash = rawPass ? hashPassword(rawPass) : savedUser.pass || hashPassword('123456');
+        let prismaRoleId = resolvedRoleId;
+        let prismaRoleName = resolvedRoleName;
 
-        if (rawPrisma.role && matchedRole) {
-          await rawPrisma.role.upsert({
-            where: { id: matchedRole.id },
-            update: {
-              name: matchedRole.name,
-              color: matchedRole.color || 'blue',
-              description: matchedRole.description || '',
-              permissions: matchedRole.permissions || ['orders']
-            },
-            create: {
-              id: matchedRole.id,
-              name: matchedRole.name,
-              code: matchedRole.code || `role_${Date.now()}`,
-              color: matchedRole.color || 'blue',
-              description: matchedRole.description || '',
-              isSystem: Boolean(matchedRole.isSystem),
-              permissions: matchedRole.permissions || ['orders']
+        if (rawPrisma.role) {
+          try {
+            await rawPrisma.role.upsert({
+              where: { id: resolvedRoleId },
+              update: {
+                name: resolvedRoleName,
+                color: matchedRole.color || 'blue',
+                description: matchedRole.description || '',
+                permissions: matchedRole.permissions || ['orders']
+              },
+              create: {
+                id: resolvedRoleId,
+                name: resolvedRoleName,
+                code: matchedRole.code || `role_${Date.now()}`,
+                color: matchedRole.color || 'blue',
+                description: matchedRole.description || '',
+                isSystem: Boolean(matchedRole.isSystem),
+                permissions: matchedRole.permissions || ['orders']
+              }
+            });
+          } catch (roleErr) {
+            if (matchedRole.code) {
+              const existingByCode = await rawPrisma.role.findUnique({
+                where: { code: String(matchedRole.code) }
+              });
+              if (existingByCode) {
+                prismaRoleId = existingByCode.id;
+                prismaRoleName = existingByCode.name || resolvedRoleName;
+              } else {
+                throw roleErr;
+              }
+            } else {
+              throw roleErr;
             }
-          });
+          }
         }
 
         if (body.id) {
@@ -815,8 +911,8 @@ export async function POST(request) {
                 name,
                 email,
                 phone: phone || '',
-                roleId: matchedRole?.id || roleId,
-                roleName: matchedRole?.name || 'Yetkili',
+                roleId: prismaRoleId,
+                roleName: prismaRoleName,
                 isActive,
                 ...(rawPass ? { passHash } : {})
               }
@@ -827,8 +923,8 @@ export async function POST(request) {
               update: {
                 name,
                 phone: phone || '',
-                roleId: matchedRole?.id || roleId,
-                roleName: matchedRole?.name || 'Yetkili',
+                roleId: prismaRoleId,
+                roleName: prismaRoleName,
                 isActive,
                 ...(rawPass ? { passHash } : {})
               },
@@ -838,8 +934,8 @@ export async function POST(request) {
                 email,
                 phone: phone || '',
                 passHash,
-                roleId: matchedRole?.id || roleId,
-                roleName: matchedRole?.name || 'Yetkili',
+                roleId: prismaRoleId,
+                roleName: prismaRoleName,
                 isActive
               }
             });
@@ -850,8 +946,8 @@ export async function POST(request) {
             update: {
               name,
               phone: phone || '',
-              roleId: matchedRole?.id || roleId,
-              roleName: matchedRole?.name || 'Yetkili',
+              roleId: prismaRoleId,
+              roleName: prismaRoleName,
               isActive,
               ...(rawPass ? { passHash } : {})
             },
@@ -861,8 +957,8 @@ export async function POST(request) {
               email,
               phone: phone || '',
               passHash,
-              roleId: matchedRole?.id || roleId,
-              roleName: matchedRole?.name || 'Yetkili',
+              roleId: prismaRoleId,
+              roleName: prismaRoleName,
               isActive
             }
           });
@@ -879,15 +975,19 @@ export async function POST(request) {
       action: 'USER_SAVE',
       category: 'USER',
       level: 'INFO',
-      message: `"${name}" (${email}) personeli kaydedildi. Rol: ${savedUser.roleName || roleId}`,
-      details: { userId: savedUser.id, name, email, roleId }
+      message: `"${name}" (${email}) personeli kaydedildi. Rol: ${resolvedRoleName || resolvedRoleId}`,
+      details: { userId: savedUser.id, name, email, roleId: resolvedRoleId, roleName: resolvedRoleName }
     });
 
     invalidateAdminUsersServerCache();
     return jsonSuccess({
       message: 'Kullanıcı başarıyla kaydedildi.',
       data: {
-        user: savedUser,
+        user: {
+          ...savedUser,
+          roleId: resolvedRoleId,
+          roleName: resolvedRoleName
+        },
         adminUsers: currentAdmins,
         roles: currentRoles
       }
@@ -911,6 +1011,9 @@ export async function DELETE(request) {
     if (entityType === 'role') {
       if (id === 'role_super_admin' || id === 'super_admin') {
         throw new ValidationError('Süper Yönetici rolü sistem güvenliği gereği silinemez.');
+      }
+      if (id === 'role_courier' || id === 'courier') {
+        throw new ValidationError('Paket Kuryesi rolü sistem modülü için gereklidir ve silinemez.');
       }
 
       const fallbackRoleId = 'role_cashier';

@@ -184,12 +184,40 @@ export default function UsersRolesTab({ currentAdmin, onRolesOrUsersUpdated }) {
     };
   }, []);
 
+  // Helper: Bir personelin veya rolün hangi panele (/yonetici, /panel, /kurye) ait olduğunu belirle
+  const getPortalForRoleOrUser = (roleId, roleName = '', roleCode = '') => {
+    const rId = String(roleId || '');
+    const rName = String(roleName || '').toLowerCase();
+    const rCode = String(roleCode || '').toLowerCase();
+    if (rId === 'role_super_admin' || rCode === 'super_admin' || rName === 'süper yönetici') return 'yonetici';
+    if (rId === 'role_courier' || rCode === 'courier' || rName.includes('kurye')) return 'kurye';
+    return 'panel';
+  };
+
+  const getDefaultRoleIdForPortal = (portalKey, rolesList = roles) => {
+    if (portalKey === 'yonetici') {
+      return rolesList.find((r) => r.id === 'role_super_admin' || r.code === 'super_admin')?.id || 'role_super_admin';
+    }
+    if (portalKey === 'kurye') {
+      return (
+        rolesList.find(
+          (r) => r.id === 'role_courier' || r.code === 'courier' || String(r.name || '').toLowerCase().includes('kurye')
+        )?.id || 'role_courier'
+      );
+    }
+    const panelRole = rolesList.find(
+      (r) => getPortalForRoleOrUser(r.id, r.name, r.code) === 'panel'
+    );
+    return panelRole?.id || 'role_cashier';
+  };
+
   useEffect(() => {
     if (!courierModuleEnabled && subTab === 'kurye') {
       setSubTab('panel');
     }
     if (!courierModuleEnabled && userPortalTarget === 'kurye') {
       setUserPortalTarget('panel');
+      setUserRoleId(getDefaultRoleIdForPortal('panel'));
     }
   }, [courierModuleEnabled, subTab, userPortalTarget]);
 
@@ -216,7 +244,7 @@ export default function UsersRolesTab({ currentAdmin, onRolesOrUsersUpdated }) {
       setRoles(cached.roles);
       setCustomers(cached.customers);
       if (!userRoleId && cached.roles.length > 0) {
-        setUserRoleId(cached.roles[0].id);
+        setUserRoleId(getDefaultRoleIdForPortal(userPortalTarget, cached.roles));
       }
       setLoading(false);
       return;
@@ -236,7 +264,7 @@ export default function UsersRolesTab({ currentAdmin, onRolesOrUsersUpdated }) {
         setRoles(json.data.roles || []);
         setCustomers(json.data.customers || []);
         if (!userRoleId && json.data.roles?.length > 0) {
-          setUserRoleId(json.data.roles[0].id);
+          setUserRoleId(getDefaultRoleIdForPortal(userPortalTarget, json.data.roles));
         }
       }
     } catch (err) {
@@ -263,7 +291,7 @@ export default function UsersRolesTab({ currentAdmin, onRolesOrUsersUpdated }) {
       setRoles(cached.roles);
       setCustomers(cached.customers);
       if (!userRoleId && cached.roles.length > 0) {
-        setUserRoleId(cached.roles[0].id);
+        setUserRoleId(getDefaultRoleIdForPortal(userPortalTarget, cached.roles));
       }
       setLoading(false);
       if (isAdminUsersCacheStale('all', DEFAULT_STALE_MS)) {
@@ -305,28 +333,6 @@ export default function UsersRolesTab({ currentAdmin, onRolesOrUsersUpdated }) {
       document.removeEventListener('visibilitychange', handleFocusOrVisible);
     };
   }, []);
-
-  // Helper: Bir personelin veya rolün hangi panele (/yonetici, /panel, /kurye) ait olduğunu belirle
-  const getPortalForRoleOrUser = (roleId, roleName = '') => {
-    const rId = String(roleId || '');
-    const rName = String(roleName || '').toLowerCase();
-    if (rId === 'role_super_admin' || rName === 'süper yönetici') return 'yonetici';
-    if (rId === 'role_courier' || rName.includes('kurye')) return 'kurye';
-    return 'panel';
-  };
-
-  const getDefaultRoleIdForPortal = (portalKey, rolesList = roles) => {
-    if (portalKey === 'yonetici') {
-      return rolesList.find((r) => r.id === 'role_super_admin' || r.code === 'super_admin')?.id || 'role_super_admin';
-    }
-    if (portalKey === 'kurye') {
-      return rolesList.find((r) => r.id === 'role_courier' || r.code === 'courier')?.id || 'role_courier';
-    }
-    const panelRole = rolesList.find(
-      (r) => r.id !== 'role_super_admin' && r.code !== 'super_admin' && r.id !== 'role_courier' && r.code !== 'courier'
-    );
-    return panelRole?.id || 'role_cashier';
-  };
 
   // Kullanıcı Modalı Açma (Seçili panele göre otomatik rol atar)
   const handleOpenAddUser = (targetPortal = 'panel') => {
@@ -378,13 +384,22 @@ export default function UsersRolesTab({ currentAdmin, onRolesOrUsersUpdated }) {
     }
 
     try {
+      const selectedRoleObj = roles.find((r) => String(r.id) === String(userRoleId));
+      const isRoleMatchingPortal = selectedRoleObj
+        ? getPortalForRoleOrUser(selectedRoleObj.id, selectedRoleObj.name, selectedRoleObj.code) === userPortalTarget
+        : Boolean(userRoleId) && getPortalForRoleOrUser(userRoleId) === userPortalTarget;
+      const effectiveRoleId = isRoleMatchingPortal
+        ? userRoleId
+        : getDefaultRoleIdForPortal(userPortalTarget);
+
       const payload = {
         entityType: 'user',
         id: editingUser?.id,
         name: userName.trim(),
         email: userEmail.trim(),
         phone: userPhone.trim(),
-        roleId: userRoleId,
+        portalTarget: userPortalTarget,
+        roleId: effectiveRoleId,
         isActive: userIsActive,
         ...(userPass.trim() ? { pass: userPass.trim() } : {}),
       };
@@ -403,6 +418,9 @@ export default function UsersRolesTab({ currentAdmin, onRolesOrUsersUpdated }) {
       setAdminUsers(json.data.adminUsers || []);
       setRoles(json.data.roles || []);
       setIsUserModalOpen(false);
+      if (['panel', 'kurye', 'yonetici'].includes(userPortalTarget)) {
+        setSubTab(userPortalTarget);
+      }
       const mergedCache = setCachedAdminUsersData(json.data, { broadcast: true });
       if (onRolesOrUsersUpdated) onRolesOrUsersUpdated(mergedCache);
 
@@ -617,6 +635,10 @@ export default function UsersRolesTab({ currentAdmin, onRolesOrUsersUpdated }) {
   const handleDeleteRole = async (role) => {
     if (role.code === 'super_admin' || role.id === 'role_super_admin') {
       alert('Süper Yönetici rolü sistem güvenliği için silinemez.');
+      return;
+    }
+    if (role.code === 'courier' || role.id === 'role_courier') {
+      alert('Paket Kuryesi rolü sistem modülü için gereklidir ve silinemez.');
       return;
     }
 
@@ -1107,9 +1129,13 @@ export default function UsersRolesTab({ currentAdmin, onRolesOrUsersUpdated }) {
           ) : (
             <div className="divide-y divide-stone-100">
               {filteredStaff.map((user) => {
-                const roleObj = roles.find((r) => String(r.id) === String(user.roleId)) || roles[0];
-                const colorTheme = ROLE_COLORS[roleObj?.color] || ROLE_COLORS.blue;
-                const userPortal = getPortalForRoleOrUser(user.roleId, roleObj?.name || user.roleName);
+                const roleObj = roles.find((r) => String(r.id) === String(user.roleId)) || null;
+                const colorTheme = ROLE_COLORS[roleObj?.color || user.roleColor] || ROLE_COLORS.blue;
+                const userPortal = getPortalForRoleOrUser(
+                  user.roleId,
+                  roleObj?.name || user.roleName,
+                  roleObj?.code
+                );
                 const portalMeta = PORTAL_META[userPortal] || PORTAL_META.panel;
                 const initials = (user.name || 'P')
                   .split(' ')
@@ -1250,7 +1276,10 @@ export default function UsersRolesTab({ currentAdmin, onRolesOrUsersUpdated }) {
                           <i className="fa-solid fa-sliders text-[11px]"></i>
                           <span>Yetkiler</span>
                         </button>
-                        {role.code !== 'super_admin' && role.id !== 'role_super_admin' && (
+                        {role.code !== 'super_admin' &&
+                          role.id !== 'role_super_admin' &&
+                          role.code !== 'courier' &&
+                          role.id !== 'role_courier' && (
                           <button
                             type="button"
                             onClick={() => handleDeleteRole(role)}
@@ -1537,17 +1566,40 @@ export default function UsersRolesTab({ currentAdmin, onRolesOrUsersUpdated }) {
                       : 'Süper Yönetici Rolü (/yonetici)'}
                   </label>
                   <select
-                    value={userRoleId}
+                    value={
+                      userRoleId ||
+                      (() => {
+                        const filtered = roles.filter(
+                          (r) => getPortalForRoleOrUser(r.id, r.name, r.code) === userPortalTarget
+                        );
+                        if (filtered.length > 0) return filtered[0].id;
+                        if (userPortalTarget === 'kurye') return 'role_courier';
+                        if (userPortalTarget === 'yonetici') return 'role_super_admin';
+                        return 'role_cashier';
+                      })()
+                    }
                     onChange={(e) => setUserRoleId(e.target.value)}
                     className="app-select w-full bg-stone-50 hover:bg-stone-100/60 border border-stone-200 hover:border-brand-400 rounded-2xl px-4 py-2.5 text-xs sm:text-sm font-bold text-stone-900 focus:outline-none focus:border-brand-500 cursor-pointer shadow-2xs transition-all"
                   >
-                    {roles
-                      .filter((r) => getPortalForRoleOrUser(r.id, r.name) === userPortalTarget)
-                      .map((r) => (
+                    {(() => {
+                      const filteredRolesForPortal = roles.filter(
+                        (r) => getPortalForRoleOrUser(r.id, r.name, r.code) === userPortalTarget
+                      );
+                      const portalRoleOptions =
+                        filteredRolesForPortal.length > 0
+                          ? filteredRolesForPortal
+                          : userPortalTarget === 'kurye'
+                          ? [{ id: 'role_courier', name: 'Paket Kuryesi' }]
+                          : userPortalTarget === 'yonetici'
+                          ? [{ id: 'role_super_admin', name: 'Süper Yönetici' }]
+                          : [{ id: 'role_cashier', name: 'Kasiyer & Sipariş Sorumlusu' }];
+
+                      return portalRoleOptions.map((r) => (
                         <option key={r.id} value={r.id}>
                           {r.name}
                         </option>
-                      ))}
+                      ));
+                    })()}
                   </select>
                 </div>
               </div>
