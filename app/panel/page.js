@@ -2571,8 +2571,8 @@ export default function AdminDashboardPage() {
             </h2>
           </div>
 
-          {/* SAĞ TARAF: MASAÜSTÜ HIZLI ARAÇLAR */}
-          <div className="hidden md:flex items-center gap-2 lg:gap-3 shrink-0">
+          {/* SAĞ TARAF: OPERASYON ÖZETİ & AÇILIR AYARLAR MENÜSÜ */}
+          <div className="flex items-center gap-2 lg:gap-3 shrink-0">
             {/* Operasyon Ticker (Desktop) */}
             <div className="hidden lg:flex items-center gap-6 text-stone-600 text-xs pr-4 border-r border-stone-200">
               <div>
@@ -2589,252 +2589,153 @@ export default function AdminDashboardPage() {
               </div>
             </div>
 
-            {/* Live Status Indicator */}
-            <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-full bg-emerald-50 text-emerald-700 text-[10px] font-bold border border-emerald-200/80">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-              <span>Canlı</span>
-            </span>
-
-            {/* Sipariş Alımını Durdur / Aç (Yoğunluk & Mola) */}
+            {/* Birleşik Ayarlar & Hızlı Araçlar İkonu (Masaüstü & Mobil) */}
             <div className="relative">
               <button
                 type="button"
-                disabled={pauseSaving}
-                onClick={() => (orderPause.paused ? handleSetOrderPause(null) : setPauseMenuOpen((v) => !v))}
-                title={orderPause.paused ? 'Sipariş alımını tekrar aç' : 'Sipariş alımını geçici durdur'}
-                className={`h-9 px-2.5 rounded-xl border text-xs font-extrabold flex items-center gap-1.5 transition-all cursor-pointer shadow-2xs disabled:opacity-60 ${
+                onClick={() => setMobileActionsOpen((v) => !v)}
+                className={`relative h-9 rounded-xl border text-xs font-extrabold flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-2xs active:scale-95 ${
                   orderPause.paused
-                    ? 'bg-rose-600 hover:bg-rose-700 border-rose-700 text-white animate-pulse'
-                    : 'bg-emerald-50 hover:bg-emerald-100 border-emerald-300 text-emerald-800'
+                    ? 'px-3 bg-rose-600 hover:bg-rose-700 border-rose-700 text-white animate-pulse'
+                    : mobileActionsOpen
+                    ? 'w-9 bg-stone-900 border-stone-900 text-white'
+                    : 'w-9 bg-stone-50 hover:bg-stone-100 border-stone-200 text-stone-700'
                 }`}
+                aria-label="Hızlı Ayarlar ve Araçlar"
+                title="Hızlı Ayarlar (Canlı, Sipariş, Ses, Tema, Vitrin)"
               >
-                <i className={`fa-solid ${orderPause.paused ? 'fa-circle-pause' : 'fa-circle-play text-emerald-600'}`}></i>
-                <span>
-                  {orderPause.paused
-                    ? orderPause.remainingMinutes > 0
-                      ? `Durduruldu (${orderPause.remainingMinutes} dk) • Aç`
-                      : 'Durduruldu • Aç'
-                    : 'Sipariş: Açık'}
-                </span>
+                <i
+                  className={`fa-solid fa-gear text-sm transition-transform duration-200 ${
+                    mobileActionsOpen ? 'rotate-90' : ''
+                  }`}
+                ></i>
+                {orderPause.paused ? (
+                  <span className="hidden sm:inline">Durduruldu</span>
+                ) : (
+                  <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-500 ring-2 ring-white animate-pulse"></span>
+                )}
               </button>
 
-              {pauseMenuOpen && !orderPause.paused && (
+              {mobileActionsOpen && (
                 <>
-                  <div className="fixed inset-0 z-40" onClick={() => setPauseMenuOpen(false)} />
-                  <div className="absolute right-0 top-full mt-1.5 z-50 w-56 bg-white border border-stone-200 rounded-2xl shadow-xl p-2 space-y-1">
-                    <p className="text-[10px] font-extrabold text-stone-400 uppercase tracking-wider px-2 pt-1 pb-1.5">
-                      Sipariş alımını durdur
-                    </p>
-                    {[
-                      { m: 15, label: '15 dakika' },
-                      { m: 30, label: '30 dakika' },
-                      { m: 60, label: '1 saat' },
-                      { m: 0, label: 'Ben açana kadar' }
-                    ].map((opt) => (
+                  <div className="fixed inset-0 z-40 bg-black/10" onClick={() => setMobileActionsOpen(false)} />
+                  <div className="absolute right-0 top-full mt-2 z-50 w-72 sm:w-80 max-w-[calc(100vw-1.5rem)] bg-white border border-stone-200 rounded-2xl shadow-2xl p-3 space-y-2.5">
+                    {/* 1. Canlı Durum & Yenile */}
+                    <div className="flex items-center justify-between pb-2.5 border-b border-stone-100">
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 text-[11px] font-bold border border-emerald-200/80">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                        <span>Canlı Bağlantı</span>
+                      </span>
                       <button
-                        key={opt.m}
                         type="button"
-                        onClick={() => handleSetOrderPause(opt.m)}
-                        className="w-full text-left px-3 py-2 rounded-xl text-xs font-bold text-stone-700 hover:bg-rose-50 hover:text-rose-700 transition-colors cursor-pointer flex items-center gap-2"
+                        onClick={() => {
+                          fetchOrders();
+                          setMobileActionsOpen(false);
+                        }}
+                        className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-700 text-xs font-bold cursor-pointer transition-colors"
                       >
-                        <i className="fa-solid fa-hourglass-half text-rose-500 text-[11px]"></i>
-                        <span>{opt.label}</span>
+                        <i className={`fa-solid fa-rotate-right text-[11px] ${loadingOrders ? 'fa-spin text-amber-500' : ''}`}></i>
+                        <span>Yenile</span>
                       </button>
-                    ))}
-                    <p className="text-[10px] text-stone-400 px-2 pt-1 leading-snug">
-                      Müşteriler bu sürede sipariş veremez; süre bitince otomatik açılır.
-                    </p>
+                    </div>
+
+                    {/* 2. Sipariş Alımı Kontrolü */}
+                    <div className="space-y-2 pb-2.5 border-b border-stone-100">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[11px] font-extrabold text-stone-700 flex items-center gap-1.5">
+                          <i className={`fa-solid ${orderPause.paused ? 'fa-circle-pause text-rose-500' : 'fa-circle-play text-emerald-600'}`}></i>
+                          Sipariş Alımı
+                        </span>
+                        <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full ${orderPause.paused ? 'bg-rose-100 text-rose-700' : 'bg-emerald-100 text-emerald-700'}`}>
+                          {orderPause.paused
+                            ? orderPause.remainingMinutes > 0
+                              ? `Durduruldu (${orderPause.remainingMinutes} dk)`
+                              : 'Durduruldu'
+                            : 'Açık'}
+                        </span>
+                      </div>
+
+                      {orderPause.paused ? (
+                        <button
+                          type="button"
+                          disabled={pauseSaving}
+                          onClick={() => {
+                            handleSetOrderPause(null);
+                            setMobileActionsOpen(false);
+                          }}
+                          className="w-full py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 text-white text-xs font-extrabold cursor-pointer flex items-center justify-center gap-1.5 transition-colors"
+                        >
+                          <i className="fa-solid fa-play text-[10px]"></i>
+                          <span>Sipariş Alımını Tekrar Aç</span>
+                        </button>
+                      ) : (
+                        <div className="grid grid-cols-4 gap-1.5">
+                          {[
+                            { m: 15, label: '15 dk' },
+                            { m: 30, label: '30 dk' },
+                            { m: 60, label: '1 sa' },
+                            { m: 0, label: 'Süresiz' }
+                          ].map((opt) => (
+                            <button
+                              key={opt.m}
+                              type="button"
+                              disabled={pauseSaving}
+                              onClick={() => {
+                                handleSetOrderPause(opt.m);
+                                setMobileActionsOpen(false);
+                              }}
+                              className="py-1.5 px-1 rounded-xl bg-rose-50 hover:bg-rose-100 border border-rose-200/80 text-rose-700 text-[11px] font-bold cursor-pointer text-center transition-colors disabled:opacity-60"
+                            >
+                              {opt.label}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* 3. Sesli Uyarılar */}
+                    <button
+                      type="button"
+                      onClick={() => setSoundEnabled(!soundEnabled)}
+                      className="w-full flex items-center justify-between px-3 py-2 rounded-xl bg-stone-50 hover:bg-stone-100 border border-stone-200/70 transition-colors cursor-pointer"
+                    >
+                      <span className="text-xs font-bold text-stone-700 flex items-center gap-2">
+                        <i className={`${soundEnabled ? 'fa-solid fa-volume-high text-amber-600' : 'fa-solid fa-volume-xmark text-stone-400'}`}></i>
+                        <span>Sesli Uyarılar</span>
+                      </span>
+                      <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full ${soundEnabled ? 'bg-amber-100 text-amber-800' : 'bg-stone-200 text-stone-500'}`}>
+                        {soundEnabled ? 'Açık' : 'Kapalı'}
+                      </span>
+                    </button>
+
+                    {/* 4. Arayüz Renk Teması */}
+                    <div className="pt-0.5 pb-0.5">
+                      <ThemeColorPicker
+                        variant="inline"
+                        onThemeChanged={() => {
+                          showToast('Arayüz renk teması güncellendi! 🎨', 'success');
+                        }}
+                      />
+                    </div>
+
+                    {/* 5. Vitrin & Sayfa Düzeni */}
+                    {canEditSiteContent && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setMobileActionsOpen(false);
+                          setSiteEditorDrawerOpen(true);
+                        }}
+                        className="w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-brand-600 to-amber-500 hover:from-brand-700 hover:to-amber-600 text-white font-extrabold text-xs shadow-sm flex items-center justify-center gap-2 cursor-pointer transition-all"
+                      >
+                        <i className="fa-solid fa-paintbrush text-xs"></i>
+                        <span>Sayfa Düzenleri &amp; Vitrin</span>
+                      </button>
+                    )}
                   </div>
                 </>
               )}
             </div>
-
-            {/* Sound alert switch */}
-            <button
-              onClick={() => setSoundEnabled(!soundEnabled)}
-              title={soundEnabled ? 'Sesli Uyarı Açık' : 'Sesli Uyarı Kapalı'}
-              className={`w-9 h-9 rounded-xl border text-xs font-semibold flex items-center justify-center transition-colors cursor-pointer shrink-0 ${
-                soundEnabled
-                  ? 'bg-amber-50 border-amber-200 text-amber-700'
-                  : 'bg-stone-100 border-stone-200 text-stone-400'
-              }`}
-            >
-              <i className={soundEnabled ? 'fa-solid fa-volume-high' : 'fa-solid fa-volume-xmark'}></i>
-            </button>
-
-            {/* Refresh button */}
-            <button
-              onClick={fetchOrders}
-              className="w-9 h-9 text-stone-600 hover:text-stone-900 rounded-xl hover:bg-stone-100 border border-stone-200/80 bg-white transition-colors cursor-pointer flex items-center justify-center shrink-0"
-              title="Listeyi Yenile"
-            >
-              <i className={`fa-solid fa-rotate-right text-xs ${loadingOrders ? 'fa-spin text-amber-500' : ''}`}></i>
-            </button>
-
-            {/* Doğrudan Arayüz Renk Paleti Seçici */}
-            <ThemeColorPicker
-              variant="dropdown"
-              onThemeChanged={() => {
-                showToast('Arayüz renk teması güncellendi! 🎨', 'success');
-              }}
-            />
-
-            {/* Sağ Taraf: Sayfa Düzenleri & Vitrin Stüdyosu Açma Butonu */}
-            {canEditSiteContent && (
-              <button
-                type="button"
-                onClick={() => setSiteEditorDrawerOpen(true)}
-                className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-gradient-to-r from-brand-600 to-amber-500 hover:from-brand-700 hover:to-amber-600 text-white font-extrabold text-xs shadow-sm hover:shadow-md transition-all cursor-pointer active:scale-95 shrink-0"
-                title="Sayfa Düzenleri & Vitrin Stüdyosunu Sağ Panelde Aç"
-              >
-                <i className="fa-solid fa-paintbrush text-xs"></i>
-                <span>Sayfa Düzenleri</span>
-              </button>
-            )}
-          </div>
-
-          {/* SAĞ TARAF: MOBİL AÇILIR HIZLI ARAÇLAR MENÜSÜ */}
-          <div className="md:hidden relative shrink-0">
-            <button
-              type="button"
-              onClick={() => setMobileActionsOpen((v) => !v)}
-              className={`h-9 px-3 rounded-xl border text-xs font-extrabold flex items-center gap-1.5 transition-all cursor-pointer shadow-2xs active:scale-95 ${
-                orderPause.paused
-                  ? 'bg-rose-600 border-rose-700 text-white'
-                  : mobileActionsOpen
-                  ? 'bg-stone-900 border-stone-900 text-white'
-                  : 'bg-stone-100 hover:bg-stone-200/80 border-stone-200 text-stone-800'
-              }`}
-              aria-label="Hızlı Araçlar Menüsü"
-            >
-              <span
-                className={`w-2 h-2 rounded-full ${
-                  orderPause.paused ? 'bg-white animate-pulse' : 'bg-emerald-500 animate-pulse'
-                }`}
-              ></span>
-              <span>{orderPause.paused ? 'Durduruldu' : 'Araçlar'}</span>
-              <i className={`fa-solid fa-chevron-down text-[10px] transition-transform duration-200 ${mobileActionsOpen ? 'rotate-180' : ''}`}></i>
-            </button>
-
-            {mobileActionsOpen && (
-              <>
-                <div className="fixed inset-0 z-40 bg-black/15" onClick={() => setMobileActionsOpen(false)} />
-                <div className="absolute right-0 top-full mt-2 z-50 w-72 max-w-[calc(100vw-1.5rem)] bg-white border border-stone-200 rounded-2xl shadow-2xl p-3 space-y-3">
-                  {/* 1. Canlı Durum & Yenile */}
-                  <div className="flex items-center justify-between pb-2.5 border-b border-stone-100">
-                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 text-[11px] font-bold border border-emerald-200/80">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                      <span>Canlı Bağlantı</span>
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        fetchOrders();
-                        setMobileActionsOpen(false);
-                      }}
-                      className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-700 text-xs font-bold cursor-pointer"
-                    >
-                      <i className={`fa-solid fa-rotate-right text-[11px] ${loadingOrders ? 'fa-spin text-amber-500' : ''}`}></i>
-                      <span>Yenile</span>
-                    </button>
-                  </div>
-
-                  {/* 2. Sipariş Alımı Kontrolü */}
-                  <div className="space-y-2 pb-2.5 border-b border-stone-100">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[11px] font-extrabold text-stone-700 flex items-center gap-1.5">
-                        <i className={`fa-solid ${orderPause.paused ? 'fa-circle-pause text-rose-500' : 'fa-circle-play text-emerald-600'}`}></i>
-                        Sipariş Alımı
-                      </span>
-                      <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full ${orderPause.paused ? 'bg-rose-100 text-rose-700' : 'bg-emerald-100 text-emerald-700'}`}>
-                        {orderPause.paused
-                          ? orderPause.remainingMinutes > 0
-                            ? `Durduruldu (${orderPause.remainingMinutes} dk)`
-                            : 'Durduruldu'
-                          : 'Açık'}
-                      </span>
-                    </div>
-
-                    {orderPause.paused ? (
-                      <button
-                        type="button"
-                        disabled={pauseSaving}
-                        onClick={() => {
-                          handleSetOrderPause(null);
-                          setMobileActionsOpen(false);
-                        }}
-                        className="w-full py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-extrabold cursor-pointer flex items-center justify-center gap-1.5"
-                      >
-                        <i className="fa-solid fa-play text-[10px]"></i>
-                        <span>Sipariş Alımını Tekrar Aç</span>
-                      </button>
-                    ) : (
-                      <div className="grid grid-cols-4 gap-1.5">
-                        {[
-                          { m: 15, label: '15 dk' },
-                          { m: 30, label: '30 dk' },
-                          { m: 60, label: '1 sa' },
-                          { m: 0, label: 'Süresiz' }
-                        ].map((opt) => (
-                          <button
-                            key={opt.m}
-                            type="button"
-                            disabled={pauseSaving}
-                            onClick={() => {
-                              handleSetOrderPause(opt.m);
-                              setMobileActionsOpen(false);
-                            }}
-                            className="py-1.5 px-1 rounded-xl bg-rose-50 hover:bg-rose-100 border border-rose-200/80 text-rose-700 text-[11px] font-bold cursor-pointer text-center"
-                          >
-                            {opt.label}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* 3. Sesli Uyarılar */}
-                  <button
-                    type="button"
-                    onClick={() => setSoundEnabled(!soundEnabled)}
-                    className="w-full flex items-center justify-between px-3 py-2 rounded-xl bg-stone-50 hover:bg-stone-100 border border-stone-200/70 transition-colors cursor-pointer"
-                  >
-                    <span className="text-xs font-bold text-stone-700 flex items-center gap-2">
-                      <i className={`${soundEnabled ? 'fa-solid fa-volume-high text-amber-600' : 'fa-solid fa-volume-xmark text-stone-400'}`}></i>
-                      <span>Sesli Uyarılar</span>
-                    </span>
-                    <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full ${soundEnabled ? 'bg-amber-100 text-amber-800' : 'bg-stone-200 text-stone-500'}`}>
-                      {soundEnabled ? 'Açık' : 'Kapalı'}
-                    </span>
-                  </button>
-
-                  {/* 4. Arayüz Renk Teması */}
-                  <div className="pt-1 pb-1">
-                    <ThemeColorPicker
-                      variant="inline"
-                      onThemeChanged={() => {
-                        showToast('Arayüz renk teması güncellendi! 🎨', 'success');
-                      }}
-                    />
-                  </div>
-
-                  {/* 5. Vitrin & Sayfa Düzeni */}
-                  {canEditSiteContent && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setMobileActionsOpen(false);
-                        setSiteEditorDrawerOpen(true);
-                      }}
-                      className="w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-brand-600 to-amber-500 text-white font-extrabold text-xs shadow-sm flex items-center justify-center gap-2 cursor-pointer"
-                    >
-                      <i className="fa-solid fa-paintbrush text-xs"></i>
-                      <span>Sayfa Düzenleri & Vitrin</span>
-                    </button>
-                  )}
-                </div>
-              </>
-            )}
           </div>
         </header>
 
