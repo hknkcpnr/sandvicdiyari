@@ -3003,20 +3003,19 @@ export default function AdminDashboardPage() {
             </div>
 
             {/* Orders List */}
-            <div className="space-y-4">
+            <div className="space-y-2.5">
               {filteredOrders.length === 0 ? (
                 <div className="bg-white rounded-2xl border border-stone-200 p-12 text-center text-stone-400 space-y-2">
                   <i className="fa-solid fa-inbox text-4xl text-stone-300"></i>
                   <p className="font-semibold text-stone-600">Seçili filtrelere uygun sipariş bulunamadı.</p>
                 </div>
               ) : (
-                paginatedOrders.map((order, idx) => {
+                paginatedOrders.map((order) => {
                   const statusConf = STATUS_CONFIG[order.status] || STATUS_CONFIG['Yeni'];
                   const nextAction = getNextStep(order.status, isCourierEnabled);
                   const isTerminal = order.status === 'Teslim Edildi' || order.status === 'İptal Edildi';
                   const isNewUnviewed = order.status === 'Yeni' && !order.isViewed;
 
-                  // Üyeye özel benzersiz renk ve dikey isim şeridi paleti
                   const memberPalette = getMemberPalette(order.customerName || order.userEmail || order.userId || order.id);
                   const initials = (order.customerName || 'MŞ')
                     .split(' ')
@@ -3025,7 +3024,6 @@ export default function AdminDashboardPage() {
                     .map((n) => n[0]?.toUpperCase())
                     .join('');
 
-                  // Sipariş kalemlerini ayrıştır (Görsel ürün kutucukları için)
                   const parsedItems = Array.isArray(order.items)
                     ? order.items.map((item) => {
                         if (typeof item === 'string') {
@@ -3051,82 +3049,50 @@ export default function AdminDashboardPage() {
                             : { qty: 1, name: s, details: '' };
                         });
 
-                  const totalItemCount = parsedItems.reduce((acc, it) => acc + (it.qty || 1), 0);
-                  const isPosPayment = (order.paymentMethod || '').toLowerCase().includes('pos') ||
+                  const isPosPayment =
+                    (order.paymentMethod || '').toLowerCase().includes('pos') ||
                     (order.paymentMethod || '').toLowerCase().includes('kart');
+
+                  const rawNotesStr = String(order.notes || order.orderNote || '');
+                  const prefersPhoneConfirm = rawNotesStr.includes('TELEFON İLE ARANMAK İSTİYOR');
+                  const prefersWhatsappConfirm = rawNotesStr.includes('WHATSAPP İLE ONAY');
+                  const cleanCustomerNote = rawNotesStr
+                    .replace(/\[ONAY TERCİHİ:[^\]]*\]/gi, '')
+                    .trim();
 
                   return (
                     <div
                       key={order.id}
-                      className={`rounded-2xl border shadow-sm hover:shadow-md transition-all flex flex-row overflow-hidden bg-white ${
+                      className={`rounded-xl border shadow-2xs hover:shadow-sm transition-all flex flex-row overflow-hidden bg-white ${
                         isNewUnviewed
                           ? 'border-red-500 ring-2 ring-red-400/25 bg-red-50/20'
                           : statusConf.border || 'border-stone-200'
                       }`}
                     >
-                      {/* Sol Dikey Üye Şeridi (İşaretlenen Nokta: Harfler Alt Alta Dikey İsim + Üyeye Özel Renk) */}
+                      {/* Minimal Sol Renk Şeridi */}
                       <div
-                        className={`w-7 sm:w-8 md:w-9 shrink-0 flex flex-col items-center justify-between py-2.5 px-0.5 select-none transition-colors border-r border-black/10 ${memberPalette.bg} ${memberPalette.text}`}
-                        title={`Kayıtlı Üye: ${order.customerName || 'Müşteri'}`}
-                      >
-                        {/* Üye İkonu */}
-                        <div
-                          className="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center text-[9px] text-white shrink-0 shadow-2xs"
-                          title="Kayıtlı Üye"
-                        >
-                          <i className="fa-solid fa-user"></i>
-                        </div>
+                        className={`w-1.5 shrink-0 ${memberPalette.bg}`}
+                        title={`Müşteri: ${order.customerName || 'Müşteri'}`}
+                      />
 
-                        {/* Dikey Yazılan Üye İsmi (Harfler Alt Alta Dizili) */}
-                        <div className="flex-1 flex flex-col items-center justify-center my-1.5 overflow-hidden w-full max-h-56">
-                          {getVerticalNameWords(order.customerName).map((word, wIdx) => (
-                            <div
-                              key={wIdx}
-                              className={`flex flex-col items-center ${
-                                wIdx > 0 ? 'mt-1.5 pt-1 border-t border-white/20 w-3/4' : ''
-                              }`}
-                            >
-                              {word.split('').map((char, cIdx) => (
-                                <span
-                                  key={cIdx}
-                                  className="text-[10px] sm:text-[11px] font-black uppercase text-white leading-[1.12] drop-shadow-xs select-none block text-center"
-                                >
-                                  {char}
-                                </span>
-                              ))}
-                            </div>
-                          ))}
-                        </div>
-
-                        {/* Alt Üye Rozeti */}
-                        <span className="text-[8px] font-black text-white/90 bg-black/25 px-1 py-0.5 rounded uppercase tracking-tighter shrink-0">
-                          ÜYE
-                        </span>
-                      </div>
-
-                      {/* Kart İçeriği: Sol ve Sağ Alanlar */}
-                      <div className="p-3.5 sm:p-5 flex-1 min-w-0 flex flex-col lg:flex-row justify-between gap-4 sm:gap-5">
-                        {/* Left: Info, Status & Timers */}
-                        <div className="space-y-3.5 flex-1 min-w-0">
-                        {/* Üst Başlık: Sıra No, Sipariş Kodu, Durum, Ödeme Rozeti ve Zaman */}
-                        <div className="flex flex-wrap items-center justify-between gap-2 pb-2.5 border-b border-stone-200/60">
-                          <div className="flex flex-wrap items-center gap-2">
-                            {/* Sipariş Kodu Rozeti */}
-                            <span className="bg-stone-900 text-white font-mono font-black text-xs sm:text-sm px-2.5 py-1 rounded-lg tracking-wide shadow-2xs">
+                      {/* Kart İçeriği */}
+                      <div className="p-2.5 sm:p-3 flex-1 min-w-0 space-y-2">
+                        {/* Üst Satır: Kod, Durum, Ödeme, Zaman & Tutar */}
+                        <div className="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-stone-100">
+                          <div className="flex flex-wrap items-center gap-1.5">
+                            <span className="bg-stone-900 text-white font-mono font-black text-xs px-2 py-0.5 rounded-md tracking-wide">
                               #{order.orderNumber || order.id}
                             </span>
 
-                            {/* Durum Rozeti */}
-                            <div
-                              className={`flex items-center gap-1.5 px-3 py-1 rounded-full border text-xs font-extrabold ${statusConf.bg} ${statusConf.text} ${statusConf.border}`}
-                            >
-                              <i className={`${statusConf.icon || 'fa-solid fa-circle'} text-[11px]`}></i>
-                              <span>{statusConf.label}</span>
-                            </div>
-
-                            {/* Ödeme Türü Rozeti (Nakit vs POS Karışıklığını Önler) */}
                             <span
-                              className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[11px] font-bold ${
+                              className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full border text-[11px] font-bold ${statusConf.bg} ${statusConf.text} ${statusConf.border}`}
+                            >
+                              <i className={`${statusConf.icon || 'fa-solid fa-circle'} text-[10px]`}></i>
+                              <span>{statusConf.label}</span>
+                            </span>
+
+                            <span
+                              className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md border text-[11px] font-bold ${
                                 isPosPayment
                                   ? 'bg-indigo-50 text-indigo-700 border-indigo-200'
                                   : 'bg-amber-50 text-amber-800 border-amber-200'
@@ -3135,7 +3101,7 @@ export default function AdminDashboardPage() {
                               <i className={`fa-solid ${isPosPayment ? 'fa-credit-card' : 'fa-money-bill-wave'} text-[10px]`}></i>
                               <span>{order.paymentMethod || 'Kapıda Nakit'}</span>
                               <span
-                                className={`ml-0.5 px-1.5 py-0.2 rounded text-[9px] font-extrabold uppercase ${
+                                className={`ml-0.5 px-1 rounded text-[9px] font-extrabold uppercase ${
                                   order.paymentStatus === 'Ödendi'
                                     ? 'bg-emerald-500 text-white'
                                     : 'bg-stone-200 text-stone-700'
@@ -3146,237 +3112,187 @@ export default function AdminDashboardPage() {
                             </span>
 
                             {isNewUnviewed && (
-                              <span className="text-[10px] bg-red-600 text-white font-extrabold px-2.5 py-0.5 rounded-full animate-bounce">
-                                YENİ SİPARİŞ
+                              <span className="text-[10px] bg-red-600 text-white font-extrabold px-2 py-0.5 rounded-full animate-pulse">
+                                YENİ
+                              </span>
+                            )}
+
+                            {(order.isScheduled || order.scheduledFor) && (
+                              <span className="bg-amber-100 text-amber-900 border border-amber-300 font-bold px-2 py-0.5 rounded-md text-[10px] inline-flex items-center gap-1">
+                                <i className="fa-solid fa-clock text-amber-700"></i>
+                                {order.scheduledFor || '10:00 Açılış'}
                               </span>
                             )}
                           </div>
 
-                          <div className="flex items-center gap-2">
-                            {/* Viewed Badge Indicator */}
+                          <div className="flex items-center gap-2 ml-auto">
                             {order.isViewed && order.status !== 'Teslim Edildi' && (
-                              <span className="text-[10px] text-stone-500 bg-stone-100 px-2 py-0.5 rounded-md font-medium">
-                                <i className="fa-solid fa-eye mr-1"></i>
-                                {order.viewedBy ? `${order.viewedBy} gördü` : 'Görüntülendi'}
+                              <span className="text-[10px] text-stone-400 font-medium hidden sm:inline-flex items-center gap-1">
+                                <i className="fa-solid fa-eye"></i>
+                                <span>{order.viewedBy ? `${order.viewedBy} gördü` : 'Görüldü'}</span>
                               </span>
                             )}
 
-                            {/* Time Elapsed Counter */}
-                            <span className="text-[11px] text-stone-500 bg-stone-100/80 border border-stone-200/60 px-2.5 py-0.5 rounded-lg font-semibold">
+                            <span className="text-[11px] text-stone-500 font-medium">
                               <i className="fa-regular fa-clock mr-1 text-stone-400"></i>
                               {formatElapsedTime(order.createdAt)}
                             </span>
+
+                            <BlurredAmount
+                              canView={canViewRevenue}
+                              amount={`₺${Number(order.total || order.subtotal || 0).toFixed(2)}`}
+                              className="text-base sm:text-lg font-black text-stone-900 pl-1"
+                            />
                           </div>
                         </div>
 
-                        {/* Müşteri, Telefon, Adres ve Kurye Bloğu */}
-                        <div className="grid grid-cols-1 md:grid-cols-12 gap-3 text-xs bg-white p-3.5 rounded-xl border border-stone-200/80 shadow-2xs">
-                          {/* Sol: Renkli Müşteri Avatarı + İsim + Telefon */}
-                          <div className="md:col-span-5 flex items-center gap-3">
-                            <div
-                              className={`w-10 h-10 rounded-xl flex items-center justify-center font-black text-xs shrink-0 ring-4 ${memberPalette.avatar}`}
-                            >
-                              {initials}
-                            </div>
-                            <div className="space-y-1 min-w-0">
-                              <span className="font-extrabold text-stone-900 text-sm block truncate">
-                                {order.customerName}
-                              </span>
-                              <div className="flex flex-wrap items-center gap-1.5">
+                        {/* Orta + Sağ Satır: Müşteri, Adres, Ürünler & Aksiyonlar */}
+                        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-2.5">
+                          <div className="flex-1 min-w-0 space-y-1.5">
+                            {/* Müşteri & Teslimat Tek Satır */}
+                            <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
+                              <div className="inline-flex items-center gap-1.5">
+                                <span
+                                  className={`w-6 h-6 rounded-lg flex items-center justify-center font-black text-[10px] shrink-0 ${memberPalette.avatar}`}
+                                >
+                                  {initials}
+                                </span>
+                                <span className="font-bold text-stone-900">{order.customerName}</span>
+                              </div>
+
+                              {order.phone && (
                                 <a
                                   href={`tel:${order.phone}`}
-                                  className="inline-flex items-center gap-1.5 text-brand-700 bg-brand-50 hover:bg-brand-100 border border-brand-200/80 px-2 py-0.5 rounded-md font-bold text-[11px] transition-colors"
+                                  className="inline-flex items-center gap-1 text-brand-700 bg-brand-50 hover:bg-brand-100 border border-brand-200/70 px-2 py-0.5 rounded-md font-bold text-[11px] transition-colors"
                                   title="Müşteriyi Ara"
                                 >
-                                  <i className="fa-solid fa-phone text-[10px]"></i>
+                                  <i className="fa-solid fa-phone text-[9px]"></i>
                                   <span>{order.phone}</span>
                                 </a>
-                                {order.phone && (
-                                  <a
-                                    href={buildWhatsAppOrderConfirmUrl(order)}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="inline-flex items-center gap-1.5 text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 px-2 py-0.5 rounded-md font-bold text-[11px] transition-colors shadow-2xs cursor-pointer"
-                                    title="WhatsApp ile Sipariş Onay Mesajı Gönder"
-                                  >
-                                    <i className="fa-brands fa-whatsapp text-emerald-600 text-xs"></i>
-                                    <span>WhatsApp Onay</span>
-                                  </a>
-                                )}
-                              </div>
-                              {(order.notes || order.orderNote || '').includes('TELEFON İLE ARANMAK İSTİYOR') && (
-                                <span className="inline-flex items-center gap-1 bg-blue-100 text-blue-900 border border-blue-300 px-2 py-0.5 rounded-md font-extrabold text-[10px] mt-1 shadow-2xs">
-                                  <i className="fa-solid fa-phone-volume text-blue-600"></i>
-                                  <span>Tercih: Aranmak İstiyor</span>
-                                </span>
                               )}
-                              {(order.notes || order.orderNote || '').includes('WHATSAPP İLE ONAY') && (
-                                <span className="inline-flex items-center gap-1 bg-emerald-100 text-emerald-900 border border-emerald-300 px-2 py-0.5 rounded-md font-extrabold text-[10px] mt-1 shadow-2xs">
-                                  <i className="fa-brands fa-whatsapp text-emerald-600"></i>
-                                  <span>Tercih: WhatsApp'tan Onay</span>
-                                </span>
-                              )}
-                            </div>
-                          </div>
 
-                          {/* Orta: Teslimat Adresi & Harita Butonu */}
-                          <div className={`${isCourierEnabled ? 'md:col-span-4 md:border-r' : 'md:col-span-7'} flex items-center justify-between gap-2 md:border-l border-stone-100 md:px-3`}>
-                            <div className="space-y-0.5 min-w-0">
-                              <span className="text-[10px] font-bold uppercase tracking-wider text-stone-400 block">
-                                Teslimat Adresi
-                              </span>
-                              <span className="text-stone-800 font-semibold block text-xs leading-snug">
-                                {order.address}
-                              </span>
-                            </div>
-                            {order.address && (
-                              <a
-                                href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(order.address)}`}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="text-blue-600 hover:text-blue-800 bg-blue-50 hover:bg-blue-100 border border-blue-200/60 w-8 h-8 rounded-lg shrink-0 flex items-center justify-center text-xs transition-colors"
-                                title="Google Maps Navigasyon"
-                              >
-                                <i className="fa-solid fa-location-dot"></i>
-                              </a>
-                            )}
-                          </div>
-
-                          {/* Sağ: Kurye Seçimi (Yalnızca Kurye Modülü Açıkken Aktiftir) */}
-                          {isCourierEnabled && (
-                            <div className="md:col-span-3 flex flex-col justify-center gap-1">
-                              <span className="text-[10px] font-bold uppercase tracking-wider text-stone-400 block">
-                                <i className="fa-solid fa-motorcycle text-brand-600 mr-1"></i>Atanan Kurye
-                              </span>
-                              {['Hazır', 'Kurye Teslim Aldı', 'Yolda', 'Teslim Edildi'].includes(order.status) ? (
-                                <select
-                                  value={order.courierName || ''}
-                                  onChange={(e) => handleAssignCourier(order.id, e.target.value)}
-                                  className={`app-select border rounded-xl px-3 py-2 text-xs font-extrabold focus:outline-none focus:ring-2 focus:ring-brand-500/20 cursor-pointer w-full transition-all shadow-2xs ${
-                                    order.courierName
-                                      ? 'bg-emerald-50/90 border-emerald-300 text-emerald-950'
-                                      : 'bg-stone-50 hover:bg-stone-100/80 border-stone-200 text-stone-700'
-                                  }`}
-                                >
-                                  <option value="">Kurye Seçilmedi</option>
-                                  {courierOptions.map((cName) => (
-                                    <option key={cName} value={cName}>
-                                      🛵 {cName}
-                                    </option>
-                                  ))}
-                                  {order.courierName && !courierOptions.includes(order.courierName) && (
-                                    <option value={order.courierName}>🛵 {order.courierName}</option>
-                                  )}
-                                </select>
-                              ) : (
-                                <div className="bg-stone-50 border border-dashed border-stone-200 rounded-xl px-3 py-2 text-[11px] font-semibold text-stone-400 text-center">
-                                  Kuryeye verilince atanır
-                                </div>
-                              )}
-                            </div>
-                          )}
-
-                          {order.notes && (
-                            <div className="md:col-span-12 pt-2 border-t border-amber-200/60 bg-amber-50/70 -mx-3.5 -mb-3.5 px-3.5 py-2 rounded-b-xl text-amber-900 text-[11px] font-bold flex flex-wrap items-center justify-between gap-2">
-                              <div className="flex items-center gap-2 min-w-0">
-                                <i className="fa-solid fa-comment-dots text-amber-600 shrink-0"></i>
-                                <span>Müşteri Notu: &ldquo;{order.notes}&rdquo;</span>
-                              </div>
                               {order.phone && (
                                 <a
                                   href={buildWhatsAppOrderConfirmUrl(order)}
                                   target="_blank"
                                   rel="noopener noreferrer"
-                                  className="inline-flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1 rounded-lg font-extrabold text-[11px] transition-colors shadow-xs shrink-0 cursor-pointer"
-                                  title="Müşteriye sipariş özeti ve onay mesajını WhatsApp'tan gönder"
+                                  className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md font-bold text-[11px] transition-colors cursor-pointer ${
+                                    prefersWhatsappConfirm
+                                      ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-2xs'
+                                      : 'text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200'
+                                  }`}
+                                  title="WhatsApp ile Sipariş Onay Mesajı Gönder"
                                 >
-                                  <i className="fa-brands fa-whatsapp text-sm"></i>
-                                  <span>WhatsApp'tan Onay Gönder</span>
+                                  <i className="fa-brands fa-whatsapp text-xs"></i>
+                                  <span>{prefersWhatsappConfirm ? 'WhatsApp Onay' : 'WhatsApp'}</span>
                                 </a>
                               )}
-                            </div>
-                          )}
-                        </div>
 
-                        {/* Sipariş Ürünleri (Net Ayrıştırılmış Ürün Kutucukları) */}
-                        <div className="space-y-1.5">
-                          <div className="flex items-center justify-between">
-                            <span className="text-[11px] font-extrabold uppercase tracking-wider text-stone-500 flex items-center gap-1.5">
-                              <i className="fa-solid fa-utensils text-brand-500 text-[10px]"></i>
-                              <span>Sipariş İçeriği ({totalItemCount} Adet Ürün)</span>
-                            </span>
-                            {(order.isScheduled || order.scheduledFor) && (
-                              <span className="bg-amber-100 text-amber-900 border border-amber-300 font-bold px-2 py-0.5 rounded-md text-[10px] inline-flex items-center gap-1">
-                                <i className="fa-solid fa-clock text-amber-700"></i>
-                                {order.scheduledFor || '10:00 Sabah Açılış Siparişi'}
-                              </span>
+                              {prefersPhoneConfirm && (
+                                <span className="inline-flex items-center gap-1 bg-blue-50 text-blue-700 border border-blue-200 px-1.5 py-0.5 rounded-md font-bold text-[10px]">
+                                  <i className="fa-solid fa-phone-volume text-[9px]"></i>
+                                  <span>Aranmak İstiyor</span>
+                                </span>
+                              )}
+
+                              {order.address && (
+                                <a
+                                  href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(order.address)}`}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="inline-flex items-center gap-1 text-stone-600 hover:text-blue-700 text-[11px] font-medium min-w-0 max-w-full"
+                                  title={`Haritada Aç: ${order.address}`}
+                                >
+                                  <i className="fa-solid fa-location-dot text-blue-500 text-[10px] shrink-0"></i>
+                                  <span className="truncate max-w-[240px] sm:max-w-md">{order.address}</span>
+                                </a>
+                              )}
+
+                              {isCourierEnabled && (
+                                ['Hazır', 'Kurye Teslim Aldı', 'Yolda', 'Teslim Edildi'].includes(order.status) ? (
+                                  <select
+                                    value={order.courierName || ''}
+                                    onChange={(e) => handleAssignCourier(order.id, e.target.value)}
+                                    className={`app-select border rounded-lg px-2 py-0.5 text-[11px] font-bold focus:outline-none cursor-pointer transition-all ${
+                                      order.courierName
+                                        ? 'bg-emerald-50 border-emerald-300 text-emerald-900'
+                                        : 'bg-stone-50 hover:bg-stone-100 border-stone-200 text-stone-700'
+                                    }`}
+                                  >
+                                    <option value="">Kurye Seç</option>
+                                    {courierOptions.map((cName) => (
+                                      <option key={cName} value={cName}>
+                                        🛵 {cName}
+                                      </option>
+                                    ))}
+                                    {order.courierName && !courierOptions.includes(order.courierName) && (
+                                      <option value={order.courierName}>🛵 {order.courierName}</option>
+                                    )}
+                                  </select>
+                                ) : (
+                                  <span className="text-[10px] font-medium text-stone-400 bg-stone-50 border border-stone-200/80 px-2 py-0.5 rounded-md">
+                                    Kurye bekleniyor
+                                  </span>
+                                )
+                              )}
+                            </div>
+
+                            {/* Kompakt Sipariş Kalemleri */}
+                            <div className="flex flex-wrap items-center gap-1.5">
+                              {parsedItems.map((it, itemIdx) => (
+                                <span
+                                  key={itemIdx}
+                                  className="inline-flex items-center gap-1.5 bg-stone-50 border border-stone-200/80 rounded-lg px-2 py-0.5 text-[11px]"
+                                >
+                                  <span
+                                    className={`px-1.5 py-0.2 rounded font-black text-[10px] ${
+                                      it.qty > 1
+                                        ? 'bg-rose-600 text-white'
+                                        : 'bg-brand-500 text-stone-950'
+                                    }`}
+                                  >
+                                    {it.qty}x
+                                  </span>
+                                  <span className="font-semibold text-stone-900">{it.name}</span>
+                                  {it.details && (
+                                    <span className="text-[10px] text-stone-500">({it.details})</span>
+                                  )}
+                                </span>
+                              ))}
+                            </div>
+
+                            {/* Gerçek Müşteri Notu (Varsa) */}
+                            {cleanCustomerNote && (
+                              <div className="inline-flex items-center gap-1.5 bg-amber-50 border border-amber-200/70 rounded-lg px-2.5 py-1 text-[11px] text-amber-900 font-semibold max-w-full">
+                                <i className="fa-solid fa-comment-dots text-amber-600 text-[10px] shrink-0"></i>
+                                <span className="truncate">{cleanCustomerNote}</span>
+                              </div>
                             )}
                           </div>
 
-                          <div className="flex flex-wrap gap-2">
-                            {parsedItems.map((it, itemIdx) => (
-                              <div
-                                key={itemIdx}
-                                className="inline-flex items-center gap-2 bg-stone-50 hover:bg-stone-100 border border-stone-200/90 rounded-xl px-2.5 py-1.5 text-xs shadow-2xs"
-                              >
-                                <span
-                                  className={`px-2 py-0.5 rounded-lg font-black text-xs ${
-                                    it.qty > 1
-                                      ? 'bg-rose-600 text-white'
-                                      : 'bg-brand-500 text-stone-950'
-                                  }`}
-                                >
-                                  {it.qty}x
-                                </span>
-                                <span className="font-bold text-stone-900">{it.name}</span>
-                                {it.details && (
-                                  <span className="text-[11px] text-stone-500 font-medium bg-white px-1.5 py-0.5 rounded border border-stone-200">
-                                    {it.details}
-                                  </span>
-                                )}
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Right: Total & Operational Next Step Actions (Touch-friendly & stacked on mobile) */}
-                      <div className="flex flex-col sm:flex-row lg:flex-col justify-between sm:items-center lg:items-end gap-3 shrink-0 pt-3 lg:pt-0 border-t lg:border-t-0 border-stone-100">
-                        <div className="flex sm:flex-col justify-between items-center sm:items-end w-full sm:w-auto">
-                          <span className="text-[11px] text-stone-400 block sm:text-right">Sipariş Tutarı</span>
-                          <BlurredAmount
-                            canView={canViewRevenue}
-                            amount={`₺${Number(order.total || order.subtotal || 0).toFixed(2)}`}
-                            className="text-xl font-black text-stone-900 block sm:text-right"
-                          />
-                        </div>
-
-                        <div className="flex flex-col sm:flex-row lg:flex-col gap-2 w-full sm:w-auto items-stretch sm:items-end">
-                          <div className="flex items-center gap-2">
-                            {/* Detail / View Button */}
+                          {/* Sağ İşlem Butonları */}
+                          <div className="flex flex-wrap items-center justify-end gap-1.5 shrink-0 pt-2 lg:pt-0 border-t lg:border-t-0 border-stone-100">
                             <button
                               onClick={() => handleOpenDetail(order)}
-                              className="flex-1 sm:flex-none justify-center bg-stone-100 hover:bg-stone-200 text-stone-800 text-xs px-3 py-2 rounded-xl font-medium cursor-pointer flex items-center gap-1.5 transition-colors"
+                              className="bg-stone-100 hover:bg-stone-200 text-stone-700 text-[11px] px-2.5 py-1.5 rounded-lg font-semibold cursor-pointer flex items-center gap-1 transition-colors"
                               title="Detay & Fiş"
                             >
                               <i className="fa-solid fa-circle-info"></i>
-                              <span>Detay & Fiş</span>
+                              <span>Detay</span>
                             </button>
 
-                            {/* Quick Thermal Print Button */}
                             <button
                               type="button"
                               onClick={() => {
                                 printThermalReceipt(order, adminSettings);
                                 showToast(`Sipariş #${order.orderNumber || order.id} fişi Xprinter'a gönderildi 🧾`, 'info');
                               }}
-                              className="text-stone-600 hover:text-brand-700 text-xs p-2 rounded-xl hover:bg-brand-50 border border-stone-200/80 transition-colors cursor-pointer"
+                              className="text-stone-600 hover:text-brand-700 text-xs p-1.5 rounded-lg hover:bg-brand-50 border border-stone-200/80 transition-colors cursor-pointer"
                               title="Xprinter 80mm Fiş Yazdır"
                             >
                               <i className="fa-solid fa-print"></i>
                             </button>
 
-                            {/* Cancel Button */}
                             {!isTerminal && (
                               <button
                                 type="button"
@@ -3384,14 +3300,13 @@ export default function AdminDashboardPage() {
                                   setCancelModalOrder(order);
                                   setCancelReason('Müşteri talebi');
                                 }}
-                                className="text-stone-400 hover:text-amber-600 text-xs p-2 rounded-xl hover:bg-amber-50 border border-stone-200/80 transition-colors cursor-pointer"
+                                className="text-stone-400 hover:text-amber-600 text-xs p-1.5 rounded-lg hover:bg-amber-50 border border-stone-200/80 transition-colors cursor-pointer"
                                 title="Siparişi İptal Et"
                               >
                                 <i className="fa-solid fa-ban"></i>
                               </button>
                             )}
 
-                            {/* Delete Order Button (Admin Approved) */}
                             <button
                               type="button"
                               onClick={() => {
@@ -3401,28 +3316,26 @@ export default function AdminDashboardPage() {
                                 setDeleteRestoreStock(order.status !== 'İptal Edildi');
                                 setDeleteModalOrder(order);
                               }}
-                              className="text-stone-400 hover:text-rose-600 text-xs p-2 rounded-xl hover:bg-rose-50 border border-stone-200/80 transition-colors cursor-pointer"
+                              className="text-stone-400 hover:text-rose-600 text-xs p-1.5 rounded-lg hover:bg-rose-50 border border-stone-200/80 transition-colors cursor-pointer"
                               title="Siparişi Kalıcı Olarak Sil (Yönetici Onaylı)"
                             >
                               <i className="fa-solid fa-trash-can"></i>
                             </button>
-                          </div>
 
-                          {/* Next Sequential Action Button */}
-                          {nextAction && (
-                            <button
-                              onClick={() => handleProgressStatus(order.id, nextAction.nextStatus)}
-                              className={`w-full sm:w-auto justify-center text-xs font-semibold px-4 py-2.5 rounded-xl transition-all shadow-xs flex items-center gap-2 cursor-pointer active:scale-95 ${nextAction.color}`}
-                            >
-                              <i className={nextAction.icon}></i>
-                              <span>{nextAction.label}</span>
-                            </button>
-                          )}
+                            {nextAction && (
+                              <button
+                                onClick={() => handleProgressStatus(order.id, nextAction.nextStatus)}
+                                className={`text-xs font-bold px-3 py-1.5 rounded-lg transition-all shadow-2xs flex items-center gap-1.5 cursor-pointer active:scale-95 ${nextAction.color}`}
+                              >
+                                <i className={nextAction.icon}></i>
+                                <span>{nextAction.label}</span>
+                              </button>
+                            )}
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
-                );
+                  );
                 })
               )}
             </div>
