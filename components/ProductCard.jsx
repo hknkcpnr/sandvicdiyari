@@ -25,7 +25,7 @@ function getCategoryName(cat) {
  * Sade, ferah ve mobil ekranlarda ergonomik dokunma alanlarına sahip
  * modern ürün kartı bileşeni.
  */
-export default function ProductCard({ product }) {
+export default function ProductCard({ product, previewMode = false }) {
   const dispatch = useDispatch();
   const { favorites } = useSelector((state) => state.ui);
   const { currentUser } = useSelector((state) => state.auth);
@@ -34,11 +34,13 @@ export default function ProductCard({ product }) {
   const isAvailable = product.isAvailable !== false;
 
   const handleOrderClick = () => {
+    if (previewMode) return;
     dispatch(openOptionsModal(product));
   };
 
   const handleFavoriteClick = (e) => {
     e.stopPropagation();
+    if (previewMode) return;
     if (!isMember) {
       dispatch(
         openAuthModal({

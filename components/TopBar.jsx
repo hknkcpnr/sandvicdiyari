@@ -11,8 +11,9 @@ import {
   CACHE_TTL_LONG
 } from '@/lib/browserDataCache';
 
-export default function TopBar() {
+export default function TopBar({ previewContact = null } = {}) {
   const dispatch = useDispatch();
+  const isPreview = Boolean(previewContact);
   const [status, setStatus] = useState(getRestaurantStatus());
   const [contact, setContact] = useState({
     phone1: '0552 104 55 35',
@@ -42,13 +43,14 @@ export default function TopBar() {
   };
 
   useEffect(() => {
+    if (isPreview) return;
     loadContact(false);
     const handleStorage = (e) => {
       if (e.key === 'sandwich_site_content_updated') loadContact(true);
     };
     window.addEventListener('storage', handleStorage);
     return () => window.removeEventListener('storage', handleStorage);
-  }, []);
+  }, [isPreview]);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -57,10 +59,11 @@ export default function TopBar() {
     return () => clearInterval(timer);
   }, []);
 
-  if (contact.visible === false) return null;
+  const effectiveContact = previewContact || contact;
+  if (!isPreview && effectiveContact.visible === false) return null;
 
   return (
-    <div className="hidden md:block bg-stone-900 text-stone-300 text-xs py-2 px-4 border-b border-stone-800">
+    <div className={`${isPreview ? 'block' : 'hidden md:block'} bg-stone-900 text-stone-300 text-xs py-2 px-4 border-b border-stone-800`}>
       <div className="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-1.5">
         <div className="flex items-center gap-3.5 flex-wrap justify-center sm:justify-start">
           {/* Live Open / Closed Badge */}
@@ -75,17 +78,20 @@ export default function TopBar() {
             <span>{status.isOpen ? 'Siparişe Açık (25-35 dk)' : 'Şu an Kapalı (10:00 Açılış)'}</span>
           </span>
 
-          {contact.phone2 && (
+          {effectiveContact.phone2 && (
             <>
               <span className="text-stone-700 hidden sm:inline">&bull;</span>
               {status.isOpen ? (
                 <a
-                  href={`tel:${contact.phone2.replace(/\s+/g, '')}`}
+                  href={`tel:${effectiveContact.phone2.replace(/\s+/g, '')}`}
+                  onClick={(e) => {
+                    if (isPreview) e.preventDefault();
+                  }}
                   className="hover:text-white transition-colors flex items-center gap-1.5"
                   title="Sabit Hat"
                 >
                   <i className="fa-solid fa-phone text-brand-500"></i>
-                  <span>{contact.phone2}</span>
+                  <span>{effectiveContact.phone2}</span>
                 </a>
               ) : (
                 <span
@@ -93,24 +99,27 @@ export default function TopBar() {
                   title="Restoranımız saat 03:00 - 10:00 arası kapalıdır"
                 >
                   <i className="fa-solid fa-phone text-stone-600"></i>
-                  <span className="line-through">{contact.phone2}</span>
+                  <span className="line-through">{effectiveContact.phone2}</span>
                   <span className="text-[10px] text-stone-500">(Kapalı)</span>
                 </span>
               )}
             </>
           )}
 
-          {contact.phone1 && (
+          {effectiveContact.phone1 && (
             <>
               <span className="text-stone-700 hidden sm:inline">&bull;</span>
               {status.isOpen ? (
                 <a
-                  href={`tel:${contact.phone1.replace(/\s+/g, '')}`}
+                  href={`tel:${effectiveContact.phone1.replace(/\s+/g, '')}`}
+                  onClick={(e) => {
+                    if (isPreview) e.preventDefault();
+                  }}
                   className="hover:text-white transition-colors flex items-center gap-1.5"
                   title="Alo Paket Cep"
                 >
                   <i className="fa-solid fa-mobile-screen text-brand-500"></i>
-                  <span className="font-semibold text-white">{contact.phone1}</span>
+                  <span className="font-semibold text-white">{effectiveContact.phone1}</span>
                 </a>
               ) : (
                 <span
@@ -118,7 +127,7 @@ export default function TopBar() {
                   title="Restoranımız saat 03:00 - 10:00 arası kapalıdır"
                 >
                   <i className="fa-solid fa-mobile-screen text-stone-600"></i>
-                  <span className="font-semibold text-stone-500 line-through">{contact.phone1}</span>
+                  <span className="font-semibold text-stone-500 line-through">{effectiveContact.phone1}</span>
                   <span className="text-[10px] text-stone-500">(Kapalı)</span>
                 </span>
               )}
@@ -128,9 +137,12 @@ export default function TopBar() {
           <span className="text-stone-700 hidden sm:inline">&bull;</span>
           {status.isOpen ? (
             <a
-              href={`https://wa.me/90${(contact.phone1 || '05521045535').replace(/[^0-9]/g, '').replace(/^0/, '')}?text=Merhaba,%20Sandviç%20Diyarı'ndan%20sipariş%20vermek%20istiyorum`}
+              href={`https://wa.me/90${(effectiveContact.phone1 || '05521045535').replace(/[^0-9]/g, '').replace(/^0/, '')}?text=Merhaba,%20Sandviç%20Diyarı'ndan%20sipariş%20vermek%20istiyorum`}
               target="_blank"
               rel="noopener noreferrer"
+              onClick={(e) => {
+                if (isPreview) e.preventDefault();
+              }}
               className="text-emerald-400 hover:text-emerald-300 transition-colors flex items-center gap-1.5 font-semibold"
               title="WhatsApp Sipariş Hattı"
             >
@@ -150,7 +162,9 @@ export default function TopBar() {
         <div className="flex items-center gap-3">
           <button
             type="button"
-            onClick={() => dispatch(openTrackOrderModal())}
+            onClick={() => {
+              if (!isPreview) dispatch(openTrackOrderModal());
+            }}
             className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-500/15 hover:bg-amber-500/25 border border-amber-400/30 text-amber-300 hover:text-amber-200 text-[11px] font-bold transition-all cursor-pointer"
             title="Sipariş No ve Telefonunuzla Siparişinizi Takip Edin"
           >
@@ -159,7 +173,7 @@ export default function TopBar() {
           </button>
           <span className="text-brand-400 font-semibold flex items-center gap-1.5">
             <i className="fa-solid fa-motorcycle text-brand-500"></i>
-            <span>Torbalı / İzmir &bull; Gece 03:00&apos;e Kadar Paket Servis!</span>
+            <span>{effectiveContact.workingHours || "Torbalı / İzmir • Gece 03:00'e Kadar Paket Servis!"}</span>
           </span>
         </div>
       </div>

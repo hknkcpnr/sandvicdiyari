@@ -19,8 +19,14 @@ import {
   CACHE_TTL_MEDIUM
 } from '@/lib/browserDataCache';
 
-export default function HomePage() {
+export default function HomePage({
+  previewContent = null,
+  previewSection = null,
+  previewProducts = null,
+  previewReviews = null
+} = {}) {
   const dispatch = useDispatch();
+  const isPreview = Boolean(previewContent);
   const { items: products } = useSelector((state) => state.product);
   const { reviews } = useSelector((state) => state.ui);
   const { currentUser } = useSelector((state) => state.auth);
@@ -29,7 +35,8 @@ export default function HomePage() {
   const [activeReviewIndex, setActiveReviewIndex] = useState(0);
   const [isReviewHovered, setIsReviewHovered] = useState(false);
 
-  const approvedReviews = (reviews || []).filter((r) => r.isApproved === true);
+  const sourceReviews = Array.isArray(previewReviews) ? previewReviews : reviews;
+  const approvedReviews = (sourceReviews || []).filter((r) => r.isApproved === true);
 
   useEffect(() => {
     if (approvedReviews.length <= 1 || isReviewHovered) return;
@@ -90,6 +97,7 @@ export default function HomePage() {
   };
 
   useEffect(() => {
+    if (isPreview) return;
     loadSiteContent(false);
     loadApprovedReviews(false);
 
@@ -120,29 +128,42 @@ export default function HomePage() {
       window.removeEventListener('storage', handleStorageChange);
       window.removeEventListener('focus', handleFocus);
     };
-  }, []);
+  }, [isPreview]);
 
   const handleCampaignOrderClick = (menu) => {
+    if (isPreview) return;
     dispatch(openOptionsModal(menu));
   };
 
-  const hero = siteContent?.hero || DEFAULT_SITE_CONTENT.hero;
-  const campaignsSection = siteContent?.campaignsSection || DEFAULT_SITE_CONTENT.campaignsSection;
-  const newMenusSection = siteContent?.newMenusSection || DEFAULT_SITE_CONTENT.newMenusSection;
-  const featuresSection = siteContent?.featuresSection || DEFAULT_SITE_CONTENT.featuresSection;
-  const reviewsSection = siteContent?.reviewsSection || DEFAULT_SITE_CONTENT.reviewsSection;
+  const activeSiteContent = previewContent || siteContent;
+  const effectiveProducts =
+    Array.isArray(previewProducts) && previewProducts.length > 0 ? previewProducts : products;
+
+  const hero = activeSiteContent?.hero || DEFAULT_SITE_CONTENT.hero;
+  const campaignsSection = activeSiteContent?.campaignsSection || DEFAULT_SITE_CONTENT.campaignsSection;
+  const newMenusSection = activeSiteContent?.newMenusSection || DEFAULT_SITE_CONTENT.newMenusSection;
+  const featuresSection = activeSiteContent?.featuresSection || DEFAULT_SITE_CONTENT.featuresSection;
+  const reviewsSection = activeSiteContent?.reviewsSection || DEFAULT_SITE_CONTENT.reviewsSection;
+
+  const showSection = (sec) => !previewSection || previewSection === sec;
 
   // En iyi avantajlı menüler (öncelikli olarak category: 'menu' olanlar)
-  const menuCategoryProducts = (products || []).filter((p) => p.category === 'menu');
-  const bestMenus = (menuCategoryProducts.length > 0 ? menuCategoryProducts : products || []).slice(
+  const menuCategoryProducts = (effectiveProducts || []).filter((p) => p.category === 'menu');
+  const bestMenus = (menuCategoryProducts.length > 0 ? menuCategoryProducts : effectiveProducts || []).slice(
     0,
     newMenusSection.itemCount || 3
   );
+  const campaignDisplayProducts =
+    menuCategoryProducts.length > 0
+      ? menuCategoryProducts
+      : isPreview
+      ? (effectiveProducts || [])
+      : [];
 
   return (
-    <div id="page-home" className="page-content animate-in fade-in duration-300">
+    <div id={isPreview ? undefined : 'page-home'} className="page-content animate-in fade-in duration-300 bg-stone-50">
       {/* 1. Hero Bölümü (Admin panelden gizlenebilir veya düzenlenebilir) */}
-      {hero.visible !== false && (
+      {showSection('hero') && (isPreview || hero.visible !== false) && (
         <header className="relative bg-[#181619] text-white overflow-hidden min-h-[560px] lg:min-h-[640px] flex items-center py-16 sm:py-24">
           {/* Banner görseli */}
           <div className="absolute inset-0 z-0">
@@ -162,10 +183,13 @@ export default function HomePage() {
           {/* Google Puan Kartı */}
           {hero.googleRatingVisible !== false && (
             <a
-              id="hero-google-rating"
+              id={isPreview ? undefined : 'hero-google-rating'}
               href={hero.googleRatingUrl || 'https://www.google.com/search?q=Sandvi%C3%A7+Diyar%C4%B1+Torbal%C4%B1'}
               target="_blank"
               rel="noopener noreferrer"
+              onClick={(e) => {
+                if (isPreview) e.preventDefault();
+              }}
               className="absolute top-5 left-4 sm:top-8 sm:left-8 z-30 flex items-center gap-3 bg-white/95 backdrop-blur-md text-stone-900 pl-3 pr-4 py-3 rounded-2xl shadow-2xl shadow-black/40 border border-white/60 hover:-translate-y-0.5 hover:shadow-brand-500/20"
             >
               <div className="w-10 h-10 bg-brand-500 text-white rounded-xl flex items-center justify-center text-lg shadow-md shadow-brand-500/30 shrink-0">
@@ -226,7 +250,9 @@ export default function HomePage() {
                 <div className="flex flex-wrap justify-start gap-4 pt-2">
                   {hero.btnMenuVisible !== false && (
                     <button
-                      onClick={() => dispatch(setActivePage('menu'))}
+                      onClick={() => {
+                        if (!isPreview) dispatch(setActivePage('menu'));
+                      }}
                       className="bg-brand-500 hover:bg-brand-600 text-white font-bold px-8 py-4 rounded-2xl shadow-lg shadow-brand-500/30 transition-all flex items-center gap-3 cursor-pointer"
                     >
                       <span>{hero.btnMenuText || 'Menüyü Keşfet'}</span>
@@ -238,6 +264,9 @@ export default function HomePage() {
                     getRestaurantStatus().isOpen ? (
                       <a
                         href={`tel:${hero.btnPhoneTel || '05521045535'}`}
+                        onClick={(e) => {
+                          if (isPreview) e.preventDefault();
+                        }}
                         className="bg-amber-500 hover:bg-amber-400 text-stone-950 font-black px-6 py-4 rounded-2xl shadow-lg shadow-amber-500/20 transition-all flex items-center gap-2.5 cursor-pointer"
                       >
                         <i className="fa-solid fa-phone-volume text-lg animate-icon-phone"></i>
@@ -246,7 +275,9 @@ export default function HomePage() {
                     ) : (
                       <button
                         type="button"
-                        onClick={() => alert(CLOSED_MESSAGE)}
+                        onClick={() => {
+                          if (!isPreview) alert(CLOSED_MESSAGE);
+                        }}
                         className="bg-stone-800 text-stone-400 font-bold px-6 py-4 rounded-2xl border border-stone-700 transition-all flex items-center gap-2.5 cursor-pointer opacity-70"
                         title="Saat 03:00 - 10:00 arası telefon siparişi kapalıdır"
                       >
@@ -263,9 +294,10 @@ export default function HomePage() {
       )}
 
       {/* 2. Ana Sayfa Vitrini (Banner Altında: İlk Olarak En İyi Menülerimiz) */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16 space-y-16">
+      {(!previewSection || previewSection !== 'hero') && (
+      <section className={`max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 ${previewSection ? 'py-8 space-y-8' : 'py-12 sm:py-16 space-y-16'}`}>
         {/* En İyi Menüler Alanı (Doğrudan Banner Altında) */}
-        {newMenusSection.visible !== false && (
+        {showSection('newMenus') && (isPreview || newMenusSection.visible !== false) && (
           <div>
             <div className="flex items-end justify-between mb-4 sm:mb-6">
               <div>
@@ -278,7 +310,9 @@ export default function HomePage() {
               </div>
               {newMenusSection.btnAllVisible !== false && (
                 <button
-                  onClick={() => dispatch(setActivePage('menu'))}
+                  onClick={() => {
+                    if (!isPreview) dispatch(setActivePage('menu'));
+                  }}
                   className="text-xs sm:text-sm font-bold text-brand-600 hover:text-brand-700 flex items-center gap-1 cursor-pointer transition-colors active:scale-95"
                 >
                   <span>{newMenusSection.btnAllText || 'Tümünü Gör'}</span>
@@ -289,14 +323,14 @@ export default function HomePage() {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5 sm:gap-5 lg:gap-6">
               {bestMenus.map((product) => (
-                <ProductCard key={product.id} product={product} />
+                <ProductCard key={product.id} product={product} previewMode={isPreview} />
               ))}
             </div>
           </div>
         )}
 
         {/* Kampanya Ürünleri Alanı (Canlı Veritabanı Menüleri) */}
-        {campaignsSection.visible !== false && menuCategoryProducts.length > 0 && (
+        {showSection('campaigns') && (isPreview || campaignsSection.visible !== false) && campaignDisplayProducts.length > 0 && (
           <div>
             <div className="flex justify-between items-end mb-8">
               <div>
@@ -309,7 +343,9 @@ export default function HomePage() {
               </div>
               {campaignsSection.btnAllVisible !== false && (
                 <button
-                  onClick={() => dispatch(setActivePage('kampanyalar'))}
+                  onClick={() => {
+                    if (!isPreview) dispatch(setActivePage('kampanyalar'));
+                  }}
                   className="text-brand-600 hover:text-brand-700 font-bold text-sm flex items-center gap-2 cursor-pointer"
                 >
                   <span>{campaignsSection.btnAllText || 'Tümünü Gör'}</span>{' '}
@@ -319,7 +355,7 @@ export default function HomePage() {
             </div>
 
             <div className="flex flex-nowrap overflow-x-auto snap-x snap-mandatory gap-4 pb-2 no-scrollbar lg:grid lg:grid-cols-4 lg:gap-6 lg:overflow-visible lg:pb-0">
-              {menuCategoryProducts.slice(0, 4).map((menu) => {
+              {campaignDisplayProducts.slice(0, 4).map((menu) => {
                 const isSoldOut = menu.isAvailable === false;
                 const priceVal = Number(menu.price || 0);
                 const savings = menu.oldPrice ? Math.round(Number(menu.oldPrice) - priceVal) : 0;
@@ -402,7 +438,7 @@ export default function HomePage() {
         )}
 
         {/* 4. Neden Sandviç Diyarı? (Admin panelinden arka plan ve metinler düzenlenebilir) */}
-        {featuresSection.visible !== false && (
+        {showSection('features') && (isPreview || featuresSection.visible !== false) && (
           <div className="relative bg-stone-950 text-white border border-stone-800 rounded-3xl p-6 sm:p-10 lg:p-12 shadow-2xl overflow-hidden">
             {/* Arka Plan Görseli & Karartma Katmanı */}
             <div className="pointer-events-none absolute inset-0 z-0">
@@ -685,7 +721,7 @@ export default function HomePage() {
         )}
 
         {/* 5. Müşteri Yorumları Vitrini */}
-        {reviewsSection.visible !== false && (
+        {showSection('reviews') && (isPreview || reviewsSection.visible !== false) && (
           <div className="py-2">
             <div className="rounded-3xl p-6 sm:p-10 lg:p-12 border border-stone-200/80 bg-gradient-to-b from-stone-50/80 to-white shadow-xs relative overflow-hidden">
               {/* Sade Başlık Alanı */}
@@ -916,6 +952,7 @@ export default function HomePage() {
                 <button
                   type="button"
                   onClick={() => {
+                    if (isPreview) return;
                     const el = document.getElementById('review-name') || document.querySelector('footer');
                     if (el) el.scrollIntoView({ behavior: 'smooth' });
                   }}
@@ -929,6 +966,7 @@ export default function HomePage() {
           </div>
         )}
       </section>
+      )}
     </div>
   );
 }

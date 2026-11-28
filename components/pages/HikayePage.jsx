@@ -9,7 +9,7 @@ import {
   CACHE_TTL_LONG
 } from '@/lib/browserDataCache';
 
-export default function HikayePage() {
+export default function HikayePage({ previewStory = null } = {}) {
   const [story, setStory] = useState(DEFAULT_SITE_CONTENT.storySection);
   const [activeIndex, setActiveIndex] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
@@ -47,6 +47,7 @@ export default function HikayePage() {
   };
 
   useEffect(() => {
+    if (previewStory) return;
     fetchStoryContent(false);
     const handleStorage = (e) => {
       if (e.key === 'sandwich_site_content_updated') {
@@ -55,10 +56,20 @@ export default function HikayePage() {
     };
     window.addEventListener('storage', handleStorage);
     return () => window.removeEventListener('storage', handleStorage);
-  }, []);
+  }, [previewStory]);
 
-  const slides = Array.isArray(story?.images)
-    ? story.images
+  const effectiveStory = previewStory
+    ? {
+        ...DEFAULT_SITE_CONTENT.storySection,
+        ...previewStory,
+        images: Array.isArray(previewStory.images)
+          ? previewStory.images
+          : DEFAULT_SITE_CONTENT.storySection.images,
+      }
+    : story;
+
+  const slides = Array.isArray(effectiveStory?.images)
+    ? effectiveStory.images
     : DEFAULT_SITE_CONTENT.storySection.images;
 
   const safeIndex = activeIndex >= slides.length ? 0 : activeIndex;
@@ -79,34 +90,34 @@ export default function HikayePage() {
     setActiveIndex((prev) => (prev + 1) % slides.length);
   };
 
-  if (story?.visible === false) {
+  if (!previewStory && effectiveStory?.visible === false) {
     return null;
   }
 
   const currentSlide = slides[safeIndex] || slides[0];
 
   return (
-    <div id="page-hikaye" className="page-content animate-in fade-in duration-300">
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
+    <div id={previewStory ? undefined : 'page-hikaye'} className="page-content animate-in fade-in duration-300 bg-stone-50">
+      <section className={`max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 ${previewStory ? 'py-8' : 'py-12 sm:py-16'}`}>
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-12 items-center">
           {/* Sol Sütun: Hikayemiz Metinleri */}
           <div className="space-y-6">
             <span className="text-xs font-bold text-brand-600 uppercase tracking-widest">
-              {story.badgeText || DEFAULT_SITE_CONTENT.storySection.badgeText}
+              {effectiveStory.badgeText || DEFAULT_SITE_CONTENT.storySection.badgeText}
             </span>
             <h3 className="text-2xl sm:text-3xl font-extrabold text-stone-900 leading-tight">
-              {story.title || DEFAULT_SITE_CONTENT.storySection.title}
+              {effectiveStory.title || DEFAULT_SITE_CONTENT.storySection.title}
             </h3>
             <p className="text-stone-600 leading-relaxed text-sm">
-              {story.description || DEFAULT_SITE_CONTENT.storySection.description}
+              {effectiveStory.description || DEFAULT_SITE_CONTENT.storySection.description}
             </p>
             <div className="bg-brand-50/70 border border-brand-200 rounded-2xl p-4 text-xs text-stone-700 leading-relaxed flex items-start gap-3">
               <i className="fa-solid fa-stamp text-brand-600 text-xl mt-0.5"></i>
               <div>
                 <strong className="text-brand-900 block font-bold mb-1">
-                  {story.qualityTitle || DEFAULT_SITE_CONTENT.storySection.qualityTitle}
+                  {effectiveStory.qualityTitle || DEFAULT_SITE_CONTENT.storySection.qualityTitle}
                 </strong>
-                {story.qualityText || DEFAULT_SITE_CONTENT.storySection.qualityText}
+                {effectiveStory.qualityText || DEFAULT_SITE_CONTENT.storySection.qualityText}
               </div>
             </div>
             <div className="grid grid-cols-3 gap-3 pt-2">
