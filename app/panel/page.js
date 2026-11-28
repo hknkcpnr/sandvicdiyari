@@ -4564,13 +4564,138 @@ export default function AdminDashboardPage() {
             <form onSubmit={handleProductSubmit} className="flex-1 flex flex-col min-h-0 overflow-hidden">
               <div className="flex-1 overflow-y-auto lg:overflow-visible overscroll-contain p-3 sm:p-4 touch-pan-y">
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 items-stretch">
-                  {/* SÜTUN 1: TEMEL BİLGİLER, STOK, AÇIKLAMA, GÖRSEL & SES */}
+                  {/* SÜTUN 1: GÖRSEL (ÜSTTE BÜYÜK), TEMEL BİLGİLER, STOK & SES */}
                   <div
                     className={`${
                       prodCategory === 'menu' ? 'lg:col-span-4' : 'lg:col-span-6'
-                    } flex flex-col justify-between space-y-2.5 bg-stone-50/70 p-3 rounded-2xl border border-stone-200/80`}
+                    } flex flex-col justify-between space-y-2 bg-stone-50/70 p-3 rounded-2xl border border-stone-200/80`}
                   >
-                    <div className="space-y-2.5">
+                    <div className="space-y-2">
+                      {/* Görsel Seçimi (Üstte ve Büyük) */}
+                      <div className="space-y-1.5 bg-white p-2.5 rounded-xl border border-stone-200/90">
+                        <div className="flex items-center justify-between gap-2">
+                          <label className="text-[10px] font-bold text-stone-700 uppercase tracking-wide flex items-center gap-1">
+                            <i className="fa-solid fa-image text-brand-600"></i>
+                            <span>Ürün Görseli</span>
+                          </label>
+                          <div className="flex items-center gap-0.5 bg-stone-100 p-0.5 rounded-lg text-[10px]">
+                            <button
+                              type="button"
+                              onClick={() => setImageInputMode('upload')}
+                              className={`px-2 py-0.5 rounded-md font-semibold transition-all cursor-pointer ${
+                                imageInputMode === 'upload'
+                                  ? 'bg-white text-stone-900 shadow-2xs'
+                                  : 'text-stone-600 hover:text-stone-900'
+                              }`}
+                            >
+                              Yükle
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setImageInputMode('presets')}
+                              className={`px-2 py-0.5 rounded-md font-semibold transition-all cursor-pointer ${
+                                imageInputMode === 'presets'
+                                  ? 'bg-white text-stone-900 shadow-2xs'
+                                  : 'text-stone-600 hover:text-stone-900'
+                              }`}
+                            >
+                              Şablon
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setImageInputMode('url')}
+                              className={`px-2 py-0.5 rounded-md font-semibold transition-all cursor-pointer ${
+                                imageInputMode === 'url'
+                                  ? 'bg-white text-stone-900 shadow-2xs'
+                                  : 'text-stone-600 hover:text-stone-900'
+                              }`}
+                            >
+                              URL
+                            </button>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-3">
+                          <div className="relative w-28 h-28 rounded-2xl overflow-hidden bg-stone-200 border border-stone-300 shadow-sm shrink-0">
+                            {isUploadingImage ? (
+                              <div className="w-full h-full flex items-center justify-center bg-stone-900/70 text-white">
+                                <i className="fa-solid fa-spinner fa-spin text-base text-brand-400"></i>
+                              </div>
+                            ) : (
+                              <img
+                                src={prodImageUrl}
+                                alt="Seçili Ürün Görseli"
+                                className="w-full h-full object-cover"
+                                onError={(e) => {
+                                  e.currentTarget.src = '/images/hero_banner.jpg';
+                                }}
+                              />
+                            )}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <input
+                              type="file"
+                              ref={fileInputRef}
+                              onChange={handleImageUpload}
+                              accept="image/png,image/jpeg,image/webp,image/gif"
+                              className="hidden"
+                            />
+                            {imageInputMode === 'upload' && (
+                              <div
+                                onClick={() => fileInputRef.current?.click()}
+                                className="h-28 border border-dashed border-stone-300 hover:border-brand-400 rounded-xl px-3 flex flex-col items-center justify-center gap-1 text-center cursor-pointer bg-stone-50/70 hover:bg-brand-50/30 transition-all"
+                              >
+                                <i className="fa-solid fa-cloud-arrow-up text-brand-600 text-base"></i>
+                                <p className="text-xs font-bold text-stone-700 leading-tight">
+                                  Görsel Seç / Değiştir
+                                </p>
+                                <span className="text-[10px] text-stone-400 truncate max-w-full">
+                                  {selectedFileName || 'PNG, JPG, WEBP'}
+                                </span>
+                              </div>
+                            )}
+                            {imageInputMode === 'presets' && (
+                              <div className="flex flex-wrap items-center gap-1.5 max-h-28 overflow-y-auto p-1 bg-stone-50 rounded-xl border border-stone-200">
+                                {PRODUCT_IMAGE_PRESETS.map((preset, idx) => (
+                                  <button
+                                    key={idx}
+                                    type="button"
+                                    onClick={() => {
+                                      setProdImageUrl(preset.url);
+                                      setSelectedFileName(`${preset.label} (Şablon)`);
+                                    }}
+                                    className={`p-0.5 rounded-lg border shrink-0 cursor-pointer ${
+                                      prodImageUrl === preset.url
+                                        ? 'border-brand-500 bg-brand-50'
+                                        : 'border-stone-200 bg-white'
+                                    }`}
+                                    title={preset.label}
+                                  >
+                                    <img
+                                      src={preset.url}
+                                      alt={preset.label}
+                                      className="w-9 h-9 rounded-md object-cover"
+                                    />
+                                  </button>
+                                ))}
+                              </div>
+                            )}
+                            {imageInputMode === 'url' && (
+                              <input
+                                type="url"
+                                value={prodImageUrl.startsWith('http') ? prodImageUrl : ''}
+                                onChange={(e) => {
+                                  setProdImageUrl(e.target.value);
+                                  setSelectedFileName('Web Bağlantısı (URL)');
+                                }}
+                                placeholder="https://..."
+                                className="w-full bg-stone-50 border border-stone-300 rounded-xl px-3 py-2 text-[11px] font-mono focus:outline-none focus:border-brand-500"
+                              />
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
                       <div>
                         <label className="block text-[10px] font-bold text-stone-700 uppercase tracking-wide mb-1">
                           Ürün veya Menü Adı <span className="text-red-500">*</span>
@@ -4683,185 +4808,173 @@ export default function AdminDashboardPage() {
                       </div>
                     </div>
 
-                    <div className="space-y-2">
-                      {/* Görsel Seçimi */}
-                      <div className="space-y-1.5 bg-white p-2.5 rounded-xl border border-stone-200/90">
-                        <div className="flex items-center justify-between gap-2">
-                          <label className="text-[10px] font-bold text-stone-700 uppercase tracking-wide flex items-center gap-1">
-                            <i className="fa-solid fa-image text-brand-600"></i>
-                            <span>Görsel</span>
-                          </label>
-                          <div className="flex items-center gap-0.5 bg-stone-100 p-0.5 rounded-lg text-[10px]">
-                            <button
-                              type="button"
-                              onClick={() => setImageInputMode('upload')}
-                              className={`px-2 py-0.5 rounded-md font-semibold transition-all cursor-pointer ${
-                                imageInputMode === 'upload'
-                                  ? 'bg-white text-stone-900 shadow-2xs'
-                                  : 'text-stone-600 hover:text-stone-900'
-                              }`}
-                            >
-                              Yükle
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => setImageInputMode('presets')}
-                              className={`px-2 py-0.5 rounded-md font-semibold transition-all cursor-pointer ${
-                                imageInputMode === 'presets'
-                                  ? 'bg-white text-stone-900 shadow-2xs'
-                                  : 'text-stone-600 hover:text-stone-900'
-                              }`}
-                            >
-                              Şablon
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => setImageInputMode('url')}
-                              className={`px-2 py-0.5 rounded-md font-semibold transition-all cursor-pointer ${
-                                imageInputMode === 'url'
-                                  ? 'bg-white text-stone-900 shadow-2xs'
-                                  : 'text-stone-600 hover:text-stone-900'
-                              }`}
-                            >
-                              URL
-                            </button>
-                          </div>
-                        </div>
-
-                        <div className="flex items-center gap-3">
-                          <div className="relative w-20 h-20 rounded-xl overflow-hidden bg-stone-200 border border-stone-300 shadow-xs shrink-0">
-                            {isUploadingImage ? (
-                              <div className="w-full h-full flex items-center justify-center bg-stone-900/70 text-white">
-                                <i className="fa-solid fa-spinner fa-spin text-sm text-brand-400"></i>
-                              </div>
-                            ) : (
-                              <img
-                                src={prodImageUrl}
-                                alt="Seçili Ürün Görseli"
-                                className="w-full h-full object-cover"
-                                onError={(e) => {
-                                  e.currentTarget.src = '/images/hero_banner.jpg';
-                                }}
-                              />
-                            )}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <input
-                              type="file"
-                              ref={fileInputRef}
-                              onChange={handleImageUpload}
-                              accept="image/png,image/jpeg,image/webp,image/gif"
-                              className="hidden"
-                            />
-                            {imageInputMode === 'upload' && (
-                              <div
-                                onClick={() => fileInputRef.current?.click()}
-                                className="border border-dashed border-stone-300 hover:border-brand-400 rounded-xl px-3 py-4 text-center cursor-pointer bg-stone-50/70 hover:bg-brand-50/30 transition-all"
-                              >
-                                <p className="text-xs font-bold text-stone-700 truncate">
-                                  <i className="fa-solid fa-cloud-arrow-up text-brand-600 mr-1.5"></i>
-                                  Görsel Seç / Değiştir
-                                </p>
-                              </div>
-                            )}
-                            {imageInputMode === 'presets' && (
-                              <div className="flex items-center gap-1 overflow-x-auto pb-0.5 no-scrollbar">
-                                {PRODUCT_IMAGE_PRESETS.map((preset, idx) => (
-                                  <button
-                                    key={idx}
-                                    type="button"
-                                    onClick={() => {
-                                      setProdImageUrl(preset.url);
-                                      setSelectedFileName(`${preset.label} (Şablon)`);
-                                    }}
-                                    className={`p-0.5 rounded-md border shrink-0 cursor-pointer ${
-                                      prodImageUrl === preset.url
-                                        ? 'border-brand-500 bg-brand-50'
-                                        : 'border-stone-200 bg-white'
-                                    }`}
-                                    title={preset.label}
-                                  >
-                                    <img
-                                      src={preset.url}
-                                      alt={preset.label}
-                                      className="w-8 h-8 rounded object-cover"
-                                    />
-                                  </button>
-                                ))}
-                              </div>
-                            )}
-                            {imageInputMode === 'url' && (
-                              <input
-                                type="url"
-                                value={prodImageUrl.startsWith('http') ? prodImageUrl : ''}
-                                onChange={(e) => {
-                                  setProdImageUrl(e.target.value);
-                                  setSelectedFileName('Web Bağlantısı (URL)');
-                                }}
-                                placeholder="https://..."
-                                className="w-full bg-stone-50 border border-stone-300 rounded-lg px-2.5 py-1.5 text-[11px] font-mono focus:outline-none focus:border-brand-500"
-                              />
-                            )}
-                          </div>
-                        </div>
+                    {/* Ürüne Özel Sipariş Sesi */}
+                    <div className="bg-white p-2 rounded-xl border border-stone-200/90 flex items-center justify-between gap-2">
+                      <div className="min-w-0">
+                        <span className="text-[10px] font-bold text-stone-800 uppercase flex items-center gap-1">
+                          <i className="fa-solid fa-volume-high text-indigo-600"></i>
+                          <span className="truncate">Sipariş Sesi</span>
+                        </span>
+                        <span className="text-[10px] text-stone-400 block truncate">
+                          {prodAudioUrl ? prodAudioFileName || 'Özel ses aktif' : 'Otomatik Türkçe okuma'}
+                        </span>
                       </div>
-
-                      {/* Ürüne Özel Sipariş Sesi */}
-                      <div className="bg-white p-2.5 rounded-xl border border-stone-200/90 flex items-center justify-between gap-2">
-                        <div className="min-w-0">
-                          <span className="text-[10px] font-bold text-stone-800 uppercase flex items-center gap-1">
-                            <i className="fa-solid fa-volume-high text-indigo-600"></i>
-                            <span className="truncate">Sipariş Sesi</span>
-                          </span>
-                          <span className="text-[10px] text-stone-400 block truncate">
-                            {prodAudioUrl ? prodAudioFileName || 'Özel ses aktif' : 'Otomatik Türkçe okuma'}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-1 shrink-0">
-                          <input
-                            ref={prodAudioInputRef}
-                            type="file"
-                            accept="audio/*,.mp3,.wav,.ogg,.m4a"
-                            onChange={handleProductAudioSelect}
-                            className="hidden"
-                          />
+                      <div className="flex items-center gap-1 shrink-0">
+                        <input
+                          ref={prodAudioInputRef}
+                          type="file"
+                          accept="audio/*,.mp3,.wav,.ogg,.m4a"
+                          onChange={handleProductAudioSelect}
+                          className="hidden"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => speakProductPreview(prodName || 'Örnek Menü', prodAudioUrl)}
+                          className="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 px-2 py-1 rounded-lg text-[10px] font-bold flex items-center gap-1 cursor-pointer transition-colors"
+                          title="Sesi dinle"
+                        >
+                          <i className="fa-solid fa-play text-[8px]"></i>
+                          <span>Dinle</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => prodAudioInputRef.current?.click()}
+                          className="bg-stone-900 hover:bg-black text-white px-2 py-1 rounded-lg text-[10px] font-bold flex items-center gap-1 cursor-pointer transition-colors"
+                          title="Özel ses (.mp3, .wav) yükle"
+                        >
+                          <i className="fa-solid fa-upload text-[8px] text-amber-400"></i>
+                          <span>{prodAudioUrl ? 'Değiştir' : 'Yükle'}</span>
+                        </button>
+                        {prodAudioUrl && (
                           <button
                             type="button"
-                            onClick={() => speakProductPreview(prodName || 'Örnek Menü', prodAudioUrl)}
-                            className="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 px-2 py-1 rounded-lg text-[10px] font-bold flex items-center gap-1 cursor-pointer transition-colors"
-                            title="Sesi dinle"
+                            onClick={() => {
+                              setProdAudioUrl('');
+                              setProdAudioFileName('');
+                            }}
+                            className="bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 p-1 rounded-lg text-[10px] cursor-pointer"
+                            title="Özel Sesi Kaldır"
                           >
-                            <i className="fa-solid fa-play text-[8px]"></i>
-                            <span>Dinle</span>
+                            <i className="fa-solid fa-trash-can"></i>
                           </button>
-                          <button
-                            type="button"
-                            onClick={() => prodAudioInputRef.current?.click()}
-                            className="bg-stone-900 hover:bg-black text-white px-2 py-1 rounded-lg text-[10px] font-bold flex items-center gap-1 cursor-pointer transition-colors"
-                            title="Özel ses (.mp3, .wav) yükle"
-                          >
-                            <i className="fa-solid fa-upload text-[8px] text-amber-400"></i>
-                            <span>{prodAudioUrl ? 'Değiştir' : 'Yükle'}</span>
-                          </button>
-                          {prodAudioUrl && (
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setProdAudioUrl('');
-                                setProdAudioFileName('');
-                              }}
-                              className="bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200 p-1 rounded-lg text-[10px] cursor-pointer"
-                              title="Özel Sesi Kaldır"
-                            >
-                              <i className="fa-solid fa-trash-can"></i>
-                            </button>
-                          )}
-                        </div>
+                        )}
                       </div>
                     </div>
                   </div>
 
-                  {/* SÜTUN 2: MENÜ İÇECEK FİYATLANDIRMASI (SADECE MENÜLERDE) */}
+                  {/* SÜTUN 2 (ORTA): ÜRÜN İÇERİĞİ (MALZEME ETİKETLERİ) */}
+                  <div
+                    className={`${
+                      prodCategory === 'menu' ? 'lg:col-span-4' : 'lg:col-span-6'
+                    } bg-stone-50/80 border border-stone-200 rounded-2xl p-3 flex flex-col justify-between space-y-2.5`}
+                  >
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between gap-1">
+                        <label className="text-[11px] font-bold text-stone-800 uppercase tracking-wide flex items-center gap-1.5">
+                          <i className="fa-solid fa-tags text-brand-600"></i>
+                          <span>Ürün İçeriği</span>
+                        </label>
+                        <span className="text-[10px] text-stone-500 font-medium">
+                          Müşteri çıkarabilir
+                        </span>
+                      </div>
+
+                      <div className="flex flex-wrap gap-1 min-h-[48px] p-2 bg-white rounded-xl border border-stone-200">
+                        {prodIngredients.length === 0 ? (
+                          <span className="text-[11px] text-stone-400 italic px-1">
+                            Henüz içerik etiketi eklenmedi...
+                          </span>
+                        ) : (
+                          prodIngredients.map((tag) => (
+                            <span
+                              key={tag}
+                              className="inline-flex items-center gap-1 bg-brand-50 text-brand-900 border border-brand-200 px-2 py-0.5 rounded-md text-[11px] font-bold"
+                            >
+                              <span>{tag}</span>
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveIngredientTag(tag)}
+                                className="w-3.5 h-3.5 rounded-full bg-brand-200/70 hover:bg-rose-500 hover:text-white text-brand-800 flex items-center justify-center text-[9px] transition-colors cursor-pointer"
+                                title="Etiketi Kaldır"
+                              >
+                                <i className="fa-solid fa-xmark"></i>
+                              </button>
+                            </span>
+                          ))
+                        )}
+                      </div>
+
+                      <div className="flex items-center gap-1.5">
+                        <input
+                          type="text"
+                          value={ingredientInput}
+                          onChange={(e) => setIngredientInput(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                              handleAddIngredientTag();
+                            }
+                          }}
+                          placeholder="Malzeme yazın ve Enter'a basın..."
+                          className="flex-1 min-w-0 bg-white border border-stone-200 rounded-xl px-3 py-1.5 text-xs text-stone-900 focus:outline-none focus:border-brand-500 font-semibold"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => handleAddIngredientTag()}
+                          className="bg-stone-900 hover:bg-black text-white text-[11px] font-bold px-3 py-1.5 rounded-xl flex items-center gap-1 shrink-0 cursor-pointer transition-colors"
+                        >
+                          <i className="fa-solid fa-plus text-[9px] text-amber-400"></i>
+                          <span>Ekle</span>
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="space-y-1.5 pt-1 border-t border-stone-200/70">
+                      <span className="text-[10px] font-bold text-stone-400 uppercase block">
+                        Hızlı Malzeme Seçimi:
+                      </span>
+                      <div className="flex flex-wrap gap-1">
+                        {COMMON_INGREDIENT_TAGS.map((presetTag) => {
+                          const isSelected = prodIngredients.some(
+                            (t) => t.toLocaleLowerCase('tr-TR') === presetTag.toLocaleLowerCase('tr-TR')
+                          );
+                          return (
+                            <button
+                              key={presetTag}
+                              type="button"
+                              onClick={() => {
+                                if (isSelected) {
+                                  setProdIngredients((prev) =>
+                                    prev.filter(
+                                      (t) =>
+                                        t.toLocaleLowerCase('tr-TR') !==
+                                        presetTag.toLocaleLowerCase('tr-TR')
+                                    )
+                                  );
+                                } else {
+                                  handleAddIngredientTag(presetTag);
+                                }
+                              }}
+                              className={`px-2 py-0.5 rounded-md text-[10px] font-semibold border transition-all cursor-pointer flex items-center gap-1 ${
+                                isSelected
+                                  ? 'bg-emerald-50 border-emerald-300 text-emerald-800 font-bold'
+                                  : 'bg-white border-stone-200 text-stone-600 hover:border-brand-300 hover:text-stone-900'
+                              }`}
+                            >
+                              <i
+                                className={`fa-solid ${
+                                  isSelected ? 'fa-check text-emerald-600' : 'fa-plus text-stone-400'
+                                } text-[8px]`}
+                              ></i>
+                              <span>{presetTag}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* SÜTUN 3 (SAĞ): MENÜ İÇECEK FİYATLANDIRMASI (SADECE MENÜLERDE) */}
                   {prodCategory === 'menu' && (() => {
                     const modalMenuTier = getMenuSizeTier({ name: prodName });
                     const basePriceNum = parseFloat(prodPrice) || 0;
@@ -4925,7 +5038,7 @@ export default function AdminDashboardPage() {
                           </div>
 
                           {/* İçecek Satırları */}
-                          <div className="space-y-1.5 max-h-44 overflow-y-auto pr-0.5">
+                          <div className="space-y-1.5 max-h-48 overflow-y-auto pr-0.5">
                             {prodMenuDrinks.map((dr) => {
                               const dPrice = Math.max(0, Number(dr.price) || 0);
                               const isActive = dr.isAvailable !== false;
@@ -5089,118 +5202,6 @@ export default function AdminDashboardPage() {
                       </div>
                     );
                   })()}
-
-                  {/* SÜTUN 3: ÜRÜN İÇERİĞİ (MALZEME ETİKETLERİ) */}
-                  <div
-                    className={`${
-                      prodCategory === 'menu' ? 'lg:col-span-4' : 'lg:col-span-6'
-                    } bg-stone-50/80 border border-stone-200 rounded-2xl p-3 flex flex-col justify-between space-y-2.5`}
-                  >
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between gap-1">
-                        <label className="text-[11px] font-bold text-stone-800 uppercase tracking-wide flex items-center gap-1.5">
-                          <i className="fa-solid fa-tags text-brand-600"></i>
-                          <span>Ürün İçeriği</span>
-                        </label>
-                        <span className="text-[10px] text-stone-500 font-medium">
-                          Müşteri çıkarabilir
-                        </span>
-                      </div>
-
-                      <div className="flex flex-wrap gap-1 min-h-[48px] p-2 bg-white rounded-xl border border-stone-200">
-                        {prodIngredients.length === 0 ? (
-                          <span className="text-[11px] text-stone-400 italic px-1">
-                            Henüz içerik etiketi eklenmedi...
-                          </span>
-                        ) : (
-                          prodIngredients.map((tag) => (
-                            <span
-                              key={tag}
-                              className="inline-flex items-center gap-1 bg-brand-50 text-brand-900 border border-brand-200 px-2 py-0.5 rounded-md text-[11px] font-bold"
-                            >
-                              <span>{tag}</span>
-                              <button
-                                type="button"
-                                onClick={() => handleRemoveIngredientTag(tag)}
-                                className="w-3.5 h-3.5 rounded-full bg-brand-200/70 hover:bg-rose-500 hover:text-white text-brand-800 flex items-center justify-center text-[9px] transition-colors cursor-pointer"
-                                title="Etiketi Kaldır"
-                              >
-                                <i className="fa-solid fa-xmark"></i>
-                              </button>
-                            </span>
-                          ))
-                        )}
-                      </div>
-
-                      <div className="flex items-center gap-1.5">
-                        <input
-                          type="text"
-                          value={ingredientInput}
-                          onChange={(e) => setIngredientInput(e.target.value)}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter') {
-                              e.preventDefault();
-                              handleAddIngredientTag();
-                            }
-                          }}
-                          placeholder="Malzeme yazın ve Enter'a basın..."
-                          className="flex-1 min-w-0 bg-white border border-stone-200 rounded-xl px-3 py-1.5 text-xs text-stone-900 focus:outline-none focus:border-brand-500 font-semibold"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => handleAddIngredientTag()}
-                          className="bg-stone-900 hover:bg-black text-white text-[11px] font-bold px-3 py-1.5 rounded-xl flex items-center gap-1 shrink-0 cursor-pointer transition-colors"
-                        >
-                          <i className="fa-solid fa-plus text-[9px] text-amber-400"></i>
-                          <span>Ekle</span>
-                        </button>
-                      </div>
-                    </div>
-
-                    <div className="space-y-1.5 pt-1 border-t border-stone-200/70">
-                      <span className="text-[10px] font-bold text-stone-400 uppercase block">
-                        Hızlı Malzeme Seçimi:
-                      </span>
-                      <div className="flex flex-wrap gap-1">
-                        {COMMON_INGREDIENT_TAGS.map((presetTag) => {
-                          const isSelected = prodIngredients.some(
-                            (t) => t.toLocaleLowerCase('tr-TR') === presetTag.toLocaleLowerCase('tr-TR')
-                          );
-                          return (
-                            <button
-                              key={presetTag}
-                              type="button"
-                              onClick={() => {
-                                if (isSelected) {
-                                  setProdIngredients((prev) =>
-                                    prev.filter(
-                                      (t) =>
-                                        t.toLocaleLowerCase('tr-TR') !==
-                                        presetTag.toLocaleLowerCase('tr-TR')
-                                    )
-                                  );
-                                } else {
-                                  handleAddIngredientTag(presetTag);
-                                }
-                              }}
-                              className={`px-2 py-0.5 rounded-md text-[10px] font-semibold border transition-all cursor-pointer flex items-center gap-1 ${
-                                isSelected
-                                  ? 'bg-emerald-50 border-emerald-300 text-emerald-800 font-bold'
-                                  : 'bg-white border-stone-200 text-stone-600 hover:border-brand-300 hover:text-stone-900'
-                              }`}
-                            >
-                              <i
-                                className={`fa-solid ${
-                                  isSelected ? 'fa-check text-emerald-600' : 'fa-plus text-stone-400'
-                                } text-[8px]`}
-                              ></i>
-                              <span>{presetTag}</span>
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  </div>
                 </div>
               </div>
 
