@@ -3363,57 +3363,6 @@ export default function AdminDashboardPage() {
               </div>
             </div>
 
-            {/* Menü İçecek Kuralı (Ayran Dahil / Kola Farkı) */}
-            <div className="bg-gradient-to-r from-amber-50/90 via-orange-50/60 to-white border border-amber-200/90 rounded-2xl p-4 flex flex-col lg:flex-row lg:items-center justify-between gap-3.5 shadow-2xs">
-              <div className="space-y-1">
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="w-7 h-7 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center text-xs font-black">
-                    🥤
-                  </span>
-                  <h4 className="text-xs sm:text-sm font-extrabold text-stone-900">
-                    Menü İçecek Fiyat Kuralı (Tüm Menüler İçin Geçerli)
-                  </h4>
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200">
-                    Ayran: Standart Fiyata Dahil (+₺0)
-                  </span>
-                </div>
-                <p className="text-[11px] text-stone-600 leading-relaxed">
-                  Tüm menülerin standart liste fiyatı <strong>Ayran</strong> ile birlikte geçerlidir. Müşteri menüde <strong>Kola</strong> seçerse tüm boyutlarda (1–4 kişilik) şu an{' '}
-                  <strong className="text-amber-800">+₺{menuColaExtraPrice.toFixed(2)}</strong> eklenir.
-                </p>
-              </div>
-              <div className="flex flex-wrap items-center gap-2 shrink-0">
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-stone-500">+₺</span>
-                  <input
-                    type="number"
-                    min="0"
-                    max="500"
-                    step="1"
-                    disabled={!canManagePrices && !canManageOptions}
-                    value={menuColaPriceInput}
-                    onChange={(e) => setMenuColaPriceInput(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        e.preventDefault();
-                        handleSaveMenuColaExtraPrice();
-                      }
-                    }}
-                    aria-label="Genel menü kola farkı (TL)"
-                    className="w-28 bg-white border border-amber-300 rounded-xl pl-8 pr-2.5 py-2 text-xs sm:text-sm font-extrabold text-stone-900 focus:outline-none focus:border-brand-500 disabled:opacity-60 disabled:cursor-not-allowed"
-                  />
-                </div>
-                <button
-                  type="button"
-                  disabled={savingColaPrice || (!canManagePrices && !canManageOptions)}
-                  onClick={() => handleSaveMenuColaExtraPrice()}
-                  className="bg-brand-600 hover:bg-brand-700 disabled:opacity-50 text-white text-xs font-bold px-4 py-2 rounded-xl cursor-pointer transition-all shadow-2xs active:scale-95 whitespace-nowrap"
-                >
-                  {savingColaPrice ? 'Kaydediliyor...' : 'Kola Farkını Güncelle'}
-                </button>
-              </div>
-            </div>
-
             {/* Products List */}
             <div className="bg-white rounded-2xl border border-stone-200 divide-y divide-stone-100 overflow-hidden shadow-xs">
               {paginatedProducts.map((p) => (
