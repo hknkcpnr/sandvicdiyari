@@ -12,6 +12,7 @@ import { addToCart } from '@/store/slices/cartSlice';
 import {
   DEFAULT_PRODUCT_OPTIONS,
   DEFAULT_MENU_DRINK_GROUPS,
+  resolveSauceImage,
   getMenuSizeTier,
   normalizeMenuDrinkGroups,
   normalizeProductMenuDrinks,
@@ -576,18 +577,34 @@ export default function OptionsModal() {
                     const sKey = s.id || s.key || s.name;
                     const label = s.name || s.label;
                     const count = sauceCounts[sKey] || 0;
+                    const sauceImg = resolveSauceImage(s);
                     return (
                       <div
                         key={sKey}
-                        className={`flex items-center justify-between px-2.5 py-1.5 rounded-xl border transition-all ${
+                        className={`flex items-center justify-between gap-2 px-2 py-1.5 rounded-xl border transition-all ${
                           count > 0
                             ? 'bg-amber-50/60 border-amber-300'
                             : 'bg-white border-stone-200'
                         }`}
                       >
-                        <span className="text-xs font-semibold text-stone-800 truncate pr-1" title={label}>
-                          {label}
-                        </span>
+                        <div className="flex items-center gap-2 min-w-0">
+                          {sauceImg ? (
+                            <img
+                              src={sauceImg}
+                              alt={label}
+                              loading="lazy"
+                              decoding="async"
+                              className="w-8 h-8 rounded-lg object-cover border border-stone-200/80 bg-stone-50 shrink-0"
+                            />
+                          ) : (
+                            <span className="w-8 h-8 rounded-lg bg-amber-50 border border-amber-200/70 text-amber-600 flex items-center justify-center text-xs shrink-0">
+                              <i className="fa-solid fa-bottle-droplet"></i>
+                            </span>
+                          )}
+                          <span className="text-xs font-semibold text-stone-800 truncate" title={label}>
+                            {label}
+                          </span>
+                        </div>
                         <div className="flex items-center gap-1 shrink-0">
                           <button
                             type="button"

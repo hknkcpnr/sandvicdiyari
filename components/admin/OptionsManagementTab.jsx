@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useDispatch } from 'react-redux';
 import { showMessageModal } from '@/store/slices/uiSlice';
 import {
@@ -8,10 +8,13 @@ import {
   DEFAULT_MENU_DRINK_GROUPS,
   DEFAULT_MENU_COLA_EXTRA_PRICE,
   MENU_DRINK_TIER_META,
+  SAUCE_IMAGE_PRESETS,
+  resolveSauceImage,
   normalizeMenuDrinkGroups,
   applyGlobalColaPriceToMenuGroups,
   normalizeMenuColaExtraPrice,
 } from '@/lib/productOptionsDefaults';
+import { compressImageFile } from '@/lib/clientImageCompress';
 import {
   getBrowserCache,
   setBrowserCache,
@@ -73,7 +76,9 @@ export default function OptionsManagementTab() {
   // Modal states
   const [isAddSauceModalOpen, setIsAddSauceModalOpen] = useState(false);
   const [editingSauce, setEditingSauce] = useState(null);
-  const [sauceForm, setSauceForm] = useState({ name: '', isAvailable: true, price: 0 });
+  const [sauceForm, setSauceForm] = useState({ name: '', isAvailable: true, price: 0, image: '' });
+  const [uploadingSauceImage, setUploadingSauceImage] = useState(false);
+  const sauceFileInputRef = useRef(null);
 
   const [isAddExtraModalOpen, setIsAddExtraModalOpen] = useState(false);
   const [editingExtra, setEditingExtra] = useState(null);
@@ -251,6 +256,34 @@ export default function OptionsManagementTab() {
     }
   };
 
+  const handleSauceImageUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingSauceImage(true);
+    try {
+      const compressed = await compressImageFile(file, {
+        maxDimension: 600,
+        quality: 0.82,
+        minSizeBytes: 60 * 1024
+      });
+      const formData = new FormData();
+      formData.append('file', compressed);
+      const res = await fetch('/api/upload', { method: 'POST', body: formData });
+      const json = await res.json();
+      const uploadedUrl = json.url || json.data?.url;
+      if (json.success && uploadedUrl) {
+        setSauceForm((prev) => ({ ...prev, image: uploadedUrl }));
+      } else {
+        alert(json.error || 'Sos görseli yüklenemedi.');
+      }
+    } catch (err) {
+      alert('Görsel yükleme hatası: ' + err.message);
+    } finally {
+      setUploadingSauceImage(false);
+      e.target.value = '';
+    }
+  };
+
   // Save new or edited sauce
   const handleSaveSauce = async (e) => {
     e.preventDefault();
@@ -261,7 +294,7 @@ export default function OptionsManagementTab() {
     if (editingSauce) {
       updated = sauces.map((s) =>
         s.id === editingSauce.id
-          ? { ...s, name: cleanName, isAvailable: sauceForm.isAvailable }
+          ? { ...s, name: cleanName, isAvailable: sauceForm.isAvailable, image: sauceForm.image || '' }
           : s
       );
     } else {
@@ -270,6 +303,7 @@ export default function OptionsManagementTab() {
         name: cleanName,
         isAvailable: sauceForm.isAvailable,
         price: 0,
+        image: sauceForm.image || '',
       };
       updated = [...sauces, newSauce];
     }
@@ -277,7 +311,7 @@ export default function OptionsManagementTab() {
     setSauces(updated);
     setIsAddSauceModalOpen(false);
     setEditingSauce(null);
-    setSauceForm({ name: '', isAvailable: true, price: 0 });
+    setSauceForm({ name: '', isAvailable: true, price: 0, image: '' });
 
     const ok = await persistOptions(updated, extras, drinks);
     if (ok) {
@@ -649,7 +683,7 @@ export default function OptionsManagementTab() {
               type="button"
               onClick={() => {
                 setEditingSauce(null);
-                setSauceForm({ name: '', isAvailable: true, price: 0 });
+                setSauceForm({ name: '', isAvailable: true, price: 0, image: '' });
                 setIsAddSauceModalOpen(true);
               }}
               className="bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold px-3.5 py-2 rounded-xl flex items-center gap-1.5 cursor-pointer transition-colors"
@@ -772,12 +806,26 @@ export default function OptionsManagementTab() {
           ) : (
             filteredSauces.map((sauce) => {
               const isOpen = sauce.isAvailable !== false;
+              const thumbUrl = resolveSauceImage(sauce);
               return (
                 <div
                   key={sauce.id}
                   className="px-4 py-2.5 flex items-center justify-between gap-3 hover:bg-stone-50/70 transition-colors"
                 >
                   <div className="flex items-center gap-2.5 min-w-0">
+                    {thumbUrl ? (
+                      <img
+                        src={thumbUrl}
+                        alt={sauce.name}
+                        loading="lazy"
+                        decoding="async"
+                        className="w-9 h-9 rounded-lg object-cover border border-stone-200 bg-stone-50 shrink-0"
+                      />
+                    ) : (
+                      <span className="w-9 h-9 rounded-lg bg-amber-50 border border-amber-200/80 text-amber-600 flex items-center justify-center text-xs shrink-0">
+                        <i className="fa-solid fa-bottle-droplet"></i>
+                      </span>
+                    )}
                     <span
                       className={`w-2 h-2 rounded-full shrink-0 ${
                         isOpen ? 'bg-emerald-500' : 'bg-stone-300'
@@ -816,6 +864,7 @@ export default function OptionsManagementTab() {
                             name: sauce.name,
                             isAvailable: sauce.isAvailable !== false,
                             price: 0,
+                            image: sauce.image || '',
                           });
                           setIsAddSauceModalOpen(true);
                         }}
@@ -1182,6 +1231,78 @@ export default function OptionsManagementTab() {
                   placeholder="Örn: Ranch Sos, Trüflü Mayonez, Sweet Chili..."
                   className="w-full bg-stone-50 border border-stone-200 rounded-xl px-3.5 py-2.5 text-xs font-semibold focus:outline-none focus:border-brand-500 text-stone-900"
                 />
+              </div>
+
+              {/* Sos Görseli Seç / Yükle */}
+              <div className="space-y-2 p-3 rounded-2xl bg-stone-50 border border-stone-200">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-xs font-bold text-stone-800">Sos Görseli</span>
+                  <div className="flex items-center gap-1.5">
+                    <input
+                      ref={sauceFileInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={handleSauceImageUpload}
+                      className="hidden"
+                    />
+                    <button
+                      type="button"
+                      disabled={uploadingSauceImage}
+                      onClick={() => sauceFileInputRef.current?.click()}
+                      className="bg-white hover:bg-stone-100 text-stone-800 border border-stone-300 text-[11px] font-bold px-2.5 py-1 rounded-lg flex items-center gap-1.5 cursor-pointer transition-colors"
+                    >
+                      <i className={`fa-solid ${uploadingSauceImage ? 'fa-spinner fa-spin' : 'fa-arrow-up-from-bracket'} text-[10px]`}></i>
+                      <span>{uploadingSauceImage ? 'Yükleniyor...' : 'Fotoğraf Yükle'}</span>
+                    </button>
+                    {sauceForm.image && (
+                      <button
+                        type="button"
+                        onClick={() => setSauceForm((prev) => ({ ...prev, image: '' }))}
+                        className="text-[11px] font-semibold text-rose-600 hover:bg-rose-50 px-2 py-1 rounded-lg cursor-pointer"
+                      >
+                        Kaldır
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  {resolveSauceImage({ id: editingSauce?.id, name: sauceForm.name, image: sauceForm.image }) ? (
+                    <img
+                      src={resolveSauceImage({ id: editingSauce?.id, name: sauceForm.name, image: sauceForm.image })}
+                      alt={sauceForm.name || 'Sos önizleme'}
+                      className="w-14 h-14 rounded-xl object-cover border border-stone-200 bg-white shrink-0"
+                    />
+                  ) : (
+                    <div className="w-14 h-14 rounded-xl bg-amber-50 border border-amber-200 text-amber-600 flex items-center justify-center text-lg shrink-0">
+                      <i className="fa-solid fa-bottle-droplet"></i>
+                    </div>
+                  )}
+                  <div className="grid grid-cols-6 gap-1.5 flex-1">
+                    {SAUCE_IMAGE_PRESETS.map((preset) => {
+                      const active = sauceForm.image === preset.url;
+                      return (
+                        <button
+                          key={preset.id}
+                          type="button"
+                          onClick={() => setSauceForm((prev) => ({ ...prev, image: preset.url }))}
+                          title={preset.label}
+                          className={`rounded-lg overflow-hidden border-2 transition-all cursor-pointer aspect-square ${
+                            active ? 'border-brand-600 ring-2 ring-brand-500/20' : 'border-stone-200 hover:border-stone-400'
+                          }`}
+                        >
+                          <img
+                            src={preset.url}
+                            alt={preset.label}
+                            loading="lazy"
+                            decoding="async"
+                            className="w-full h-full object-cover"
+                          />
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
               </div>
 
               <div className="flex items-center justify-between p-3 rounded-2xl bg-stone-50 border border-stone-200">

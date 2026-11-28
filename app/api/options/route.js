@@ -17,6 +17,19 @@ export const dynamic = 'force-dynamic';
 
 const PRODUCT_OPTIONS_KEY = 'custom_options';
 
+function sanitizeSauceImage(raw) {
+  if (typeof raw !== 'string') return '';
+  const trimmed = raw.trim();
+  if (!trimmed) return '';
+  if (/^data:image\/(png|jpeg|jpg|webp|gif);base64,/i.test(trimmed)) {
+    return trimmed.length <= 350000 ? trimmed : '';
+  }
+  if (/^(\/(images|uploads)\/|https?:\/\/)/i.test(trimmed)) {
+    return trimmed.slice(0, 500);
+  }
+  return '';
+}
+
 function sanitizeDrinkList(rawList, prefix) {
   if (!Array.isArray(rawList)) return [];
   const preCleaned = rawList.map((d) => ({
@@ -272,7 +285,8 @@ export async function POST(request) {
           id: s.id ? String(s.id).trim().slice(0, 50) : `sauce-${Date.now()}-${idx}`,
           name: sanitizeText(s.name || '', 60, 'Sos Adı', '/api/options'),
           isAvailable: s.isAvailable !== false,
-          price: Math.max(0, Number(s.price) || 0)
+          price: Math.max(0, Number(s.price) || 0),
+          image: sanitizeSauceImage(s.image)
         })).filter(s => s.name.length > 0)
       : DEFAULT_PRODUCT_OPTIONS.sauces;
 
