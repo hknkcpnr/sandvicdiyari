@@ -308,10 +308,11 @@ export async function POST(request) {
     const action = sanitizeText(body?.action || 'save_settings', 40, 'action', '/api/notifications');
 
     // Sistem veya bildirim ayarları değişikliği admin yetkisi gerektirir
+    let auth = null;
     if (['save_settings', 'add_broadcast', 'delete_broadcast', 'update_broadcast'].includes(action)) {
-      assertProtectedApiAccess(request, { endpoint: '/api/notifications' });
+      auth = assertProtectedApiAccess(request, { endpoint: '/api/notifications' });
     } else {
-      assertProtectedApiAccess(request, { allowCustomerScoped: true, endpoint: '/api/notifications' });
+      auth = assertProtectedApiAccess(request, { allowCustomerScoped: true, endpoint: '/api/notifications' });
     }
 
     // 1. ADMİN: MÜŞTERİ BİLDİRİM AYARLARINI KAYDET
@@ -481,8 +482,13 @@ export async function POST(request) {
 
     // 4. MÜŞTERİ: KİŞİSEL BİLDİRİMLERİ OKUNDU İŞARETLE VEYA TEMİZLE
     if (action === 'mark_all_read' || action === 'mark_read' || action === 'clear_personal') {
-      const cleanEmail = String(body.email || '').trim().toLowerCase();
-      const cleanId = String(body.id || '').trim();
+      const isCustomerActor = auth?.type === 'customer';
+      const cleanEmail = isCustomerActor
+        ? String(auth.email || '').trim().toLowerCase()
+        : String(body.email || '').trim().toLowerCase();
+      const cleanId = isCustomerActor
+        ? String(auth.sub || '').trim()
+        : String(body.id || '').trim();
       const targetNotifId = String(body.notificationId || '').trim();
 
       if ((cleanEmail || cleanId) && rawPrisma && rawPrisma.user) {

@@ -8,7 +8,13 @@ import {
   jsonSuccess,
   parseJsonBody
 } from '@/lib/security/errors';
-import { buildAuthCookieHeader, checkRateLimit, signJwtToken, verifyPassword } from '@/lib/security/auth';
+import {
+  buildAuthCookieHeader,
+  buildClearCookieHeader,
+  checkRateLimit,
+  signJwtToken,
+  verifyPassword
+} from '@/lib/security/auth';
 import { sanitizeEmailOrUsername } from '@/lib/security/validation';
 
 export async function POST(request) {
@@ -144,4 +150,11 @@ export async function POST(request) {
   } catch (error) {
     return handleApiError(error, '/api/auth/login', request);
   }
+}
+
+export async function DELETE() {
+  const response = jsonSuccess({ message: 'Oturum güvenli şekilde kapatıldı.' });
+  response.headers.append('Set-Cookie', buildClearCookieHeader('sd_auth_token'));
+  response.headers.append('Set-Cookie', buildClearCookieHeader('sd_admin_token'));
+  return response;
 }

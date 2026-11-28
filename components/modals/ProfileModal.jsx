@@ -80,6 +80,7 @@ export default function ProfileModal() {
     .toUpperCase() || 'Ü';
 
   const handleLogout = () => {
+    fetch('/api/auth/login', { method: 'DELETE' }).catch(() => {});
     dispatch(logout());
     dispatch(closeProfileModal());
     dispatch(

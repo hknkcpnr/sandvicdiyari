@@ -1154,6 +1154,7 @@ export default function AdminDashboardPage() {
   };
 
   const handleLogout = () => {
+    fetch('/api/admin/login', { method: 'DELETE' }).catch(() => {});
     setAdminUser(null);
     sessionStorage.removeItem('sd_admin_session');
     localStorage.removeItem('sd_admin_session');

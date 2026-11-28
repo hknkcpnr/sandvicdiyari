@@ -147,6 +147,28 @@ export default function YoneticiPage() {
     };
   }, []);
 
+  // HttpOnly admin cookie oturumunu doğrula; geçersizse yerel oturumu kapat
+  const adminUserId = adminUser?.id;
+  useEffect(() => {
+    if (!adminUserId) return;
+    let cancelled = false;
+    fetch('/api/admin/login', { cache: 'no-store' })
+      .then((res) => {
+        if (cancelled) return;
+        if (res.status === 401 || res.status === 403) {
+          try {
+            sessionStorage.removeItem(ADMIN_SESSION_KEY);
+            localStorage.removeItem(ADMIN_SESSION_KEY);
+          } catch {}
+          setAdminUser(null);
+        }
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [adminUserId]);
+
   // Sayfa yenilendiğinde /yonetici aktif sekme & alt sekmeyi URL + sessionStorage ile koru
   useEffect(() => {
     try {
@@ -305,6 +327,7 @@ export default function YoneticiPage() {
   };
 
   const handleLogout = () => {
+    fetch('/api/admin/login', { method: 'DELETE' }).catch(() => {});
     sessionStorage.removeItem(ADMIN_SESSION_KEY);
     localStorage.removeItem(ADMIN_SESSION_KEY);
     try {

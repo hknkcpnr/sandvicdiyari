@@ -94,6 +94,7 @@ export default function Navbar() {
 
   const handleLogout = () => {
     setIsUserDropdownOpen(false);
+    fetch('/api/auth/login', { method: 'DELETE' }).catch(() => {});
     dispatch(logout());
     dispatch(
       showMessageModal({

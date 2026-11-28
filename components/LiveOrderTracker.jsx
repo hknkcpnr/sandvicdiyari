@@ -183,6 +183,9 @@ export default function LiveOrderTracker() {
     if (current && current.id && current.status !== 'Teslim Edildi' && current.status !== 'İptal Edildi') {
       try {
         const res = await fetch(`/api/orders/${current.id}`, { cache: 'no-store' });
+        if (res.status === 401 || res.status === 403) {
+          return;
+        }
         if (res.status === 404) {
           endOrderAndGuestSession(current, 'deleted');
           return;

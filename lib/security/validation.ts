@@ -1,5 +1,6 @@
 import { AuthenticationError, ValidationError, logSecurityEvent } from '@/lib/security/errors';
 import { formatTurkishPhoneInput, isValidTurkishPhone } from '@/lib/phoneUtils';
+import { getMinOrderAmountForAddress, MIN_ORDER_AMOUNT } from '@/lib/openingHours';
 import type { OrderItem, Product } from '@/types/database';
 
 // ============================================================================
@@ -260,14 +261,33 @@ export function validateAndPriceOrderPayload(
         ? itemObj.details.split('|').map(s => sanitizeText(s.trim(), 200, 'Detay', endpoint)).filter(Boolean)
         : [];
 
+    if (catalogProducts.length > 0 && !dbProduct) {
+      throw new ValidationError(
+        `"${itemName || 'Bilinmeyen Ürün'}" menüde bulunamadı. Lütfen sepetinizi güncelleyin.`
+      );
+    }
+
     let authoritativeUnitPrice: number;
     if (dbProduct) {
+      if (dbProduct.isAvailable === false) {
+        throw new ValidationError(`"${dbProduct.name}" şu anda satışa kapalıdır.`);
+      }
+      if (
+        dbProduct.trackStock !== false &&
+        typeof dbProduct.stock === 'number' &&
+        dbProduct.stock < rawQty
+      ) {
+        throw new ValidationError(
+          `"${dbProduct.name}" için yeterli stok bulunmuyor (Mevcut: ${Math.max(0, dbProduct.stock)}).`
+        );
+      }
+
       const basePrice = Number(dbProduct.price) || 0;
       const optionExtra = extractOptionExtraPrice(sanitizedOptions);
       const clientSentPrice = Number(itemObj.price) || 0;
 
-      // Allow valid option extras or use authoritative basePrice + optionExtra
-      const minExpectedPrice = basePrice;
+      // Require basePrice + parsed paid option extras; prevent tampering option prices down
+      const minExpectedPrice = basePrice + optionExtra;
       const maxExpectedPrice = basePrice + optionExtra + 250;
 
       if (clientSentPrice < minExpectedPrice * 0.95) {
@@ -275,18 +295,18 @@ export function validateAndPriceOrderPayload(
           level: 'CRITICAL',
           category: 'PRICE_TAMPER',
           endpoint,
-          message: `Fiyat manipülasyonu engellendi! Ürün: "${dbProduct.name}" (İstemci: ₺${clientSentPrice}, Gerçek: ₺${basePrice + optionExtra})`,
+          message: `Fiyat manipülasyonu engellendi! Ürün: "${dbProduct.name}" (İstemci: ₺${clientSentPrice}, Gerçek: ₺${minExpectedPrice})`,
           details: {
             productId: dbProduct.id,
             clientSentPrice,
-            authoritativePrice: basePrice + optionExtra
+            authoritativePrice: minExpectedPrice
           }
         });
-        authoritativeUnitPrice = Number((basePrice + optionExtra).toFixed(2));
+        authoritativeUnitPrice = Number(minExpectedPrice.toFixed(2));
       } else if (clientSentPrice >= minExpectedPrice && clientSentPrice <= maxExpectedPrice) {
         authoritativeUnitPrice = Number(clientSentPrice.toFixed(2));
       } else {
-        authoritativeUnitPrice = Number((basePrice + optionExtra).toFixed(2));
+        authoritativeUnitPrice = Number(minExpectedPrice.toFixed(2));
       }
     } else {
       const fallbackPrice = Number(itemObj.price);
@@ -312,6 +332,14 @@ export function validateAndPriceOrderPayload(
   const deliveryFee = Math.max(0, Math.min(250, Number(body.deliveryFee) || 0));
   const subtotal = Number(calculatedSubtotal.toFixed(2));
   const total = Number((subtotal + deliveryFee).toFixed(2));
+
+  const requiredMin =
+    getMinOrderAmountForAddress(String(body.neighborhood || ''), customerAddress) || MIN_ORDER_AMOUNT;
+  if (total < requiredMin) {
+    throw new ValidationError(
+      `Seçilen bölge için minimum sipariş tutarı ₺${requiredMin.toFixed(2)}'dir (Sepetiniz: ₺${total.toFixed(2)}).`
+    );
+  }
 
   return {
     customerName,

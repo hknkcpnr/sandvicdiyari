@@ -175,6 +175,13 @@ export default function CourierPortalPage() {
     if (isInitial) setLoading(true);
     try {
       const res = await fetch('/api/orders', { cache: 'no-store' });
+      if (res.status === 401 || res.status === 403) {
+        try {
+          localStorage.removeItem('sd_courier_session');
+        } catch {}
+        setCourierUser(null);
+        return;
+      }
       const json = await res.json();
       if (json.success && Array.isArray(json.data)) {
         setOrders(json.data);
@@ -192,6 +199,26 @@ export default function CourierPortalPage() {
   }, [playAlertSound]);
 
   // Auto-refresh orders every 5 seconds & on window focus while logged in
+  const courierUserId = courierUser?.id;
+  useEffect(() => {
+    if (!courierUserId) return;
+    let cancelled = false;
+    fetch('/api/admin/login', { cache: 'no-store' })
+      .then((res) => {
+        if (cancelled) return;
+        if (res.status === 401 || res.status === 403) {
+          try {
+            localStorage.removeItem('sd_courier_session');
+          } catch {}
+          setCourierUser(null);
+        }
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [courierUserId]);
+
   useEffect(() => {
     if (!courierUser) return;
     fetchOrders(true);
@@ -269,6 +296,7 @@ export default function CourierPortalPage() {
   // Handle Logout
   const handleLogout = () => {
     if (confirm('Kurye oturumunuzu kapatmak istediğinize emin misiniz?')) {
+      fetch('/api/admin/login', { method: 'DELETE' }).catch(() => {});
       try {
         localStorage.removeItem('sd_courier_session');
       } catch {}

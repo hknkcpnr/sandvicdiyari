@@ -10,7 +10,12 @@ import {
   jsonSuccess,
   parseJsonBody
 } from '@/lib/security/errors';
-import { assertProtectedApiAccess, getOptionalAuthFromRequest, verifyPassword } from '@/lib/security/auth';
+import {
+  assertProtectedApiAccess,
+  checkRateLimit,
+  getOptionalAuthFromRequest,
+  verifyPassword
+} from '@/lib/security/auth';
 import { sanitizeText } from '@/lib/security/validation';
 import { invalidateOrdersCache } from '@/lib/productCache';
 
@@ -62,14 +67,39 @@ async function findOrderInPg(idOrNumber) {
   }
 }
 
+function assertOrderReadOwnership(auth, orderObj) {
+  if (!auth || !orderObj) {
+    throw new AuthorizationError('Bu siparişi görüntüleme yetkiniz bulunmamaktadır.');
+  }
+  if (auth.type === 'admin') return;
+
+  const authEmail = String(auth.email || '').trim().toLowerCase();
+  const orderEmail = String(orderObj.userEmail || '').trim().toLowerCase();
+  const authSub = String(auth.sub || '').trim();
+  const orderId = String(orderObj.id || '').trim();
+  const orderNumber = String(orderObj.orderNumber || '').trim();
+
+  const matchesEmail = Boolean(authEmail && orderEmail && authEmail === orderEmail);
+  const matchesGuestId = Boolean(
+    authSub &&
+      ((orderId && authSub === `guest:${orderId}`) ||
+        (orderNumber && authSub === `guest:${orderNumber}`))
+  );
+
+  if (!matchesEmail && !matchesGuestId) {
+    throw new AuthorizationError('Yalnızca kendi siparişlerinizi görüntüleyebilirsiniz.');
+  }
+}
+
 export async function GET(request, { params }) {
   try {
-    assertProtectedApiAccess(request, { allowCustomerScoped: true, endpoint: '/api/orders/[id]' });
+    const auth = assertProtectedApiAccess(request, { allowCustomerScoped: true, endpoint: '/api/orders/[id]' });
     const resolvedParams = await params;
     const id = sanitizeText(resolvedParams.id, 64, 'id', '/api/orders/[id]');
 
     const pgOrder = await findOrderInPg(id);
     if (pgOrder) {
+      assertOrderReadOwnership(auth, pgOrder);
       orm.executePrepared(
         'Order',
         'SELECT',
@@ -92,6 +122,7 @@ export async function GET(request, { params }) {
       throw new NotFoundError('Sipariş bulunamadı.');
     }
 
+    assertOrderReadOwnership(auth, order);
     return jsonSuccess({ data: order });
   } catch (error) {
     return handleApiError(error, '/api/orders/[id]', request);
@@ -101,7 +132,7 @@ export async function GET(request, { params }) {
 export async function PATCH(request, { params }) {
   let authPassed = false;
   try {
-    assertProtectedApiAccess(request, { allowCustomerScoped: true, endpoint: '/api/orders/[id]' });
+    assertProtectedApiAccess(request, { endpoint: '/api/orders/[id]' });
     authPassed = true;
     const resolvedParams = await params;
     const id = sanitizeText(resolvedParams.id, 64, 'id', '/api/orders/[id]');
@@ -696,6 +727,12 @@ async function notifyUserOrderDeleted(orderObj) {
 
 export async function DELETE(request, { params }) {
   try {
+    assertProtectedApiAccess(request, { endpoint: '/api/orders/[id]' });
+    checkRateLimit(request, {
+      keyPrefix: 'DELETE:/api/orders',
+      maxRequests: 15,
+      windowMs: 60 * 1000
+    });
     const resolvedParams = await params;
     const id = sanitizeText(resolvedParams.id, 64, 'id', '/api/orders/[id]');
 

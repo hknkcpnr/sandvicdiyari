@@ -10,7 +10,14 @@ import {
   jsonSuccess,
   parseJsonBody
 } from '@/lib/security/errors';
-import { buildAuthCookieHeader, checkRateLimit, getOptionalAuthFromRequest, signJwtToken, verifyPassword } from '@/lib/security/auth';
+import {
+  buildAuthCookieHeader,
+  buildClearCookieHeader,
+  checkRateLimit,
+  getOptionalAuthFromRequest,
+  signJwtToken,
+  verifyPassword
+} from '@/lib/security/auth';
 import { sanitizeEmailOrUsername } from '@/lib/security/validation';
 
 const ALL_SUPER_PERMS = ['overview', 'orders', 'delete_order', 'inventory', 'stock_update', 'products', 'product_add', 'product_edit', 'product_delete', 'options_manage', 'manage_prices', 'members', 'users', 'reviews', 'api', 'view_revenue', 'settings', 'site_content', 'courier_delivery'];
@@ -92,16 +99,19 @@ export async function GET(request) {
       };
     }
 
-    // JWT'yi de güncel yetkilerle yenile (sunucu taraflı kontroller için)
-    const token = signJwtToken({
-      sub: admin.id,
-      email: admin.email,
-      name: admin.name,
-      type: 'admin',
-      role: admin.role,
-      roleId: admin.roleId,
-      permissions: admin.permissions
-    });
+    // JWT'yi de güncel yetkilerle yenile (sunucu taraflı kontroller için - 7 gün geçerli)
+    const token = signJwtToken(
+      {
+        sub: admin.id,
+        email: admin.email,
+        name: admin.name,
+        type: 'admin',
+        role: admin.role,
+        roleId: admin.roleId,
+        permissions: admin.permissions
+      },
+      24 * 7
+    );
 
     const response = jsonSuccess({ data: { admin } });
     response.headers.append('Set-Cookie', buildAuthCookieHeader(token, 'sd_admin_token'));
@@ -242,15 +252,18 @@ export async function POST(request) {
       );
     }
 
-    const token = signJwtToken({
-      sub: authenticatedAdmin.id,
-      email: authenticatedAdmin.email,
-      name: authenticatedAdmin.name,
-      type: 'admin',
-      role: authenticatedAdmin.role,
-      roleId: authenticatedAdmin.roleId,
-      permissions: authenticatedAdmin.permissions
-    });
+    const token = signJwtToken(
+      {
+        sub: authenticatedAdmin.id,
+        email: authenticatedAdmin.email,
+        name: authenticatedAdmin.name,
+        type: 'admin',
+        role: authenticatedAdmin.role,
+        roleId: authenticatedAdmin.roleId,
+        permissions: authenticatedAdmin.permissions
+      },
+      24 * 7
+    );
 
     await logUserActivity({
       user: {
@@ -279,4 +292,10 @@ export async function POST(request) {
   } catch (error) {
     return handleApiError(error, '/api/admin/login', request);
   }
+}
+
+export async function DELETE() {
+  const response = jsonSuccess({ message: 'Yönetici oturumu kapatıldı.' });
+  response.headers.append('Set-Cookie', buildClearCookieHeader('sd_admin_token'));
+  return response;
 }

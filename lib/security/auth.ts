@@ -8,9 +8,25 @@ import {
 } from '@/lib/security/errors';
 import type { PermissionCode } from '@/types/database';
 
-const JWT_SECRET =
-  process.env.JWT_SECRET ||
-  'sd_prod_hmac_sha256_secret_key_2026_sandwich_diyari_secure_998877';
+let warnedMissingJwtSecret = false;
+
+function getJwtSecret(): string {
+  const envSecret = (process.env.JWT_SECRET || '').trim();
+  if (envSecret) return envSecret;
+
+  const dbUrl = (process.env.DATABASE_URL || '').trim();
+  if (dbUrl) {
+    if (!warnedMissingJwtSecret) {
+      warnedMissingJwtSecret = true;
+      console.warn(
+        '[Auth Security] JWT_SECRET ortam değişkeni tanımlı değil; DATABASE_URL üzerinden türetilmiş anahtar kullanılıyor.'
+      );
+    }
+    return crypto.createHmac('sha256', dbUrl).update('sd_jwt_secret_v1').digest('hex');
+  }
+
+  return 'sd_local_dev_fallback_secret_2026';
+}
 
 const SCRYPT_PREFIX = 'scrypt$';
 
@@ -111,7 +127,7 @@ export function signJwtToken(
   const signingInput = `${encodedHeader}.${encodedPayload}`;
 
   const signature = crypto
-    .createHmac('sha256', JWT_SECRET)
+    .createHmac('sha256', getJwtSecret())
     .update(signingInput)
     .digest('base64')
     .replace(/=/g, '')
@@ -136,7 +152,7 @@ export function verifyJwtToken(token: string): JwtPayload | null {
     const signingInput = `${encodedHeader}.${encodedPayload}`;
 
     const expectedSignature = crypto
-      .createHmac('sha256', JWT_SECRET)
+      .createHmac('sha256', getJwtSecret())
       .update(signingInput)
       .digest('base64')
       .replace(/=/g, '')
@@ -193,6 +209,14 @@ export function buildAuthCookieHeader(
 }
 
 /**
+ * Builds an expired Set-Cookie header to clear an HttpOnly auth cookie
+ */
+export function buildClearCookieHeader(cookieName = 'sd_admin_token'): string {
+  const isProd = process.env.NODE_ENV === 'production';
+  return `${cookieName}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0${isProd ? '; Secure' : ''}`;
+}
+
+/**
  * Extracts and verifies a JWT token from Authorization header or HttpOnly cookies
  */
 export function getOptionalAuthFromRequest(request: Request): JwtPayload | null {
@@ -241,35 +265,8 @@ export function assertProtectedApiAccess(
     return payload;
   }
 
-  // 3. Verify same-origin internal application context for active panel/customer sessions
-  const secFetchSite = (request.headers?.get('sec-fetch-site') || '').toLowerCase();
-  const referer = request.headers?.get('referer') || '';
-
-  let refererPath = '';
-  try {
-    if (referer) {
-      refererPath = new URL(referer).pathname.toLowerCase();
-    }
-  } catch {
-    refererPath = '';
-  }
-
-  const isSameOrigin = secFetchSite === 'same-origin' || Boolean(refererPath);
-  const isAdminPanelReferer =
-    refererPath.startsWith('/panel') ||
-    refererPath.startsWith('/yonetici') ||
-    refererPath.startsWith('/kurye');
-
-  if (isSameOrigin && isAdminPanelReferer) {
-    return null;
-  }
-
-  if (options.allowCustomerScoped && isSameOrigin && refererPath.startsWith('/')) {
-    return null;
-  }
-
   throw new AuthenticationError(
-    'Yetkisiz erişim: Müşteri ve sipariş verilerine erişmek için yetkili oturum gereklidir.'
+    'Yetkisiz erişim: Bu işlem için geçerli ve yetkili bir oturum gereklidir.'
   );
 }
 

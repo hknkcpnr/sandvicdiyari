@@ -79,54 +79,88 @@ export async function POST(request) {
     }
 
     let publicUrl = '';
-    try {
-      const uploadDir = path.join(process.cwd(), 'public', 'uploads');
-      if (!fs.existsSync(uploadDir)) {
-        fs.mkdirSync(uploadDir, { recursive: true });
-      }
+    let storageProvider = 'local';
+    const mime =
+      outputExt === '.png'
+        ? 'image/png'
+        : outputExt === '.webp'
+        ? 'image/webp'
+        : outputExt === '.gif'
+        ? 'image/gif'
+        : 'image/jpeg';
 
-      const safeBaseName = path
-        .basename(originalName, ext)
-        .replace(/[^a-zA-Z0-9_-]/g, '_')
-        .slice(0, 40);
-      const randomToken = crypto.randomBytes(4).toString('hex');
-      const fileName = `product_${Date.now()}_${randomToken}_${safeBaseName}${outputExt}`;
-      const filePath = path.join(uploadDir, fileName);
+    const safeBaseName = path
+      .basename(originalName, ext)
+      .replace(/[^a-zA-Z0-9_-]/g, '_')
+      .slice(0, 40);
+    const randomToken = crypto.randomBytes(4).toString('hex');
+    const fileName = `product_${Date.now()}_${randomToken}_${safeBaseName}${outputExt}`;
 
-      // Ensure resolved path stays strictly inside uploadDir (Path Traversal protection)
-      if (path.resolve(filePath).startsWith(path.resolve(uploadDir))) {
-        fs.writeFileSync(filePath, outputBuffer);
-        publicUrl = `/uploads/${fileName}`;
+    // 1. Önce Supabase Storage yapılandırılmışsa doğrudan bulut deposuna yükle (Vercel için kalıcı CDN URL)
+    const supabaseUrl = (process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || '')
+      .trim()
+      .replace(/\/+$/, '');
+    const supabaseKey = (process.env.SUPABASE_SERVICE_ROLE_KEY || '').trim();
+    const supabaseBucket = (process.env.SUPABASE_STORAGE_BUCKET || 'uploads').trim() || 'uploads';
+
+    if (supabaseUrl && supabaseKey) {
+      try {
+        const uploadRes = await fetch(
+          `${supabaseUrl}/storage/v1/object/${encodeURIComponent(supabaseBucket)}/${encodeURIComponent(fileName)}`,
+          {
+            method: 'POST',
+            headers: {
+              Authorization: `Bearer ${supabaseKey}`,
+              apikey: supabaseKey,
+              'Content-Type': mime,
+              'x-upsert': 'true'
+            },
+            body: outputBuffer
+          }
+        );
+        if (uploadRes.ok) {
+          publicUrl = `${supabaseUrl}/storage/v1/object/public/${encodeURIComponent(supabaseBucket)}/${encodeURIComponent(fileName)}`;
+          storageProvider = 'supabase';
+        } else {
+          console.warn('Supabase Storage upload warning:', uploadRes.status);
+        }
+      } catch (supErr) {
+        console.warn('Supabase Storage upload fallback:', supErr.message);
       }
-    } catch (fsErr) {
-      // Vercel serverless / read-only filesystem fallback: data URI
-      const mime =
-        outputExt === '.png'
-          ? 'image/png'
-          : outputExt === '.webp'
-          ? 'image/webp'
-          : outputExt === '.gif'
-          ? 'image/gif'
-          : 'image/jpeg';
-      publicUrl = `data:${mime};base64,${outputBuffer.toString('base64')}`;
+    }
+
+    // 2. Yerel disk veya Data URI yedeği
+    if (!publicUrl) {
+      try {
+        const uploadDir = path.join(process.cwd(), 'public', 'uploads');
+        if (!fs.existsSync(uploadDir)) {
+          fs.mkdirSync(uploadDir, { recursive: true });
+        }
+
+        const filePath = path.join(uploadDir, fileName);
+
+        // Ensure resolved path stays strictly inside uploadDir (Path Traversal protection)
+        if (path.resolve(filePath).startsWith(path.resolve(uploadDir))) {
+          fs.writeFileSync(filePath, outputBuffer);
+          publicUrl = `/uploads/${fileName}`;
+          storageProvider = 'local';
+        }
+      } catch (fsErr) {
+        publicUrl = `data:${mime};base64,${outputBuffer.toString('base64')}`;
+        storageProvider = 'data_uri';
+      }
     }
 
     if (!publicUrl) {
-      const mime =
-        outputExt === '.png'
-          ? 'image/png'
-          : outputExt === '.webp'
-          ? 'image/webp'
-          : outputExt === '.gif'
-          ? 'image/gif'
-          : 'image/jpeg';
       publicUrl = `data:${mime};base64,${outputBuffer.toString('base64')}`;
+      storageProvider = 'data_uri';
     }
 
     return jsonSuccess(
       {
         message: 'Görsel güvenlik kontrolünden geçti ve başarıyla yüklendi.',
-        url: publicUrl
+        url: publicUrl,
+        provider: storageProvider
       },
       201
     );

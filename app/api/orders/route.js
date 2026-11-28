@@ -18,7 +18,12 @@ import {
   jsonSuccess,
   parseJsonBody
 } from '@/lib/security/errors';
-import { assertProtectedApiAccess, checkRateLimit } from '@/lib/security/auth';
+import {
+  assertProtectedApiAccess,
+  buildAuthCookieHeader,
+  checkRateLimit,
+  signJwtToken
+} from '@/lib/security/auth';
 import {
   assertNoSqlInjection,
   sanitizeText,
@@ -42,19 +47,29 @@ export async function GET(request) {
     if (userEmail) assertNoSqlInjection(userEmail, 'userEmail', '/api/orders');
 
     const isCustomerFilteredQuery = Boolean(userEmail || orderNo || phone);
-    assertProtectedApiAccess(request, {
+    const auth = assertProtectedApiAccess(request, {
       allowCustomerScoped: isCustomerFilteredQuery,
       endpoint: '/api/orders'
     });
 
+    const isCustomerActor = auth?.type === 'customer';
+    const effectiveUserEmail = isCustomerActor
+      ? String(auth.email || '').trim().toLowerCase()
+      : userEmail
+      ? userEmail.trim().toLowerCase()
+      : '';
+    const effectiveStatus = status ? status.trim() : '';
+    const effectivePhone = isCustomerActor ? '' : phone || '';
+    const effectiveOrderNo = isCustomerActor ? '' : orderNo || '';
+
     const parsedLimit = limitParam ? parseInt(limitParam, 10) : NaN;
     const takeLimit = Number.isFinite(parsedLimit)
       ? Math.max(1, Math.min(300, parsedLimit))
-      : isCustomerFilteredQuery
+      : isCustomerFilteredQuery || isCustomerActor
       ? 50
       : 120;
 
-    const cacheKey = `${status || ''}|${phone || ''}|${orderNo || ''}|${(userEmail || '').trim().toLowerCase()}|${takeLimit}`;
+    const cacheKey = `${effectiveStatus}|${effectivePhone}|${effectiveOrderNo}|${effectiveUserEmail}|${takeLimit}`;
     const cachedOrders = getCachedOrders(cacheKey);
     if (cachedOrders) {
       return jsonSuccess({
@@ -65,14 +80,14 @@ export async function GET(request) {
     }
 
     const whereClause = {};
-    if (userEmail) {
-      whereClause.userEmail = { equals: userEmail.trim(), mode: 'insensitive' };
+    if (effectiveUserEmail) {
+      whereClause.userEmail = { equals: effectiveUserEmail, mode: 'insensitive' };
     }
-    if (status) {
-      whereClause.status = { equals: status.trim(), mode: 'insensitive' };
+    if (effectiveStatus) {
+      whereClause.status = { equals: effectiveStatus, mode: 'insensitive' };
     }
-    if (orderNo) {
-      const cleanNo = sanitizeText(orderNo, 32, 'orderNo', '/api/orders').toUpperCase();
+    if (effectiveOrderNo) {
+      const cleanNo = sanitizeText(effectiveOrderNo, 32, 'orderNo', '/api/orders').toUpperCase();
       whereClause.OR = [
         { orderNumber: { contains: cleanNo, mode: 'insensitive' } },
         { id: { contains: cleanNo, mode: 'insensitive' } }
@@ -84,20 +99,21 @@ export async function GET(request) {
       take: takeLimit
     });
 
-    if (userEmail) {
-      const cleanUserEmail = userEmail.trim().toLowerCase();
-      orders = orders.filter(o => String(o.userEmail || '').trim().toLowerCase() === cleanUserEmail);
+    if (effectiveUserEmail) {
+      orders = orders.filter(
+        o => String(o.userEmail || '').trim().toLowerCase() === effectiveUserEmail
+      );
     }
 
-    if (status) {
-      orders = orders.filter(o => o.status.toLowerCase() === status.toLowerCase());
+    if (effectiveStatus) {
+      orders = orders.filter(o => o.status.toLowerCase() === effectiveStatus.toLowerCase());
     }
-    if (phone) {
-      const cleanPhone = phone.replace(/\D/g, '');
+    if (effectivePhone) {
+      const cleanPhone = effectivePhone.replace(/\D/g, '');
       orders = orders.filter(o => (o.customerPhone || '').replace(/\D/g, '').includes(cleanPhone));
     }
-    if (orderNo) {
-      const cleanNo = sanitizeText(orderNo, 32, 'orderNo', '/api/orders').toUpperCase();
+    if (effectiveOrderNo) {
+      const cleanNo = sanitizeText(effectiveOrderNo, 32, 'orderNo', '/api/orders').toUpperCase();
       orders = orders.filter(
         o =>
           (o.orderNumber && o.orderNumber.toUpperCase().includes(cleanNo)) ||
@@ -208,13 +224,28 @@ export async function POST(request) {
       req: request
     }).catch(() => {});
 
-    return jsonSuccess(
+    const response = jsonSuccess(
       {
         message: 'Siparişiniz başarıyla alındı ve mutfağa iletildi!',
         data: newOrder
       },
       201
     );
+
+    if (isGuestOrder) {
+      const guestToken = signJwtToken(
+        {
+          sub: `guest:${newOrder.id}`,
+          email: validatedOrder.userEmail,
+          name: validatedOrder.customerName,
+          type: 'customer'
+        },
+        6
+      );
+      response.headers.append('Set-Cookie', buildAuthCookieHeader(guestToken, 'sd_auth_token', 6 * 3600));
+    }
+
+    return response;
   } catch (error) {
     return handleApiError(error, '/api/orders', request);
   }
