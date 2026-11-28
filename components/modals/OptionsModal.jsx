@@ -13,6 +13,7 @@ import {
   DEFAULT_PRODUCT_OPTIONS,
   DEFAULT_MENU_DRINK_GROUPS,
   resolveSauceImage,
+  resolveExtraImage,
   getMenuSizeTier,
   normalizeMenuDrinkGroups,
   normalizeProductMenuDrinks,
@@ -656,16 +657,17 @@ export default function OptionsModal() {
               ) : (
                 availableExtras.map((extra) => {
                   const extraKey = extra.id || extra.name;
+                  const extraImg = resolveExtraImage(extra);
                   return (
                     <label
                       key={extraKey}
-                      className={`flex items-center justify-between px-2.5 py-1.5 rounded-xl border transition-all text-xs font-medium cursor-pointer ${
+                      className={`flex items-center justify-between px-2 py-1.5 rounded-xl border transition-all text-xs font-medium cursor-pointer gap-1.5 ${
                         extra.checked
                           ? 'border-brand-500 bg-brand-50/60 text-brand-900 font-bold'
                           : 'border-stone-200 bg-white text-stone-700 hover:border-stone-300'
                       }`}
                     >
-                      <div className="flex items-center gap-1.5 min-w-0">
+                      <div className="flex items-center gap-2 min-w-0">
                         <input
                           type="checkbox"
                           checked={!!extra.checked}
@@ -680,6 +682,19 @@ export default function OptionsModal() {
                           }}
                           className="text-brand-600 rounded focus:ring-brand-500 shrink-0"
                         />
+                        {extraImg ? (
+                          <img
+                            src={extraImg}
+                            alt={extra.name}
+                            loading="lazy"
+                            decoding="async"
+                            className="w-8 h-8 rounded-lg object-cover border border-stone-200/80 bg-stone-50 shrink-0"
+                          />
+                        ) : (
+                          <span className="w-8 h-8 rounded-lg bg-orange-50 border border-orange-200/70 text-orange-600 flex items-center justify-center text-xs shrink-0">
+                            <i className="fa-solid fa-cheese"></i>
+                          </span>
+                        )}
                         <span className="truncate">{extra.name}</span>
                       </div>
                       <span className="text-brand-600 font-black shrink-0 ml-1">+₺{extra.price}</span>

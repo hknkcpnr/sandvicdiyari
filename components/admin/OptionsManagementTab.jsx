@@ -9,7 +9,9 @@ import {
   DEFAULT_MENU_COLA_EXTRA_PRICE,
   MENU_DRINK_TIER_META,
   SAUCE_IMAGE_PRESETS,
+  EXTRA_IMAGE_PRESETS,
   resolveSauceImage,
+  resolveExtraImage,
   normalizeMenuDrinkGroups,
   applyGlobalColaPriceToMenuGroups,
   normalizeMenuColaExtraPrice,
@@ -82,7 +84,9 @@ export default function OptionsManagementTab() {
 
   const [isAddExtraModalOpen, setIsAddExtraModalOpen] = useState(false);
   const [editingExtra, setEditingExtra] = useState(null);
-  const [extraForm, setExtraForm] = useState({ name: '', price: 20, isAvailable: true });
+  const [extraForm, setExtraForm] = useState({ name: '', price: 20, isAvailable: true, image: '' });
+  const [uploadingExtraImage, setUploadingExtraImage] = useState(false);
+  const extraFileInputRef = useRef(null);
 
   const applyOptionsPayload = (data) => {
     if (!data || typeof data !== 'object') return;
@@ -342,6 +346,34 @@ export default function OptionsManagementTab() {
     }
   };
 
+  const handleExtraImageUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingExtraImage(true);
+    try {
+      const compressed = await compressImageFile(file, {
+        maxDimension: 600,
+        quality: 0.82,
+        minSizeBytes: 60 * 1024
+      });
+      const formData = new FormData();
+      formData.append('file', compressed);
+      const res = await fetch('/api/upload', { method: 'POST', body: formData });
+      const json = await res.json();
+      const uploadedUrl = json.url || json.data?.url;
+      if (json.success && uploadedUrl) {
+        setExtraForm((prev) => ({ ...prev, image: uploadedUrl }));
+      } else {
+        alert(json.error || 'Ekstra görseli yüklenemedi.');
+      }
+    } catch (err) {
+      alert('Görsel yükleme hatası: ' + err.message);
+    } finally {
+      setUploadingExtraImage(false);
+      e.target.value = '';
+    }
+  };
+
   // Save new or edited extra
   const handleSaveExtra = async (e) => {
     e.preventDefault();
@@ -353,7 +385,7 @@ export default function OptionsManagementTab() {
     if (editingExtra) {
       updated = extras.map((item) =>
         item.id === editingExtra.id
-          ? { ...item, name: cleanName, price: cleanPrice, isAvailable: extraForm.isAvailable }
+          ? { ...item, name: cleanName, price: cleanPrice, isAvailable: extraForm.isAvailable, image: extraForm.image || '' }
           : item
       );
     } else {
@@ -362,6 +394,7 @@ export default function OptionsManagementTab() {
         name: cleanName,
         price: cleanPrice,
         isAvailable: extraForm.isAvailable,
+        image: extraForm.image || '',
       };
       updated = [...extras, newExtra];
     }
@@ -369,7 +402,7 @@ export default function OptionsManagementTab() {
     setExtras(updated);
     setIsAddExtraModalOpen(false);
     setEditingExtra(null);
-    setExtraForm({ name: '', price: 20, isAvailable: true });
+    setExtraForm({ name: '', price: 20, isAvailable: true, image: '' });
 
     const ok = await persistOptions(sauces, updated, drinks);
     if (ok) {
@@ -696,7 +729,7 @@ export default function OptionsManagementTab() {
               type="button"
               onClick={() => {
                 setEditingExtra(null);
-                setExtraForm({ name: '', price: 20, isAvailable: true });
+                setExtraForm({ name: '', price: 20, isAvailable: true, image: '' });
                 setIsAddExtraModalOpen(true);
               }}
               className="bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold px-3.5 py-2 rounded-xl flex items-center gap-1.5 cursor-pointer transition-colors"
@@ -910,12 +943,26 @@ export default function OptionsManagementTab() {
           ) : (
             filteredExtras.map((extra) => {
               const isOpen = extra.isAvailable !== false;
+              const extraThumb = resolveExtraImage(extra);
               return (
                 <div
                   key={extra.id}
                   className="px-4 py-2.5 flex items-center justify-between gap-3 hover:bg-stone-50/70 transition-colors"
                 >
                   <div className="flex items-center gap-2.5 min-w-0">
+                    {extraThumb ? (
+                      <img
+                        src={extraThumb}
+                        alt={extra.name}
+                        loading="lazy"
+                        decoding="async"
+                        className="w-9 h-9 rounded-lg object-cover border border-stone-200 bg-stone-50 shrink-0"
+                      />
+                    ) : (
+                      <span className="w-9 h-9 rounded-lg bg-orange-50 border border-orange-200/80 text-orange-600 flex items-center justify-center text-xs shrink-0">
+                        <i className="fa-solid fa-cheese"></i>
+                      </span>
+                    )}
                     <span
                       className={`w-2 h-2 rounded-full shrink-0 ${
                         isOpen ? 'bg-emerald-500' : 'bg-stone-300'
@@ -958,6 +1005,7 @@ export default function OptionsManagementTab() {
                             name: extra.name,
                             price: Number(extra.price) || 0,
                             isAvailable: extra.isAvailable !== false,
+                            image: extra.image || '',
                           });
                           setIsAddExtraModalOpen(true);
                         }}
@@ -1390,6 +1438,78 @@ export default function OptionsManagementTab() {
                 <span className="text-[11px] text-stone-400 block mt-1">
                   Müşteri bu ürünü işaretlediğinde sepete bu tutar ilave edilir.
                 </span>
+              </div>
+
+              {/* Ekstra Görseli Seç / Yükle */}
+              <div className="space-y-2 p-3 rounded-2xl bg-stone-50 border border-stone-200">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-xs font-bold text-stone-800">Ekstra Görseli</span>
+                  <div className="flex items-center gap-1.5">
+                    <input
+                      ref={extraFileInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={handleExtraImageUpload}
+                      className="hidden"
+                    />
+                    <button
+                      type="button"
+                      disabled={uploadingExtraImage}
+                      onClick={() => extraFileInputRef.current?.click()}
+                      className="bg-white hover:bg-stone-100 text-stone-800 border border-stone-300 text-[11px] font-bold px-2.5 py-1 rounded-lg flex items-center gap-1.5 cursor-pointer transition-colors"
+                    >
+                      <i className={`fa-solid ${uploadingExtraImage ? 'fa-spinner fa-spin' : 'fa-arrow-up-from-bracket'} text-[10px]`}></i>
+                      <span>{uploadingExtraImage ? 'Yükleniyor...' : 'Fotoğraf Yükle'}</span>
+                    </button>
+                    {extraForm.image && (
+                      <button
+                        type="button"
+                        onClick={() => setExtraForm((prev) => ({ ...prev, image: '' }))}
+                        className="text-[11px] font-semibold text-rose-600 hover:bg-rose-50 px-2 py-1 rounded-lg cursor-pointer"
+                      >
+                        Kaldır
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  {resolveExtraImage({ id: editingExtra?.id, name: extraForm.name, image: extraForm.image }) ? (
+                    <img
+                      src={resolveExtraImage({ id: editingExtra?.id, name: extraForm.name, image: extraForm.image })}
+                      alt={extraForm.name || 'Ekstra önizleme'}
+                      className="w-14 h-14 rounded-xl object-cover border border-stone-200 bg-white shrink-0"
+                    />
+                  ) : (
+                    <div className="w-14 h-14 rounded-xl bg-orange-50 border border-orange-200 text-orange-600 flex items-center justify-center text-lg shrink-0">
+                      <i className="fa-solid fa-cheese"></i>
+                    </div>
+                  )}
+                  <div className="grid grid-cols-5 gap-1.5 flex-1">
+                    {EXTRA_IMAGE_PRESETS.map((preset) => {
+                      const active = extraForm.image === preset.url;
+                      return (
+                        <button
+                          key={preset.id}
+                          type="button"
+                          onClick={() => setExtraForm((prev) => ({ ...prev, image: preset.url }))}
+                          title={preset.label}
+                          className={`rounded-lg overflow-hidden border-2 transition-all cursor-pointer aspect-square ${
+                            active ? 'border-brand-600 ring-2 ring-brand-500/20' : 'border-stone-200 hover:border-stone-400'
+                          }`}
+                        >
+                          <img
+                            src={preset.url}
+                            alt={preset.label}
+                            loading="lazy"
+                            decoding="async"
+                            className="w-full h-full object-cover"
+                          />
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
               </div>
 
               <div className="flex items-center justify-between p-3 rounded-2xl bg-stone-50 border border-stone-200">

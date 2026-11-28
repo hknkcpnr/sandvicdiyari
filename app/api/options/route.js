@@ -296,7 +296,8 @@ export async function POST(request) {
           id: e.id ? String(e.id).trim().slice(0, 50) : `extra-${Date.now()}-${idx}`,
           name: sanitizeText(e.name || '', 80, 'Ekstra Adı', '/api/options'),
           price: Math.max(0, Math.min(500, Number(e.price) || 0)),
-          isAvailable: e.isAvailable !== false
+          isAvailable: e.isAvailable !== false,
+          image: sanitizeSauceImage(e.image)
         })).filter(e => e.name.length > 0)
       : DEFAULT_PRODUCT_OPTIONS.extras;
 
