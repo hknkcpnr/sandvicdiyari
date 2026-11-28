@@ -884,367 +884,259 @@ export default function SettingsTab({
   const currentMeta = SETTINGS_PAGES[activeSubTab] || SETTINGS_PAGES.appearance;
 
   return (
-    <div className="p-3 sm:p-6 lg:p-8 space-y-4 sm:space-y-6 w-full min-w-0 font-poppins animate-in fade-in duration-150">
-      {/* 1. SEÇİLİ AYAR SAYFASI İÇİN ÖZEL BAŞLIK VE AKSİYON BARI */}
-      <div className="bg-white p-4 sm:p-5 rounded-2xl border border-stone-200 shadow-xs flex flex-col lg:flex-row lg:items-center justify-between gap-3">
-        <div className="flex items-center gap-3 min-w-0">
-          <span className="w-10 h-10 rounded-xl bg-stone-900 text-white flex items-center justify-center text-sm font-bold shadow-2xs shrink-0">
-            <i className={currentMeta.icon}></i>
-          </span>
-          <div className="min-w-0">
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-[10px] font-extrabold text-stone-400 uppercase tracking-wider block">
-                Sistem Ayarları &bull;
-              </span>
-              <h2 className="text-sm sm:text-base font-bold text-stone-900 truncate">
-                {currentMeta.title}
-              </h2>
-              <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full border ${currentMeta.badgeColor}`}>
-                {currentMeta.badge}
-              </span>
-            </div>
-            <p className="text-xs text-stone-500 mt-0.5 truncate sm:whitespace-normal">
-              {currentMeta.desc}
-            </p>
-          </div>
-        </div>
-
-        {/* Sağ Alan: Hızlı Ayar Seçici & Kaydet Butonu */}
-        <div className="flex items-center gap-2 shrink-0 pt-2 lg:pt-0 border-t lg:border-t-0 border-stone-100 justify-end">
-          {/* Hızlı Sayfa Seçici (Hem Mobilde Hem Masaüstünde Tek Tıkla Geçiş) */}
-          <div className="relative">
-            <select
-              value={activeSubTab}
-              onChange={(e) => handleSubTabSwitch(e.target.value)}
-              className="app-select bg-stone-50 hover:bg-white border border-stone-300 hover:border-brand-500 text-stone-900 text-xs font-bold rounded-2xl px-4 py-2.5 cursor-pointer focus:outline-none focus:ring-3 focus:ring-brand-500/15 transition-all shadow-xs"
-              title="Ayar Sayfası Değiştir"
-            >
-              <option value="appearance">🎨 Arayüz & Renk</option>
-              <option value="site_content">🖼️ Vitrin Tasarımı</option>
-              <option value="sound">🔔 Ses & Bildirim</option>
-              <option value="receipt">🧾 Fiş Baskı</option>
-              <option value="system">💾 Depolama & Yedek</option>
-            </select>
-          </div>
-
-          {activeSubTab !== 'site_content' && (
-            <div className="flex items-center gap-2">
-              {savedSuccess && (
-                <span className="text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-3 py-1.5 rounded-xl flex items-center gap-1.5 animate-in fade-in">
-                  <i className="fa-solid fa-check"></i>
-                  <span>Kaydedildi</span>
-                </span>
-              )}
+    <div className="p-2.5 sm:p-4 lg:p-5 space-y-3 w-full min-w-0 max-w-6xl mx-auto font-poppins animate-in fade-in duration-150">
+      {/* 1. KOMPAKT ÜST SEKME & KAYDET BARI */}
+      <div className="bg-white px-2.5 py-2 rounded-xl border border-stone-200/90 shadow-2xs flex flex-wrap items-center justify-between gap-2">
+        <div className="flex items-center gap-1 overflow-x-auto scrollbar-none min-w-0">
+          {[
+            { id: 'appearance', label: 'Arayüz & Renk', icon: 'fa-solid fa-palette' },
+            { id: 'sound', label: 'Ses & Bildirim', icon: 'fa-solid fa-bell' },
+            { id: 'receipt', label: 'Fiş Baskı', icon: 'fa-solid fa-print' },
+            { id: 'system', label: 'Depolama & Yedek', icon: 'fa-solid fa-database' },
+            { id: 'site_content', label: 'Vitrin', icon: 'fa-solid fa-paintbrush' },
+          ].map((tab) => {
+            const isActive = activeSubTab === tab.id;
+            return (
               <button
+                key={tab.id}
                 type="button"
-                disabled={isSavingCustNotif}
-                onClick={handleSave}
-                className="bg-stone-900 hover:bg-stone-800 disabled:bg-stone-400 text-white font-semibold px-4 py-2 rounded-xl text-xs transition-colors cursor-pointer flex items-center gap-2 shadow-xs active:scale-95"
+                onClick={() => handleSubTabSwitch(tab.id)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 whitespace-nowrap shrink-0 ${
+                  isActive
+                    ? 'bg-brand-600 text-white shadow-2xs'
+                    : 'text-stone-600 hover:bg-stone-100 hover:text-stone-900'
+                }`}
               >
-                <i className={`fa-solid ${isSavingCustNotif ? 'fa-spinner animate-spin' : 'fa-floppy-disk'} text-xs`}></i>
-                <span>{isSavingCustNotif ? 'Kaydediliyor...' : 'Kaydet'}</span>
+                <i className={`${tab.icon} text-[11px] ${isActive ? 'text-white' : 'text-stone-400'}`}></i>
+                <span>{tab.label}</span>
               </button>
-            </div>
-          )}
+            );
+          })}
         </div>
+
+        {activeSubTab !== 'site_content' && (
+          <div className="flex items-center gap-2 shrink-0 ml-auto">
+            {savedSuccess && (
+              <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-lg flex items-center gap-1 animate-in fade-in">
+                <i className="fa-solid fa-check"></i>
+                <span>Kaydedildi</span>
+              </span>
+            )}
+            <button
+              type="button"
+              disabled={isSavingCustNotif}
+              onClick={handleSave}
+              className="bg-brand-600 hover:bg-brand-700 disabled:bg-stone-400 text-white font-bold px-3.5 py-1.5 rounded-lg text-xs transition-colors cursor-pointer flex items-center gap-1.5 shadow-2xs active:scale-95"
+            >
+              <i className={`fa-solid ${isSavingCustNotif ? 'fa-spinner animate-spin' : 'fa-floppy-disk'} text-[11px]`}></i>
+              <span>{isSavingCustNotif ? 'Kaydediliyor...' : 'Kaydet'}</span>
+            </button>
+          </div>
+        )}
       </div>
 
       {/* 2. SEÇİLİ AYAR SAYFASI İÇERİĞİ */}
 
       {/* SEKME 1: YAZI BOYUTU VE ARAYÜZ ERİŞİLEBİLİRLİĞİ (MİNİMAL TEK EKRAN) */}
       {activeSubTab === 'appearance' && (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-3">
           {/* Sol: Yazı Boyutu Seçimi */}
-          <div className="lg:col-span-7 bg-white p-4 sm:p-5 rounded-2xl border border-stone-200 shadow-xs space-y-3">
-            <div>
-              <h3 className="text-sm font-bold text-stone-900 flex items-center gap-2">
-                <i className="fa-solid fa-font text-stone-600"></i>
-                Yazı Boyutu
+          <div className="lg:col-span-6 bg-white p-3.5 rounded-xl border border-stone-200/90 shadow-2xs space-y-2.5">
+            <div className="flex items-center justify-between gap-2">
+              <h3 className="text-xs font-extrabold text-stone-900 flex items-center gap-1.5">
+                <i className="fa-solid fa-font text-brand-600"></i>
+                <span>Yazı Boyutu</span>
               </h3>
-              <p className="text-xs text-stone-500 mt-0.5">
-                Paneldeki metin ve sipariş kartlarının okunabilirlik boyutu.
-              </p>
+              <span className="text-[11px] text-stone-400">Panel metin ölçeği</span>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+            <div className="grid grid-cols-3 gap-2">
               {[
-                {
-                  id: 'small',
-                  label: 'Küçük',
-                  desc: 'Ekranda daha fazla satır gösterir.',
-                  badge: 'Kompakt',
-                },
-                {
-                  id: 'medium',
-                  label: 'Standart',
-                  desc: 'Dengeli masaüstü görünümü.',
-                  badge: 'Önerilen',
-                },
-                {
-                  id: 'large',
-                  label: 'Büyük',
-                  desc: 'Dokunmatik & mutfak ekranları için.',
-                  badge: 'POS',
-                },
-              ].map((opt) => (
-                <div
-                  key={opt.id}
-                  onClick={() => handleChange('fontSize', opt.id)}
-                  className={`p-3.5 rounded-xl border-2 transition-all cursor-pointer flex flex-col justify-between gap-2 ${
-                    settings.fontSize === opt.id
-                      ? 'border-brand-600 bg-brand-50/25 shadow-2xs'
-                      : 'border-stone-200 hover:border-stone-300 bg-white'
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="font-bold text-xs text-stone-900">{opt.label}</span>
-                    <span className="text-[10px] font-bold text-stone-500 bg-stone-100 px-2 py-0.5 rounded-md">
+                { id: 'small', label: 'Küçük', badge: 'Kompakt' },
+                { id: 'medium', label: 'Standart', badge: 'Önerilen' },
+                { id: 'large', label: 'Büyük', badge: 'POS' },
+              ].map((opt) => {
+                const active = settings.fontSize === opt.id;
+                return (
+                  <button
+                    key={opt.id}
+                    type="button"
+                    onClick={() => handleChange('fontSize', opt.id)}
+                    className={`px-2.5 py-2 rounded-lg border text-left transition-all cursor-pointer flex items-center justify-between gap-1 ${
+                      active
+                        ? 'bg-brand-600 text-white border-brand-600 shadow-2xs'
+                        : 'bg-stone-50/70 hover:bg-stone-100 border-stone-200 text-stone-800'
+                    }`}
+                  >
+                    <span className="font-bold text-xs">{opt.label}</span>
+                    <span
+                      className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${
+                        active ? 'bg-white/20 text-white' : 'bg-white text-stone-500 border border-stone-200/80'
+                      }`}
+                    >
                       {opt.badge}
                     </span>
-                  </div>
-                  <p className="text-[11px] text-stone-500 leading-snug">{opt.desc}</p>
-                </div>
-              ))}
+                  </button>
+                );
+              })}
             </div>
           </div>
 
           {/* Sağ: Ekran Satır Yoğunluğu */}
-          <div className="lg:col-span-5 bg-white p-4 sm:p-5 rounded-2xl border border-stone-200 shadow-xs space-y-3">
-            <div>
-              <h3 className="text-sm font-bold text-stone-900 flex items-center gap-2">
-                <i className="fa-solid fa-table-cells text-stone-600"></i>
-                Liste Yoğunluğu
+          <div className="lg:col-span-6 bg-white p-3.5 rounded-xl border border-stone-200/90 shadow-2xs space-y-2.5">
+            <div className="flex items-center justify-between gap-2">
+              <h3 className="text-xs font-extrabold text-stone-900 flex items-center gap-1.5">
+                <i className="fa-solid fa-table-cells text-brand-600"></i>
+                <span>Liste Yoğunluğu</span>
               </h3>
-              <p className="text-xs text-stone-500 mt-0.5">
-                Tablolardaki satır aralığı ve iç boşluk düzeni.
-              </p>
+              <span className="text-[11px] text-stone-400">Tablo satır aralığı</span>
             </div>
 
-            <div className="grid grid-cols-1 gap-2.5">
+            <div className="grid grid-cols-2 gap-2">
               {[
-                {
-                  id: 'comfortable',
-                  label: 'Standart / Ferah',
-                  desc: 'Rahat okunan dengeli satır aralıkları.',
-                  icon: 'fa-regular fa-square',
-                },
-                {
-                  id: 'compact',
-                  label: 'Sıkışık / Yoğun Liste',
-                  desc: 'Tek ekranda maksimum sipariş satırı.',
-                  icon: 'fa-solid fa-bars',
-                },
-              ].map((den) => (
-                <div
-                  key={den.id}
-                  onClick={() => handleChange('density', den.id)}
-                  className={`p-3 rounded-xl border-2 transition-all cursor-pointer flex items-center gap-3 ${
-                    settings.density === den.id
-                      ? 'border-brand-600 bg-brand-50/25'
-                      : 'border-stone-200 hover:border-stone-300 bg-white'
-                  }`}
-                >
-                  <div className="w-8 h-8 rounded-lg bg-stone-100 flex items-center justify-center text-stone-700 shrink-0 text-xs">
-                    <i className={den.icon}></i>
-                  </div>
-                  <div>
-                    <span className="font-bold text-xs text-stone-900 block">{den.label}</span>
-                    <span className="text-[11px] text-stone-500 block leading-tight">
-                      {den.desc}
-                    </span>
-                  </div>
-                </div>
-              ))}
+                { id: 'comfortable', label: 'Standart / Ferah', icon: 'fa-regular fa-square' },
+                { id: 'compact', label: 'Sıkışık / Yoğun', icon: 'fa-solid fa-bars' },
+              ].map((den) => {
+                const active = settings.density === den.id;
+                return (
+                  <button
+                    key={den.id}
+                    type="button"
+                    onClick={() => handleChange('density', den.id)}
+                    className={`px-3 py-2 rounded-lg border transition-all cursor-pointer flex items-center gap-2 ${
+                      active
+                        ? 'bg-brand-600 text-white border-brand-600 shadow-2xs'
+                        : 'bg-stone-50/70 hover:bg-stone-100 border-stone-200 text-stone-800'
+                    }`}
+                  >
+                    <i className={`${den.icon} text-xs ${active ? 'text-white' : 'text-stone-500'}`}></i>
+                    <span className="font-bold text-xs truncate">{den.label}</span>
+                  </button>
+                );
+              })}
             </div>
           </div>
 
-          {/* Kurye Modülü ve Görünürlük Ayarı (Kuryeyi Sistemden Tamamen Görünmez Yap) */}
-          <div className="lg:col-span-12 bg-white p-4 sm:p-5 rounded-2xl border border-stone-200 shadow-xs space-y-3.5">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-stone-100 pb-3">
-              <div>
-                <h3 className="text-sm font-extrabold text-stone-900 flex items-center gap-2">
-                  <i className="fa-solid fa-motorcycle text-amber-500"></i>
-                  <span>Kurye Modülü ve Görünürlük Ayarı</span>
-                </h3>
-                <p className="text-xs text-stone-500 mt-0.5">
-                  Kurye işlemlerini arayüzde görünür tutabilir veya kuryeyi sistemden tamamen görünmez yapabilirsiniz.
-                </p>
-              </div>
-              <span className={`text-[10px] font-extrabold px-2.5 py-1 rounded-full border self-start sm:self-center ${
+          {/* Kurye Modülü ve Görünürlük Ayarı */}
+          <div className="lg:col-span-6 bg-white p-3.5 rounded-xl border border-stone-200/90 shadow-2xs space-y-2.5">
+            <div className="flex items-center justify-between gap-2">
+              <h3 className="text-xs font-extrabold text-stone-900 flex items-center gap-1.5">
+                <i className="fa-solid fa-motorcycle text-amber-500"></i>
+                <span>Kurye Modülü</span>
+              </h3>
+              <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full border ${
                 settings.courierModuleEnabled === true
                   ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
                   : 'bg-rose-50 text-rose-700 border-rose-200'
               }`}>
-                {settings.courierModuleEnabled === true ? '● Kurye: Açık (Görünür)' : '○ Kurye: Sistemden Tamamen Gizli'}
+                {settings.courierModuleEnabled === true ? '● Açık' : '○ Gizli'}
               </span>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {/* Seçenek 1: Kuryeyi Göster */}
-              <div
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
                 onClick={() => handleCourierModuleToggle(true)}
-                className={`p-4 rounded-2xl border-2 transition-all cursor-pointer flex items-start gap-3.5 ${
+                className={`px-3 py-2 rounded-lg border text-left transition-all cursor-pointer flex items-center justify-between gap-2 ${
                   settings.courierModuleEnabled === true
-                    ? 'border-emerald-600 bg-emerald-50/30 shadow-xs ring-1 ring-emerald-500/20'
-                    : 'border-stone-200 hover:border-stone-300 bg-white opacity-70'
+                    ? 'border-emerald-600 bg-emerald-50/70 text-emerald-950 font-bold'
+                    : 'border-stone-200 hover:border-stone-300 bg-white text-stone-600'
                 }`}
               >
-                <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 text-base ${
-                  settings.courierModuleEnabled === true
-                    ? 'bg-emerald-600 text-white shadow-xs'
-                    : 'bg-stone-100 text-stone-500'
-                }`}>
-                  <i className="fa-solid fa-motorcycle"></i>
-                </div>
-                <div className="space-y-1 min-w-0">
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="font-extrabold text-xs text-stone-900">Kuryeyi Göster (Standart Operasyon)</span>
-                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${
-                      settings.courierModuleEnabled === true
-                        ? 'bg-emerald-600 text-white'
-                        : 'bg-stone-100 text-stone-500'
-                    }`}>
-                      {settings.courierModuleEnabled === true ? 'Seçili' : 'Aç'}
-                    </span>
-                  </div>
-                  <p className="text-[11px] text-stone-500 leading-snug">
-                    Sipariş kartlarında kurye atama alanı, /kurye teslimat portalı, kurye aşama sekmeleri ve anlık kurye takip tabloları sistemde aktif ve görünürdür.
-                  </p>
-                </div>
-              </div>
+                <span className="flex items-center gap-1.5 text-xs font-bold truncate">
+                  <i className={`fa-solid fa-motorcycle ${settings.courierModuleEnabled === true ? 'text-emerald-600' : 'text-stone-400'}`}></i>
+                  <span>Kuryeyi Göster</span>
+                </span>
+                {settings.courierModuleEnabled === true && <i className="fa-solid fa-check text-[10px] text-emerald-600"></i>}
+              </button>
 
-              {/* Seçenek 2: Kuryeyi Tamamen Görünmez Yap */}
-              <div
+              <button
+                type="button"
                 onClick={() => handleCourierModuleToggle(false)}
-                className={`p-4 rounded-2xl border-2 transition-all cursor-pointer flex items-start gap-3.5 ${
+                className={`px-3 py-2 rounded-lg border text-left transition-all cursor-pointer flex items-center justify-between gap-2 ${
                   settings.courierModuleEnabled === false
-                    ? 'border-rose-600 bg-rose-50/30 shadow-xs ring-1 ring-rose-500/20'
-                    : 'border-stone-200 hover:border-stone-300 bg-white opacity-70'
+                    ? 'border-rose-600 bg-rose-50/70 text-rose-950 font-bold'
+                    : 'border-stone-200 hover:border-stone-300 bg-white text-stone-600'
                 }`}
               >
-                <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 text-base ${
-                  settings.courierModuleEnabled === false
-                    ? 'bg-rose-600 text-white shadow-xs'
-                    : 'bg-stone-100 text-stone-500'
-                }`}>
-                  <i className="fa-solid fa-eye-slash"></i>
-                </div>
-                <div className="space-y-1 min-w-0">
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="font-extrabold text-xs text-stone-900">Kuryeyi Sistemden Tamamen Görünmez Yap</span>
-                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${
-                      settings.courierModuleEnabled === false
-                        ? 'bg-rose-600 text-white'
-                        : 'bg-stone-100 text-stone-500'
-                    }`}>
-                      {settings.courierModuleEnabled === false ? 'Seçili' : 'Gizle'}
-                    </span>
-                  </div>
-                  <p className="text-[11px] text-stone-500 leading-snug">
-                    Kurye portalı, sipariş kurye atama kutuları, kurye filtreleri ve aşamaları tüm arayüzden tamamen gizlenir. Siparişler doğrudan mutfaktan teslim edildi durumuna alınır.
-                  </p>
-                </div>
-              </div>
+                <span className="flex items-center gap-1.5 text-xs font-bold truncate">
+                  <i className={`fa-solid fa-eye-slash ${settings.courierModuleEnabled === false ? 'text-rose-600' : 'text-stone-400'}`}></i>
+                  <span>Tamamen Gizle</span>
+                </span>
+                {settings.courierModuleEnabled === false && <i className="fa-solid fa-check text-[10px] text-rose-600"></i>}
+              </button>
             </div>
+            <p className="text-[11px] text-stone-400 truncate">
+              Gizlendiğinde kurye atama, /kurye portalı ve kurye aşamaları arayüzden kaldırılır.
+            </p>
           </div>
 
           {/* Sipariş Alımını Geçici Durdurma / Acil Yoğunluk Kartı */}
-          <div className="lg:col-span-12 bg-white p-4 sm:p-5 rounded-2xl border border-stone-200 shadow-xs space-y-3.5">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-stone-100 pb-3">
-              <div>
-                <h3 className="text-sm font-extrabold text-stone-900 flex items-center gap-2">
-                  <i className="fa-solid fa-hourglass-half text-amber-500"></i>
-                  <span>Sipariş Alımını Geçici Durdurma (Acil Yoğunluk &amp; Mola)</span>
-                </h3>
-                <p className="text-xs text-stone-500 mt-0.5">
-                  Mutfakta aşırı yığılma olduğunda veya malzeme tükendiğinde sipariş alımını belirli bir süre durdurabilirsiniz.
-                </p>
-              </div>
+          <div className="lg:col-span-6 bg-white p-3.5 rounded-xl border border-stone-200/90 shadow-2xs space-y-2.5">
+            <div className="flex items-center justify-between gap-2">
+              <h3 className="text-xs font-extrabold text-stone-900 flex items-center gap-1.5">
+                <i className="fa-solid fa-hourglass-half text-amber-500"></i>
+                <span>Sipariş Alımı Kontrolü</span>
+              </h3>
               {(() => {
                 const pauseInfo = getOrderPauseState(settings);
                 return (
-                  <span className={`text-[10px] font-extrabold px-2.5 py-1 rounded-full border self-start sm:self-center ${
+                  <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full border ${
                     pauseInfo.paused
                       ? 'bg-rose-50 text-rose-700 border-rose-200 animate-pulse'
                       : 'bg-emerald-50 text-emerald-700 border-emerald-200'
                   }`}>
                     {pauseInfo.paused
                       ? pauseInfo.remainingMinutes > 0
-                        ? `● Sipariş Alımı Durduruldu (${pauseInfo.remainingMinutes} dk kaldı)`
-                        : '● Sipariş Alımı Durduruldu (Süresiz)'
-                      : '● Sipariş Alımı Açık (Normal)'}
+                        ? `● Durduruldu (${pauseInfo.remainingMinutes} dk)`
+                        : '● Durduruldu (Süresiz)'
+                      : '● Siparişe Açık'}
                   </span>
                 );
               })()}
             </div>
 
-            <div className="flex flex-wrap items-center gap-2">
+            <div className="grid grid-cols-5 gap-1.5">
               <button
                 type="button"
                 onClick={() => handleOrderPauseToggle(null)}
-                className={`px-4 py-2 rounded-xl text-xs font-bold transition-all border cursor-pointer ${
+                className={`py-2 px-1.5 rounded-lg text-[11px] font-bold transition-all border cursor-pointer text-center ${
                   !getOrderPauseState(settings).paused
                     ? 'bg-emerald-600 text-white border-emerald-600 shadow-2xs'
                     : 'bg-stone-50 hover:bg-stone-100 border-stone-200 text-stone-700'
                 }`}
               >
-                <i className="fa-solid fa-circle-play mr-1.5"></i>
-                Siparişe Açık (Normal)
+                Açık
               </button>
-
-              <button
-                type="button"
-                onClick={() => handleOrderPauseToggle(15)}
-                className="px-3.5 py-2 rounded-xl text-xs font-bold bg-white hover:bg-rose-50 hover:text-rose-700 border border-stone-200 hover:border-rose-300 text-stone-700 transition-all cursor-pointer shadow-2xs"
-              >
-                <i className="fa-solid fa-clock mr-1.5 text-amber-500"></i>
-                15 Dakika Durdur
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleOrderPauseToggle(30)}
-                className="px-3.5 py-2 rounded-xl text-xs font-bold bg-white hover:bg-rose-50 hover:text-rose-700 border border-stone-200 hover:border-rose-300 text-stone-700 transition-all cursor-pointer shadow-2xs"
-              >
-                <i className="fa-solid fa-clock mr-1.5 text-amber-500"></i>
-                30 Dakika Durdur
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleOrderPauseToggle(60)}
-                className="px-3.5 py-2 rounded-xl text-xs font-bold bg-white hover:bg-rose-50 hover:text-rose-700 border border-stone-200 hover:border-rose-300 text-stone-700 transition-all cursor-pointer shadow-2xs"
-              >
-                <i className="fa-solid fa-clock mr-1.5 text-amber-500"></i>
-                1 Saat Durdur
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleOrderPauseToggle(0)}
-                className="px-3.5 py-2 rounded-xl text-xs font-bold bg-white hover:bg-rose-50 hover:text-rose-700 border border-stone-200 hover:border-rose-300 text-stone-700 transition-all cursor-pointer shadow-2xs"
-              >
-                <i className="fa-solid fa-hand mr-1.5 text-rose-500"></i>
-                Süresiz Durdur (Ben Açana Kadar)
-              </button>
+              {[
+                { mins: 15, label: '15 dk' },
+                { mins: 30, label: '30 dk' },
+                { mins: 60, label: '1 saat' },
+                { mins: 0, label: 'Süresiz' },
+              ].map((opt) => (
+                <button
+                  key={opt.mins}
+                  type="button"
+                  onClick={() => handleOrderPauseToggle(opt.mins)}
+                  className="py-2 px-1.5 rounded-lg text-[11px] font-bold bg-white hover:bg-rose-50 hover:text-rose-700 border border-stone-200 hover:border-rose-300 text-stone-700 transition-all cursor-pointer text-center"
+                >
+                  {opt.label}
+                </button>
+              ))}
             </div>
+            <p className="text-[11px] text-stone-400 truncate">
+              Yoğunluk veya malzeme molasında müşteri siparişini geçici durdurun.
+            </p>
           </div>
 
           {/* Arayüz Renk Teması & Palet Seçenekleri */}
-          <div className="lg:col-span-12 bg-white p-4 sm:p-5 rounded-2xl border border-stone-200 shadow-xs space-y-3.5">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-stone-100 pb-3">
-              <div>
-                <h3 className="text-sm font-extrabold text-stone-900 flex items-center gap-2">
-                  <i className="fa-solid fa-palette text-amber-500"></i>
-                  <span>Arayüz Renk Teması & Palet Seçenekleri</span>
-                </h3>
-                <p className="text-xs text-stone-500 mt-0.5">
-                  Restoran paneli ve butonların vurgu rengini dilediğiniz gibi özelleştirin.
-                </p>
-              </div>
-              <span className="text-[10px] font-extrabold px-2.5 py-1 rounded-full bg-stone-100 text-stone-700 border border-stone-200 self-start sm:self-center">
-                7 Farklı Renk Paleti
-              </span>
+          <div className="lg:col-span-12 bg-white p-3.5 rounded-xl border border-stone-200/90 shadow-2xs space-y-2.5">
+            <div className="flex items-center justify-between gap-2">
+              <h3 className="text-xs font-extrabold text-stone-900 flex items-center gap-1.5">
+                <i className="fa-solid fa-palette text-brand-600"></i>
+                <span>Arayüz Renk Teması</span>
+              </h3>
+              <span className="text-[11px] text-stone-400">7 farklı palet</span>
             </div>
             <ThemeColorPicker variant="grid" />
           </div>
@@ -1253,39 +1145,39 @@ export default function SettingsTab({
 
       {/* SEKME 2: SES VE BİLDİRİM AYARLARI (MİNİMAL 2 SEKMELİ YAPI) */}
       {activeSubTab === 'sound' && (
-        <div className="space-y-4">
+        <div className="space-y-3">
           {/* ÜST MİNİMAL ALT-SEKME SEÇİCİ */}
-          <div className="bg-white p-2 rounded-2xl border border-stone-200 shadow-2xs flex flex-wrap items-center justify-between gap-2">
-            <div className="flex items-center gap-1.5">
+          <div className="bg-white p-1.5 rounded-xl border border-stone-200/90 shadow-2xs flex flex-wrap items-center justify-between gap-2">
+            <div className="flex items-center gap-1">
               <button
                 type="button"
                 onClick={() => setSoundViewMode('pos_sound')}
-                className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 ${
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
                   soundViewMode === 'pos_sound'
-                    ? 'bg-stone-900 text-white shadow-xs'
+                    ? 'bg-brand-600 text-white shadow-2xs'
                     : 'text-stone-600 hover:bg-stone-100'
                 }`}
               >
-                <i className="fa-solid fa-volume-high text-amber-400"></i>
-                <span>Sipariş &amp; Panel Ses Ayarları</span>
+                <i className={`fa-solid fa-volume-high ${soundViewMode === 'pos_sound' ? 'text-white' : 'text-amber-500'}`}></i>
+                <span>Sipariş &amp; Panel Sesleri</span>
               </button>
 
               <button
                 type="button"
                 onClick={() => setSoundViewMode('customer_notif')}
-                className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 ${
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
                   soundViewMode === 'customer_notif'
-                    ? 'bg-stone-900 text-white shadow-xs'
+                    ? 'bg-brand-600 text-white shadow-2xs'
                     : 'text-stone-600 hover:bg-stone-100'
                 }`}
               >
-                <i className="fa-solid fa-bullhorn text-emerald-400"></i>
-                <span>Müşteri Bildirimleri &amp; Duyuru Bandı</span>
+                <i className={`fa-solid fa-bullhorn ${soundViewMode === 'customer_notif' ? 'text-white' : 'text-emerald-600'}`}></i>
+                <span>Müşteri Bildirimleri &amp; Duyuru</span>
               </button>
             </div>
 
             {soundViewMode === 'pos_sound' && (
-              <div className="flex items-center gap-2 pr-1">
+              <div className="flex items-center gap-1.5 pr-1">
                 <input
                   ref={audioFileInputRef}
                   type="file"
@@ -1296,37 +1188,37 @@ export default function SettingsTab({
                 <button
                   type="button"
                   onClick={() => audioFileInputRef.current?.click()}
-                  className="bg-amber-500 hover:bg-amber-400 text-stone-950 font-extrabold px-3.5 py-2 rounded-xl text-xs flex items-center gap-1.5 cursor-pointer shadow-2xs transition-colors"
+                  className="bg-amber-500 hover:bg-amber-400 text-stone-950 font-extrabold px-3 py-1.5 rounded-lg text-xs flex items-center gap-1.5 cursor-pointer shadow-2xs transition-colors"
                 >
-                  <i className="fa-solid fa-upload"></i>
-                  <span>+ Cihazdan Ses Yükle (.mp3 / .wav)</span>
+                  <i className="fa-solid fa-upload text-[10px]"></i>
+                  <span>+ Ses Yükle</span>
                 </button>
               </div>
             )}
           </div>
 
-          {/* GÖRÜNÜM 1: SİPARİŞ & PANEL SES AYARLARI (MİNİMAL TEK KART, 2 SÜTUN) */}
+          {/* GÖRÜNÜM 1: SİPARİŞ & PANEL SES AYARLARI (MİNİMAL TEK KART) */}
           {soundViewMode === 'pos_sound' && (
-            <div className="bg-white p-4 sm:p-5 rounded-2xl border border-stone-200 shadow-xs space-y-4">
+            <div className="bg-white p-3.5 sm:p-4 rounded-xl border border-stone-200/90 shadow-2xs space-y-3.5">
               {/* Başlık & Aç/Kapa */}
-              <div className="flex items-center justify-between gap-3 pb-3 border-b border-stone-100">
-                <div className="flex items-center gap-3 min-w-0">
-                  <span className="w-9 h-9 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center text-sm shrink-0">
+              <div className="flex items-center justify-between gap-2 pb-2.5 border-b border-stone-100">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <span className="w-8 h-8 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center text-xs shrink-0">
                     <i className="fa-solid fa-bell"></i>
                   </span>
                   <div className="min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <h3 className="text-sm font-extrabold text-stone-900">
-                        Çoklu Sipariş (1+ Sipariş) &amp; Panel Bildirim Sesi
+                      <h3 className="text-xs sm:text-sm font-extrabold text-stone-900">
+                        Çoklu Sipariş &amp; Panel Bildirim Sesi
                       </h3>
                       <span className="text-[10px] font-extrabold bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded-full">
                         {Number(settings.autoRefreshInterval ?? 60) === 0
-                          ? 'Tek Sefer Çal'
-                          : `${Number(settings.autoRefreshInterval ?? 60)} Saniyede Bir`}
+                          ? 'Tek Sefer'
+                          : `${Number(settings.autoRefreshInterval ?? 60)} sn`}
                       </span>
                     </div>
-                    <p className="text-[11px] text-stone-500 mt-0.5">
-                      <strong>1 adet</strong> üründe menünün kendi sesi; <strong>1&apos;in üzerinde (çoklu)</strong> siparişte buradaki seçili ses çalar.
+                    <p className="text-[11px] text-stone-500 truncate">
+                      Tekli siparişte ürün sesi; çoklu siparişte seçili zil çalar.
                     </p>
                   </div>
                 </div>
@@ -1335,164 +1227,158 @@ export default function SettingsTab({
                   type="button"
                   onClick={() => handleChange('soundEnabled', !settings.soundEnabled)}
                   title={settings.soundEnabled ? 'Sesli Uyarı Açık' : 'Sesli Uyarı Kapalı'}
-                  className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors ${
+                  className={`relative inline-flex h-5 w-10 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors ${
                     settings.soundEnabled ? 'bg-emerald-600' : 'bg-stone-300'
                   }`}
                 >
                   <span
-                    className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-md transition ${
+                    className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition ${
                       settings.soundEnabled ? 'translate-x-5' : 'translate-x-0'
                     }`}
                   />
                 </button>
               </div>
 
-              {/* 2 Sütunlu Minimal İçerik: Sol (Ses Seçimi) - Sağ (Süre & Ses Seviyesi) */}
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
-                {/* SOL SÜTUN (7 birim): SES LİSTESİ */}
-                <div className="lg:col-span-7 space-y-2.5">
-                  <div className="flex items-center justify-between">
-                    <label className="text-xs font-bold text-stone-800">
-                      Bildirim Sesi Seçin
-                    </label>
-                    <button
-                      type="button"
-                      onClick={() => setShowUrlSoundInput((prev) => !prev)}
-                      className="text-[11px] font-bold text-brand-600 hover:underline cursor-pointer flex items-center gap-1"
-                    >
-                      <i className="fa-solid fa-link text-[10px]"></i>
-                      <span>{showUrlSoundInput ? 'Link Alanını Gizle' : 'Link (URL) ile Ekle'}</span>
-                    </button>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    {[
-                      { id: 'chime', label: '🔔 Çift Tonlu Çan', desc: 'Melodik & Yumuşak', isBuiltIn: true },
-                      { id: 'bell', label: '🎵 Klasik Zil', desc: 'Net ve Yüksek Ton', isBuiltIn: true },
-                      { id: 'beep', label: '🚨 Dijital Bip', desc: 'Kısa & Hızlı Uyarı', isBuiltIn: true },
-                      ...(Array.isArray(settings.customSounds) ? settings.customSounds : []),
-                    ].map((s) => {
-                      const isActiveSound = settings.soundType === s.id;
-                      return (
-                        <div
-                          key={s.id}
-                          onClick={() => {
-                            const currentList = Array.isArray(settings.customSounds) ? settings.customSounds : [];
-                            syncSoundSettingsEverywhere(
-                              currentList,
-                              s.id,
-                              settings.soundVolume || 80,
-                              Number(settings.autoRefreshInterval ?? 60),
-                              false
-                            );
-                            handlePlaySoundTest(s.id, currentList);
-                          }}
-                          className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer flex items-center justify-between gap-2 ${
-                            isActiveSound
-                              ? 'border-stone-900 bg-amber-50/50 font-bold text-stone-900 ring-1 ring-stone-900/20'
-                              : 'border-stone-200 hover:border-stone-300 bg-white text-stone-700'
-                          }`}
-                        >
-                          <div className="min-w-0 flex items-center gap-2">
-                            <span
-                              className={`w-2 h-2 rounded-full shrink-0 ${
-                                isActiveSound ? 'bg-emerald-500' : 'bg-stone-300'
-                              }`}
-                            />
-                            <div className="min-w-0">
-                              <span className="text-xs block truncate">
-                                {s.isBuiltIn ? s.label : `🎶 ${s.label}`}
-                              </span>
-                              <span className="text-[10px] text-stone-400 font-normal block truncate">
-                                {s.desc || 'Özel Bildirim Sesi'}
-                              </span>
-                            </div>
-                          </div>
-
-                          <div className="flex items-center gap-1 shrink-0">
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handlePlaySoundTest(s.id);
-                              }}
-                              className="w-7 h-7 rounded-lg bg-stone-100 hover:bg-stone-200 text-stone-700 flex items-center justify-center text-[10px] cursor-pointer"
-                              title="Dinle"
-                            >
-                              <i className="fa-solid fa-play"></i>
-                            </button>
-                            {!s.isBuiltIn && (
-                              <button
-                                type="button"
-                                onClick={(e) => handleDeleteCustomSound(s.id, e)}
-                                className="w-7 h-7 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 flex items-center justify-center text-[10px] cursor-pointer"
-                                title="Sil"
-                              >
-                                <i className="fa-solid fa-trash-can"></i>
-                              </button>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-
-                  {/* İsteğe Bağlı Minimal Link (URL) Ekleme Satırı */}
-                  {showUrlSoundInput && (
-                    <div className="bg-stone-50 border border-stone-200 rounded-xl p-2.5 grid grid-cols-1 sm:grid-cols-12 gap-2">
-                      <input
-                        type="text"
-                        value={newSoundLabel}
-                        onChange={(e) => setNewSoundLabel(e.target.value)}
-                        placeholder="Ses Adı"
-                        className="sm:col-span-4 bg-white border border-stone-200 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-stone-900"
-                      />
-                      <input
-                        type="text"
-                        value={newSoundUrl}
-                        onChange={(e) => setNewSoundUrl(e.target.value)}
-                        placeholder="https://.../zil.mp3"
-                        className="sm:col-span-5 bg-white border border-stone-200 rounded-lg px-2.5 py-1.5 text-xs font-mono text-stone-700"
-                      />
-                      <button
-                        type="button"
-                        onClick={handleAddCustomSound}
-                        className="sm:col-span-3 bg-stone-900 hover:bg-black text-white font-bold py-1.5 px-2.5 rounded-lg text-xs cursor-pointer"
-                      >
-                        + Ekle
-                      </button>
-                    </div>
-                  )}
-
-                  {soundUploadError && (
-                    <p className="text-xs font-semibold text-rose-600 flex items-center gap-1.5">
-                      <i className="fa-solid fa-circle-exclamation"></i>
-                      <span>{soundUploadError}</span>
-                    </p>
-                  )}
+              {/* Zil Seçimi (Kompakt Grid) */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-extrabold text-stone-800">Bildirim Sesi Seçin</label>
+                  <button
+                    type="button"
+                    onClick={() => setShowUrlSoundInput((prev) => !prev)}
+                    className="text-[11px] font-bold text-brand-600 hover:underline cursor-pointer flex items-center gap-1"
+                  >
+                    <i className="fa-solid fa-link text-[10px]"></i>
+                    <span>{showUrlSoundInput ? 'URL Gizle' : 'Link (URL) Ekle'}</span>
+                  </button>
                 </div>
 
-                {/* SAĞ SÜTUN (5 birim): TEKRARLAMA SÜRESİ & SES DÜZEYİ */}
-                <div className="lg:col-span-5 bg-stone-50/80 border border-stone-200/90 rounded-2xl p-4 space-y-4">
-                  {/* 1. Tekrarlama Aralığı */}
-                  <div className="space-y-2">
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
+                  {[
+                    { id: 'chime', label: '🔔 Çift Tonlu Çan', desc: 'Melodik', isBuiltIn: true },
+                    { id: 'bell', label: '🎵 Klasik Zil', desc: 'Net Ton', isBuiltIn: true },
+                    { id: 'beep', label: '🚨 Dijital Bip', desc: 'Hızlı Uyarı', isBuiltIn: true },
+                    ...(Array.isArray(settings.customSounds) ? settings.customSounds : []),
+                  ].map((s) => {
+                    const isActiveSound = settings.soundType === s.id;
+                    return (
+                      <div
+                        key={s.id}
+                        onClick={() => {
+                          const currentList = Array.isArray(settings.customSounds) ? settings.customSounds : [];
+                          syncSoundSettingsEverywhere(
+                            currentList,
+                            s.id,
+                            settings.soundVolume || 80,
+                            Number(settings.autoRefreshInterval ?? 60),
+                            false
+                          );
+                          handlePlaySoundTest(s.id, currentList);
+                        }}
+                        className={`px-2.5 py-2 rounded-xl border text-left transition-all cursor-pointer flex items-center justify-between gap-1.5 ${
+                          isActiveSound
+                            ? 'border-brand-600 bg-brand-50/50 font-bold text-stone-900 ring-1 ring-brand-600/20'
+                            : 'border-stone-200 hover:border-stone-300 bg-white text-stone-700'
+                        }`}
+                      >
+                        <div className="min-w-0 flex items-center gap-1.5">
+                          <span
+                            className={`w-1.5 h-1.5 rounded-full shrink-0 ${
+                              isActiveSound ? 'bg-emerald-500' : 'bg-stone-300'
+                            }`}
+                          />
+                          <div className="min-w-0">
+                            <span className="text-[11px] font-bold block truncate">
+                              {s.isBuiltIn ? s.label : `🎶 ${s.label}`}
+                            </span>
+                            <span className="text-[10px] text-stone-400 font-normal block truncate">
+                              {s.desc || 'Özel Ses'}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-1 shrink-0">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handlePlaySoundTest(s.id);
+                            }}
+                            className="w-6 h-6 rounded-md bg-stone-100 hover:bg-stone-200 text-stone-700 flex items-center justify-center text-[9px] cursor-pointer"
+                            title="Dinle"
+                          >
+                            <i className="fa-solid fa-play"></i>
+                          </button>
+                          {!s.isBuiltIn && (
+                            <button
+                              type="button"
+                              onClick={(e) => handleDeleteCustomSound(s.id, e)}
+                              className="w-6 h-6 rounded-md bg-rose-50 hover:bg-rose-100 text-rose-600 flex items-center justify-center text-[9px] cursor-pointer"
+                              title="Sil"
+                            >
+                              <i className="fa-solid fa-trash-can"></i>
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {showUrlSoundInput && (
+                  <div className="bg-stone-50 border border-stone-200 rounded-xl p-2 grid grid-cols-1 sm:grid-cols-12 gap-2">
+                    <input
+                      type="text"
+                      value={newSoundLabel}
+                      onChange={(e) => setNewSoundLabel(e.target.value)}
+                      placeholder="Ses Adı"
+                      className="sm:col-span-4 bg-white border border-stone-200 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-stone-900"
+                    />
+                    <input
+                      type="text"
+                      value={newSoundUrl}
+                      onChange={(e) => setNewSoundUrl(e.target.value)}
+                      placeholder="https://.../zil.mp3"
+                      className="sm:col-span-5 bg-white border border-stone-200 rounded-lg px-2.5 py-1.5 text-xs font-mono text-stone-700"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleAddCustomSound}
+                      className="sm:col-span-3 bg-stone-900 hover:bg-black text-white font-bold py-1.5 px-2.5 rounded-lg text-xs cursor-pointer"
+                    >
+                      + Ekle
+                    </button>
+                  </div>
+                )}
+
+                {soundUploadError && (
+                  <p className="text-xs font-semibold text-rose-600 flex items-center gap-1.5">
+                    <i className="fa-solid fa-circle-exclamation"></i>
+                    <span>{soundUploadError}</span>
+                  </p>
+                )}
+              </div>
+
+              {/* Alt 2 Sütun: Tekrar Aralığı & Ses Düzeyi + Cümle Tamamlayıcı Ses */}
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 pt-3 border-t border-stone-100 items-start">
+                {/* SOL: Tekrar Aralığı + Ses Seviyesi */}
+                <div className="lg:col-span-6 bg-stone-50/70 border border-stone-200/80 rounded-xl p-3 space-y-3">
+                  <div className="space-y-1.5">
                     <div className="flex items-center justify-between">
                       <label className="text-xs font-bold text-stone-800 flex items-center gap-1.5">
                         <i className="fa-solid fa-clock-rotate-left text-amber-600"></i>
                         <span>Tekrarlama Aralığı</span>
                       </label>
-                      <span className="text-[10px] font-bold text-stone-500 bg-stone-200/60 px-2 py-0.5 rounded-full">
-                        Sipariş onaylanana dek
-                      </span>
+                      <span className="text-[10px] text-stone-400 font-semibold">Onaylanana dek</span>
                     </div>
 
-                    <div className="grid grid-cols-3 sm:grid-cols-5 lg:grid-cols-3 gap-1.5">
+                    <div className="grid grid-cols-5 gap-1">
                       {[
-                        { val: 8, label: '8 Saniye' },
-                        { val: 15, label: '15 Saniye' },
-                        { val: 30, label: '30 Saniye' },
-                        { val: 60, label: '60 Saniye' },
-                        { val: 0, label: 'Tek Sefer' },
+                        { val: 8, label: '8 sn' },
+                        { val: 15, label: '15 sn' },
+                        { val: 30, label: '30 sn' },
+                        { val: 60, label: '60 sn' },
+                        { val: 0, label: '1 Kez' },
                       ].map((item) => {
                         const currentInterval = Number(
                           typeof settings.autoRefreshInterval !== 'undefined' ? settings.autoRefreshInterval : 60
@@ -1530,10 +1416,10 @@ export default function SettingsTab({
                                 );
                               }
                             }}
-                            className={`px-2 py-2 rounded-xl text-xs transition-all cursor-pointer border text-center ${
+                            className={`px-1.5 py-1.5 rounded-lg text-[11px] transition-all cursor-pointer border text-center ${
                               isSelected
-                                ? 'bg-stone-900 text-white font-bold border-stone-900 shadow-2xs'
-                                : 'bg-white text-stone-700 border-stone-200 hover:bg-stone-100 font-medium'
+                                ? 'bg-brand-600 text-white font-bold border-brand-600 shadow-2xs'
+                                : 'bg-white text-stone-700 border-stone-200 hover:bg-stone-100 font-semibold'
                             }`}
                           >
                             {item.label}
@@ -1543,10 +1429,10 @@ export default function SettingsTab({
                     </div>
                   </div>
 
-                  {/* 2. Ses Seviyesi (Özel Tasarım, Hassas Butonlar & Presetler) */}
-                  <div className="space-y-3 pt-3 border-t border-stone-200/80">
+                  {/* Ses Düzeyi */}
+                  <div className="space-y-2 pt-2 border-t border-stone-200/70">
                     <div className="flex items-center justify-between text-xs">
-                      <div className="flex items-center gap-2">
+                      <span className="font-bold text-stone-800 flex items-center gap-1.5">
                         <i className={`fa-solid ${
                           (settings.soundVolume || 80) <= 20
                             ? 'fa-volume-low text-stone-500'
@@ -1554,67 +1440,56 @@ export default function SettingsTab({
                             ? 'fa-volume-low text-amber-600'
                             : 'fa-volume-high text-brand-600'
                         }`}></i>
-                        <span className="font-bold text-stone-800">
-                          Ses Düzeyi: <strong className="text-brand-600 font-black">%{settings.soundVolume || 80}</strong>
-                        </span>
-                      </div>
+                        <span>Ses: <strong className="text-brand-600">%{settings.soundVolume || 80}</strong></span>
+                      </span>
 
-                      <div className="flex items-center gap-1.5">
-                        {/* -5 Azalt */}
+                      <div className="flex items-center gap-1">
                         <button
                           type="button"
                           onClick={() => handleUpdateVolume(Math.max(10, (settings.soundVolume || 80) - 5))}
-                          className="w-7 h-7 rounded-lg bg-white hover:bg-stone-100 border border-stone-200 text-stone-700 font-bold flex items-center justify-center text-xs cursor-pointer shadow-2xs transition-colors"
+                          className="w-6 h-6 rounded-md bg-white hover:bg-stone-100 border border-stone-200 text-stone-700 flex items-center justify-center text-[10px] cursor-pointer"
                           title="Sesi %5 Azalt"
                         >
-                          <i className="fa-solid fa-minus text-[10px]"></i>
+                          <i className="fa-solid fa-minus"></i>
                         </button>
-
-                        {/* +5 Artır */}
                         <button
                           type="button"
                           onClick={() => handleUpdateVolume(Math.min(100, (settings.soundVolume || 80) + 5))}
-                          className="w-7 h-7 rounded-lg bg-white hover:bg-stone-100 border border-stone-200 text-stone-700 font-bold flex items-center justify-center text-xs cursor-pointer shadow-2xs transition-colors"
+                          className="w-6 h-6 rounded-md bg-white hover:bg-stone-100 border border-stone-200 text-stone-700 flex items-center justify-center text-[10px] cursor-pointer"
                           title="Sesi %5 Artır"
                         >
-                          <i className="fa-solid fa-plus text-[10px]"></i>
+                          <i className="fa-solid fa-plus"></i>
                         </button>
-
-                        {/* Test Et */}
                         <button
                           type="button"
                           onClick={() => handlePlaySoundTest()}
-                          className="bg-brand-50 hover:bg-brand-100 text-brand-800 border border-brand-200 text-xs px-2.5 py-1 rounded-lg font-bold flex items-center gap-1.5 transition-colors cursor-pointer shadow-2xs ml-1"
+                          className="bg-brand-50 hover:bg-brand-100 text-brand-800 border border-brand-200 text-[11px] px-2 py-1 rounded-md font-bold flex items-center gap-1 cursor-pointer ml-1"
                         >
-                          <i className="fa-solid fa-play text-[10px] text-brand-600"></i>
-                          <span>Test Et</span>
+                          <i className="fa-solid fa-play text-[9px] text-brand-600"></i>
+                          <span>Test</span>
                         </button>
                       </div>
                     </div>
 
-                    {/* Kaydırıcı Bar (Custom Range Slider) */}
-                    <div className="relative pt-1 pb-1">
-                      <input
-                        type="range"
-                        min="10"
-                        max="100"
-                        step="5"
-                        value={settings.soundVolume || 80}
-                        onChange={(e) => handleUpdateVolume(Number(e.target.value))}
-                        className="custom-range w-full cursor-pointer h-2.5 rounded-full"
-                        style={{
-                          background: `linear-gradient(to right, #d97706 0%, #d97706 ${settings.soundVolume || 80}%, #e7e5e4 ${settings.soundVolume || 80}%, #e7e5e4 100%)`
-                        }}
-                      />
-                    </div>
+                    <input
+                      type="range"
+                      min="10"
+                      max="100"
+                      step="5"
+                      value={settings.soundVolume || 80}
+                      onChange={(e) => handleUpdateVolume(Number(e.target.value))}
+                      className="custom-range w-full cursor-pointer h-2 rounded-full"
+                      style={{
+                        background: `linear-gradient(to right, #d97706 0%, #d97706 ${settings.soundVolume || 80}%, #e7e5e4 ${settings.soundVolume || 80}%, #e7e5e4 100%)`
+                      }}
+                    />
 
-                    {/* Hızlı Seçim Butonları (Presetler) */}
-                    <div className="grid grid-cols-4 gap-1.5">
+                    <div className="grid grid-cols-4 gap-1">
                       {[
-                        { val: 20, label: '%20 Düşük' },
-                        { val: 50, label: '%50 Orta' },
-                        { val: 80, label: '%80 Standart' },
-                        { val: 100, label: '%100 Maks.' },
+                        { val: 20, label: '%20' },
+                        { val: 50, label: '%50' },
+                        { val: 80, label: '%80' },
+                        { val: 100, label: '%100' },
                       ].map((preset) => {
                         const isPresetActive = (settings.soundVolume || 80) === preset.val;
                         return (
@@ -1622,9 +1497,9 @@ export default function SettingsTab({
                             key={preset.val}
                             type="button"
                             onClick={() => handleUpdateVolume(preset.val, false)}
-                            className={`py-1.5 px-1 rounded-xl text-[11px] font-bold transition-all border text-center cursor-pointer ${
+                            className={`py-1 rounded-lg text-[11px] font-bold transition-all border text-center cursor-pointer ${
                               isPresetActive
-                                ? 'bg-brand-600 text-white border-brand-600 shadow-2xs font-black'
+                                ? 'bg-brand-600 text-white border-brand-600'
                                 : 'bg-white hover:bg-stone-100 text-stone-600 border-stone-200'
                             }`}
                           >
@@ -1635,32 +1510,24 @@ export default function SettingsTab({
                     </div>
                   </div>
                 </div>
-              </div>
 
-              {/* CÜMLE TAMAMLAYICI SES KAYDI (SUFFIX SES) */}
-              <div className="pt-4 border-t border-stone-150 space-y-3">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                  <div className="flex items-center gap-3 min-w-0">
-                    <span className="w-9 h-9 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center text-sm shrink-0">
-                      <i className="fa-solid fa-microphone-lines"></i>
-                    </span>
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <h4 className="text-xs sm:text-sm font-extrabold text-stone-900">
-                          Cümle Tamamlayıcı Ses Kaydı (Bitiş Eki)
+                {/* SAĞ: Cümle Tamamlayıcı Ses Kaydı (Suffix Ses) */}
+                <div className="lg:col-span-6 bg-purple-50/40 border border-purple-200/80 rounded-xl p-3 space-y-2.5">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className="w-7 h-7 rounded-lg bg-purple-100 text-purple-700 flex items-center justify-center text-xs shrink-0">
+                        <i className="fa-solid fa-microphone-lines"></i>
+                      </span>
+                      <div className="min-w-0">
+                        <h4 className="text-xs font-extrabold text-stone-900 truncate">
+                          Cümle Tamamlayıcı Ses (Bitiş Eki)
                         </h4>
-                        <span className="text-[10px] font-extrabold bg-purple-50 text-purple-700 border border-purple-200 px-2 py-0.5 rounded-full">
-                          Ürün Sesinden 1 sn Sonra Çalar
-                        </span>
+                        <p className="text-[10px] text-stone-500 truncate">
+                          Ürün sesinden 1 sn sonra otomatik eklenir
+                        </p>
                       </div>
-                      <p className="text-[11px] text-stone-500 mt-0.5">
-                        Ürün ses kayıtlarının sonuna ortak bir bitiş ekler (Örn: <em>&quot;1 Adet Tavuk Burger&quot;</em> sesinden 1 saniye sonra <em>&quot;siparişi alındı&quot;</em> ses kaydını oynatır).
-                      </p>
                     </div>
-                  </div>
 
-                  {/* Butonlar: Cihazdan Yükle */}
-                  <div className="flex items-center gap-2 shrink-0">
                     <input
                       ref={suffixFileInputRef}
                       type="file"
@@ -1671,96 +1538,82 @@ export default function SettingsTab({
                     <button
                       type="button"
                       onClick={() => suffixFileInputRef.current?.click()}
-                      className="bg-purple-600 hover:bg-purple-700 text-white font-bold px-3 py-1.5 rounded-xl text-xs flex items-center gap-1.5 cursor-pointer shadow-2xs transition-colors"
+                      className="bg-purple-600 hover:bg-purple-700 text-white font-bold px-2.5 py-1.5 rounded-lg text-[11px] flex items-center gap-1 cursor-pointer shrink-0 transition-colors"
                     >
-                      <i className="fa-solid fa-cloud-arrow-up text-[11px]"></i>
-                      <span>{suffixAudioUrl ? 'Sesi Değiştir' : 'Ses Yükle (.mp3 / .wav)'}</span>
+                      <i className="fa-solid fa-cloud-arrow-up text-[10px]"></i>
+                      <span>{suffixAudioUrl ? 'Değiştir' : 'Yükle'}</span>
                     </button>
                   </div>
-                </div>
 
-                {/* Yüklü Ses Önizleme & Aksiyonlar */}
-                {suffixAudioUrl ? (
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 bg-purple-50/60 border border-purple-200/80 rounded-xl">
-                    <div className="flex items-center gap-2.5 min-w-0">
-                      <span className="w-7 h-7 rounded-lg bg-purple-600 text-white flex items-center justify-center text-xs shrink-0">
-                        <i className="fa-solid fa-check"></i>
-                      </span>
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs font-bold text-purple-950 truncate">
-                            {suffixAudioName || 'Cümle Tamamlayıcı Ses Kaydı'}
-                          </span>
-                          <span className="text-[10px] bg-white border border-purple-200 text-purple-700 font-bold px-1.5 py-0.5 rounded">
-                            Aktif
-                          </span>
-                        </div>
-                        <span className="text-[10px] text-purple-700/80 block truncate">
-                          Tekli siparişlerde menü ürün sesi bittikten 1 saniye sonra otomatik oynatılır.
+                  {suffixAudioUrl ? (
+                    <div className="flex items-center justify-between gap-2 p-2.5 bg-white border border-purple-200 rounded-lg">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className="w-5 h-5 rounded bg-purple-600 text-white flex items-center justify-center text-[10px] shrink-0">
+                          <i className="fa-solid fa-check"></i>
+                        </span>
+                        <span className="text-xs font-bold text-purple-950 truncate">
+                          {suffixAudioName || 'Tamamlama Sesi'}
                         </span>
                       </div>
-                    </div>
 
-                    <div className="flex items-center gap-1.5 shrink-0">
-                      <button
-                        type="button"
-                        onClick={handlePlaySuffixTest}
-                        className="bg-white hover:bg-purple-100 text-purple-900 border border-purple-200 px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-2xs transition-colors"
-                        title="Bitiş Sesini Dinle"
-                      >
-                        <i className={`fa-solid ${isPlayingSuffixPreview ? 'fa-spinner animate-spin text-purple-600' : 'fa-play text-purple-600 text-[10px]'}`}></i>
-                        <span>{isPlayingSuffixPreview ? 'Çalıyor...' : 'Dinle'}</span>
-                      </button>
+                      <div className="flex items-center gap-1 shrink-0">
+                        <button
+                          type="button"
+                          onClick={handlePlaySuffixTest}
+                          className="bg-purple-50 hover:bg-purple-100 text-purple-900 border border-purple-200 px-2.5 py-1 rounded-md text-[11px] font-bold flex items-center gap-1 cursor-pointer"
+                          title="Bitiş Sesini Dinle"
+                        >
+                          <i className={`fa-solid ${isPlayingSuffixPreview ? 'fa-spinner animate-spin text-purple-600' : 'fa-play text-purple-600 text-[9px]'}`}></i>
+                          <span>{isPlayingSuffixPreview ? 'Çalıyor' : 'Dinle'}</span>
+                        </button>
 
-                      <button
-                        type="button"
-                        onClick={handleRemoveSuffixAudio}
-                        className="bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 px-2.5 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1 cursor-pointer transition-colors"
-                        title="Kaydı Kaldır"
-                      >
-                        <i className="fa-solid fa-trash-can text-[10px]"></i>
-                        <span>Kaldır</span>
-                      </button>
+                        <button
+                          type="button"
+                          onClick={handleRemoveSuffixAudio}
+                          className="bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 px-2 py-1 rounded-md text-[11px] font-bold flex items-center cursor-pointer"
+                          title="Kaydı Kaldır"
+                        >
+                          <i className="fa-solid fa-trash-can text-[10px]"></i>
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                ) : (
-                  <div className="p-2.5 bg-stone-50 border border-dashed border-stone-200 rounded-xl text-xs text-stone-500 flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <i className="fa-solid fa-circle-info text-stone-400"></i>
-                      <span>Henüz tamamlama sesi yüklenmedi. Yüklediğinizde tüm ürün seslerinin ardından 1 sn sonra eklenecektir.</span>
+                  ) : (
+                    <div className="p-2.5 bg-white/80 border border-dashed border-purple-200 rounded-lg text-[11px] text-stone-500 flex items-center gap-2">
+                      <i className="fa-solid fa-circle-info text-purple-400"></i>
+                      <span>Henüz bitiş sesi yüklenmedi (.mp3 / .wav).</span>
                     </div>
-                  </div>
-                )}
+                  )}
 
-                {suffixUploadError && (
-                  <p className="text-xs font-semibold text-rose-600 flex items-center gap-1.5">
-                    <i className="fa-solid fa-circle-exclamation"></i>
-                    <span>{suffixUploadError}</span>
-                  </p>
-                )}
+                  {suffixUploadError && (
+                    <p className="text-xs font-semibold text-rose-600 flex items-center gap-1.5">
+                      <i className="fa-solid fa-circle-exclamation"></i>
+                      <span>{suffixUploadError}</span>
+                    </p>
+                  )}
+                </div>
               </div>
             </div>
           )}
 
           {/* GÖRÜNÜM 2: MÜŞTERİ BİLDİRİMLERİ & DUYURU BANDI (2 SÜTUNLU KOMPAKT YAPI) */}
           {soundViewMode === 'customer_notif' && (
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 items-start">
               {/* SOL KART (6 birim): MÜŞTERİ ZİLİ ANAHTARLARI & ÜST DUYURU BANDI */}
-              <div className="lg:col-span-6 bg-white p-4 sm:p-5 rounded-2xl border border-stone-200 shadow-xs space-y-4">
-                <div className="flex items-center justify-between gap-2 pb-2.5 border-b border-stone-100">
+              <div className="lg:col-span-6 bg-white p-3.5 rounded-xl border border-stone-200/90 shadow-2xs space-y-3">
+                <div className="flex items-center justify-between gap-2 pb-2 border-b border-stone-100">
                   <div>
-                    <h3 className="text-sm font-extrabold text-stone-900">
-                      Müşteri Bildirim Zili &amp; Üst Bant
+                    <h3 className="text-xs sm:text-sm font-extrabold text-stone-900">
+                      Müşteri Zili &amp; Üst Duyuru Bandı
                     </h3>
                     <p className="text-[11px] text-stone-500">
-                      Müşteri vitrinindeki bildirim ve duyuru şeridi ayarları
+                      Vitrin bildirimleri ve duyuru şeridi
                     </p>
                   </div>
                   <button
                     type="button"
                     disabled={isSavingCustNotif}
                     onClick={handleSaveCustomerNotifOnly}
-                    className="bg-brand-600 hover:bg-brand-700 text-white font-bold px-3 py-1.5 rounded-xl text-xs transition-all cursor-pointer flex items-center gap-1.5 shrink-0"
+                    className="bg-brand-600 hover:bg-brand-700 text-white font-bold px-3 py-1.5 rounded-lg text-xs transition-all cursor-pointer flex items-center gap-1.5 shrink-0"
                   >
                     <i className={`fa-solid ${isSavingCustNotif ? 'fa-spinner animate-spin' : 'fa-check'}`}></i>
                     <span>Uygula</span>
@@ -1768,36 +1621,36 @@ export default function SettingsTab({
                 </div>
 
                 {/* Kompakt 2x2 Anahtarlar */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <div className="grid grid-cols-2 gap-1.5">
                   {[
-                    { key: 'enabled', title: 'Bildirim Zili Aktif', icon: 'fa-solid fa-bell' },
-                    { key: 'orderStatusNotifications', title: 'Sipariş Durum Bildirimi', icon: 'fa-solid fa-motorcycle' },
-                    { key: 'toastEnabled', title: 'Canlı Popup Balonu', icon: 'fa-solid fa-comment-dots' },
-                    { key: 'soundEnabled', title: 'Müşteri Bildirim Sesi', icon: 'fa-solid fa-music' }
+                    { key: 'enabled', title: 'Bildirim Zili', icon: 'fa-solid fa-bell' },
+                    { key: 'orderStatusNotifications', title: 'Sipariş Bildirimi', icon: 'fa-solid fa-motorcycle' },
+                    { key: 'toastEnabled', title: 'Canlı Popup', icon: 'fa-solid fa-comment-dots' },
+                    { key: 'soundEnabled', title: 'Müşteri Sesi', icon: 'fa-solid fa-music' }
                   ].map((item) => {
                     const isOn = custNotifSettings[item.key] !== false;
                     return (
                       <div
                         key={item.key}
                         onClick={() => handleCustNotifChange(item.key, !isOn)}
-                        className={`p-2.5 rounded-xl border transition-all cursor-pointer flex items-center justify-between gap-2 ${
+                        className={`p-2 rounded-lg border transition-all cursor-pointer flex items-center justify-between gap-1.5 ${
                           isOn
                             ? 'border-emerald-300 bg-emerald-50/40'
                             : 'border-stone-200 bg-stone-50/60'
                         }`}
                       >
-                        <div className="flex items-center gap-2 min-w-0">
-                          <i className={`${item.icon} text-xs ${isOn ? 'text-emerald-600' : 'text-stone-400'}`}></i>
-                          <span className="text-xs font-bold text-stone-800 truncate">{item.title}</span>
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <i className={`${item.icon} text-[11px] ${isOn ? 'text-emerald-600' : 'text-stone-400'}`}></i>
+                          <span className="text-[11px] font-bold text-stone-800 truncate">{item.title}</span>
                         </div>
                         <span
-                          className={`relative inline-flex h-5 w-9 shrink-0 rounded-full border-2 border-transparent transition-colors ${
+                          className={`relative inline-flex h-4 w-7 shrink-0 rounded-full border border-transparent transition-colors ${
                             isOn ? 'bg-emerald-600' : 'bg-stone-300'
                           }`}
                         >
                           <span
-                            className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition ${
-                              isOn ? 'translate-x-4' : 'translate-x-0'
+                            className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow transition ${
+                              isOn ? 'translate-x-3' : 'translate-x-0'
                             }`}
                           />
                         </span>
@@ -1807,25 +1660,20 @@ export default function SettingsTab({
                 </div>
 
                 {/* Sistem Mesajları Otomatik Silinme Süresi */}
-                <div className="pt-3 border-t border-stone-150 space-y-2">
+                <div className="pt-2 border-t border-stone-100 space-y-1.5">
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-1.5">
-                      <i className="fa-solid fa-clock-rotate-left text-xs text-indigo-600"></i>
-                      <span className="text-xs font-extrabold text-stone-900">
-                        Sistem Mesajları Silinme Süresi
-                      </span>
-                    </div>
+                    <span className="text-xs font-extrabold text-stone-900 flex items-center gap-1.5">
+                      <i className="fa-solid fa-clock-rotate-left text-[11px] text-indigo-600"></i>
+                      <span>Otomatik Silinme Süresi</span>
+                    </span>
                     <span className="text-[10px] font-extrabold text-indigo-700 bg-indigo-50 border border-indigo-200 px-2 py-0.5 rounded-full">
                       {Number(custNotifSettings.autoDeleteMinutes ?? 3) === 0
-                        ? 'Süresiz / Kalıcı'
-                        : `${Number(custNotifSettings.autoDeleteMinutes ?? 3)} Dakika Sonra`}
+                        ? 'Kalıcı'
+                        : `${Number(custNotifSettings.autoDeleteMinutes ?? 3)} dk`}
                     </span>
                   </div>
-                  <p className="text-[11px] text-stone-500">
-                    Müşteri sayfasındaki bildirimler bu süre geçince otomatik silinir / kaybolur.
-                  </p>
 
-                  <div className="grid grid-cols-3 sm:grid-cols-6 gap-1.5">
+                  <div className="grid grid-cols-6 gap-1">
                     {[
                       { val: 1, label: '1 Dk' },
                       { val: 3, label: '3 Dk' },
@@ -1845,9 +1693,9 @@ export default function SettingsTab({
                           key={opt.val}
                           type="button"
                           onClick={() => handleCustNotifChange('autoDeleteMinutes', opt.val)}
-                          className={`py-1.5 px-2 rounded-xl text-xs font-bold transition-all cursor-pointer border text-center ${
+                          className={`py-1 px-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer border text-center ${
                             isSelected
-                              ? 'bg-stone-900 text-white border-stone-900 shadow-2xs'
+                              ? 'bg-brand-600 text-white border-brand-600 shadow-2xs'
                               : 'bg-white hover:bg-stone-50 border-stone-200 text-stone-700'
                           }`}
                         >
@@ -1859,12 +1707,10 @@ export default function SettingsTab({
                 </div>
 
                 {/* Üst Duyuru Bandı Kompakt Form */}
-                <div className="pt-3 border-t border-stone-100 space-y-2.5">
+                <div className="pt-2 border-t border-stone-100 space-y-2">
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-extrabold text-stone-800">
-                      Üst Duyuru Bandı
-                    </span>
-                    <label className="inline-flex items-center gap-1.5 cursor-pointer text-xs font-bold text-stone-700">
+                    <span className="text-xs font-extrabold text-stone-800">Üst Duyuru Bandı</span>
+                    <label className="inline-flex items-center gap-1.5 cursor-pointer text-[11px] font-bold text-stone-700">
                       <input
                         type="checkbox"
                         checked={custNotifSettings.showBanner !== false}
@@ -1875,11 +1721,11 @@ export default function SettingsTab({
                     </label>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                  <div className="grid grid-cols-3 gap-1.5">
                     <select
                       value={custNotifSettings.bannerType || 'campaign'}
                       onChange={(e) => handleCustNotifChange('bannerType', e.target.value)}
-                      className="app-select bg-stone-50 border border-stone-200 rounded-xl px-2.5 py-1.5 text-xs font-bold text-stone-900"
+                      className="app-select bg-stone-50 border border-stone-200 rounded-lg px-2 py-1.5 text-[11px] font-bold text-stone-900"
                     >
                       <option value="campaign">🔥 Kampanya</option>
                       <option value="delivery">🛵 Teslimat</option>
@@ -1890,7 +1736,7 @@ export default function SettingsTab({
                     <select
                       value={custNotifSettings.bannerActionPage || 'kampanyalar'}
                       onChange={(e) => handleCustNotifChange('bannerActionPage', e.target.value)}
-                      className="app-select bg-stone-50 border border-stone-200 rounded-xl px-2.5 py-1.5 text-xs font-bold text-stone-900"
+                      className="app-select bg-stone-50 border border-stone-200 rounded-lg px-2 py-1.5 text-[11px] font-bold text-stone-900"
                     >
                       <option value="kampanyalar">Kampanyalar</option>
                       <option value="menu">Menü</option>
@@ -1903,55 +1749,55 @@ export default function SettingsTab({
                       value={custNotifSettings.bannerActionLabel || ''}
                       onChange={(e) => handleCustNotifChange('bannerActionLabel', e.target.value)}
                       placeholder="Buton Yazısı"
-                      className="bg-stone-50 border border-stone-200 rounded-xl px-2.5 py-1.5 text-xs font-semibold text-stone-900"
+                      className="bg-stone-50 border border-stone-200 rounded-lg px-2 py-1.5 text-[11px] font-semibold text-stone-900"
                     />
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                  <div className="grid grid-cols-3 gap-1.5">
                     <input
                       type="text"
                       value={custNotifSettings.bannerTitle || ''}
                       onChange={(e) => handleCustNotifChange('bannerTitle', e.target.value)}
-                      placeholder="Kısa Başlık"
-                      className="bg-stone-50 border border-stone-200 rounded-xl px-2.5 py-1.5 text-xs font-semibold text-stone-900"
+                      placeholder="Başlık"
+                      className="bg-stone-50 border border-stone-200 rounded-lg px-2 py-1.5 text-xs font-semibold text-stone-900"
                     />
                     <input
                       type="text"
                       value={custNotifSettings.bannerText || ''}
                       onChange={(e) => handleCustNotifChange('bannerText', e.target.value)}
                       placeholder="Duyuru mesajı..."
-                      className="sm:col-span-2 bg-stone-50 border border-stone-200 rounded-xl px-2.5 py-1.5 text-xs font-medium text-stone-900"
+                      className="col-span-2 bg-stone-50 border border-stone-200 rounded-lg px-2 py-1.5 text-xs font-medium text-stone-900"
                     />
                   </div>
                 </div>
               </div>
 
               {/* SAĞ KART (6 birim): CANLI DUYURU & KAMPANYA GÖNDER */}
-              <div className="lg:col-span-6 bg-white p-4 sm:p-5 rounded-2xl border border-stone-200 shadow-xs space-y-3.5">
+              <div className="lg:col-span-6 bg-white p-3.5 rounded-xl border border-stone-200/90 shadow-2xs space-y-3">
                 <div>
-                  <h3 className="text-sm font-extrabold text-stone-900 flex items-center gap-2">
+                  <h3 className="text-xs sm:text-sm font-extrabold text-stone-900 flex items-center gap-1.5">
                     <i className="fa-solid fa-paper-plane text-indigo-600"></i>
                     <span>Müşterilere Canlı Bildirim Gönder</span>
                   </h3>
                   <p className="text-[11px] text-stone-500">
-                    Sitedeki tüm ziyaretçi ve üyelerin bildirim ziline anında düşer
+                    Tüm ziyaretçi ve üyelerin bildirim ziline anında düşer
                   </p>
                 </div>
 
-                <form onSubmit={handlePublishBroadcast} className="space-y-2.5 bg-stone-50 p-3.5 rounded-xl border border-stone-200/80">
-                  <div className="grid grid-cols-1 sm:grid-cols-12 gap-2">
+                <form onSubmit={handlePublishBroadcast} className="space-y-2 bg-stone-50 p-3 rounded-xl border border-stone-200/80">
+                  <div className="grid grid-cols-1 sm:grid-cols-12 gap-1.5">
                     <input
                       type="text"
                       required
                       value={bcastTitle}
                       onChange={(e) => setBcastTitle(e.target.value)}
                       placeholder="Bildirim Başlığı *"
-                      className="sm:col-span-6 bg-white border border-stone-200 rounded-xl px-2.5 py-1.5 text-xs font-semibold text-stone-900"
+                      className="sm:col-span-6 bg-white border border-stone-200 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-stone-900"
                     />
                     <select
                       value={bcastType}
                       onChange={(e) => setBcastType(e.target.value)}
-                      className="app-select sm:col-span-3 bg-white border border-stone-200 rounded-xl px-2 py-1.5 text-xs font-bold text-stone-900"
+                      className="app-select sm:col-span-3 bg-white border border-stone-200 rounded-lg px-2 py-1.5 text-[11px] font-bold text-stone-900"
                     >
                       <option value="campaign">🎁 Kampanya</option>
                       <option value="info">📢 Duyuru</option>
@@ -1960,7 +1806,7 @@ export default function SettingsTab({
                     <select
                       value={bcastTargetPage}
                       onChange={(e) => setBcastTargetPage(e.target.value)}
-                      className="app-select sm:col-span-3 bg-white border border-stone-200 rounded-xl px-2 py-1.5 text-xs font-bold text-stone-900"
+                      className="app-select sm:col-span-3 bg-white border border-stone-200 rounded-lg px-2 py-1.5 text-[11px] font-bold text-stone-900"
                     >
                       <option value="kampanyalar">Kampanyalar</option>
                       <option value="menu">Menü</option>
@@ -1975,7 +1821,7 @@ export default function SettingsTab({
                     value={bcastMessage}
                     onChange={(e) => setBcastMessage(e.target.value)}
                     placeholder="Bildirim mesajını yazın..."
-                    className="w-full bg-white border border-stone-200 rounded-xl p-2.5 text-xs text-stone-900 resize-none"
+                    className="w-full bg-white border border-stone-200 rounded-lg p-2 text-xs text-stone-900 resize-none"
                   />
 
                   <div className="flex items-center justify-between gap-2">
@@ -1986,13 +1832,13 @@ export default function SettingsTab({
                         onChange={(e) => setBcastAlsoMembers(e.target.checked)}
                         className="w-3.5 h-3.5 accent-indigo-600 rounded"
                       />
-                      <span>Üyelerin kutusuna da kaydet</span>
+                      <span>Üyelerin kutusuna kaydet</span>
                     </label>
 
                     <button
                       type="submit"
                       disabled={isPublishingBcast}
-                      className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs px-4 py-1.5 rounded-xl transition-all cursor-pointer flex items-center gap-1.5 shrink-0"
+                      className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs px-3.5 py-1.5 rounded-lg transition-all cursor-pointer flex items-center gap-1.5 shrink-0"
                     >
                       <i className={`fa-solid ${isPublishingBcast ? 'fa-spinner animate-spin' : 'fa-bullhorn'}`}></i>
                       <span>{isPublishingBcast ? 'Yayınlanıyor...' : 'Yayınla'}</span>
@@ -2001,27 +1847,27 @@ export default function SettingsTab({
                 </form>
 
                 {(custNotifSettings.broadcasts || []).length > 0 && (
-                  <div className="space-y-1.5">
+                  <div className="space-y-1">
                     <span className="text-[10px] font-extrabold uppercase tracking-wider text-stone-400 block">
                       Yayındaki Bildirimler ({custNotifSettings.broadcasts.length})
                     </span>
-                    <div className="max-h-36 overflow-y-auto divide-y divide-stone-100 border border-stone-200/80 rounded-xl">
+                    <div className="max-h-32 overflow-y-auto divide-y divide-stone-100 border border-stone-200/80 rounded-lg">
                       {custNotifSettings.broadcasts.map((b) => (
                         <div
                           key={b.id}
-                          className="px-3 py-2 bg-white hover:bg-stone-50 flex items-center justify-between gap-2 text-xs"
+                          className="px-2.5 py-1.5 bg-white hover:bg-stone-50 flex items-center justify-between gap-2 text-xs"
                         >
                           <div className="min-w-0">
-                            <p className="font-bold text-stone-900 truncate">{b.title}</p>
-                            <p className="text-[11px] text-stone-500 truncate">{b.message}</p>
+                            <p className="font-bold text-stone-900 truncate text-[11px]">{b.title}</p>
+                            <p className="text-[10px] text-stone-500 truncate">{b.message}</p>
                           </div>
                           <button
                             type="button"
                             onClick={() => handleDeleteBroadcast(b.id)}
-                            className="text-stone-400 hover:text-rose-600 p-1.5 rounded-lg cursor-pointer shrink-0"
+                            className="text-stone-400 hover:text-rose-600 p-1 rounded cursor-pointer shrink-0"
                             title="Kaldır"
                           >
-                            <i className="fa-solid fa-trash-can"></i>
+                            <i className="fa-solid fa-trash-can text-[11px]"></i>
                           </button>
                         </div>
                       ))}
@@ -2036,27 +1882,25 @@ export default function SettingsTab({
 
       {/* SEKME 3: FİŞ VE ADİSYON AYARLARI */}
       {activeSubTab === 'receipt' && (
-        <div className="space-y-4">
-          {/* Otomatik Fiş Yazdırma & Termal Donanım Ayarları */}
-          <div className="bg-white p-4 sm:p-6 rounded-2xl border border-stone-200 shadow-xs space-y-5">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-stone-100">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 items-start">
+          {/* Sol: Termal Yazıcı & Otomatik Baskı */}
+          <div className="lg:col-span-6 bg-white p-3.5 rounded-xl border border-stone-200/90 shadow-2xs space-y-3">
+            <div className="flex flex-wrap items-center justify-between gap-2 pb-2.5 border-b border-stone-100">
               <div>
-                <h3 className="text-sm font-bold text-stone-900 flex items-center gap-2">
-                  <i className="fa-solid fa-print text-brand-600 text-base"></i>
-                  Xprinter 80mm Termal Yazıcı &amp; Otomatik Fiş
+                <h3 className="text-xs sm:text-sm font-extrabold text-stone-900 flex items-center gap-1.5">
+                  <i className="fa-solid fa-print text-brand-600"></i>
+                  <span>Termal Yazıcı &amp; Otomatik Fiş</span>
                 </h3>
-                <p className="text-xs text-stone-500 mt-0.5">
-                  Sipariş yönetim panelinde sipariş onaylandığında fişin otomatikman Xprinter yazıcıdan çıkmasını yönetin.
-                </p>
+                <p className="text-[11px] text-stone-500">Xprinter 80mm / 58mm baskı kontrolü</p>
               </div>
-              <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
+              <div className="flex items-center gap-1.5">
                 <button
                   type="button"
                   onClick={() => setShowReceiptPreview((v) => !v)}
-                  className="bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 text-xs font-black py-2.5 px-4 rounded-xl flex items-center gap-2 shadow-2xs cursor-pointer active:scale-95 transition-all"
+                  className="bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 text-[11px] font-bold py-1.5 px-2.5 rounded-lg flex items-center gap-1 cursor-pointer transition-all"
                 >
                   <i className={`fa-solid ${showReceiptPreview ? 'fa-eye-slash' : 'fa-eye'} text-amber-700`}></i>
-                  <span>{showReceiptPreview ? 'Önizlemeyi Gizle' : 'Fiş Önizle (Yazdırmadan Gör)'}</span>
+                  <span>{showReceiptPreview ? 'Gizle' : 'Önizle'}</span>
                 </button>
                 <button
                   type="button"
@@ -2064,261 +1908,242 @@ export default function SettingsTab({
                     printTestThermalReceipt(settings);
                     showToast?.('Test fişi Xprinter yazıcıya gönderildi! 🧾', 'success');
                   }}
-                  className="bg-stone-900 hover:bg-stone-800 text-white text-xs font-black py-2.5 px-4 rounded-xl flex items-center gap-2 shadow-xs cursor-pointer active:scale-95 transition-all"
+                  className="bg-brand-600 hover:bg-brand-700 text-white text-[11px] font-bold py-1.5 px-2.5 rounded-lg flex items-center gap-1 cursor-pointer transition-all"
                 >
-                  <i className="fa-solid fa-receipt text-amber-400"></i>
-                  <span>Test Fişi Yazdır ({settings.receiptPaperWidth || '80mm'})</span>
+                  <i className="fa-solid fa-receipt"></i>
+                  <span>Test ({settings.receiptPaperWidth || '80mm'})</span>
                 </button>
               </div>
             </div>
 
-            {/* Canlı Termal Fiş Önizleme (Kağıt Harcamadan Ekranda Gör) */}
-            {showReceiptPreview && (
-              <div className="bg-stone-100 border border-stone-200 rounded-2xl p-4 flex flex-col items-center gap-3">
-                <div className="w-full flex items-center justify-between text-xs">
-                  <span className="font-extrabold text-stone-700 flex items-center gap-1.5">
-                    <i className="fa-solid fa-receipt text-amber-600"></i>
-                    Canlı Termal Fiş Önizleme ({settings.receiptPaperWidth || '80mm'})
-                  </span>
-                  <span className="text-[11px] text-stone-500 font-medium">
-                    Yazıcıdan çıkacak birebir görünüm
-                  </span>
-                </div>
-                <div
-                  className="bg-white shadow-lg border border-stone-300 rounded-lg overflow-hidden"
-                  style={{ width: settings.receiptPaperWidth === '58mm' ? '260px' : '340px' }}
-                >
-                  <iframe
-                    title="Termal Fiş Önizleme"
-                    srcDoc={generateReceiptHtml(getSampleThermalOrder(), settings)}
-                    className="w-full h-[540px] border-0 bg-white"
-                  />
-                </div>
-              </div>
-            )}
-
-            {/* Otomatik Yazdırma Anahtarı (ÖNE ÇIKAN ÖZELLİK) */}
-            <div className="bg-amber-500/10 border-2 border-amber-500/40 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <div className="flex items-start gap-3">
-                <div className="w-10 h-10 rounded-xl bg-amber-500 text-stone-950 flex items-center justify-center font-black text-lg shrink-0 mt-0.5 shadow-xs">
+            {/* Otomatik Yazdırma Anahtarı */}
+            <div className="bg-amber-50/70 border border-amber-200/80 rounded-xl p-2.5 flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="w-8 h-8 rounded-lg bg-amber-500 text-stone-950 flex items-center justify-center text-xs shrink-0">
                   <i className="fa-solid fa-bolt-lightning"></i>
                 </div>
-                <div>
-                  <span className="text-xs font-black text-stone-900 block flex items-center gap-2">
-                    Sipariş Onaylandığında Otomatik Fiş Çıkar
-                    <span className="bg-emerald-100 text-emerald-800 text-[10px] font-extrabold px-2 py-0.5 rounded-full border border-emerald-300">
-                      Önerilen (Restoran Modu)
-                    </span>
+                <div className="min-w-0">
+                  <span className="text-xs font-extrabold text-stone-900 block truncate">
+                    Onayda Otomatik Fiş Çıkar
                   </span>
-                  <p className="text-xs text-stone-600 mt-0.5 leading-relaxed">
-                    Sipariş yönetim panelinde (veya bildirim modalında) siparişi <strong>"Onayla ve Hazırla"</strong> yaptığınız anda, sisteme bağlı termal yazıcıdan beklemeden fiş otomatik çıkar.
-                  </p>
+                  <span className="text-[10px] text-stone-600 block truncate">
+                    &quot;Onayla ve Hazırla&quot; dediğiniz anda otomatik yazdırır
+                  </span>
                 </div>
               </div>
-              <label className="relative inline-flex items-center cursor-pointer shrink-0 self-end sm:self-center">
+              <label className="relative inline-flex items-center cursor-pointer shrink-0">
                 <input
                   type="checkbox"
                   checked={settings.autoPrintOnApproval !== false}
                   onChange={(e) => handleChange('autoPrintOnApproval', e.target.checked)}
                   className="sr-only peer"
                 />
-                <div className="w-12 h-6 bg-stone-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-stone-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600"></div>
+                <div className="w-10 h-5 bg-stone-300 rounded-full peer peer-checked:after:translate-x-5 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-600"></div>
               </label>
             </div>
 
             {/* Yazıcı Boyut ve Kopya Tercihleri */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-1.5 bg-stone-50 p-3.5 rounded-xl border border-stone-200">
-                <label className="text-xs font-bold text-stone-800 block">Termal Kağıt Genişliği</label>
+            <div className="grid grid-cols-2 gap-2">
+              <div className="space-y-1 bg-stone-50 p-2.5 rounded-lg border border-stone-200/80">
+                <label className="text-[11px] font-bold text-stone-700 block">Kağıt Genişliği</label>
                 <select
                   value={settings.receiptPaperWidth || '80mm'}
                   onChange={(e) => handleChange('receiptPaperWidth', e.target.value)}
-                  className="w-full text-xs bg-white border border-stone-300 rounded-lg px-3 py-2 font-bold text-stone-800 focus:outline-none focus:border-stone-500 cursor-pointer"
+                  className="w-full text-xs bg-white border border-stone-200 rounded-lg px-2 py-1.5 font-bold text-stone-800 focus:outline-none cursor-pointer"
                 >
-                  <option value="80mm">80 mm (Standart Xprinter Termal Rulo - Önerilen)</option>
-                  <option value="58mm">58 mm (Kompakt Termal Rulo)</option>
+                  <option value="80mm">80 mm (Standart)</option>
+                  <option value="58mm">58 mm (Kompakt)</option>
                 </select>
-                <p className="text-[11px] text-stone-500">Fotoğraftaki Xprinter cihazınız standart 80mm genişliktedir.</p>
               </div>
 
-              <div className="space-y-1.5 bg-stone-50 p-3.5 rounded-xl border border-stone-200">
-                <label className="text-xs font-bold text-stone-800 block">Her Siparişte Çıkacak Kopya Adedi</label>
+              <div className="space-y-1 bg-stone-50 p-2.5 rounded-lg border border-stone-200/80">
+                <label className="text-[11px] font-bold text-stone-700 block">Kopya Adedi</label>
                 <select
                   value={settings.receiptCopies || 1}
                   onChange={(e) => handleChange('receiptCopies', Number(e.target.value))}
-                  className="w-full text-xs bg-white border border-stone-300 rounded-lg px-3 py-2 font-bold text-stone-800 focus:outline-none focus:border-stone-500 cursor-pointer"
+                  className="w-full text-xs bg-white border border-stone-200 rounded-lg px-2 py-1.5 font-bold text-stone-800 focus:outline-none cursor-pointer"
                 >
-                  <option value={1}>1 Adet (Mutfak / Hazırlık)</option>
-                  <option value={2}>2 Adet (1 Mutfak Hazırlık + 1 Kurye / Müşteri Teslim)</option>
+                  <option value={1}>1 Adet (Mutfak)</option>
+                  <option value={2}>2 Adet (Mutfak + Kurye)</option>
                 </select>
-                <p className="text-[11px] text-stone-500">2 kopya seçildiğinde arka arkaya 2 nüsha fiş basılır.</p>
               </div>
             </div>
 
-            {/* Kiosk Modu Bilgilendirme Kutusu */}
-            <div className="bg-stone-900 text-stone-100 rounded-2xl p-4 border border-stone-800">
-              <div className="flex items-start gap-3">
-                <div className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center text-amber-400 font-bold shrink-0 mt-0.5">
-                  <i className="fa-brands fa-chrome text-base"></i>
-                </div>
-                <div className="space-y-1 text-xs">
-                  <span className="font-extrabold text-white block">
-                    Windows Chrome İpucu: Onay Penceresi Olmadan Doğrudan Yazdırma (--kiosk-printing)
-                  </span>
-                  <p className="text-stone-300 leading-relaxed">
-                    Yazdırma penceresi (Ctrl+P onay diyaloğu) hiç açılmadan, fişin Xprinter&apos;dan jet hızında fırlaması için Chrome masaüstü kısayoluna sağ tıklayıp <strong>Özellikler &gt; Hedef</strong> alanının sonuna şu parametreyi ekleyin:
-                  </p>
-                  <div className="bg-black/60 text-amber-300 font-mono text-[11px] px-3 py-1.5 rounded-lg border border-white/10 select-all inline-block mt-1">
-                    --kiosk-printing
-                  </div>
-                  <p className="text-[11px] text-stone-400">
-                    Windows varsayılan yazıcısı olarak <strong>Xprinter</strong> seçildiğinde, sipariş onaylandığında sıfır tıklama ile anında otomatik fiş çıkar.
-                  </p>
-                </div>
+            {/* Kompakt Chrome Kiosk İpucu */}
+            <div className="bg-stone-900 text-stone-200 rounded-xl px-3 py-2 flex items-center justify-between gap-2 text-[11px]">
+              <div className="flex items-center gap-2 min-w-0">
+                <i className="fa-brands fa-chrome text-amber-400 shrink-0"></i>
+                <span className="truncate">Onaysız hızlı baskı için Chrome hedefine ekleyin:</span>
               </div>
+              <code className="bg-black/60 text-amber-300 font-mono text-[10px] px-2 py-0.5 rounded border border-white/10 select-all shrink-0">
+                --kiosk-printing
+              </code>
             </div>
           </div>
 
-          {/* Fiş Metin ve Başlık İçeriği */}
-          <div className="bg-white p-4 sm:p-6 rounded-2xl border border-stone-200 shadow-xs space-y-4">
-            <div>
-              <h3 className="text-sm font-bold text-stone-900 flex items-center gap-2">
-                <i className="fa-solid fa-receipt text-stone-600"></i>
-                Fiş Üzerindeki Bilgiler &amp; Metin Şablonu
+          {/* Sağ: Fiş Metin ve Başlık İçeriği */}
+          <div className="lg:col-span-6 bg-white p-3.5 rounded-xl border border-stone-200/90 shadow-2xs space-y-3">
+            <div className="pb-2 border-b border-stone-100">
+              <h3 className="text-xs sm:text-sm font-extrabold text-stone-900 flex items-center gap-1.5">
+                <i className="fa-solid fa-receipt text-brand-600"></i>
+                <span>Fiş Bilgileri &amp; Metin Şablonu</span>
               </h3>
-              <p className="text-xs text-stone-500 mt-0.5">
-                Müşteri adisyon fişinde ve paket teslim tutanağında yazdırılacak şube başlık ve alt notları.
-              </p>
+              <p className="text-[11px] text-stone-500">Fiş başlığı, iletişim bilgileri ve alt not</p>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-stone-700 block">Fiş Başlığı (İşletme Adı)</label>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+              <div className="space-y-1">
+                <label className="text-[11px] font-bold text-stone-700 block">Fiş Başlığı (İşletme Adı)</label>
                 <input
                   type="text"
                   value={settings.storeName}
                   onChange={(e) => handleChange('storeName', e.target.value)}
-                  className="w-full text-xs bg-stone-50 border border-stone-200 rounded-xl px-3 py-2 font-medium text-stone-900 focus:outline-none focus:border-stone-400"
+                  className="w-full text-xs bg-stone-50 border border-stone-200 rounded-lg px-2.5 py-1.5 font-medium text-stone-900 focus:outline-none focus:border-stone-400"
                 />
               </div>
 
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-stone-700 block">Şube İletişim Telefonu</label>
+              <div className="space-y-1">
+                <label className="text-[11px] font-bold text-stone-700 block">Şube Telefonu</label>
                 <input
                   type="text"
                   value={settings.storePhone}
                   onChange={(e) => handleChange('storePhone', e.target.value)}
-                  className="w-full text-xs bg-stone-50 border border-stone-200 rounded-xl px-3 py-2 font-medium text-stone-900 focus:outline-none focus:border-stone-400"
+                  className="w-full text-xs bg-stone-50 border border-stone-200 rounded-lg px-2.5 py-1.5 font-medium text-stone-900 focus:outline-none focus:border-stone-400"
                 />
               </div>
 
-              <div className="sm:col-span-2 space-y-1.5">
-                <label className="text-xs font-bold text-stone-700 block">Şube Adresi</label>
+              <div className="sm:col-span-2 space-y-1">
+                <label className="text-[11px] font-bold text-stone-700 block">Şube Adresi</label>
                 <input
                   type="text"
                   value={settings.storeAddress}
                   onChange={(e) => handleChange('storeAddress', e.target.value)}
-                  className="w-full text-xs bg-stone-50 border border-stone-200 rounded-xl px-3 py-2 font-medium text-stone-900 focus:outline-none focus:border-stone-400"
+                  className="w-full text-xs bg-stone-50 border border-stone-200 rounded-lg px-2.5 py-1.5 font-medium text-stone-900 focus:outline-none focus:border-stone-400"
                 />
               </div>
 
-              <div className="sm:col-span-2 space-y-1.5">
-                <label className="text-xs font-bold text-stone-700 block">Fiş Alt Bilgi Notu</label>
+              <div className="sm:col-span-2 space-y-1">
+                <label className="text-[11px] font-bold text-stone-700 block">Fiş Alt Bilgi Notu</label>
                 <textarea
                   rows="2"
                   value={settings.receiptFooter}
                   onChange={(e) => handleChange('receiptFooter', e.target.value)}
-                  className="w-full text-xs bg-stone-50 border border-stone-200 rounded-xl p-3 font-medium text-stone-900 focus:outline-none focus:border-stone-400"
+                  className="w-full text-xs bg-stone-50 border border-stone-200 rounded-lg p-2 font-medium text-stone-900 focus:outline-none focus:border-stone-400 resize-none"
                 ></textarea>
               </div>
             </div>
 
-            <div className="flex flex-wrap items-center gap-4 pt-3 border-t border-stone-100 text-xs">
-              <label className="flex items-center gap-2 cursor-pointer font-medium text-stone-700">
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-2 pt-2 border-t border-stone-100 text-[11px]">
+              <label className="flex items-center gap-1.5 cursor-pointer font-semibold text-stone-700">
                 <input
                   type="checkbox"
                   checked={settings.showPricesOnReceipt}
                   onChange={(e) => handleChange('showPricesOnReceipt', e.target.checked)}
                   className="rounded border-stone-300 text-brand-600 focus:ring-0 cursor-pointer"
                 />
-                <span>Fiş üzerinde ürün birim ve toplam fiyatlarını yazdır</span>
+                <span>Fiyatları yazdır</span>
               </label>
-              <label className="flex items-center gap-2 cursor-pointer font-medium text-stone-700">
+              <label className="flex items-center gap-1.5 cursor-pointer font-semibold text-stone-700">
                 <input
                   type="checkbox"
                   checked={settings.showPhoneOnReceipt}
                   onChange={(e) => handleChange('showPhoneOnReceipt', e.target.checked)}
                   className="rounded border-stone-300 text-brand-600 focus:ring-0 cursor-pointer"
                 />
-                <span>Müşteri telefon numarasını fişte göster</span>
+                <span>Müşteri telefonu göster</span>
               </label>
-              <label className="flex items-center gap-2 cursor-pointer font-medium text-stone-700">
+              <label className="flex items-center gap-1.5 cursor-pointer font-semibold text-stone-700">
                 <input
                   type="checkbox"
                   checked={settings.receiptShowNotes !== false}
                   onChange={(e) => handleChange('receiptShowNotes', e.target.checked)}
                   className="rounded border-stone-300 text-brand-600 focus:ring-0 cursor-pointer"
                 />
-                <span>Müşteri sipariş notunu vurgulu çerçevede bas</span>
+                <span>Sipariş notunu vurgula</span>
               </label>
             </div>
           </div>
+
+          {/* Canlı Termal Fiş Önizleme */}
+          {showReceiptPreview && (
+            <div className="lg:col-span-12 bg-stone-100/90 border border-stone-200 rounded-xl p-3 flex flex-col items-center gap-2">
+              <div className="w-full flex items-center justify-between text-xs">
+                <span className="font-extrabold text-stone-700 flex items-center gap-1.5">
+                  <i className="fa-solid fa-receipt text-amber-600"></i>
+                  Canlı Fiş Önizleme ({settings.receiptPaperWidth || '80mm'})
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setShowReceiptPreview(false)}
+                  className="text-[11px] font-bold text-stone-500 hover:text-stone-900 cursor-pointer"
+                >
+                  Kapat
+                </button>
+              </div>
+              <div
+                className="bg-white shadow-md border border-stone-300 rounded-lg overflow-hidden"
+                style={{ width: settings.receiptPaperWidth === '58mm' ? '260px' : '340px' }}
+              >
+                <iframe
+                  title="Termal Fiş Önizleme"
+                  srcDoc={generateReceiptHtml(getSampleThermalOrder(), settings)}
+                  className="w-full h-[440px] border-0 bg-white"
+                />
+              </div>
+            </div>
+          )}
         </div>
       )}
 
       {/* SEKME 4: SİSTEM VE YEDEKLEME */}
       {activeSubTab === 'system' && (
-        <div className="space-y-4">
+        <div className="space-y-3">
           {/* SİSTEM DEPOLAMA VE DİSK KULLANIM PANELİ */}
-          <div className="bg-white p-4 sm:p-6 rounded-2xl border border-stone-200 shadow-xs space-y-5">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-stone-100 pb-4">
+          <div className="bg-white p-3.5 rounded-xl border border-stone-200/90 shadow-2xs space-y-3">
+            <div className="flex items-center justify-between gap-2 pb-2 border-b border-stone-100">
               <div>
-                <h3 className="text-sm font-extrabold text-stone-900 flex items-center gap-2">
+                <h3 className="text-xs sm:text-sm font-extrabold text-stone-900 flex items-center gap-1.5">
                   <i className="fa-solid fa-hard-drive text-amber-600"></i>
-                  <span>Sistem Depolama &amp; Disk Kapasitesi</span>
+                  <span>Sistem Depolama &amp; Sunucu Kaynakları</span>
                 </h3>
-                <p className="text-xs text-stone-500 mt-0.5">
-                  Tüm sistemin, veritabanının ve yüklenen dosyaların diskte kapladığı toplam alan (GB / MB) ve sunucu kaynakları.
-                </p>
+                <p className="text-[11px] text-stone-500">Disk, proje, veritabanı ve bellek kullanımı</p>
               </div>
 
               <button
                 type="button"
                 onClick={fetchStorageInfo}
                 disabled={loadingStorage}
-                className="self-start sm:self-center px-3.5 py-1.5 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-800 text-xs font-bold transition-all flex items-center gap-2 cursor-pointer shadow-2xs border border-stone-200"
+                className="px-2.5 py-1.5 rounded-lg bg-stone-100 hover:bg-stone-200 text-stone-800 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer border border-stone-200 shrink-0"
               >
-                <i className={`fa-solid fa-rotate ${loadingStorage ? 'animate-spin text-amber-600' : 'text-stone-500'}`}></i>
-                <span>{loadingStorage ? 'Ölçülüyor...' : 'Şimdi Yenile'}</span>
+                <i className={`fa-solid fa-rotate ${loadingStorage ? 'animate-spin text-amber-600' : 'text-stone-500'} text-[11px]`}></i>
+                <span>{loadingStorage ? 'Ölçülüyor...' : 'Yenile'}</span>
               </button>
             </div>
 
-            {/* 4 Ana Metrik Kartı */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+            {/* 4 Ana Metrik Kartı (Kompakt) */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5">
               {/* Kart 1: Sunucu Diski */}
-              <div className="bg-stone-50/80 border border-stone-200/90 rounded-2xl p-4 space-y-2">
+              <div className="bg-stone-50/70 border border-stone-200/80 rounded-xl p-3 space-y-1.5">
                 <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-bold text-stone-500 uppercase tracking-wider">Sunucu Diski</span>
-                  <span className="w-7 h-7 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center text-xs">
-                    <i className="fa-solid fa-server"></i>
-                  </span>
+                  <span className="text-[10px] font-bold text-stone-500 uppercase tracking-wider">Sunucu Diski</span>
+                  <i className="fa-solid fa-server text-amber-600 text-xs"></i>
                 </div>
-                <div className="flex items-baseline gap-1.5">
-                  <span className="text-2xl font-black text-stone-900">
+                <div className="flex items-baseline gap-1">
+                  <span className="text-lg font-black text-stone-900">
                     {storageInfo?.disk?.totalGB ? `${storageInfo.disk.totalGB} GB` : 'Ölçülüyor'}
                   </span>
-                  <span className="text-[11px] font-bold text-stone-500">toplam</span>
+                  <span className="text-[10px] font-bold text-stone-500">toplam</span>
                 </div>
                 {storageInfo?.disk && (
-                  <div className="space-y-1.5 pt-1">
-                    <div className="w-full bg-stone-200 h-2 rounded-full overflow-hidden">
+                  <div className="space-y-1">
+                    <div className="w-full bg-stone-200 h-1.5 rounded-full overflow-hidden">
                       <div
                         className="bg-amber-500 h-full rounded-full transition-all duration-500"
                         style={{ width: `${Math.min(100, storageInfo.disk.usedPercent)}%` }}
                       ></div>
                     </div>
-                    <div className="flex justify-between text-[10px] text-stone-500 font-medium">
-                      <span>Kullanılan: {storageInfo.disk.usedGB} GB (%{storageInfo.disk.usedPercent})</span>
+                    <div className="flex justify-between text-[10px] text-stone-500">
+                      <span>%{storageInfo.disk.usedPercent} dolu</span>
                       <span className="text-emerald-700 font-bold">Boş: {storageInfo.disk.freeGB} GB</span>
                     </div>
                   </div>
@@ -2326,64 +2151,56 @@ export default function SettingsTab({
               </div>
 
               {/* Kart 2: Proje Boyutu */}
-              <div className="bg-stone-50/80 border border-stone-200/90 rounded-2xl p-4 space-y-2">
+              <div className="bg-stone-50/70 border border-stone-200/80 rounded-xl p-3 space-y-1.5">
                 <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-bold text-stone-500 uppercase tracking-wider">Sandviç Diyarı Projesi</span>
-                  <span className="w-7 h-7 rounded-lg bg-sky-100 text-sky-700 flex items-center justify-center text-xs">
-                    <i className="fa-solid fa-folder-tree"></i>
-                  </span>
+                  <span className="text-[10px] font-bold text-stone-500 uppercase tracking-wider">Proje Alanı</span>
+                  <i className="fa-solid fa-folder-tree text-sky-600 text-xs"></i>
                 </div>
-                <div className="flex items-baseline gap-1.5">
-                  <span className="text-2xl font-black text-stone-900">
+                <div className="flex items-baseline gap-1">
+                  <span className="text-lg font-black text-stone-900">
                     {storageInfo?.project?.totalGB ? `${storageInfo.project.totalGB} GB` : 'Ölçülüyor'}
                   </span>
-                  <span className="text-[11px] font-bold text-stone-500">
+                  <span className="text-[10px] font-bold text-stone-500">
                     ({storageInfo?.project?.totalMB || 0} MB)
                   </span>
                 </div>
                 {storageInfo?.project?.breakdown && (
-                  <div className="pt-1 text-[10px] text-stone-500 space-y-0.5">
+                  <div className="text-[10px] text-stone-500 space-y-0.5">
                     <div className="flex justify-between">
-                      <span>Paketler (node_modules):</span>
+                      <span>Paketler:</span>
                       <strong className="text-stone-800">{storageInfo.project.breakdown.nodeModulesMB} MB</strong>
                     </div>
                     <div className="flex justify-between">
-                      <span>Next.js Build Önbelleği:</span>
-                      <strong className="text-stone-800">{storageInfo.project.breakdown.nextBuildMB} MB</strong>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Medya &amp; Yüklenenler:</span>
-                      <strong className="text-stone-800">{storageInfo.project.breakdown.publicMediaMB} MB</strong>
+                      <span>Build / Medya:</span>
+                      <strong className="text-stone-800">
+                        {storageInfo.project.breakdown.nextBuildMB} / {storageInfo.project.breakdown.publicMediaMB} MB
+                      </strong>
                     </div>
                   </div>
                 )}
               </div>
 
               {/* Kart 3: PostgreSQL Veritabanı */}
-              <div className="bg-stone-50/80 border border-stone-200/90 rounded-2xl p-4 space-y-2">
+              <div className="bg-stone-50/70 border border-stone-200/80 rounded-xl p-3 space-y-1.5">
                 <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-bold text-stone-500 uppercase tracking-wider">PostgreSQL Veritabanı</span>
-                  <span className="w-7 h-7 rounded-lg bg-indigo-100 text-indigo-700 flex items-center justify-center text-xs">
-                    <i className="fa-solid fa-database"></i>
-                  </span>
+                  <span className="text-[10px] font-bold text-stone-500 uppercase tracking-wider">Veritabanı</span>
+                  <i className="fa-solid fa-database text-indigo-600 text-xs"></i>
                 </div>
                 <div className="flex items-baseline gap-1.5">
-                  <span className="text-2xl font-black text-indigo-900">
+                  <span className="text-lg font-black text-indigo-900">
                     {storageInfo?.database?.sizePretty || 'Hesaplanıyor'}
                   </span>
-                  <span className="text-[10px] font-bold bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded-md">
+                  <span className="text-[10px] font-bold bg-emerald-100 text-emerald-800 px-1.5 py-0.5 rounded">
                     {storageInfo?.database?.connected ? 'Aktif' : 'Bağlı'}
                   </span>
                 </div>
                 {storageInfo?.database?.counts && (
-                  <div className="pt-1 text-[10px] text-stone-500 space-y-0.5">
+                  <div className="text-[10px] text-stone-500 space-y-0.5">
                     <div className="flex justify-between">
-                      <span>Kayıtlı Siparişler:</span>
-                      <strong className="text-stone-800">{storageInfo.database.counts.orders} adet</strong>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Menü &amp; Ürünler:</span>
-                      <strong className="text-stone-800">{storageInfo.database.counts.products} adet</strong>
+                      <span>Sipariş / Ürün:</span>
+                      <strong className="text-stone-800">
+                        {storageInfo.database.counts.orders} / {storageInfo.database.counts.products}
+                      </strong>
                     </div>
                     <div className="flex justify-between">
                       <span>Kullanıcılar:</span>
@@ -2394,31 +2211,27 @@ export default function SettingsTab({
               </div>
 
               {/* Kart 4: Sunucu RAM (Bellek) */}
-              <div className="bg-stone-50/80 border border-stone-200/90 rounded-2xl p-4 space-y-2">
+              <div className="bg-stone-50/70 border border-stone-200/80 rounded-xl p-3 space-y-1.5">
                 <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-bold text-stone-500 uppercase tracking-wider">Sunucu RAM (Bellek)</span>
-                  <span className="w-7 h-7 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center text-xs">
-                    <i className="fa-solid fa-microchip"></i>
-                  </span>
+                  <span className="text-[10px] font-bold text-stone-500 uppercase tracking-wider">Sunucu RAM</span>
+                  <i className="fa-solid fa-microchip text-emerald-600 text-xs"></i>
                 </div>
-                <div className="flex items-baseline gap-1.5">
-                  <span className="text-2xl font-black text-stone-900">
+                <div className="flex items-baseline gap-1">
+                  <span className="text-lg font-black text-stone-900">
                     {storageInfo?.memory?.totalGB ? `${storageInfo.memory.totalGB} GB` : 'Ölçülüyor'}
                   </span>
-                  <span className="text-[11px] font-bold text-stone-500">RAM</span>
+                  <span className="text-[10px] font-bold text-stone-500">RAM</span>
                 </div>
                 {storageInfo?.memory && (
-                  <div className="pt-1 text-[10px] text-stone-500 space-y-0.5">
+                  <div className="text-[10px] text-stone-500 space-y-0.5">
                     <div className="flex justify-between">
-                      <span>Kullanılan RAM:</span>
-                      <strong className="text-amber-700">{storageInfo.memory.usedGB} GB</strong>
+                      <span>Kullanılan / Boş:</span>
+                      <strong className="text-stone-800">
+                        {storageInfo.memory.usedGB} / {storageInfo.memory.freeGB} GB
+                      </strong>
                     </div>
                     <div className="flex justify-between">
-                      <span>Boş RAM:</span>
-                      <strong className="text-emerald-700">{storageInfo.memory.freeGB} GB</strong>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Node.js Bellek:</span>
+                      <span>Node Heap:</span>
                       <strong className="text-stone-800">{storageInfo.memory.processHeapMB} MB</strong>
                     </div>
                   </div>
@@ -2427,110 +2240,91 @@ export default function SettingsTab({
             </div>
           </div>
 
-          {/* VERİ TABANI & SİSTEM YEDEĞİ İNDİRME (EXCEL & JSON) */}
-          <div className="bg-white p-4 sm:p-6 rounded-2xl border border-stone-200 shadow-xs space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-stone-100 pb-3">
+          {/* YEDEKLEME & VARSAYILAN AYARLAR (TEK SATIR 3 KOMPAKT KART) */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-3">
+            {/* KART 1: EXCEL YEDEĞİ */}
+            <div className="lg:col-span-5 p-3.5 rounded-xl bg-emerald-50/40 border border-emerald-200 flex flex-col justify-between gap-3">
+              <div className="flex items-start gap-2.5">
+                <span className="w-8 h-8 rounded-lg bg-emerald-600 text-white flex items-center justify-center text-sm shrink-0">
+                  <i className="fa-solid fa-file-excel"></i>
+                </span>
+                <div className="min-w-0">
+                  <span className="font-extrabold text-xs sm:text-sm text-emerald-950 block">
+                    Detaylı Excel Yedeği (.xlsx)
+                  </span>
+                  <p className="text-[11px] text-stone-600 mt-0.5 leading-snug">
+                    Siparişler, ürünler, müşteriler, stok ve kasa hareketlerini çok sayfalı Excel olarak indirir.
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => handleDownloadBackup('excel')}
+                disabled={downloadingFormat !== null}
+                className="w-full bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-xs font-bold py-2 px-3 rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+              >
+                <i className={`fa-solid ${downloadingFormat === 'excel' ? 'fa-spinner animate-spin' : 'fa-file-excel'}`}></i>
+                <span>{downloadingFormat === 'excel' ? 'Hazırlanıyor...' : 'Excel Yedeğini İndir (.xlsx)'}</span>
+              </button>
+            </div>
+
+            {/* KART 2: TEKNİK JSON YEDEĞİ */}
+            <div className="lg:col-span-4 p-3.5 rounded-xl bg-white border border-stone-200/90 flex flex-col justify-between gap-3">
+              <div className="flex items-start gap-2.5">
+                <span className="w-8 h-8 rounded-lg bg-stone-800 text-white flex items-center justify-center text-xs shrink-0">
+                  <i className="fa-solid fa-code"></i>
+                </span>
+                <div className="min-w-0">
+                  <span className="font-extrabold text-xs sm:text-sm text-stone-900 block">
+                    Teknik JSON Yedeği
+                  </span>
+                  <p className="text-[11px] text-stone-500 mt-0.5 leading-snug">
+                    Veritabanı tabloları ve panel ayarlarının ham JSON yedeği.
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => handleDownloadBackup('json')}
+                disabled={downloadingFormat !== null}
+                className="w-full bg-stone-900 hover:bg-black disabled:opacity-50 text-white text-xs font-bold py-2 px-3 rounded-lg transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+              >
+                <i className={`fa-solid ${downloadingFormat === 'json' ? 'fa-spinner animate-spin' : 'fa-download'}`}></i>
+                <span>{downloadingFormat === 'json' ? 'Hazırlanıyor...' : 'JSON Yedeğini İndir (.json)'}</span>
+              </button>
+            </div>
+
+            {/* KART 3: VARSAYILAN AYARLARA DÖN */}
+            <div className="lg:col-span-3 p-3.5 rounded-xl bg-rose-50/30 border border-rose-200/80 flex flex-col justify-between gap-3">
               <div>
-                <h3 className="text-sm font-extrabold text-stone-900 flex items-center gap-2">
-                  <i className="fa-solid fa-cloud-arrow-down text-emerald-600"></i>
-                  <span>Veri Tabanı &amp; Sistem Yedeği Al (Excel / JSON)</span>
+                <h3 className="text-xs sm:text-sm font-extrabold text-rose-900 flex items-center gap-1.5">
+                  <i className="fa-solid fa-arrow-rotate-left text-rose-600"></i>
+                  <span>Varsayılana Sıfırla</span>
                 </h3>
-                <p className="text-xs text-stone-500 mt-0.5">
-                  Tüm siparişleri, menü ürünlerini, müşteri ve personel listelerini Excel (.xlsx) veya teknik JSON formatında güvenle bilgisayarınıza indirin.
+                <p className="text-[11px] text-stone-500 mt-0.5 leading-snug">
+                  Panel ses, yazı ve fiş ayarlarını sıfırlar. Verileriniz silinmez.
                 </p>
               </div>
-              <span className="text-[10px] font-extrabold px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 self-start sm:self-center">
-                Excel .xlsx Destekli
-              </span>
-            </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
-              {/* KART 1: EXCEL YEDEĞİ (ÖNCELİKLİ & DETAYLI) */}
-              <div className="p-4 sm:p-5 rounded-2xl bg-emerald-50/50 border-2 border-emerald-200 flex flex-col justify-between gap-4 transition-all hover:border-emerald-300 shadow-2xs">
-                <div className="space-y-1.5">
-                  <div className="flex items-center gap-2">
-                    <span className="w-8 h-8 rounded-xl bg-emerald-600 text-white flex items-center justify-center text-sm font-bold shadow-2xs">
-                      <i className="fa-solid fa-file-excel"></i>
-                    </span>
-                    <div>
-                      <span className="font-extrabold text-sm text-emerald-950 block">Detaylı Excel Yedeği (.xlsx)</span>
-                      <span className="text-[10px] font-bold text-emerald-700 block">Önerilen &bull; Çok Sayfalı Çalışma Kitabı</span>
-                    </div>
-                  </div>
-                  <p className="text-xs text-stone-600 leading-relaxed pt-1">
-                    Siparişler, ürünler, kayıtlı müşteriler, stok malzemeleri, kasa hareketleri ve yorumları ayrı sekmeler halinde içeren profesyonel Excel tablosu.
-                  </p>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() => handleDownloadBackup('excel')}
-                  disabled={downloadingFormat !== null}
-                  className="w-full bg-emerald-600 hover:bg-emerald-700 active:scale-98 disabled:opacity-50 text-white text-xs font-black py-2.5 px-4 rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer shadow-md shadow-emerald-600/20"
-                >
-                  <i className={`fa-solid ${downloadingFormat === 'excel' ? 'fa-spinner animate-spin' : 'fa-file-excel'}`}></i>
-                  <span>{downloadingFormat === 'excel' ? 'Excel Hazırlanıyor...' : 'Excel Yedeğini İndir (.xlsx)'}</span>
-                </button>
-              </div>
-
-              {/* KART 2: TEKNİK JSON YEDEĞİ */}
-              <div className="p-4 sm:p-5 rounded-2xl bg-stone-50 border border-stone-200 flex flex-col justify-between gap-4 transition-all hover:border-stone-300 shadow-2xs">
-                <div className="space-y-1.5">
-                  <div className="flex items-center gap-2">
-                    <span className="w-8 h-8 rounded-xl bg-stone-800 text-white flex items-center justify-center text-sm font-bold shadow-2xs">
-                      <i className="fa-solid fa-code"></i>
-                    </span>
-                    <div>
-                      <span className="font-extrabold text-sm text-stone-900 block">Teknik Veri Tabanı Yedeği (.json)</span>
-                      <span className="text-[10px] font-bold text-stone-500 block">Yazılım Geri Yükleme &amp; Arşiv</span>
-                    </div>
-                  </div>
-                  <p className="text-xs text-stone-600 leading-relaxed pt-1">
-                    Veritabanı tablolarının ve panel yapılandırma ayarlarının ham JSON dökümünü içerir. İleri düzey teknik yedekleme için uygundur.
-                  </p>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() => handleDownloadBackup('json')}
-                  disabled={downloadingFormat !== null}
-                  className="w-full bg-stone-900 hover:bg-black active:scale-98 disabled:opacity-50 text-white text-xs font-bold py-2.5 px-4 rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer shadow-xs"
-                >
-                  <i className={`fa-solid ${downloadingFormat === 'json' ? 'fa-spinner animate-spin' : 'fa-download'}`}></i>
-                  <span>{downloadingFormat === 'json' ? 'JSON Hazırlanıyor...' : 'JSON Yedeğini İndir (.json)'}</span>
-                </button>
-              </div>
-            </div>
-          </div>
-
-          {/* Fabrika Ayarlarına Dönüş */}
-          <div className="bg-white p-4 sm:p-6 rounded-2xl border border-rose-200/80 shadow-xs space-y-3">
-            <div>
-              <h3 className="text-sm font-bold text-rose-900 flex items-center gap-2">
-                <i className="fa-solid fa-arrow-rotate-left text-rose-600"></i>
-                Panel Ayarlarını Varsayılana Döndür
-              </h3>
-              <p className="text-xs text-stone-500 mt-0.5">
-                Yazı boyutu, ses ve fiş ayarlarını fabrika varsayılan ayarlarına geri döndürür. Ürün ve sipariş kayıtlarınız silinmez.
-              </p>
-            </div>
-
-            <button
-              type="button"
-              onClick={() => {
-                if (confirm('Panel ayarları varsayılan fabrika ayarlarına döndürülsün mü?')) {
-                  setSettings(DEFAULT_ADMIN_SETTINGS);
-                  if (typeof window !== 'undefined') {
-                    localStorage.setItem('sandwich_admin_settings', JSON.stringify(DEFAULT_ADMIN_SETTINGS));
+              <button
+                type="button"
+                onClick={() => {
+                  if (confirm('Panel ayarları varsayılan fabrika ayarlarına döndürülsün mü?')) {
+                    setSettings(DEFAULT_ADMIN_SETTINGS);
+                    if (typeof window !== 'undefined') {
+                      localStorage.setItem('sandwich_admin_settings', JSON.stringify(DEFAULT_ADMIN_SETTINGS));
+                    }
+                    if (onSaveSettings) onSaveSettings(DEFAULT_ADMIN_SETTINGS);
+                    alert('Ayarlar varsayılan hale getirildi.');
                   }
-                  if (onSaveSettings) onSaveSettings(DEFAULT_ADMIN_SETTINGS);
-                  alert('Ayarlar varsayılan hale getirildi.');
-                }
-              }}
-              className="bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-bold px-3.5 py-2 rounded-xl transition-colors cursor-pointer"
-            >
-              Varsayılan Ayarlara Sıfırla
-            </button>
+                }}
+                className="w-full bg-white hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-bold py-2 px-3 rounded-lg transition-colors cursor-pointer"
+              >
+                Ayarları Sıfırla
+              </button>
+            </div>
           </div>
         </div>
       )}

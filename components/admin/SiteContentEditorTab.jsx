@@ -325,10 +325,10 @@ export default function SiteContentEditorTab({ initialSubTab = 'hero', onSubTabC
   };
 
   return (
-    <div className="space-y-4 w-full min-w-0 font-poppins animate-in fade-in duration-150">
-      {/* 1. ÜST BÖLÜM GEÇİŞ SEKMELERİ (MODERN YATAY PILL MENÜ) */}
-      <div className="bg-white p-2 rounded-2xl border border-stone-200/90 shadow-2xs overflow-x-auto scrollbar-none">
-        <div className="flex items-center gap-1.5 min-w-max">
+    <div className="space-y-3 w-full min-w-0 font-poppins animate-in fade-in duration-150">
+      {/* 1. ÜST BÖLÜM GEÇİŞ SEKMELERİ (KOMPAKT YATAY PILL MENÜ) */}
+      <div className="bg-white p-1.5 rounded-xl border border-stone-200/90 shadow-2xs overflow-x-auto scrollbar-none">
+        <div className="flex items-center gap-1 min-w-max">
           {SECTIONS.map((sec) => {
             const isActive = activeSubTab === sec.id;
             const isVisible = sec.getVisibility(content);
@@ -338,17 +338,17 @@ export default function SiteContentEditorTab({ initialSubTab = 'hero', onSubTabC
                 key={sec.id}
                 type="button"
                 onClick={() => handleSubTabChange(sec.id)}
-                className={`flex items-center gap-2 px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all duration-150 cursor-pointer ${
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all duration-150 cursor-pointer ${
                   isActive
-                    ? 'bg-stone-900 text-white shadow-xs'
+                    ? 'bg-brand-600 text-white shadow-2xs'
                     : 'text-stone-600 hover:text-stone-950 hover:bg-stone-100'
                 }`}
               >
-                <i className={`${sec.icon} ${isActive ? 'text-amber-400' : 'text-stone-400'}`}></i>
+                <i className={`${sec.icon} ${isActive ? 'text-white' : 'text-stone-400'}`}></i>
                 <span>{sec.shortTitle}</span>
                 <span
-                  className={`w-2 h-2 rounded-full shrink-0 ${
-                    isVisible ? 'bg-emerald-500' : 'bg-stone-300'
+                  className={`w-1.5 h-1.5 rounded-full shrink-0 ${
+                    isVisible ? 'bg-emerald-400' : 'bg-stone-300'
                   }`}
                   title={isVisible ? 'Sitede Yayında' : 'Sitede Gizli'}
                 ></span>
@@ -359,15 +359,15 @@ export default function SiteContentEditorTab({ initialSubTab = 'hero', onSubTabC
       </div>
 
       {/* 2. EYLEM & DURUM KONTROL ŞERİDİ */}
-      <div className="bg-white p-4 rounded-2xl border border-stone-200/90 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-3">
+      <div className="bg-white p-3 rounded-xl border border-stone-200/90 shadow-2xs flex flex-col md:flex-row md:items-center justify-between gap-2.5">
         {/* Sol: Başlık ve Açıklama */}
-        <div className="flex items-center gap-3 min-w-0">
-          <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-700 border border-amber-200/60 flex items-center justify-center text-base shrink-0 shadow-2xs">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <div className="w-8 h-8 rounded-lg bg-brand-50 text-brand-700 border border-brand-200/60 flex items-center justify-center text-sm shrink-0">
             <i className={currentMeta.icon}></i>
           </div>
           <div className="min-w-0">
             <div className="flex items-center gap-2">
-              <h3 className="text-sm font-extrabold text-stone-900 truncate">
+              <h3 className="text-xs sm:text-sm font-extrabold text-stone-900 truncate">
                 {currentMeta.title}
               </h3>
               {hasUnsavedChanges && (
@@ -376,43 +376,43 @@ export default function SiteContentEditorTab({ initialSubTab = 'hero', onSubTabC
                 </span>
               )}
             </div>
-            <p className="text-xs text-stone-500 truncate mt-0.5">{currentMeta.desc}</p>
+            <p className="text-[11px] text-stone-500 truncate">{currentMeta.desc}</p>
           </div>
         </div>
 
         {/* Sağ: Görünürlük Switch + Önizleme + Kaydet */}
-        <div className="flex flex-wrap items-center gap-2 shrink-0 pt-2 md:pt-0 border-t md:border-t-0 border-stone-100">
+        <div className="flex flex-wrap items-center gap-1.5 shrink-0 pt-2 md:pt-0 border-t md:border-t-0 border-stone-100">
           {/* Bölüm Açık / Kapalı Toggle */}
           <button
             type="button"
             onClick={toggleCurrentVisibility}
-            className={`px-3 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer border shadow-2xs ${
+            className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer border ${
               isCurrentVisible
-                ? 'bg-emerald-50 text-emerald-800 border-emerald-300 hover:bg-emerald-100'
+                ? 'bg-emerald-50 text-emerald-800 border-emerald-200 hover:bg-emerald-100'
                 : 'bg-stone-100 text-stone-500 border-stone-300 hover:bg-stone-200'
             }`}
             title="Bölümü ana sayfada göster veya gizle"
           >
             <span
-              className={`w-2 h-2 rounded-full ${
+              className={`w-1.5 h-1.5 rounded-full ${
                 isCurrentVisible ? 'bg-emerald-500 animate-pulse' : 'bg-stone-400'
               }`}
             ></span>
-            <span>{isCurrentVisible ? 'Sitede Yayında' : 'Sitede Gizli'}</span>
+            <span>{isCurrentVisible ? 'Yayında' : 'Gizli'}</span>
           </button>
 
-          {/* Canlı Önizleme Aç/Kapa (Büyük ekranda split view'ı kontrol eder) */}
+          {/* Canlı Önizleme Aç/Kapa */}
           <button
             type="button"
             onClick={() => setShowLivePreview(!showLivePreview)}
-            className={`px-3 py-2 rounded-xl text-xs font-bold transition-colors cursor-pointer flex items-center gap-1.5 border ${
+            className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition-colors cursor-pointer flex items-center gap-1.5 border ${
               showLivePreview
                 ? 'bg-indigo-50 text-indigo-700 border-indigo-200'
                 : 'bg-stone-50 text-stone-600 border-stone-200 hover:bg-stone-100'
             }`}
             title="Canlı Önizleme Panelini Aç veya Kapat"
           >
-            <i className="fa-solid fa-eye text-xs"></i>
+            <i className="fa-solid fa-eye text-[11px]"></i>
             <span className="hidden sm:inline">Önizleme: {showLivePreview ? 'Açık' : 'Kapalı'}</span>
           </button>
 
@@ -420,10 +420,10 @@ export default function SiteContentEditorTab({ initialSubTab = 'hero', onSubTabC
           <button
             type="button"
             onClick={() => window.open('/', '_blank')}
-            className="bg-stone-100 hover:bg-stone-200 text-stone-700 font-bold px-3 py-2 rounded-xl text-xs flex items-center gap-1.5 transition-colors cursor-pointer"
+            className="bg-stone-100 hover:bg-stone-200 text-stone-700 font-bold px-2.5 py-1.5 rounded-lg text-xs flex items-center gap-1.5 transition-colors cursor-pointer"
             title="Müşteri Sitesini Yeni Sekmede Gör"
           >
-            <i className="fa-solid fa-arrow-up-right-from-square text-[11px]"></i>
+            <i className="fa-solid fa-arrow-up-right-from-square text-[10px]"></i>
             <span className="hidden sm:inline">Siteyi Aç</span>
           </button>
 
@@ -431,7 +431,7 @@ export default function SiteContentEditorTab({ initialSubTab = 'hero', onSubTabC
           <button
             type="button"
             onClick={handleResetToDefaults}
-            className="text-stone-400 hover:text-rose-600 hover:bg-rose-50 px-2.5 py-2 rounded-xl text-xs font-semibold transition-colors cursor-pointer"
+            className="text-stone-400 hover:text-rose-600 hover:bg-rose-50 px-2 py-1.5 rounded-lg text-xs font-semibold transition-colors cursor-pointer"
             title="Varsayılan Fabrika İçeriklerine Sıfırla"
           >
             <i className="fa-solid fa-rotate-left"></i>
@@ -442,9 +442,9 @@ export default function SiteContentEditorTab({ initialSubTab = 'hero', onSubTabC
             type="button"
             disabled={saving}
             onClick={handleSave}
-            className="bg-stone-900 hover:bg-black disabled:opacity-50 text-white font-extrabold px-4 sm:px-5 py-2 rounded-xl text-xs flex items-center gap-2 transition-all cursor-pointer shadow-xs active:scale-95"
+            className="bg-brand-600 hover:bg-brand-700 disabled:opacity-50 text-white font-bold px-3.5 py-1.5 rounded-lg text-xs flex items-center gap-1.5 transition-all cursor-pointer shadow-2xs active:scale-95"
           >
-            <i className={`fa-solid ${saving ? 'fa-spinner fa-spin' : 'fa-check text-emerald-400'}`}></i>
+            <i className={`fa-solid ${saving ? 'fa-spinner fa-spin' : 'fa-check'}`}></i>
             <span>{saving ? 'Kaydediliyor...' : hasUnsavedChanges ? 'Değişiklikleri Kaydet ✨' : 'Kaydet'}</span>
           </button>
         </div>

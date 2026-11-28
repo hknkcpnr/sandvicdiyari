@@ -68,11 +68,10 @@ export default function ThemeColorPicker({ variant = 'grid', onThemeChanged }) {
                 type="button"
                 onClick={() => handleSelectTheme(theme.id)}
                 title={theme.name}
-                className={`w-6 h-6 rounded-full flex items-center justify-center transition-all cursor-pointer shrink-0 ${
-                  isSelected
+                className={`w-6 h-6 rounded-full flex items-center justify-center transition-all cursor-pointer shrink-0 ${isSelected
                     ? 'ring-2 ring-offset-2 ring-stone-900 scale-105'
                     : 'opacity-85 hover:opacity-100 hover:scale-110'
-                }`}
+                  }`}
                 style={{ backgroundColor: theme.colorHex }}
               >
                 {isSelected && <i className="fa-solid fa-check text-[9px] text-white drop-shadow"></i>}
@@ -119,11 +118,10 @@ export default function ThemeColorPicker({ variant = 'grid', onThemeChanged }) {
                     key={theme.id}
                     type="button"
                     onClick={() => handleSelectTheme(theme.id)}
-                    className={`w-full flex items-center justify-between p-2 rounded-xl text-left transition-all cursor-pointer ${
-                      isSelected
+                    className={`w-full flex items-center justify-between p-2 rounded-xl text-left transition-all cursor-pointer ${isSelected
                         ? 'bg-stone-900 text-white shadow-2xs'
                         : 'hover:bg-stone-100 text-stone-700'
-                    }`}
+                      }`}
                   >
                     <div className="flex items-center gap-2.5 min-w-0">
                       <span
@@ -152,44 +150,31 @@ export default function ThemeColorPicker({ variant = 'grid', onThemeChanged }) {
     );
   }
 
-  // AYARLAR SAYFASI İÇİN GENİŞ IZGARA KARTLARI (GRID)
+  // AYARLAR SAYFASI İÇİN MİNİMAL & KOMPAKT RENK ŞERİDİ (GRID)
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+    <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2">
       {PANEL_THEMES.map((theme) => {
         const isSelected = theme.id === currentThemeId;
         return (
-          <div
+          <button
             key={theme.id}
+            type="button"
+            title={`${theme.name} — ${theme.desc}`}
             onClick={() => handleSelectTheme(theme.id)}
-            className={`p-3.5 rounded-2xl border-2 transition-all cursor-pointer flex flex-col justify-between gap-2.5 relative ${
-              isSelected
-                ? 'border-stone-900 bg-stone-900 text-white shadow-xs scale-[1.02]'
-                : 'border-stone-200/90 hover:border-stone-300 bg-white text-stone-900 hover:shadow-2xs'
-            }`}
+            className={`px-2.5 py-2 rounded-xl border transition-all cursor-pointer flex items-center gap-2 text-left ${isSelected
+                ? 'border-stone-900 bg-stone-900 text-white shadow-2xs'
+                : 'border-stone-200 hover:border-stone-300 bg-white text-stone-800 hover:bg-stone-50'
+              }`}
           >
-            <div className="flex items-center justify-between gap-2">
-              <span
-                className="w-5 h-5 rounded-full shrink-0 shadow-sm border-2 border-white"
-                style={{ backgroundColor: theme.colorHex }}
-              ></span>
-              {isSelected ? (
-                <span className="text-[10px] font-extrabold bg-white/20 text-white px-2 py-0.5 rounded-full">
-                  Aktif Tema
-                </span>
-              ) : (
-                <span className="text-[10px] font-bold text-stone-400">Seç</span>
-              )}
-            </div>
-
-            <div className="space-y-0.5">
-              <span className={`text-xs font-extrabold block truncate ${isSelected ? 'text-white' : 'text-stone-900'}`}>
-                {theme.name}
-              </span>
-              <span className={`text-[11px] block truncate leading-tight ${isSelected ? 'text-stone-300' : 'text-stone-500'}`}>
-                {theme.desc}
-              </span>
-            </div>
-          </div>
+            <span
+              className="w-3.5 h-3.5 rounded-full shrink-0 border border-white/80 shadow-2xs"
+              style={{ backgroundColor: theme.colorHex }}
+            ></span>
+            <span className={`text-[11px] font-bold truncate flex-1 ${isSelected ? 'text-white' : 'text-stone-800'}`}>
+              {theme.name}
+            </span>
+            {isSelected && <i className="fa-solid fa-check text-[10px] text-white/90 shrink-0"></i>}
+          </button>
         );
       })}
     </div>
